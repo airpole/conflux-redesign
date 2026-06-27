@@ -1,0 +1,144 @@
+# shape — 플레이필드 바깥 경계 변형
+
+> 플레이필드의 두 바깥 경계(Blue·Red)를 시간에 따라 움직여 곡률을 만든다. Conflux의 핵심 메커니즘. 순수 시각이며 판정과 무관.
+> 안쪽 구분선(1·2·3)은 → [[lane-events]]. shape와 동형(선택자만 다름).
+> 근거·결정 배경은 → [[rationale#shape 설계 근거]]
+> 태그: 구조 `[보존]` / 좌표계 외부단위 통일 `[수정]` / init 대칭 `[수정]` / Arc 입력모드 `[수정]`
+
+---
+
+## 1. 개념
+
+```
+Blue │ 1 │ 2 │ 3 │ Red
+(shape)              (shape)
+```
+
+- **Blue / Red** = 두 바깥 경계. 각각 독립된 시간축 체인.
+- 경계가 움직이면 플레이필드 전체가 휘어 보인다. 입력·판정에는 영향 없다 (노트는 자기 lane 키로 친다).
+- **`isBlue`는 방향이 아니라 체인 식별자다.** Blue·Red는 두 체인의 이름일 뿐, 어느 쪽이 시각적으로 왼쪽인지는 tick마다 다를 수 있다 — 두 경계는 교차할 수 있다. 순서 구속이 없다.
+
+---
+
+## 2. 데이터 모델
+
+```
+shapeEvent = {
+  startTick,
+  duration,    // duration 공통 규칙: 0=step 점프, >0=easing 보간
+  isBlue,      // true=Blue 체인, false=Red 체인 (식별자, 방향 아님)
+  targetPos,   // 도달 위치 (외부단위 -8~+8, 0.25 스텝)
+  easing,      // Linear / In-Sine / Out-Sine (null=체인 init)
+}
+```
+
+`chart.shapeEvents` = 이 객체들의 배열.
+
+laneEvent와 동형이다. 차이는 선택자(`isBlue` ↔ `lineNum`)와 좌표계(shape 외부단위 -8~+8 ↔ lane 상대 0~1)뿐. 평가·캐시·편집 도구를 공유한다. 하나의 객체로 병합하지는 않는다(좌표계가 다름).
+
+---
+
+## 3. 좌표계 — 외부단위 단일 (-8~+8)
+
+`targetPos`는 외부단위 -8~+8. 저장·표시·입력이 모두 같은 단위다(변환 없음). 스냅·clamp도 이 단위에서 한다.
+
+- **clamp**: [-8, +8]. 범위 밖 입력은 잘린다.
+- **스냅 단계**: 외부단위 `[1, 0.5, 0.25]` 3단계. 최소 0.25.
+- **render 변환**: 화면 px는 render가 경계를 폭에 매핑해 칠한다(`shapePosToField`). shape는 위치값까지만 관할.
+
+> 저장을 외부단위로 통일. 표시·입력과 저장 단위가 일치해 변환 로직이 사라진다. (구 코드는 내부 0~64 저장 + `posToExt = 내부/4−8` 표시 변환 + `sp2f = 내부/64` render 변환을 거쳤다. 외부단위 통일로 `shapePosToField`는 외부단위 → 필드좌표 매핑 하나만 남는다.)
+
+---
+
+## 4. 평가 (Core) — `shapeGeometryAt(tick)`
+
+Blue·Red 두 체인을 각각 독립 평가한다.
+
+```
+shapeGeometryAt(tick) → { blue, red }
+```
+
+각 체인 평가:
+1. transition(`easing !== null`) 이벤트들을 시간순 정렬.
+2. 초기값 = 그 체인의 init(`easing === null` 이벤트의 targetPos). 없으면 fallback.
+3. 정렬된 transition을 순회:
+   - `tick < startTick` → 현재값 유지하고 종료.
+   - `duration === 0` (step) → 즉시 목표값으로 점프.
+   - `tick >= startTick + duration` (이미 끝남) → 목표값 확정, 다음으로.
+   - 진행 중 → `ease(현재값, 목표값, t, easing)`. `t = (tick − startTick) / duration`, [0,1] clamp.
+
+- shape가 없어도 동작한다. shapeEvents가 없으면 init fallback 고정.
+
+### init fallback
+
+체인에 init 이벤트(`easing === null`)가 없을 때만 쓰는 기본 기하. 대칭:
+
+```
+Blue = -2,  Red = +2   (폭 4, 중앙 0 대칭)
+```
+
+> 차트엔 보통 첫 이벤트로 init을 둔다. fallback은 그게 없을 때의 안전값. 구 코드는 비대칭(Blue 0 / Red +2)이었으나 대칭으로 수정.
+
+---
+
+## 5. easing
+
+저장되는 easing은 **3종 + null**.
+
+| easing | 공식 (`e`, t∈[0,1]) |
+|---|---|
+| `Linear` | `t` |
+| `In-Sine` | `1 − cos(t·π/2)` |
+| `Out-Sine` | `sin(t·π/2)` |
+| `null` | (체인 init — 보간 안 함, 앵커) |
+
+보간: `결과 = from + (to − from) · e`.
+
+### Arc — 입력 모드 (저장값 아님)
+
+`Arc`는 데이터에 저장되지 않는다. 에디터에서 편하게 찍기 위한 입력 모드다. 'Arc'로 이벤트를 찍으면 직전 동색 transition을 보고 **Out-Sine / In-Sine 중 하나를 골라 그 결과를 저장**한다(교번). 'Arc' 문자열은 차트에 남지 않는다.
+
+선택 규칙 (`resolveArcEasing`):
+- 직전 동색 transition = `dest(= startTick + duration)`가 `tick`보다 작은 것 중 dest 최대.
+- 직전이 없거나 / Linear / duration=0(step) / In-Sine → **Out-Sine**.
+- 직전이 Out-Sine → **In-Sine**.
+
+→ Out→In→Out… 교번이 "Arc"가 만드는 무늬다. 평가기(§4 `ease`)는 3종만 처리하면 된다.
+
+laneEvents도 동일하다 (easing·Arc 입력모드 100% 공유).
+
+---
+
+## 6. 편집 (Editor)
+
+shape 탭에서 두 체인(Blue·Red)을 raw로 보여주고 직접 편집한다. lane-events와 같은 타임라인·드래그·easing을 공유하고 선택자(isBlue)만 다르다.
+
+- **스냅**: 시간축은 노트 분박 그리드 공유([[glossary]] `gridDivisor`). 위치축은 §3 스냅(0.25/0.5/1).
+- **symmetry**: 중앙축 기준으로 반대편 이벤트를 생성(`targetPos → −targetPos`, `isBlue → !isBlue`).
+- **init 이동**: init 위치(기본 -2/+2)도 차트별로 옮길 수 있다.
+
+판정 코어는 shape를 모른다. shape를 아는 건 render와 editor뿐.
+
+---
+
+## 7. 렌더 경계 케이스
+
+- **`Blue == Red` (폭 0)**: 두 경계가 한 점으로 모이면 하나의 선으로 수렴한다. 안쪽 구분선 1·2·3도 그 점에 모인다 → [[lane-events]] 동일 규칙.
+- **교차 (`Blue`와 `Red` 위치 역전)**: 허용된다. isBlue가 식별자일 뿐이므로 시각적 좌우가 바뀌어도 정상. render는 두 색을 위치 순서와 무관하게 칠한다.
+
+---
+
+## 8. 결정 완료 / 잔여
+
+확정:
+- [x] 좌표계 외부단위 -8~+8 단일 (저장=표시=입력)
+- [x] init fallback 대칭 -2/+2
+- [x] easing 저장 3종(Linear/In-Sine/Out-Sine) + null
+- [x] Arc = 입력 모드(교번 저장), 데이터에 안 남음
+- [x] isBlue = 체인 식별자, 순서·교차 자유
+- [x] lane-events와 easing·Arc 동일
+
+잔여:
+- [ ] symmetry 중앙축이 항상 0인지 임의 축 지정 가능인지
+- [ ] render 폭 매핑·선 굵기 구체 수치 (render/playfield 추출 시)
+- [ ] L/R/C/P 입력 툴, normalize 등 편집 인터랙션 (편집 UI 설계 시)

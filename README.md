@@ -25,6 +25,7 @@
 | [data-model](core/data-model.md) | 전체 데이터 스키마 단일 출처 (song/chart/note/shape/lane…) |
 | [timing](core/timing.md) | tick↔ms·스크롤 진행도·마디 세그먼트·gridDivisor |
 | [judge](core/judge.md) | 입력 판정 / 노트 매칭 로직 |
+| [shape](core/shape.md) | 바깥 경계(Blue·Red) 변형 / 평가·체인·easing·좌표계 |
 | [lane-events](core/lane-events.md) | 레인 구분선 변형 (shape 안쪽 1·2·3) |
 
 ### `render/` — 렌더
@@ -55,6 +56,7 @@
 
 **연출 (시각, 판정 무관)**
 - shape = 바깥 경계(Blue/Red), laneEvents = 안쪽 구분선(1·2·3). 둘 다 순수 시각.
+- shape 좌표 외부단위 -8~+8 단일(0.25 스텝). isBlue=체인 식별자(교차 자유). easing 저장 3종 + Arc 입력모드.
 - 입력/렌더 분리: judge는 shape·laneEvents·overlap을 모름. render가 overlap을 스스로 판단.
 
 **그리드**
@@ -94,9 +96,8 @@ import은 위→아래 한 방향만. core는 위를 모른다.
 
 ## 진행 상태
 
-**완료**: naming, glossary, data-model, timing, judge, lane-events, colors + 받침 문서
+**완료**: naming, glossary, data-model, timing, judge, lane-events, shape, colors + 받침 문서
 
 **다음 후보**:
-- `core/shape.md` — shape 평가/체인/easing (lane-events와 동형)
 - `core/gauge.md` — 게이지 공식/랭크/state 평가
 - `_plan/build-order.md` — 재구현 수직 슬라이스 순서 (재구현 직전)

@@ -28,7 +28,7 @@ laneEvent = {
   duration,    // duration 공통 규칙: 0=step 점프, >0=easing 보간
   lineNum,     // ∈ {1,2,3} — 어느 구분선
   targetPos,   // 0~1 상대비율 (0=Blue, 1=Red)
-  easing,      // Linear / In-Sine / Out-Sine / Arc (null=체인 초기)
+  easing,      // shape와 동일: Linear / In-Sine / Out-Sine (null=체인 초기). Arc는 입력모드 → [[shape]] §5
 }
 ```
 
@@ -67,7 +67,7 @@ shape 이벤트와 동형이다. 차이는 선택자 하나뿐: shape는 `isBlue
 
 ## 5. 편집 (Editor)
 
-별도 탭이 아니다. 평소엔 shape 편집대로 동작하고, 필요할 때 구분선을 만져 laneEvent를 만든다. 같은 타임라인·드래그·easing을 공유하고 lineNum만 추가된다. easing은 shape와 100% 동일(Linear/In-Sine/Out-Sine/Arc).
+별도 탭이 아니다. 평소엔 shape 편집대로 동작하고, 필요할 때 구분선을 만져 laneEvent를 만든다. 같은 타임라인·드래그·easing을 공유하고 lineNum만 추가된다. easing은 shape와 100% 동일(저장 3종 + Arc 입력모드) → [[shape]] §5.
 
 - **스냅 그리드**: 노트 분박 그리드 시스템을 공유한다([[glossary]] `gridDivisor`). 기본 1/8, divisor 직접 입력으로 임의 N분할(1/12, 1/16, 7, 9 등). 나누는 방식은 노트와 동일하고 적용 축(가로 위치)만 다르다. (데이터는 상대 소수, 입력만 격자에 붙음)
 - **symmetry**: 대칭축을 설정하면 그 기준으로 데칼코마니처럼 반대편에 대칭 이벤트를 생성한다. 축 종류는 구분선 쌍 기준(1-3 대칭, 1-2 대칭, 2-3 대칭 등). 한 입력으로 대칭 다중 이벤트를 만들지만, 데이터 단위는 여전히 "구분선 하나당 이벤트 하나".
@@ -88,7 +88,7 @@ shape 이벤트와 동형이다. 차이는 선택자 하나뿐: shape는 `isBlue
 
 확정:
 - [x] 스냅: 기본 1/8, 1/12·1/16로 세분 확장
-- [x] easing: shape와 100% 동일
+- [x] easing: shape와 100% 동일(저장 3종 + Arc 입력모드)
 - [x] symmetry: 대칭축(1-3, 1-2, 2-3 등) 기준 데칼코마니 생성
 - [x] 절대 입력 보조: 1차 구현에 안 넣음
 - [x] 최소 간격 렌더 + `Blue==Red`면 단일선·구분선 숨김

@@ -52,11 +52,11 @@
 ### Shape / 지오메트리
 | 현재 | 새 이름 | 역할 | 태그 |
 |---|---|---|---|
-| `getShape(tick)` | `shapeGeometryAt(tick)` | 그 틱의 플레이필드 곡선 샘플점 | 보존 |
+| `getShape(tick)` | `shapeGeometryAt(tick)` | 그 틱의 두 경계 위치 `{blue, red}` (구 `{left,right}`) | 수정 |
 | `buildShapePointArrays` | `buildFieldSamplePoints` | 레인 곡선 샘플 배열 생성 | 보존 |
 | `getLines(tick)` | `laneLayoutAt(tick)` | 그 틱의 구분선 1·2·3 상대위치(0~1) | 신규* |
 | `normalizeShapeChain` | `normalizeShapeChain` (유지 가능) | shape 이벤트 체인 정규화 | 보존 |
-| `sp2f(...)` | `shapePosToField(...)` | shape 위치단위 → 필드 좌표 | 보존 |
+| `sp2f(...)` | `shapePosToField(...)` | shape 외부단위(-8~+8) → 필드 좌표 (구 내부0~64) | 수정 |
 | `getStepTicks` / `isStepTick` | `stepTicks` / `isStepTick` | step(즉시점프) 이벤트 틱 | 보존 |
 | `applyEasing(t, type)` | `applyEasing(t, easing)` | easing 곡선 적용 (linear/arc/inSine/outSine 등) | 보존 |
 
@@ -204,7 +204,7 @@ app-*     부트스트랩 / 빌드별 진입점 / config
 - [x] `D`→`song`, `chart`=난이도 하나, difficulty(명칭)/level(숫자) 구분
 - [x] 모든 시간축 이벤트 `startTick` 통일, 이벤트 배열 자연복수(`tempos`/`notes` + `*Events`)
 - [x] `channel`→`lane` 통일, 단어 폐기. `key`(1~6) 물리입력만 분리. `OVERLAP_LANES`
-- [x] line 0~4 번호는 개념 멘탈모델만, 데이터 병합 안 함 (isBlue/lineNum 유지)
+- [x] 5선 멘탈모델은 B/R 양끝 + 1·2·3, 데이터 병합 안 함 (isBlue/lineNum 유지). 0/4 숫자 폐기 → 순서 압박 제거, 교차 허용
 - [x] state 색 → [[colors]] 단일출처. EXTRACTED 새 볼트로 이전
 - [x] audioFile/offset 곡공통(metadata) 고정 — 난이도별 음원/싱크 분기 차단
 - [x] offset 정의 ([[glossary]] 타이밍): 오디오 시작 보정, 양수=음악 당김, leadIn과 별개

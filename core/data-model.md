@@ -90,11 +90,11 @@ note = { startTick, duration, lane, isWide }
 shapeEvent = { startTick, duration, isBlue, targetPos, easing }
 ```
 
-- **isBlue** — true=파란 선(개념상 line 0), false=빨간 선(line 4). 색 구분만.
-- **targetPos** — 도달 위치 (내부 단위 0~64, 절대).
-- **easing** — Linear / In-Sine / Out-Sine / Arc (null=체인 초기).
+- **isBlue** — true=Blue 체인, false=Red 체인. 체인 식별자(방향 아님, 두 경계 교차 가능).
+- **targetPos** — 도달 위치 (외부단위 -8~+8, 0.25 스텝).
+- **easing** — Linear / In-Sine / Out-Sine (null=체인 init). Arc는 입력모드(저장 안 됨).
 - **duration** — 0이면 step(즉시 점프), >0이면 easing 보간.
-- Blue·Red 두 색이 각각 독립 시간축 체인.
+- Blue·Red 두 체인이 각각 독립 시간축. 평가·좌표계·easing 전체는 → [[shape]].
 
 ---
 
@@ -109,7 +109,7 @@ laneEvent = { startTick, duration, lineNum, targetPos, easing }
 - **easing / duration** — shape와 동일.
 - 구분선 1·2·3이 각각 독립 체인. 구속·좌표계·렌더는 → [[lane-events]].
 
-> shape와 동형이나 선택자(isBlue↔lineNum)와 좌표계(절대 0~64 ↔ 상대 0~1)가 다르다. 병합하지 않는다.
+> shape와 동형이나 선택자(isBlue↔lineNum)와 좌표계(절대 -8~+8 ↔ 상대 0~1)가 다르다. 병합하지 않는다.
 
 ---
 
