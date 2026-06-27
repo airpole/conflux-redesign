@@ -23,6 +23,7 @@
 | [naming](core/naming.md) | 명칭 규칙 + 현재→새이름 대응표 + 출처 태그 |
 | [glossary](core/glossary.md) | 개념 사전 (모든 용어의 색인) |
 | [data-model](core/data-model.md) | 전체 데이터 스키마 단일 출처 (song/chart/note/shape/lane…) |
+| [timing](core/timing.md) | tick↔ms·스크롤 진행도·마디 세그먼트·gridDivisor |
 | [judge](core/judge.md) | 입력 판정 / 노트 매칭 로직 |
 | [lane-events](core/lane-events.md) | 레인 구분선 변형 (shape 안쪽 1·2·3) |
 
@@ -35,6 +36,7 @@
 | 문서 | 내용 |
 |---|---|
 | [_extracted/EXTRACTED_FACTS](_extracted/EXTRACTED_FACTS.md) | 현재 코드 실측치 (옛 용어 사용, 참조용) |
+| [_extracted/timing-verification](_extracted/timing-verification.md) | timing 재설계 검증 (현재 코드와 수치 1:1 대조) |
 | [_rationale/rationale](_rationale/rationale.md) | 설계 결정 근거 모음 |
 
 ---
@@ -57,6 +59,12 @@
 
 **그리드**
 - gridDivisor = 1박 N등분. 박자 독립(박자는 마디선만). 드롭다운(3·4배수) + 타이핑(특수 N). 틱 반올림.
+
+**타이밍 / 스크롤**
+- 스크롤 = ms 등속(노트 낙하 속도 BPM 무관, 간격만 변동). "가변속"은 tickToMs의 부산물.
+- BPM(시간)·timeSignature(마디) 둘 다 "정렬→누적 세그먼트→룩업" 한 패턴. 음수 tick은 외삽.
+- core는 진행도(scrollProgressAt)까지. scrollYAt(px)은 render, clock(leadIn/offset)은 game.
+- 마디 표기 sub = gridDivisor 칸 번호(16 고정 폐기).
 - lane 스냅도 이 분박 시스템 공유.
 
 ---
@@ -86,10 +94,9 @@ import은 위→아래 한 방향만. core는 위를 모른다.
 
 ## 진행 상태
 
-**완료**: naming, glossary, data-model, judge, lane-events, colors + 받침 문서
+**완료**: naming, glossary, data-model, timing, judge, lane-events, colors + 받침 문서
 
 **다음 후보**:
-- `core/timing.md` — tickToMs/scrollYAt/가변속 스크롤 (실제 동작 첫 정식화). gridDivisor 상세 흡수.
 - `core/shape.md` — shape 평가/체인/easing (lane-events와 동형)
 - `core/gauge.md` — 게이지 공식/랭크/state 평가
 - `_plan/build-order.md` — 재구현 수직 슬라이스 순서 (재구현 직전)
