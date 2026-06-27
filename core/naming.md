@@ -36,14 +36,18 @@
 
 ## 2. 함수 대응표 (현재 → 새 이름)
 
-### 타이밍 / 스크롤
+### 타이밍 / 스크롤 (상세 → [[timing]])
 | 현재 | 새 이름 | 역할 | 태그 |
 |---|---|---|---|
-| `t2ms(tick)` | `tickToMs(tick)` | 틱 → 누적 경과 ms (BPM 반영) | 보존 |
+| `t2ms(tick)` | `tickToMs(tick)` | 틱 → 누적 경과 ms (BPM 세그먼트) | 보존 |
 | `ms2t(ms)` | `msToTick(ms)` | ms → 틱 | 보존 |
-| `t2y(tick, nowMs)` | `scrollYAt(tick, nowMs)` | 그 틱 노트가 지금 그려질 화면 Y (배속·가변속 반영) | 보존 |
-| `getBPMAt(tick)` | `bpmAt(tick)` | 그 틱의 BPM | 보존 |
-| `compBPM()` | (제거) | 수동 캐시 무효화 → 의존성 선언으로 대체 | 수정 |
+| `t2y` 내부 클로저 (분리) | `scrollProgressAt(tick, nowMs)` | 단위 없는 스크롤 진행도 `(tickToMs−nowMs)/visMs`. core | 신규 |
+| `t2y` 내부 클로저 (분리) | `scrollYAt(...)` → **render층** | 진행도를 화면 Y로. 캔버스 레이아웃 의존이라 core 아님 | 보존 |
+| `tickToMeasure` / `measureToTick` | 동일 | 틱 ⇄ measure.beat.sub 표기 (마디 세그먼트) | 보존 |
+| `getGridLines(st, et)` | 동일 | 범위 내 마디·박선 tick 목록. core (px는 render) | 보존 |
+| `getMinTick()` | 동일 | 렌더 가능 최소 tick (1마디 pre-roll) | 보존 |
+| `getBPMAt(tick)` | (제거) | 死코드(호출처 없음). 필요 시 세그먼트로 재추가 | 수정 |
+| `compBPM()` / `invalidateTSCache()` | (제거) | 수동 캐시 무효화 → 의존성 선언으로 대체 | 수정 |
 
 ### Shape / 지오메트리
 | 현재 | 새 이름 | 역할 | 태그 |
@@ -121,6 +125,7 @@
 | `DEFAULT_KEYS` | `DEFAULT_LANE_KEYS` | |
 | `DEFAULT_ACTION_KEYS` | `DEFAULT_ACTION_KEYS` (유지) | |
 | `SPEED_MIN/MAX/STEP` | `SCROLL_SPEED_MIN/MAX/STEP` | scrollSpeed 명시 |
+| (리터럴 `2000`) | `SCROLL_VIEW_MS` | game-render 내부 리터럴 → 명명 승격 ([[timing]] §3) |
 | `LEAD_IN_MS`,`LN_RELEASE_GRACE_MS` | 유지 | |
 
 ---
@@ -216,4 +221,5 @@ app-*     부트스트랩 / 빌드별 진입점 / config
 - [ ] textEvents 구체 필드 (편집 UI 설계 시)
 - [ ] 입력단계 지역변수(linePos 등) lane/targetPos 기준 정리 (재구현 시)
 - [ ] gridDivisor 드롭다운 기본 목록 값 확정
-- [ ] gridDivisor 상세를 timing.md로 이관 (현재 glossary 임시 거주)
+- [x] gridDivisor 상세를 timing.md로 이관 (glossary는 링크만)
+- [x] core/timing.md 신설 — tick↔ms·스크롤 진행도·마디 세그먼트·gridDivisor. scrollYAt은 render, clock은 game으로 경계 확정. measure도 BPM과 같은 세그먼트 패턴으로 통일, sub 분할 gridDivisor와 통일(16 폐기)

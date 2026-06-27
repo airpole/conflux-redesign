@@ -51,7 +51,7 @@ timeSignatures: [{ startTick, numerator, denominator }] // 박자. 마디선 위
 ```
 
 - 둘 다 곡 공통. 난이도와 무관.
-- `timeSignatures`는 **마디선 위치만** 정한다. 노트 분박(gridDivisor)은 박자와 독립. ([[glossary]] gridDivisor)
+- `timeSignatures`는 **마디선 위치만** 정한다. 노트 분박(gridDivisor)은 박자와 독립. → [[timing]] §4·§6
 
 ---
 
