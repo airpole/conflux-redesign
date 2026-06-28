@@ -101,7 +101,8 @@ shape와 laneEvents를 데이터로 병합하지 않는다(좌표계·역할이 
 
 - **`shape`** (`shapeEvents`) — 플레이필드 전체의 곡률을 시간에 따라 변형하는 이벤트. Conflux의 핵심 메커니즘.
 - **`isBlue`** — shape 체인 식별자. true=Blue 체인, false=Red 체인. 방향이 아니라 두 체인의 이름 — 두 경계는 교차할 수 있다(순서 구속 없음).
-- **`easing`** — 변형의 보간 곡선. 저장값 3종(`Linear`/`In-Sine`/`Out-Sine`) + `null`(체인 init). 공식·Arc 입력모드 전체는 → [[shape]] §5.
+- **`easing`** — 변형의 보간 곡선. 저장값 3종(`Linear`/`In-Sine`/`Out-Sine`) + `null`. `null`인 이벤트는 **anchor** — 보간 없이 값을 못박는다(체인의 첫 anchor는 **init**이라 부름). `Step`(즉시 점프)·`Arc`(교번)는 저장 안 되는 **에디터 입력 라벨**. 평가·공식·입력모드 전체 → [[shape]] §4·§5.
+- **`chain`** — shape·laneEvents가 공유하는 평가 메커니즘. 한 체인 = 한 선택자값(shape `isBlue`, lane `lineNum`)에 묶인 이벤트들의 시간축 사슬. anchor로 시작해 보간 이벤트로 흐른다. 단일 출처 → [[shape]] §4.
 - **`targetPos`** — 변형이 도달할 목표 위치(외부단위 -8~+8, 0.25 스텝).
 - **`laneEvents`** (현재 코드의 `lineEvents`를 개명·확장) — Blue/Red 경계 **안쪽의 구분선 3개(1·2·3)**를 시간에 따라 움직이는 이벤트. shape가 바깥 경계를 움직이듯, laneEvents는 내부 구분선을 움직인다. **순수 시각 연출이며 판정과 무관**. 데이터·구속·좌표계 전체는 → [[lane-events]] 참조.
 - **`textEvents`** (`[{startTick, ...텍스트/위치}]`) — 특정 tick에 화면에 텍스트를 띄우는 연출 이벤트. 게임·에디터 양쪽에서 렌더된다(game-render, notes-render). 특수 연출·튜토리얼용이라 일반 차트엔 드물다. chart별 데이터. (구체 필드는 편집 UI 설계 시 확정)

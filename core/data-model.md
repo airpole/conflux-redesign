@@ -94,7 +94,7 @@ shapeEvent = { startTick, duration, isBlue, targetPos, easing }
 
 - **isBlue** — true=Blue 체인, false=Red 체인. 체인 식별자(방향 아님, 두 경계 교차 가능).
 - **targetPos** — 도달 위치 (외부단위 -8~+8, 0.25 스텝).
-- **easing** — Linear / In-Sine / Out-Sine (null=체인 init). Arc는 입력모드(저장 안 됨).
+- **easing** — Linear / In-Sine / Out-Sine (null=anchor, 보간 안 함). Step·Arc는 저장 안 되는 입력 라벨 → [[shape]] §4·§5.
 - **duration** — 0이면 step(즉시 점프), >0이면 easing 보간.
 - Blue·Red 두 체인이 각각 독립 시간축. 평가·좌표계·easing 전체는 → [[shape]].
 

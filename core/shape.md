@@ -28,7 +28,7 @@ shapeEvent = {
   duration,    // duration 공통 규칙: 0=step 점프, >0=easing 보간
   isBlue,      // true=Blue 체인, false=Red 체인 (식별자, 방향 아님)
   targetPos,   // 도달 위치 (외부단위 -8~+8, 0.25 스텝)
-  easing,      // Linear / In-Sine / Out-Sine (null=체인 init)
+  easing,      // Linear / In-Sine / Out-Sine (null=anchor, 보간 안 함 — §4)
 }
 ```
 
@@ -50,7 +50,19 @@ laneEvent와 동형이다. 차이는 선택자(`isBlue` ↔ `lineNum`)와 좌표
 
 ---
 
-## 4. 평가 (Core) — `shapeGeometryAt(tick)`
+## 4. chain 평가 (Core) — `shapeGeometryAt(tick)`
+
+> **이 절이 chain 평가의 단일 출처다.** laneEvents도 같은 알고리즘을 쓰며(선택자·좌표계만 다름) → [[lane-events]]는 이 절을 참조한다.
+
+### 이벤트는 한 종류, easing이 동작을 가른다
+
+`shapeEvent`는 한 종류의 객체다(§2). 동작은 `easing` 값으로 갈린다:
+
+- **`easing === null`** = **anchor**. 보간하지 않고 그 tick에 값을 **못박는다**(`targetPos`만 쓰고 `duration`은 보지 않는다). 직전값을 무시하고 기준을 새로 세운다.
+  - 체인의 **첫 anchor를 `init`이라 부른다** — 체인의 시작값. (호칭일 뿐 별도 타입이 아니다. 평가는 anchor를 첫 번째인지 따지지 않는다.)
+- **`easing !== null`** = **보간 이벤트**. 직전값(from)에서 자기 `targetPos`(to)까지 `duration` 동안 `easing` 곡선으로 흐른다. from은 자기가 들지 않고 직전 문맥에서 상속한다.
+
+### 평가 절차
 
 Blue·Red 두 체인을 각각 독립 평가한다.
 
@@ -58,26 +70,26 @@ Blue·Red 두 체인을 각각 독립 평가한다.
 shapeGeometryAt(tick) → { blue, red }
 ```
 
-각 체인 평가:
-1. transition(`easing !== null`) 이벤트들을 시간순 정렬.
-2. 초기값 = 그 체인의 init(`easing === null` 이벤트의 targetPos). 없으면 fallback.
-3. 정렬된 transition을 순회:
+각 체인:
+1. **초기값** = 그 체인 anchor(`easing === null`)의 `targetPos`. anchor가 없으면 init fallback.
+2. 보간 이벤트(`easing !== null`)들을 시간순 정렬.
+3. 순회하며:
    - `tick < startTick` → 현재값 유지하고 종료.
-   - `duration === 0` (step) → 즉시 목표값으로 점프.
+   - `duration === 0` → 즉시 목표값으로 점프. *(에디터 입력 라벨 "Step", §5)*
    - `tick >= startTick + duration` (이미 끝남) → 목표값 확정, 다음으로.
    - 진행 중 → `ease(현재값, 목표값, t, easing)`. `t = (tick − startTick) / duration`, [0,1] clamp.
 
-- shape가 없어도 동작한다. shapeEvents가 없으면 init fallback 고정.
+- shape가 없어도 동작한다. 보간 이벤트가 없으면 anchor(또는 fallback) 값으로 고정.
 
 ### init fallback
 
-체인에 init 이벤트(`easing === null`)가 없을 때만 쓰는 기본 기하. 대칭:
+체인에 anchor가 하나도 없을 때만 쓰는 기본 기하. 대칭:
 
 ```
 Blue = -2,  Red = +2   (폭 4, 중앙 0 대칭)
 ```
 
-> 차트엔 보통 첫 이벤트로 init을 둔다. fallback은 그게 없을 때의 안전값. 구 코드는 비대칭(Blue 0 / Red +2)이었으나 대칭으로 수정.
+> 차트엔 보통 첫 이벤트로 init(첫 anchor)을 둔다. fallback은 그게 없을 때의 안전값. 구 코드는 비대칭(Blue 0 / Red +2)이었으나 대칭으로 수정.
 
 ---
 
@@ -90,22 +102,28 @@ Blue = -2,  Red = +2   (폭 4, 중앙 0 대칭)
 | `Linear` | `t` |
 | `In-Sine` | `1 − cos(t·π/2)` |
 | `Out-Sine` | `sin(t·π/2)` |
-| `null` | (체인 init — 보간 안 함, 앵커) |
+| `null` | (보간 안 함 — anchor, §4. duration 무시) |
 
 보간: `결과 = from + (to − from) · e`.
 
+### Step — 입력 라벨 (저장값 아님)
+
+`Step`은 별도 easing 값이 아니다. **에디터 입력 라벨**일 뿐이다. 사용자가 "즉시 점프"를 찍으면 에디터는 `Step`으로 보여주되, 저장은 `{easing: 'Linear', duration: 0}`으로 한다. 평가는 §4대로 `duration === 0`을 점프로 처리하므로 결과가 같다.
+
+> 구 코드엔 `easing: 'Step'`이 따로 있었으나 폐기됐고, zero-duration Linear가 그 자리를 대신한다(실측: shape.js 주석 "Step easing removed, duration=0 covers it"). 데이터는 3종 + null로 깨끗하게 두고, "Step"은 저장 안 되는 입력 호칭으로만 둔다 — Arc와 같은 패턴.
+
 ### Arc — 입력 모드 (저장값 아님)
 
-`Arc`는 데이터에 저장되지 않는다. 에디터에서 편하게 찍기 위한 입력 모드다. 'Arc'로 이벤트를 찍으면 직전 동색 transition을 보고 **Out-Sine / In-Sine 중 하나를 골라 그 결과를 저장**한다(교번). 'Arc' 문자열은 차트에 남지 않는다.
+`Arc`도 데이터에 저장되지 않는다. 에디터에서 편하게 찍기 위한 입력 모드다. 'Arc'로 이벤트를 찍으면 직전 동색 보간 이벤트를 보고 **Out-Sine / In-Sine 중 하나를 골라 그 결과를 저장**한다(교번). 'Arc' 문자열은 차트에 남지 않는다.
 
 선택 규칙 (`resolveArcEasing`):
-- 직전 동색 transition = `dest(= startTick + duration)`가 `tick`보다 작은 것 중 dest 최대.
-- 직전이 없거나 / Linear / duration=0(step) / In-Sine → **Out-Sine**.
+- 직전 동색 보간 이벤트 = `dest(= startTick + duration)`가 `tick`보다 작은 것 중 dest 최대.
+- 직전이 없거나 / Linear / duration=0(Step) / In-Sine → **Out-Sine**.
 - 직전이 Out-Sine → **In-Sine**.
 
 → Out→In→Out… 교번이 "Arc"가 만드는 무늬다. 평가기(§4 `ease`)는 3종만 처리하면 된다.
 
-laneEvents도 동일하다 (easing·Arc 입력모드 100% 공유).
+> **저장 안 되는 입력 호칭 정리**: `Step`(=Linear+duration0)·`Arc`(=교번 Sine)는 에디터 라벨이고, 저장값은 늘 `Linear`/`In-Sine`/`Out-Sine`/`null` 넷뿐이다. laneEvents도 동일하다 (easing·Step·Arc 입력모드 100% 공유).
 
 ---
 
@@ -137,6 +155,8 @@ shape 탭에서 두 체인(Blue·Red)을 raw로 보여주고 직접 편집한다
 - [x] Arc = 입력 모드(교번 저장), 데이터에 안 남음
 - [x] isBlue = 체인 식별자, 순서·교차 자유
 - [x] lane-events와 easing·Arc 동일
+- [x] chain 평가 단일 출처를 §4로 확정 (이벤트 1종, easing null=anchor / 첫 anchor=init 호칭, lane은 이 절 참조)
+- [x] Step = 저장 안 되는 입력 라벨(=Linear+duration0). 데이터 easing은 3종+null 유지
 
 잔여:
 - [ ] symmetry 중앙축이 항상 0인지 임의 축 지정 가능인지

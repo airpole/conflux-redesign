@@ -116,8 +116,10 @@ import은 위→아래 한 방향만. core는 위를 모른다.
 
 > 크레딧·설정 정리: `artist→musicBy`·`charter→chartBy`·`jacketBy` 신규(저장은 값만, "by"는 표시 레이어). 곡별 `jacketBrightness` 폐기→전역 [[settings]]로 통일·개명. `measureLabelOffset` 곡공통 [번복]→에디터 settings. `cmod`·`hidden` 폐기. 설정 단일 출처 [[settings]] 신설(`_meta/`). 근거 [[rationale]].
 
+> chain 평가 통일: `easing===null`=anchor(보간 안 함, 첫 anchor=init 호칭), `easing≠null`=보간. anchor/transition 2종 분리·chain-event.md 신설 **폐기** — 데이터는 1종이라 이름은 예외(anchor)에만. 평가 단일 출처는 [[shape]] §4, lane은 링크. `Step`(=Linear+dur0)·`Arc`는 저장 안 되는 입력 라벨. 근거 [[rationale]].
+
 **다음 후보**:
-- `_meta/chain-event.md` — anchor(easing=null)·transition(easing≠null) 두 종 정의
-- `_plan/architecture.md` — 폴더·import 방향
+- `_plan/architecture.md` — 폴더·import 방향 (naming §5·scene §9에 흩어진 결정 수집)
 - `_plan/build-order.md` — 재구현 수직 슬라이스 순서 (재구현 직전)
+- 검토 채팅 1회 — 누적 문서 메타 검토(단순화/누락/단일출처/링크)
 - scene 잔여 — credit 표시초·pause/result 입력 키 등 구체값 (scene.md §10)

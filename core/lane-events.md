@@ -28,7 +28,7 @@ laneEvent = {
   duration,    // duration 공통 규칙: 0=step 점프, >0=easing 보간
   lineNum,     // ∈ {1,2,3} — 어느 구분선
   targetPos,   // 0~1 상대비율 (0=Blue, 1=Red)
-  easing,      // shape와 동일: Linear / In-Sine / Out-Sine (null=체인 초기). Arc는 입력모드 → [[shape]] §5
+  easing,      // shape와 동일: Linear / In-Sine / Out-Sine (null=anchor, 보간 안 함). Step·Arc는 입력 라벨 → [[shape]] §5
 }
 ```
 
@@ -77,10 +77,12 @@ shape 이벤트와 동형이다. 차이는 선택자 하나뿐: shape는 `isBlue
 
 ## 6. 평가 (Core)
 
-- 각 구분선 1·2·3은 독립된 시간축 체인을 가진다 (`lineNum`으로 분리).
-- **`laneLayoutAt(tick)`** → `{ line1, line2, line3 }` (각 0~1 상대). px 변환은 render가 경계와 lerp.
-- step(duration=0)은 즉시 점프, 그 외는 easing 보간.
-- shape가 없어도 동작한다. laneEvents가 없으면 init 균등 고정.
+**chain 평가 알고리즘은 [[shape]] §4가 단일 출처다.** laneEvents는 같은 알고리즘을 쓰고, 다른 점은 둘뿐이다:
+
+- **선택자**: shape는 `isBlue`로 Blue·Red 두 체인, lane은 `lineNum`으로 구분선 1·2·3 세 체인을 가른다.
+- **반환·좌표계**: `laneLayoutAt(tick)` → `{ line1, line2, line3 }` (각 0~1 상대). px 변환은 render가 경계와 lerp.
+
+나머지(anchor=`easing===null`로 값 못박기 / 보간 이벤트 정렬·순회 / `duration===0` 점프 / easing 보간)는 shape §4와 동일하다. anchor가 없으면 init 균등(0.25/0.5/0.75) fallback.
 
 ---
 
