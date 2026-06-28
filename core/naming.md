@@ -83,7 +83,7 @@
 | `evaluateEnd` / `_evalSorted` | `evaluateState` / (내부화) | clear state(AS/AP/FC/H/C/F) 평가·terminate 판정 | 수정‡ |
 | (신규) | `clearState(playState)` | 현재 달성 중인 state 산출 (rank와 별개 축) | 신규 |
 
-‡ 기존 lock/clearMark 평가를 **state 축**으로 재정의. AS/AP/FC/Cascade는 gaugeMode 값(단일 축)이고, 결과는 rank와 **독립적으로** 기록되는 state(AS/AP/FC/H/C/F/N). gaugeMode 정의는 [[glossary]] 단일 출처.
+‡ 기존 lock/clearMark 평가를 **state 축**으로 재정의. AS/AP/FC/Cascade는 gaugeMode 값(단일 축)이고, 결과는 rank와 **독립적으로** 기록되는 state(AS/AP/FC/H/C/F/N). gaugeMode 정의는 [[gauge]] 단일 출처.
 
 ### 노트 색/스킨
 | 현재 | 새 이름 | 역할 | 태그 |
@@ -121,7 +121,7 @@
 | `GAUGE_DELTA` | `GAUGE_DELTA` (유지) | |
 | `NORMAL_CLEAR_PCT` | `NORMAL_CLEAR_PCT` (유지) | |
 | `RANK_TABLE` | `RANK_TABLE` (유지) | rank 축 |
-| `LOCK_TIERS` | `GAUGE_MODE_TABLE` | gaugeMode 정의 (normal/hard 게이지 동작 + AS/AP/FC terminate 조건 + Cascade 강등 사슬). 단일 출처 [[glossary]] |
+| `LOCK_TIERS` | `GAUGE_MODE_TABLE` | gaugeMode 정의 (normal/hard 게이지 동작 + AS/AP/FC terminate 조건 + Cascade 강등 사슬). 단일 출처 [[gauge]] |
 | `DEFAULT_KEYS` | `DEFAULT_LANE_KEYS` | |
 | `DEFAULT_ACTION_KEYS` | `DEFAULT_ACTION_KEYS` (유지) | |
 | `SPEED_MIN/MAX/STEP` | `SCROLL_SPEED_MIN/MAX/STEP` | scrollSpeed 명시 |
@@ -151,7 +151,7 @@
 | `ES` (현재 chart 포인터) | `editorState.currentChartIndex` | 편집 중 난이도 |
 | `ES.pvSpd` | `editorState.scrollSpeed` | scrollSpeed (playbackRate 아님) |
 | `PS.gaugeValue` | `playState.gaugePct` | 0~100 |
-| `PS.gaugeType` + `lockTarget`/`lockMode` | `playState.gaugeMode` | normal / hard / AS / AP / FC / Cascade (단일 축, [[glossary]]) |
+| `PS.gaugeType` + `lockTarget`/`lockMode` | `playState.gaugeMode` | normal / hard / AS / AP / FC / Cascade (단일 축, [[gauge]]) |
 | `PS.playCombo`/`playMaxCombo` | `playState.combo` / `playState.maxCombo` | |
 | `PS.playHitMap` | `playState.hits` | note→판정상태 |
 | `PS.playMissSet` | `playState.misses` | |

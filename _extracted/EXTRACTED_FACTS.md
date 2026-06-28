@@ -79,7 +79,7 @@ gaugeValue   = clamp(0, 100, gaugeValue + delta)
 
 > ⚠️ **메모리와 코드 불일치 주의**: 시스템 메모리에는 "Hard mercy removed, TAIL_MISS = MISS, 100% cap, a=150%/total"로 잡혀있는데, 이는 **Normal 게이지** 기준 설명. 현재 코드에는 Normal/Hard **두 게이지가 공존**하고 Hard는 TAIL_MISS≠MISS(−2.5 vs −5).
 >
-> ✅ **결정됨**(재설계): 게이지는 **6종 단일 축** gaugeMode(normal/hard/AS/AP/FC/Cascade)로 확정. 코드의 2게이지(gaugeType) × lock(lockTarget/lockMode) 직교 구조를 유저 관점 단일 선택지로 평탄화한 [수정]. AS/AP/FC는 게이지 무의미(terminate 유일 실패), Cascade는 강등 사슬을 게이지 본체까지 확장. 단일 출처 → [[glossary]] gaugeMode 표 + Cascade 단락. 수치(위 표)는 [보존].
+> ✅ **결정됨**(재설계): 게이지는 **6종 단일 축** gaugeMode(normal/hard/AS/AP/FC/Cascade)로 확정. 코드의 2게이지(gaugeType) × lock(lockTarget/lockMode) 직교 구조를 유저 관점 단일 선택지로 평탄화한 [수정]. AS/AP/FC는 게이지 무의미(terminate 유일 실패), Cascade는 강등 사슬을 게이지 본체까지 확장. 단일 출처 → [[gauge]] gaugeMode 표 + Cascade 단락. 수치(위 표)는 [보존].
 
 ---
 
@@ -90,7 +90,7 @@ gaugeValue   = clamp(0, 100, gaugeValue + delta)
 - `lockMode`:
   - `terminate` = 조건 깨지는 순간 강제 종료
   - `cascade` = 한 단계 강등(AS→AP→FC→bare gauge)하고 계속, 곡 끝에 살아남은 최고 티어가 최종 마크. **코드의 bare gauge는 시작 시 고른 gaugeType 하나뿐**(fc 아래가 곧 끝).
-    - ✅ 재설계 [수정]: 강등 사슬을 `AS→AP→FC→Hard→Normal`로 확장(게이지 본체 2종까지 포함). 코드엔 없는 신규 → [[glossary]] Cascade.
+    - ✅ 재설계 [수정]: 강등 사슬을 `AS→AP→FC→Hard→Normal`로 확장(게이지 본체 2종까지 포함). 코드엔 없는 신규 → [[gauge]] Cascade.
 
 ### 랭크 (백만점제, `RANK_TABLE`, 높음→낮음 첫 도달)
 | 랭크 | 점수 |
