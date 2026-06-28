@@ -35,7 +35,7 @@ metadata = {
   offset,             // 오디오 싱크 보정 ms (양수=음악 당김). [[glossary]] offset
   jacketImage,        // 자켓 (없으면 placeholder 생성)
   jacketBrightness,   // 자켓 배경 밝기 0~100 (기본 50)
-  measureLabelOffset, // 표시용 마디번호 보정 (내부 인덱싱 불변, UI 라벨만 이동)
+  measureLabelOffset, // 표시용 마디번호 보정 (내부 인덱싱 불변, UI 라벨만 이동). 곡 공통 — timeSignatures(§3)와 한 몸
 }
 ```
 
@@ -148,7 +148,6 @@ playState   = { gaugePct, gaugeMode, combo, maxCombo, hits, misses, holds,
 
 ## 11. 미해결
 
-- [ ] measureLabelOffset이 곡 공통인지 chart별인지 (현재 곡 공통 가정)
 - [ ] textEvent 구체 필드
 - [ ] .cfx 포맷 상세 문서 (data-model에서 분리)
 - [ ] schemaVersion 재구현 시작 번호

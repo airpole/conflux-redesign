@@ -72,6 +72,8 @@ tpbUnit = TPB × 4 / denominator     // 1박의 tick (분모가 8이면 TPB/2)
 tpm     = tpbUnit × numerator        // 1마디의 tick
 ```
 
+- 빈 `timeSignatures`는 `[{startTick:0, numerator:4, denominator:4}]`로 본다. [보존] (§2 tempos fallback과 대칭.)
+
 누적: 세그먼트 i의 `measure` = i−1의 `measure` + ⌊(구간 길이 tick) / (i−1의 `tpm`)⌋.
 
 - **`tickToMeasure(tick)`** → `"measure.beat.sub"` 문자열. 세그먼트 룩업 후 한 번의 분해: [보존]
@@ -148,6 +150,7 @@ sub = round(subTick / (tpbUnit / gridDivisor))
 |---|---|---|
 | tickToMs / msToTick | 보존 | 세그먼트 모델·수치 그대로 |
 | tickToMeasure / measureToTick / getGridLines | 보존 | 동작 동일, 음수 분기 3겹 제거(구조) |
+| 빈 tempos/timeSignatures fallback | 보존 | 120bpm / 4·4 (현재 코드 기본값) |
 | sub 분할 = gridDivisor | 수정 | 16 고정 폐기, gridDivisor 통일 |
 | scrollProgressAt 분리 | 신규 | px(scrollYAt)는 render로 |
 | SCROLL_VIEW_MS 명명 | 수정 | 리터럴 2000 승격 |
