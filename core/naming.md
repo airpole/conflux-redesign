@@ -139,6 +139,10 @@
 | `ES` | `editorState` | 에디터 런타임 |
 | `PS` | `playState` | 플레이 런타임 |
 | `D.metadata` | `song.metadata` | 곡 공통 |
+| `D.metadata.artist` | `song.metadata.musicBy` | 작곡 크레딧 개명. 표시 "Music by" → [[scene]] |
+| (신규) | `song.metadata.jacketBy` | 자켓 크레딧 [신규]. 표시 "Jacket by" |
+| `D.metadata.jacketBrightness` | (폐기) | 곡 데이터 아님 → 전역 [[settings]] `jacketBrightness`로 이전·개명 |
+| `D.metadata.measureLabelOffset` | (폐기) | 곡 데이터 아님 → 에디터 [[settings]]로 이전 |
 | `D.tempo` | `song.tempos` | 곡 공통. 복수형 + startTick |
 | `D.timeSignatures` | `song.timeSignatures` | 곡 공통 |
 | `D.schemaVersion` | `song.schemaVersion` | |
@@ -147,7 +151,7 @@
 | `D.shapeEvents` | `chart.shapeEvents` | chart별 |
 | `D.lineEvents` | `chart.laneEvents` | chart별. 개명 확정 |
 | `D.textEvents` | `chart.textEvents` | chart별 |
-| `D.metadata.difficulty/level/charter` | `chart.difficulty / .level / .charter` | metadata에서 chart로 내림 |
+| `D.metadata.difficulty/level/charter` | `chart.difficulty / .level / .chartBy` | metadata→chart로 내림. `charter`→`chartBy` 개명 |
 | `ES` (현재 chart 포인터) | `editorState.currentChartIndex` | 편집 중 난이도 |
 | `ES.pvSpd` | `editorState.scrollSpeed` | scrollSpeed (playbackRate 아님) |
 | `PS.gaugeValue` | `playState.gaugePct` | 0~100 |
@@ -160,6 +164,32 @@
 | `PS.fastCount`/`slowCount` | `playState.fastCount` / `slowCount` | 세션 누적, result 표시 |
 | `PS.flashTiming` | `playState.flashTiming` | 'FAST'/'SLOW'/null 순간표시 (기록 안 됨) |
 | (신규) | `playState.state` | 달성 중 clear state (AS/AP/FC/H/C/F/N) |
+
+---
+
+## 4.5 settings / scene 명칭
+
+**settings** — 저장 안 되는 곡 데이터와 달리, 플레이어 1회 설정은 영속 단일 객체에 모인다. 정의·소속 단일 출처 → [[settings]]. 개명만 여기 기록:
+
+| 현재 (settings.js 실측) | 새 이름 | 비고 |
+|---|---|---|
+| `bgBrightness` | `jacketBrightness` | 자켓 배경 밝기. 곡별 `metadata.jacketBrightness` 폐기하고 이 전역값으로 단일화 |
+| `judgeLinePos` | `judgeLinePos` (유지) | 판정선 세로위치(분수). 기본=최하단(8/9), 작을수록 위로(raise-only) [보존] |
+| `hiSpeed` | `scrollSpeed` | [[glossary]] scrollSpeed 단일 용어로 통일 (구 `ES.pvSpd` = settings `hiSpeed`) |
+| `cmod` | (폐기) | 등속 스크롤. 미출시(soon) 기능, 재설계에서 삭제 → [[scene]] §5 |
+| `hidden` | (폐기) | 레인 커버(상단). judgeLinePos(판정선 올리기)가 대체 → [[scene]] §5 |
+| (에디터 전용) | `measureLabelOffset` | metadata에서 이전. 표시용 마디번호 보정(내부 인덱싱 불변) |
+
+> `sudden`(상단 불투명 커버)은 **유지**. `hidden`만 폐기 — 둘은 코드상 별개 커버다.
+
+**scene** — 화면 그래프 이름. 정의 → [[scene]]:
+
+| 현재 | 새 이름 | 비고 |
+|---|---|---|
+| `scene-music-select` | `song-select` | 개명. song⊃chart 선택 의미 명확화 |
+| (신규) | `credit` | play 직전 자동 인터스티셜 (크레딧 표시) |
+| play overlay | `play` | overlay→정식 scene 승격 |
+| result overlay | `result` | overlay→정식 scene 승격 |
 
 ---
 
@@ -188,6 +218,13 @@ app-*     부트스트랩 / 빌드별 진입점 / config
 - [x] core 함수 인자명 `nowMs` 통일
 - [x] TAIL_OK/TAIL_MISS → SYNC/MISS 통합
 - [x] clear state 축을 rank와 분리 (AS/AP/FC/H/C/F/N)
+
+확정 (크레딧·settings 개명 세션):
+- [x] `artist`→`musicBy`, `charter`→`chartBy`(chart별 유지), `jacketBy` 신규. "by" 접미사는 표시 레이어(credit 씬)
+- [x] 곡별 `jacketBrightness` 폐기 → 전역 settings `bgBrightness`를 `jacketBrightness`로 개명·단일화
+- [x] `measureLabelOffset` 곡 공통 번복 → 에디터 설정으로 이전
+- [x] `judgeLinePos` 개명 안 함(이름 유지), settings 소속. raise-only [보존]
+- [x] `cmod`·`hidden` 폐기 (sudden은 유지). `music-select`→`song-select`. credit/play/result scene 명칭
 
 확정 (이번 논의):
 - [x] 노트 4종 확정: Tap / Hold / WideTap / WideHold (`isWide` × `duration` 조합)

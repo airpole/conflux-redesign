@@ -28,18 +28,20 @@ song = {
 
 ```
 metadata = {
-  title,              // 곡 제목
-  subtitle,           // 부제
-  artist,             // 작곡가
-  audioFile,          // 오디오 파일 참조 (곡 공통 — 난이도별로 안 갈림)
-  offset,             // 오디오 싱크 보정 ms (양수=음악 당김). [[glossary]] offset
-  jacketImage,        // 자켓 (없으면 placeholder 생성)
-  jacketBrightness,   // 자켓 배경 밝기 0~100 (기본 50)
-  measureLabelOffset, // 표시용 마디번호 보정 (내부 인덱싱 불변, UI 라벨만 이동). 곡 공통 — timeSignatures(§3)와 한 몸
+  title,        // 곡 제목
+  subtitle,     // 부제
+  musicBy,      // 작곡 크레딧 (구 artist). 표시 "Music by ○○○"는 credit 씬이 붙임 → [[scene]]
+  jacketBy,     // 자켓 제작 크레딧 [신규]. 표시 "Jacket by ○○○"
+  audioFile,    // 오디오 파일 참조 (곡 공통 — 난이도별로 안 갈림)
+  offset,       // 오디오 싱크 보정 ms (양수=음악 당김). [[glossary]] offset
+  jacketImage,  // 자켓 이미지 (없으면 placeholder 생성)
 }
 ```
 
-> `charter` / `difficulty` / `level`은 metadata가 아니라 **chart별**이다 (§4).
+- 크레딧 필드는 **값만** 저장한다. "Music by / Jacket by / Chart by" 접미사는 표시 레이어(credit 씬)가 붙인다 → [[scene]] §6.
+- `chartBy`(채보 크레딧) / `difficulty` / `level`은 metadata가 아니라 **chart별**이다 (§4).
+
+> **제거됨**: `jacketBrightness`(자켓 배경 밝기)는 곡 데이터가 아니라 **전역 플레이어 설정**으로 이전·개명 → [[settings]] `jacketBrightness`. `measureLabelOffset`은 곡 데이터가 아니라 **에디터 설정**으로 이전 → [[settings]]. 근거 [[rationale]].
 
 ---
 
@@ -61,7 +63,7 @@ timeSignatures: [{ startTick, numerator, denominator }] // 박자. 마디선 위
 chart = {
   difficulty,    // 난이도 명칭 (문자열: "Trace" / "Drift" / "Surge" …)
   level,         // 난이도 수치 (숫자)
-  charter,       // 이 난이도의 제작자 (난이도마다 다를 수 있음)
+  chartBy,       // 이 난이도의 채보 제작자 (구 charter). 난이도마다 다를 수 있어 chart별. 표시 "Chart by ○○○"
   notes,         // §5
   shapeEvents,   // §6
   laneEvents,    // §7 (상세 [[lane-events]])

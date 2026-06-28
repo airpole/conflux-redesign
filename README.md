@@ -35,6 +35,16 @@
 |---|---|
 | [colors](render/colors.md) | 모든 색 단일 출처 |
 
+### `scene/` — 화면 그래프
+| 문서 | 내용 |
+|---|---|
+| [scene](scene/scene.md) | game 흐름 화면 그래프 (title→modeselect→song-select→credit→play→result), 전환·스택·호스트 |
+
+### `_meta/` — 비(非)로직 정의
+| 문서 | 내용 |
+|---|---|
+| [settings](_meta/settings.md) | 플레이어·에디터 설정 단일 출처 (곡 데이터 아님) |
+
 ### 받침 문서
 | 문서 | 내용 |
 |---|---|
@@ -98,13 +108,16 @@ import은 위→아래 한 방향만. core는 위를 모른다.
 
 ## 진행 상태
 
-**완료**: naming, glossary, data-model, timing, judge, lane-events, shape, gauge, colors, constants, scene + 받침 문서
+**완료**: naming, glossary, data-model, timing, judge, lane-events, shape, gauge, colors, constants, scene, settings + 받침 문서
 
 > 게이지(gaugeMode 6종·terminate·Cascade·state)는 **정의 [[gauge]] / 수치 [[constants]] §2**로 분리 단일 출처화. (정의가 무거워져 glossary 한 섹션에서 전용 문서로 독립 — 근거 [[rationale]].) AS/AP/FC/Cascade 단일 축 평탄화는 [수정](코드의 gaugeType×lock 직교를 유저 관점 1축으로).
 
-> scene 그래프는 **game 흐름 1급**으로 작성: title→modeselect→song-select→credit→play→result (editor는 별도 축, 범위 밖). song-select(←music-select 개명), credit(신규 인터스티셜), play/result(overlay→정식 scene). 후속 작업(필드 개명 등)은 scene.md §10 잔여에 기록.
+> scene 그래프는 **game 흐름 1급**으로 작성: title→modeselect→song-select→credit→play→result (editor는 별도 축, 범위 밖). song-select(←music-select 개명), credit(신규 인터스티셜), play/result(overlay→정식 scene).
+
+> 크레딧·설정 정리: `artist→musicBy`·`charter→chartBy`·`jacketBy` 신규(저장은 값만, "by"는 표시 레이어). 곡별 `jacketBrightness` 폐기→전역 [[settings]]로 통일·개명. `measureLabelOffset` 곡공통 [번복]→에디터 settings. `cmod`·`hidden` 폐기. 설정 단일 출처 [[settings]] 신설(`_meta/`). 근거 [[rationale]].
 
 **다음 후보**:
-- `scene/scene.md` 후속 — 필드 개명(artist→musicBy·charter→chartBy·jacketBy 신규), metadata 정리, settings 문서 신설 검토 (§10 잔여)
+- `_meta/chain-event.md` — anchor(easing=null)·transition(easing≠null) 두 종 정의
 - `_plan/architecture.md` — 폴더·import 방향
 - `_plan/build-order.md` — 재구현 수직 슬라이스 순서 (재구현 직전)
+- scene 잔여 — credit 표시초·pause/result 입력 키 등 구체값 (scene.md §10)

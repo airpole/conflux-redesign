@@ -25,7 +25,7 @@
 - **`chart`** — 칠 수 있는 보면 하나 = 난이도 하나. song에 N개.
 - **`difficulty`** = 난이도 **명칭**(문자열, `Trace`/`Drift`/`Surge`…). **`level`** = 난이도 **수치**(숫자). 다른 개념.
 - **곡 공통**: metadata·tempos·timeSignatures·audioFile·offset (오디오가 하나이므로 난이도와 무관, 분기 차단).
-- **chart별**: notes·shapeEvents·laneEvents·textEvents·charter (난이도마다 자유).
+- **chart별**: notes·shapeEvents·laneEvents·textEvents·chartBy (난이도마다 자유).
 - 런타임은 **한 번에 한 chart**만 다룬다. 코어에는 song 전체가 아니라 활성 보면을 펼쳐 넘긴다.
 
 
@@ -131,6 +131,22 @@ shape와 laneEvents를 데이터로 병합하지 않는다(좌표계·역할이 
 - **`scroll`** — 노트는 **시간 등속**으로 흐른다(ms 공간 선형). BPM은 노트 간격만 바꾸고 낙하 속도는 일정. "가변속"은 `tickToMs`의 BPM 누적 부산물. 진행도 정의·`scrollProgressAt` → [[timing]] §3.
 - **`gridDivisor`** — 노트 배치용 분박 그리드. "1박을 N등분"(박자 독립, 기본 8). 마디 표기 sub·lane 스냅도 이 N을 공유한다. 입력 위계·틱 반올림 등 상세 → [[timing]] §6.
 - **`scrollSpeed`** — (위 절대분리 항목 참조.) `visMs = SCROLL_VIEW_MS / scrollSpeed` → [[timing]] §3.
+
+---
+
+## 화면 / Scene
+
+> game 흐름의 화면 그래프. 전환·스택·호스트 상세는 → [[scene]]. 여기서는 색인만.
+
+- **`song-select`** (구 `music-select`) — 곡(song)과 그 안의 난이도(chart)를 고르는 화면. Space로 곡별 옵션 패널 토글, Enter로 확정.
+- **`credit`** — 곡 확정 후 play 직전, 제작 크레딧을 잠깐 보여주는 **자동 인터스티셜** [신규]. 입력을 안 받고 자동으로 play로 넘어가며, 되돌아갈 수 없다(스택에 replace로 들어가 Exit/Back은 credit을 건너뛴다). 표시: `Music by` / `Jacket by` / `Chart by` — 접미사는 표시 레이어가 붙이고, 저장 필드는 값만(`musicBy`·`jacketBy`·`chartBy` → [[data-model]]).
+- **`play`** / **`result`** — overlay에서 정식 scene으로 승격. 플레이 엔진은 호스트(game/editor)를 모른다.
+
+## 설정 / Settings
+
+- **`settings`** — 저장되는 곡 데이터와 별개로, 플레이어가 1회 정하는 영속 설정의 단일 객체. 정의·필드·소속 전체는 → [[settings]].
+- **`jacketBrightness`** — 자켓 배경 밝기(전역 설정). 곡별 값이 아니라 플레이어 취향이다. (구 곡별 `metadata.jacketBrightness`는 폐기, 구 전역 `bgBrightness`를 개명.)
+- **`judgeLine`** 의 세로위치(`judgeLinePos`)·`sudden`(상단 커버)·`noteSkin`·`scrollSpeed` 등도 settings 소속. ([폐기] `cmod`·`hidden`.)
 
 ---
 
