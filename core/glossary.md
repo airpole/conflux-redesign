@@ -110,29 +110,35 @@ shape와 laneEvents를 데이터로 병합하지 않는다(좌표계·역할이 
 
 ## 게이지 / 결과 (Gauge / Result)
 
-- **`gauge`** (`gaugePct`, 0~100) — 생명력 막대. 0이 되면 게임이 강제 종료되어 result로 간다. **terminate는 별도 경로가 아니라 "게이지를 즉시 0으로" 만드는 것**이라 모든 실패가 이 한 경로를 탄다.
+- **`gauge`** (`gaugePct`, 0~100) — 생명력 막대. 0이 되면 게임이 강제 종료되어 result로 간다. **terminate는 별도 경로가 아니라 "게이지를 즉시 0으로" 만드는 것**이라 거의 모든 실패가 이 한 경로를 탄다. (예외: `Cascade`는 terminate 대신 강등으로 받는다 — 아래.)
 - **`combo`** — GOOD 이상으로 연속 처리한 노트 수. MISS면 0으로 초기화.
 
 ### gaugeMode → state (한 표)
 
-**`gaugeMode`** = 플레이 모드(무슨 도전인가). 각 모드는 게이지 동작 + terminate 조건 + **성공 시 state**를 함께 정의한다. **`state`** = 곡을 끝낸 결과(어떻게 끝냈는가)로, gaugeMode와 성공/실패로 결정된다.
+**`gaugeMode`** = 플레이 모드(무슨 도전인가). 각 모드는 게이지 동작 + terminate 조건 + **성공 시 state**를 함께 정의한다. **`state`** = 곡을 끝낸 결과(어떻게 끝냈는가)로, gaugeMode와 성공/실패로 결정된다. normal/hard 증감 수치는 [[constants]] §2.
 
 | gaugeMode | start | recovery | terminateBelow | 성공 시 state | 실패 시 |
 |---|---|---|---|---|---|
-| `normal` | 0 | 있음 (끝에 ≥75%) | 없음 | `C` | (실패 없음) |
+| `normal` | 0 | 있음 (끝에 ≥75%) | 없음 | `C` | `F` (끝에 <75%) |
 | `hard` | 100 | 없음 | gauge 0 | `H` | `F` |
-| `AS` | 100 | — | SYNC 미만 | `AS` | `F` |
-| `AP` | 100 | — | PERFECT 미만 | `AP` | `F` |
-| `FC` | 100 | — | GOOD 미만 | `FC` | `F` |
+| `AS` | 100 고정 | — | SYNC 외 판정 | `AS` | `F` |
+| `AP` | 100 고정 | — | PERFECT 미만 | `AP` | `F` |
+| `FC` | 100 고정 | — | MISS 발생 | `FC` | `F` |
 
+- `AS`/`AP`/`FC`는 게이지가 무의미하다(terminate가 유일한 실패 경로). 막대는 100 고정으로 해당 색만 표시한다 → [[colors]].
+- `Cascade`는 terminate가 아니라 **강등**으로 동작하므로 이 표에 넣지 않는다. 아래 별도 정의.
 - 안 친 곡은 state `N` (Not played).
 - state 색은 정의가 아니라 render 속성 → [[colors]].
+
+### Cascade
+
+깨질 때 곡을 끝내는 대신 한 단계 관대한 모드로 **강등**하고 계속하는 모드. 출발은 `AS`. break 조건은 위 표와 같다(SYNC 외→AS깨짐, PERFECT 미만→AP깨짐, MISS→FC깨짐). 깨질 때마다 `AS → AP → FC → Hard → Normal` 순으로 한 칸 내려간다. Hard·Normal 구간부터는 그 게이지 동작을 그대로 따르고(Hard는 0에서 fail, Normal은 끝에 <75%면 fail), 곡을 끝낸 시점의 **현재 티어가 곧 state**다. Normal까지 내려가 75% 미달이면 `F`. [수정] — 구 코드의 cascade(`fc → bare gauge` 단일 단계)를 게이지 본체 2종까지 잇는 사슬로 재정의.
 
 ### rank — state와 독립된 두 번째 기록 축
 
 곡을 끝내면 **rank**(점수 등급)와 **state**(위 표)가 **따로** 기록된다. 서로 영향 없다.
 
-- **`rank`** — 점수(백만점 기준) 등급. U / S+ / S / A+ / A / B / C / D / E / F.
+- **`rank`** — 점수(백만점 기준) 등급. U / S+ / S / A+ / A / B / C / D / E / F. 임계·점수식 → [[constants]] §3.
 
 ---
 

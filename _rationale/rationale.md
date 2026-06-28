@@ -8,8 +8,14 @@
 ## judgment을 임계 테이블로 둔 이유
 SYNC/PERFECT/GOOD/MISS는 별개 규칙이 아니라 `abs(diff_ms)` 하나를 자른 구간이다. wide는 "임계 테이블만 다른 노트"라 normal과 한 표에 합쳐진다. 개별 산문 정의보다 테이블이 짧고, 구현도 임계 배열 룩업 하나로 끝난다. FAST/SLOW는 판정이 아니라 diff의 부호라 종류에서 분리했다.
 
-## gaugeMode를 속성 조합으로 둔 이유
-normal/hard/AS/AP/FC 5개는 `{start, recovery, terminateBelow}` 세 속성의 조합이다. AS/AP/FC는 게이지 동작이 같고 terminate 임계만 다르다. terminate를 별도 종료 경로로 두지 않고 "게이지를 즉시 0으로"로 환원하면, 모든 실패가 hard 자연실패와 같은 코드 경로를 타서 분기가 사라진다.
+## gaugeMode를 단일 축 6종으로 둔 이유
+코드는 gaugeType(normal/hard) × lockTarget(none/fc/ap/as) × lockMode(terminate/cascade) **직교 3축**이다. 유저가 실제로 하는 선택은 "이 곡을 어떤 방식으로 도전할까" 하나뿐이라, 이 직교 조합을 **단일 축 6종**(Normal/Hard/AS/AP/FC/Cascade)으로 평탄화했다. [수정] — 직교의 표현력 일부(예: normal+AS 조합)를 버리는 대신 정의가 짧고 한 줄로 읽힌다.
+
+AS/AP/FC는 게이지 동작이 같고 terminate 임계만 다르다(SYNC외/PERFECT미만/MISS). terminate를 별도 종료 경로로 두지 않고 "게이지를 즉시 0으로"로 환원하면, 거의 모든 실패가 hard 자연실패와 같은 코드 경로를 타서 분기가 사라진다. AS/AP/FC는 게이지가 무의미하므로 막대를 100 고정·해당 색으로만 표시한다.
+
+Cascade만 예외다. terminate(종료) 대신 **강등**으로 받으므로 "즉시 0" 모델에 안 맞아 단일 표에서 빼고 별도 단락으로 둔다. 강등 사슬을 코드의 `fc→bare gauge`(단일 단계)에서 `AS→AP→FC→Hard→Normal`로 확장한 것은 [수정]: 락 티어가 깨진 뒤에도 게이지 본체 2종을 연이어 거치게 해, "한 번 삐끗했다고 끝나지 않고 점점 관대해지며 완주를 노리는" 단일 모드로 만든다.
+
+Normal은 완주해도 끝에 75% 미만이면 실패(F)다 — "노페일"이 아니다.
 
 ## duration 규칙을 공통으로 올린 이유
 note(tap/hold), shape(step/보간), lane(step/보간) 모두 `duration==0 ? 즉시 : 지속`이라는 같은 분기다. 각 문서에서 step/linear를 따로 정의하면 같은 규칙을 세 번 쓰게 된다. 한 곳(glossary 노트 섹션)에서 정의하고 참조시킨다.

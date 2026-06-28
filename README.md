@@ -27,6 +27,7 @@
 | [judge](core/judge.md) | 입력 판정 / 노트 매칭 로직 |
 | [shape](core/shape.md) | 바깥 경계(Blue·Red) 변형 / 평가·체인·easing·좌표계 |
 | [lane-events](core/lane-events.md) | 레인 구분선 변형 (shape 안쪽 1·2·3) |
+| [constants](core/constants.md) | 튜닝 수치 단일 출처 (판정창·게이지 증감·rank 임계) |
 
 ### `render/` — 렌더
 | 문서 | 내용 |
@@ -96,8 +97,9 @@ import은 위→아래 한 방향만. core는 위를 모른다.
 
 ## 진행 상태
 
-**완료**: naming, glossary, data-model, timing, judge, lane-events, shape, colors + 받침 문서
+**완료**: naming, glossary, data-model, timing, judge, lane-events, shape, colors, constants + 받침 문서
+
+> 게이지(gaugeMode 6종·terminate·Cascade·state)는 별도 `gauge.md` 없이 **정의는 [[glossary]], 수치는 [[constants]]**로 단일 출처화. AS/AP/FC/Cascade 단일 축 평탄화는 [수정](코드의 gaugeType×lock 직교를 유저 관점 1축으로). 근거 [[rationale]].
 
 **다음 후보**:
-- `core/gauge.md` — 게이지 공식/랭크/state 평가
 - `_plan/build-order.md` — 재구현 수직 슬라이스 순서 (재구현 직전)
