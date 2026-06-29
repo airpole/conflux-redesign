@@ -187,9 +187,15 @@
 | 현재 | 새 이름 | 비고 |
 |---|---|---|
 | `scene-music-select` | `song-select` | 개명. song⊃chart 선택 의미 명확화 |
-| (신규) | `credit` | play 직전 자동 인터스티셜 (크레딧 표시) |
-| play overlay | `play` | overlay→정식 scene 승격 |
+| `modeselect` | `mode-select` | 하이픈 표기 통일. 공용 진입 허브 |
+| (신규) | `song-credit` | gameplay 직전 자동 인터스티셜 (이 곡의 크레딧) |
+| (신규) | `credits` | 프로젝트 제작진 (게임 개발자·엔진 등). song-credit과 다른 화면 |
+| play overlay | `gameplay` | overlay→정식 scene 승격. `play`는 모드 이름으로 예약, scene은 gameplay |
 | result overlay | `result` | overlay→정식 scene 승격 |
+| editor `play` 탭 | `test` (scene) | editor 그래프 scene. 모드 play와 충돌 회피 + "테스트 삼아 친다" 의미 |
+| editor 탭(전체) | editor 그래프 scene | 탭 개념 폐기, notes/shapes/test/meta 각각 scene ([[architecture]] §5) |
+
+> `play`는 **모드**(mode-select 항목), `gameplay`는 **scene**(곡 치는 화면), `test`는 **editor 그래프 scene**(같은 엔진 다른 호스트). 셋 다 안 겹친다.
 
 ---
 
@@ -231,6 +237,10 @@ app-*     부트스트랩 / 빌드별 진입점 / config
 - [x] 레이어 `plat`→`env` 개명 (브라우저 설비 층, core↔env 대비). 레이어 정의 단일 출처를 [[architecture]]로, naming §5는 명명 규칙만·README는 요약
 - [x] editor도 scene 그래프 [수정](탭 개념 폐기, scene-manager 재사용). game과 분리된 두 그래프, 형제 축
 - [x] `cmod`·`hidden` 폐기 (sudden은 유지). `music-select`→`song-select`. credit/play/result scene 명칭
+
+확정 (씬 구조·용어 세션):
+- [x] `play`(모드)/`gameplay`(scene) 분리, `credit`→`song-credit`(곡)·`credits` 신규(제작진), editor `play`탭→`test`, `modeselect`→`mode-select`
+- [x] overlay 정의(scene 소유 층, pause=overlay·result=scene), 빠른 옵션 패널 5종 song-select·test 공유
 
 확정 (이번 논의):
 - [x] 노트 4종 확정: Tap / Hold / WideTap / WideHold (`isWide` × `duration` 조합)

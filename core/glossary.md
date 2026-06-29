@@ -137,17 +137,27 @@ shape와 laneEvents를 데이터로 병합하지 않는다(좌표계·역할이 
 
 ## 화면 / Scene
 
-> game 흐름의 화면 그래프. 전환·스택·호스트 상세는 → [[scene]]. 여기서는 색인만.
+> 공용 루트 + 세 모드 그래프. 전환·overlay·호스트 상세는 → [[scene]]. 여기서는 색인만.
 
-- **`song-select`** (구 `music-select`) — 곡(song)과 그 안의 난이도(chart)를 고르는 화면. Space로 곡별 옵션 패널 토글, Enter로 확정.
-- **`credit`** — 곡 확정 후 play 직전, 제작 크레딧을 잠깐 보여주는 **자동 인터스티셜** [신규]. 입력을 안 받고 자동으로 play로 넘어가며, 되돌아갈 수 없다(스택에 replace로 들어가 Exit/Back은 credit을 건너뛴다). 표시: `Music by` / `Jacket by` / `Chart by` — 접미사는 표시 레이어가 붙이고, 저장 필드는 값만(`musicBy`·`jacketBy`·`chartBy` → [[data-model]]).
-- **`play`** / **`result`** — overlay에서 정식 scene으로 승격. 플레이 엔진은 호스트(game/editor)를 모른다.
+- **`mode-select`** (구 `modeselect`) — title 다음 공용 허브. play/editor/settings 모드로 갈린다. 모드 추가의 단일 확장 지점.
+- **`song-select`** (구 `music-select`) — 곡(song)과 그 안의 난이도(chart)를 고르는 화면. Space로 빠른 옵션 패널 토글, Enter로 확정.
+- **`song-credit`** — 곡 확정 후 gameplay 직전, 이 곡의 크레딧을 보여주는 **자동 인터스티셜** [신규]. 입력 없이 자동 전환, 되돌아갈 수 없다(replace로 들어가 Exit/Back은 건너뛴다). 표시 `Music by`/`Jacket by`/`Chart by` — 접미사는 표시 레이어, 저장은 값만(`musicBy`·`jacketBy`·`chartBy` → [[data-model]]).
+- **`credits`** — 프로젝트 제작진(게임 개발자·엔진·디자인 등). 곡 단위 `song-credit`과 다른 화면.
+- **`gameplay`** (구 play overlay) — 곡을 치는 scene. `play`는 **모드** 이름이라, scene은 gameplay로 분리. overlay→정식 scene 승격.
+- **`result`** — 결과 화면(overlay→scene 승격). Retry/Back.
+- **`test`** — editor 그래프 scene(구 editor play 탭). gameplay와 같은 엔진을 editor 호스트로 구동.
+- **모드 그래프** — game(스택형)/editor(평면)/settings(평면). 셋은 형제 축 → [[scene]] §3.
+
+## overlay
+
+- **`overlay`** — 한 scene **위에** 그 scene을 살린 채 덮는 층. scene-manager를 안 거치고 엔진·하위 상태가 살아있다. 예: `pause`(gameplay 멈춤, Resume이 lead-in 3초 후 재개), text-event(캔버스 표시), 빠른 옵션 패널(song-select·test 공유). 새 레이어가 아니라 game+render 분담 → [[architecture]]. z-순서 → [[theme]].
 
 ## 설정 / Settings
 
 - **`settings`** — 저장되는 곡 데이터와 별개로, 플레이어가 1회 정하는 영속 설정의 단일 객체. 정의·필드·소속 전체는 → [[settings]].
+- **빠른 옵션 패널** — settings 값 중 판마다 바뀔 수 있는 5종(`scrollSpeed`·`gaugeMode`·`mirror`·`staticShape`·`autoplay`)만 빠르게 만지는 공유 UI. song-select·test가 같이 띄움. 값은 settings 한 곳 → [[scene]] §5.
 - **`jacketBrightness`** — 자켓 배경 밝기(전역 설정). 곡별 값이 아니라 플레이어 취향이다. (구 곡별 `metadata.jacketBrightness`는 폐기, 구 전역 `bgBrightness`를 개명.)
-- **`judgeLine`** 의 세로위치(`judgeLinePos`)·`sudden`(상단 커버)·`noteSkin`·`scrollSpeed` 등도 settings 소속. ([폐기] `cmod`·`hidden`.)
+- **`judgeLine`** 의 세로위치(`judgeLinePos`)·`sudden`(상단 커버)·`noteSkin`·`scrollSpeed`·`showFastSlow`(F/S) 등도 settings 소속. ([폐기] `cmod`·`hidden`.)
 
 ---
 
