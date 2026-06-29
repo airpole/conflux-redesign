@@ -84,6 +84,25 @@ note = { startTick, duration, lane, isWide }
 - **duration** — 0이면 tap, >0이면 hold. ([[glossary]] duration 공통 규칙)
 - 4종 = `isWide` × `duration`: Tap / Hold / WideTap / WideHold.
 
+### 5.1 겹침 검출 — overlap / conflict (파생)
+
+노트에 저장되는 필드가 아니라 notes에서 **계산되는 파생 속성**이다(`noteOverlapMap`, notes 변하면 갱신). 개념·색은 → [[glossary]]; 여기는 알고리즘 단일 출처.
+
+**활성구간**: Tap = `[t, t]`, Hold = `[head, head+dur)`. 두 노트의 활성구간이 겹치면 hit.
+
+**단일 검출, capacity로 분기**:
+- 같은 lane 안에서 같은 검출을 돌린다. lane이 2키(L2·L3, `OVERLAP_CHANNELS`)면 `overlap`, 1키(L1·L4)면 `conflict`.
+- Wide는 따로 모아 같은 활성구간 규칙으로 검출 → 겹치면 `conflict`(전폭이 겹쳐 독립 타격 불가).
+
+**`overlap`(2키 lane) 세부 분류** — 두 노트 관계로:
+- `merged` — 활성구간 동일 → 한 장만 노랗게(다른 한 장 `hidden`).
+- `yellow` / `clipped` — 부분 겹침 → 늦은/짧은 쪽 겹침부가 노랗게(`yellow`), 흰 노트는 겹침구간 몸통을 깎음(`clipped`).
+
+**`conflict`(1키 lane + Wide-on-Wide)**:
+- 겹친 두 장 모두 `conflict`. 흰 채움 + 빨간 경고 테두리. merged/yellow 분류 없음(연주 불가라 표시가 목적).
+
+> **검출(domain) vs 표시(render)**: 어느 노트끼리 겹쳤고 overlap이냐 conflict냐는 이 파생 패스(domain)가 정한다. 그 map을 받아 색·테두리·above/below 쌓임을 입히는 건 render다. judge는 둘 다 모른다(입력만). 구 `invalid`→`conflict` 개명. 근거 → [[rationale]].
+
 ---
 
 ## 6. shapeEvents (플레이필드 바깥 경계)

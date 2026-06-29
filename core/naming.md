@@ -242,6 +242,12 @@ app-*     부트스트랩 / 빌드별 진입점 / config
 - [x] `play`(모드)/`gameplay`(scene) 분리, `credit`→`song-credit`(곡)·`credits` 신규(제작진), editor `play`탭→`test`, `modeselect`→`mode-select`
 - [x] overlay 정의(scene 소유 층, pause=overlay·result=scene), 빠른 옵션 패널 5종 song-select·test 공유
 
+확정 (overlap/conflict 단일화 세션):
+- [x] 단일 검출 + capacity 분기: 2키 lane(L2·L3)=`overlap`(노랑), 1키 lane(L1·L4)+Wide-on-Wide=`conflict`(빨강). 구 `invalid`/`misplaced`→`conflict`
+- [x] 검출은 파생 속성(domain, `noteOverlapMap`), 알고리즘 단일 출처 [[data-model]] §5.1. render는 색·above/below 표시만, judge는 모름
+- [x] 색 상수 `INVALID_COLOR`→`CONFLICT_COLOR` (적용은 묶음3 theme)
+- [ ] judge.md §8 문구 "render가 스스로 판단" → "검출은 domain, render는 표시"로 정밀화 (묶음2 후속)
+
 확정 (이번 논의):
 - [x] 노트 4종 확정: Tap / Hold / WideTap / WideHold (`isWide` × `duration` 조합)
 - [x] overlap은 노트 타입이 아니라 렌더 현상 (L2·L3 세로 겹침 금색 표시) → [[glossary]] 이동
