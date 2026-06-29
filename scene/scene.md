@@ -133,7 +133,7 @@ title 다음의 공용 진입 scene. 세 모드로 갈린다.
 
 곡 선택 확정 후 gameplay 직전, 이 곡의 크레딧을 잠깐 보여주는 통과 화면.
 
-- **자동 진행**: 유저 입력을 받지 않는다. 잠깐 표시 후 gameplay로 자동 전환. (scene 내부에서 다른 scene으로 직접 전환 불가 — 타이머가 끝내는 통과점.)
+- **자동 진행**: 유저 입력을 받지 않는다. **5초** 표시 후 gameplay로 자동 전환 [신규]. (scene 내부에서 다른 scene으로 직접 전환 불가 — 타이머가 끝내는 통과점.) 스킵 불가: 재시작(Retry/Back)은 gameplay로 직행해 song-credit을 다시 안 거치므로(§6 back-stack), 반복 대기가 없어 스킵이 불필요하다.
 - **되돌아갈 수 없다**: 도중 뒤로 가기 없음. song-select 이후는 gameplay까지 직진.
 - 표시: `Music by ○○○` / `Jacket by ○○○` / `Chart by ○○○`. 저장 필드는 `musicBy`·`jacketBy`(song 공통) / `chartBy`(chart별) — "by"는 표시 레이어가 붙인다(저장은 값만). → [[data-model]].
 
@@ -186,7 +186,7 @@ result
   └ Back  ─▶ song-select                          [song-credit 안 거침]
 ```
 
-- **pause는 overlay**(§9): gameplay 엔진을 죽이지 않고 멈춘다. Resume은 멈춘 지점 **3초 전부터 lead-in**(노트가 안 내려오는 무음 run-up) 후 재개 `[보존]`(`LEAD_IN_MS`). Exit는 그때 비로소 song-select로 scene 전환.
+- **pause는 overlay**(§9): gameplay 엔진을 죽이지 않고 멈춘다. **Esc로 토글** ([보존] 키 + [수정] 동작: 현재 코드 Esc는 `stopPlay`(완전 정지)이나, 재구현에선 pause overlay 토글로). Resume은 멈춘 지점 **3초 전부터 lead-in**(노트가 안 내려오는 무음 run-up) 후 재개 `[보존]`(`LEAD_IN_MS`=3000). Exit는 그때 비로소 song-select로 scene 전환.
 - **Retry**(result)와 **Resume**(pause)은 다르다: Retry=처음부터 새 판, Resume=멈춘 지점 이어서.
 - **Exit / Back**: song-credit이 replace로 빠졌으므로(§6) song-select로 곧장. 방금 친 곡에 커서가 남은 채 복귀.
 - gameplay 종료 판정·state 산출은 엔진과 [[gauge]] 소관. scene은 "언제 result로 넘어가는가"라는 전환점만 안다.
@@ -231,10 +231,12 @@ gameplay 로직(엔진)은 **호스트를 모른다**. 단일 컨텍스트 `CTX`
 - [x] gameplay/result overlay→정식 scene 승격
 - [x] pause = overlay(엔진 살림), Resume(lead-in 3초)/Exit. result = Retry/Back
 - [x] overlay = scene 소유 층(공유 부품 예외), game+render 분담, 새 레이어 아님
+- [x] song-credit 표시 5초, 스킵 불가(재시작은 gameplay 직행이라 반복 대기 없음)
+- [x] pause = Esc 토글([보존] 키 + [수정] stopPlay→pause)
 
 잔여:
-- [ ] song-credit 표시 시간(초)·연출 구체값
-- [ ] pause 입력 키(Esc?)·result 입력 매핑
+- [ ] result/pause 메뉴의 전체 키 매핑(방향키+Enter+클릭) → **settings 키 배치 단일 출처로 이관** (여기서 단발로 안 정함, [[settings]] 잔여)
+- [ ] song-credit 연출 구체값(페이드 등)
 - [ ] editor 그래프 내부 전환 규칙 (→ 향후 editor 문서)
 - [ ] settings 그래프 scene 묶음(visual/sound…) 구체 (→ settings 문서)
 - [ ] 빠른 패널 공유 컴포넌트의 정확한 레이어 위치 (→ architecture/settings)
