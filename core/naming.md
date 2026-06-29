@@ -28,7 +28,7 @@
 4. **도메인 개념은 [[glossary]]의 영어 용어 하나로 고정.** 한 개념에 두 이름을 두지 않는다. 특히 `scrollSpeed`와 `playbackRate`는 영원히 분리. (한국어 설명은 쓰되, 개념을 가리키는 단어는 영어 그대로.)
 5. **단위를 이름에 박는다.** ms/tick/px/pct가 헷갈리는 곳은 접미사로: `durationMs`, `startTick`, `widthPx`, `gaugePct`.
 6. **상태 객체는 전체 단어.** `D`/`ES`/`PS` → `chart`/`editorState`/`playState`.
-7. **레이어 접두사가 파일명.** `core-`, `plat-`, `render-`, `edit-`, `game-`, `scene-`, `app-`. 파일명만 보고 의존 방향을 안다 (위→아래만 import).
+7. **레이어 접두사가 파일명.** `core-`, `env-`, `render-`, `edit-`, `game-`, `scene-`, `app-`. 파일명만 보고 의존 방향을 안다 (위→아래만 import). 레이어 정의 → [[architecture]].
 8. **모든 시간축 이벤트는 `startTick`을 가진다.** duration 없는 순간 이벤트(tempo·timeSignature)도 `tick`이 아니라 `startTick`. 시작점 개념은 동일하다.
 9. **이벤트 배열은 자연 복수.** 이미 "event"가 의미상 맞는 것만 `Events` 접미사(`shapeEvents`/`laneEvents`/`textEvents`), 나머지는 단순 복수(`tempos`/`timeSignatures`/`notes`). `tempoEvents`·`noteEvents` 같은 장황한 형태는 쓰지 않는다.
 
@@ -195,17 +195,19 @@
 
 ## 5. 파일명 규칙 (접두사 = 레이어)
 
+파일명 **접두사가 곧 레이어**다. 레이어 정의·의존 규칙의 단일 출처는 [[architecture]]; 여기는 명명 규칙만.
+
 ```
-core-*    순수 로직 (DOM/캔버스/전역상태 없음, Node 하네스에서 import 가능)
-plat-*    브라우저 환경 래핑 (IndexedDB/audio/canvas/raw input)
-render-*  캔버스 드로잉 (core 지오메트리를 받아 칠하기만)
-edit-*    에디터 인터랙션 (editor 상태 + render + core)
-game-*    게임 인터랙션 (play 상태 + render + core)
-scene-*   최상위 화면 그래프
+core-*    순수 로직
+env-*     브라우저 설비 래핑 (구 plat-*)
+render-*  캔버스 드로잉
+edit-*    에디터 인터랙션
+game-*    게임 인터랙션
+scene-*   화면 그래프
 app-*     부트스트랩 / 빌드별 진입점 / config
 ```
 
-**철칙**: import는 위 목록에서 **위→아래 한 방향만**. `core-*`가 `render-*`를 import하면 설계 위반.
+**철칙**: import는 위→아래 한 방향만(`core-*`가 `render-*`를 import하면 위반). 상세·근거 → [[architecture]].
 
 ---
 
@@ -224,6 +226,10 @@ app-*     부트스트랩 / 빌드별 진입점 / config
 - [x] 곡별 `jacketBrightness` 폐기 → 전역 settings `bgBrightness`를 `jacketBrightness`로 개명·단일화
 - [x] `measureLabelOffset` 곡 공통 번복 → 에디터 설정으로 이전
 - [x] `judgeLinePos` 개명 안 함(이름 유지), settings 소속. raise-only [보존]
+
+확정 (architecture 세션):
+- [x] 레이어 `plat`→`env` 개명 (브라우저 설비 층, core↔env 대비). 레이어 정의 단일 출처를 [[architecture]]로, naming §5는 명명 규칙만·README는 요약
+- [x] editor도 scene 그래프 [수정](탭 개념 폐기, scene-manager 재사용). game과 분리된 두 그래프, 형제 축
 - [x] `cmod`·`hidden` 폐기 (sudden은 유지). `music-select`→`song-select`. credit/play/result scene 명칭
 
 확정 (이번 논의):

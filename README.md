@@ -45,6 +45,11 @@
 |---|---|
 | [settings](_meta/settings.md) | 플레이어·에디터 설정 단일 출처 (곡 데이터 아님) |
 
+### `_plan/` — 재구현 계획
+| 문서 | 내용 |
+|---|---|
+| [architecture](_plan/architecture.md) | 레이어 7층·의존 방향·CTX seam·빌드 게이트 단일 출처 |
+
 ### 받침 문서
 | 문서 | 내용 |
 |---|---|
@@ -85,16 +90,15 @@
 
 ## 아키텍처 방향 (재구현 시)
 
+레이어 7층, import은 **위→아래 한 방향만**. core는 환경을 모른다.
+
 ```
-core/    순수 로직 (DOM·캔버스·전역상태 없음, Node 하네스 import 가능)
-plat/    브라우저 환경 래핑 (IndexedDB/audio/canvas/input)
-render/  캔버스 드로잉 (core 지오메트리를 받아 칠하기만)
-edit/    에디터 인터랙션
-game/    게임 인터랙션
-scene/   화면 그래프
-app/     부트스트랩 / 빌드별 진입점
+core → env → render → edit/game → scene → app
 ```
-import은 위→아래 한 방향만. core는 위를 모른다.
+
+- `core` 순수 로직(브라우저 무관, Node 가능) · `env` 브라우저 설비 래핑(구 plat) · `render` 캔버스 드로잉 · `edit`/`game` 인터랙션(형제 축) · `scene` 화면 그래프 · `app` 부트스트랩.
+
+> 정의·의존 규칙·CTX seam·빌드 게이트의 **단일 출처는 [_plan/architecture.md](_plan/architecture.md)**. 여기는 요약. 파일명 접두사 규칙은 [[naming]] §5.
 
 ---
 
@@ -108,7 +112,7 @@ import은 위→아래 한 방향만. core는 위를 모른다.
 
 ## 진행 상태
 
-**완료**: naming, glossary, data-model, timing, judge, lane-events, shape, gauge, colors, constants, scene, settings + 받침 문서
+**완료**: naming, glossary, data-model, timing, judge, lane-events, shape, gauge, colors, constants, scene, settings, architecture + 받침 문서
 
 > 게이지(gaugeMode 6종·terminate·Cascade·state)는 **정의 [[gauge]] / 수치 [[constants]] §2**로 분리 단일 출처화. (정의가 무거워져 glossary 한 섹션에서 전용 문서로 독립 — 근거 [[rationale]].) AS/AP/FC/Cascade 단일 축 평탄화는 [수정](코드의 gaugeType×lock 직교를 유저 관점 1축으로).
 
@@ -118,8 +122,11 @@ import은 위→아래 한 방향만. core는 위를 모른다.
 
 > chain 평가 통일: `easing===null`=anchor(보간 안 함, 첫 anchor=init 호칭), `easing≠null`=보간. anchor/transition 2종 분리·chain-event.md 신설 **폐기** — 데이터는 1종이라 이름은 예외(anchor)에만. 평가 단일 출처는 [[shape]] §4, lane은 링크. `Step`(=Linear+dur0)·`Arc`는 저장 안 되는 입력 라벨. 근거 [[rationale]].
 
-**다음 후보**:
-- `_plan/architecture.md` — 폴더·import 방향 (naming §5·scene §9에 흩어진 결정 수집)
-- `_plan/build-order.md` — 재구현 수직 슬라이스 순서 (재구현 직전)
-- 검토 채팅 1회 — 누적 문서 메타 검토(단순화/누락/단일출처/링크)
+> 아키텍처: 레이어 7층 `core→env→render→edit/game→scene→app`, 단일 출처 [[architecture]](README·naming은 요약/링크). `plat`→`env` 개명. env=브라우저 API 직접 호출, render=매 프레임 그리기. core는 전역 D 대신 활성 보면 인자 주입 [수정](동작 보존·의존 재배선). CTX 호스트 seam [보존]. editor도 scene 그래프 [수정](game과 형제 두 그래프). 근거 [[rationale]].
+
+**다음 후보** (명세 다지기 우선, 재구현은 미룸):
+- **검토 채팅 1회** — 누적 13문서 메타 검토(단순화/누락/단일출처/링크). 명세 다지기의 핵심.
+- 검토 수선 — 검토가 지적한 항목 닫기 (작업 채팅)
 - scene 잔여 — credit 표시초·pause/result 입력 키 등 구체값 (scene.md §10)
+- editor 그래프 전환 규칙 — 향후 editor 문서 (architecture §5 잔여)
+- `_plan/build-order.md` — **재구현 직전에** 꺼냄 (지금은 미룸: 명세가 흔들리면 같이 흔들림)

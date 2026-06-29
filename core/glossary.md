@@ -156,7 +156,10 @@ shape와 laneEvents를 데이터로 병합하지 않는다(좌표계·역할이 
 - **`build: editor`** — 내부 에디터 빌드. 개인 저작용.
 - **`build: game-internal`** — 내부 게임 빌드. .cfx 파일을 실제 게임 UX로 테스트(localImport 허용).
 - **`build: game-public`** — 공개 게임 빌드. 큐레이트된 곡만.
-- **`core`** (`core-*`) — 순수 로직 레이어. DOM·캔버스·전역 상태를 모른다. Node 하네스에서 그대로 import 가능.
+- **`core`** (`core-*`) — 순수 로직 레이어. DOM·캔버스·전역 상태를 모른다. Node 하네스에서 그대로 import 가능. 전역 D 대신 활성 보면을 인자로 받는다([[data-model]] §9).
+- **레이어 7층** — `core → env → render → edit/game → scene → app`, import 위→아래 한 방향. 정의·의존 규칙·CTX seam·빌드 게이트 단일 출처 → [[architecture]]. 파일명 접두사 규칙 → [[naming]] §5.
+- **`env`** (`env-*`, 구 `plat`) — 브라우저 설비 래핑 레이어. canvas 생성·DPR, WebAudio, IndexedDB, raw input 등 브라우저 API 직접 호출. core가 "환경 무관"이면 env는 "환경 의존".
+- **`CTX`** — play 엔진의 호스트 주입 seam. 엔진은 editor/game 어느 호스트인지 모르고 CTX 한 객체(6필드+redrawIdle)만 본다. editor는 editorState 프록시, game은 자기 소유 → [[architecture]] §3.
 - **`.cfx`** — 차트 교환 포맷. ZIP(fflate) 기반, content-hash로 에셋 ID를 만들어 자동 중복 제거.
 
 ---
