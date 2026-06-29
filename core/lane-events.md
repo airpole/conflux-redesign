@@ -3,6 +3,7 @@
 > shape가 플레이필드 바깥 경계(Blue·Red)를 움직이듯, laneEvents는 안쪽 구분선 3개를 움직인다. 순수 시각 연출, 판정과 무관.
 > 근거·결정 배경은 → [[rationale#laneEvents 설계 근거]]
 > 태그: 전체 `[신규]`
+> 구 `lineEvents`(`lines:[25,25,25,25]` 4칸 폭 단일 덩어리)는 편집 UI·렌더·게임 적용이 모두 미구현이고 실데이터도 균등 init 1개뿐이었다 → 보존·마이그레이션 대상 아님. laneEvents는 균등 기본(`lineNum 1/2/3` = `targetPos 0.25/0.5/0.75`)에서 출발하는 백지 설계. behavior-preserving의 예외이며 근거는 이 [신규] 태그 자체. (실측 → [[EXTRACTED_FACTS]] §9)
 
 ---
 

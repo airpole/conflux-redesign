@@ -27,7 +27,7 @@
 | [judge](core/judge.md) | 입력 판정 / 노트 매칭 로직 |
 | [shape](core/shape.md) | 바깥 경계(Blue·Red) 변형 / 평가·체인·easing·좌표계 |
 | [lane-events](core/lane-events.md) | 레인 구분선 변형 (shape 안쪽 1·2·3) |
-| [gauge](core/gauge.md) | 게이지·클리어·state·Cascade·terminate 정의 (수치는 constants) |
+| [gauge](core/gauge.md) | 게이지·클리어·state·cascade·terminate 정의 (수치는 constants) |
 | [constants](core/constants.md) | 튜닝 수치 단일 출처 (판정창·게이지 증감·rank 임계) |
 
 ### `render/` — 렌더
@@ -68,7 +68,7 @@
 
 **판정 / 게이지**
 - judgment = `abs(diff)` 임계 (SYNC 25 / PERFECT 50 / GOOD 100). wide는 SYNC/MISS만.
-- gaugeMode(normal/hard/AS/AP/FC) → state(C/H/AS/AP/FC/F/N) 한 표로. rank는 독립 축.
+- gaugeMode(normal/hard/fc/ap/as/cascade) → state(C/H/AS/AP/FC/F/N) 한 표로. rank는 독립 축.
 - terminate = "게이지 즉시 0" 단일 메커니즘.
 
 **연출 (시각, 판정 무관)**
@@ -114,7 +114,7 @@ core → env → render → edit/game → scene → app
 
 **완료**: naming, glossary, data-model, timing, judge, lane-events, shape, gauge, theme(←colors), constants, scene, settings, architecture + 받침 문서
 
-> 게이지(gaugeMode 6종·terminate·Cascade·state)는 **정의 [[gauge]] / 수치 [[constants]] §2**로 분리 단일 출처화. (정의가 무거워져 glossary 한 섹션에서 전용 문서로 독립 — 근거 [[rationale]].) AS/AP/FC/Cascade 단일 축 평탄화는 [수정](코드의 gaugeType×lock 직교를 유저 관점 1축으로).
+> 게이지(gaugeMode 6종·terminate·cascade·state)는 **정의 [[gauge]] / 수치 [[constants]] §2**로 분리 단일 출처화. (정의가 무거워져 glossary 한 섹션에서 전용 문서로 독립 — 근거 [[rationale]].) fc/ap/as/cascade 단일 축 평탄화는 [수정](코드의 gaugeType×lock 직교를 유저 관점 1축으로).
 
 > scene 그래프: **공용 루트(title·mode-select) + 세 모드 그래프**(game 스택형 / editor·settings 평면형). game 흐름 title→mode-select→song-select→song-credit→gameplay→result. `play`(모드)/`gameplay`(scene) 분리, `song-credit`(곡)/`credits`(제작진), editor `play`탭→`test`, `music-select`→`song-select`. overlay 정식화(pause=overlay 엔진 살림, result=scene 승격, lead-in 3초 [보존]). 빠른 옵션 패널 5종(scrollSpeed/gaugeMode/mirror/staticShape/autoplay) song-select·test 공유.
 

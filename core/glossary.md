@@ -115,7 +115,7 @@ shape와 laneEvents를 데이터로 병합하지 않는다(좌표계·역할이 
 
 ## 게이지 / 결과 (Gauge / Result)
 
-- **`gauge` / `gaugeMode` / `state` / `Cascade` / terminate** — 게이지·클리어·종료·강등 정의 일체는 → [[gauge]]. (수치는 [[constants]] §2.)
+- **`gauge` / `gaugeMode` / `state` / `cascade` / terminate** — 게이지·클리어·종료·강등 정의 일체는 → [[gauge]]. (수치는 [[constants]] §2.)
 - **`combo`** — GOOD 이상으로 연속 처리한 노트 수. MISS면 0으로 초기화.
 
 ### rank — state와 독립된 두 번째 기록 축

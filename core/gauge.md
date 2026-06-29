@@ -9,7 +9,7 @@
 ## 1. gauge
 
 - **`gauge`** (`gaugePct`, 0~100) — 생명력 막대. 0이 되면 게임이 강제 종료되어 result로 간다.
-- **terminate** = 별도 종료 경로가 아니라 **"게이지를 즉시 0으로"** 만드는 것. 거의 모든 실패가 이 한 경로를 탄다. (예외: `Cascade`는 terminate 대신 강등 — §4.)
+- **terminate** = 별도 종료 경로가 아니라 **"게이지를 즉시 0으로"** 만드는 것. 거의 모든 실패가 이 한 경로를 탄다. (예외: `cascade`는 terminate 대신 강등 — §4.)
 
 증감 수치(normal/hard delta, `×a` 스케일, 클리어 75%)는 [[constants]] §2.
 
@@ -25,12 +25,12 @@
 |---|---|---|---|---|---|
 | `normal` | 0 | 있음 (끝에 ≥75%) | 없음 | `C` | `F` (끝에 <75%) |
 | `hard` | 100 | 없음 | gauge 0 | `H` | `F` |
-| `AS` | 100 고정 | — | SYNC 외 판정 | `AS` | `F` |
-| `AP` | 100 고정 | — | PERFECT 미만 | `AP` | `F` |
-| `FC` | 100 고정 | — | MISS 발생 | `FC` | `F` |
+| `fc` | 100 고정 | — | MISS 발생 | `FC` | `F` |
+| `ap` | 100 고정 | — | PERFECT 미만 | `AP` | `F` |
+| `as` | 100 고정 | — | SYNC 외 판정 | `AS` | `F` |
 
-- `AS`/`AP`/`FC`는 게이지가 무의미하다 (terminate가 유일한 실패 경로). 막대는 100 고정으로 해당 색만 표시 → [[theme]].
-- `Cascade`는 terminate가 아니라 **강등**으로 동작하므로 이 표에 넣지 않는다 (§4).
+- mode `fc`/`ap`/`as`는 게이지가 무의미하다 (terminate가 유일한 실패 경로). 막대는 100 고정으로 해당 색만 표시 → [[theme]]. (저장값은 소문자 mode, 표시·state는 대문자 `FC`/`AP`/`AS`.)
+- `cascade`는 terminate가 아니라 **강등**으로 동작하므로 이 표에 넣지 않는다 (§4).
 - 안 친 곡은 state `N` (Not played).
 - state 색은 정의가 아니라 render 속성 → [[theme]].
 
@@ -42,15 +42,15 @@ terminate 임계(SYNC 외 / PERFECT 미만 / MISS)가 가리키는 판정 종류
 
 ---
 
-## 4. Cascade
+## 4. cascade
 
 깨질 때 곡을 끝내는 대신 한 단계 관대한 모드로 **강등**하고 계속하는 모드.
 
-- 출발은 `AS`.
-- break 조건은 §2 표와 같다 (SYNC 외 → AS 깨짐, PERFECT 미만 → AP 깨짐, MISS → FC 깨짐).
-- 깨질 때마다 `AS → AP → FC → Hard → Normal` 순으로 한 칸 내려간다.
-- Hard·Normal 구간부터는 그 게이지 동작을 그대로 따른다 (Hard는 0에서 fail, Normal은 끝에 <75%면 fail).
-- 곡을 끝낸 시점의 **현재 티어가 곧 state**다. Normal까지 내려가 75% 미달이면 `F`.
+- 출발은 `as`.
+- break 조건은 §2 표와 같다 (SYNC 외 → `as` 깨짐, PERFECT 미만 → `ap` 깨짐, MISS → `fc` 깨짐).
+- 깨질 때마다 `as → ap → fc → hard → normal` 순으로 한 칸 내려간다.
+- `hard`·`normal` 구간부터는 그 게이지 동작을 그대로 따른다 (`hard`는 0에서 fail, `normal`은 끝에 <75%면 fail).
+- 곡을 끝낸 시점의 **현재 티어가 곧 state**다. `normal`까지 내려가 75% 미달이면 `F`.
 
 [수정] — 구 코드의 cascade(`fc → bare gauge` 단일 단계)를 게이지 본체 2종까지 잇는 사슬로 재정의. 근거 → [[rationale#gaugeMode를 단일 축 6종으로 둔 이유]].
 

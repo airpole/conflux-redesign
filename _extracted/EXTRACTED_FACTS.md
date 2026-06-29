@@ -4,7 +4,7 @@
 > **용도**: 오프라인 기획 시 "현황사항" 칸을 채우는 참조표. **여기 적힌 값은 추측이 아니라 코드 실측치**.
 > **주의**: 이 값들은 "현재 코드가 이렇다"는 사실이지, "이렇게 유지해야 한다"는 결정이 아님.
 > **⚠️ 옛 용어 사용**: 이 문서는 **현재 코드의 용어**(channel, lineEvents, gaugeType, D/ES/PS 등)를 그대로 쓴다. 새 설계 용어는 [[naming]] 대응표를 참조. 이 문서는 "코드 스냅샷"이므로 일부러 개명하지 않는다.
-> 재구현 시 바꿀지 말지는 `_decisions/`에서 별도로 결정.
+> 재구현 시 바꿀지 말지는 별도 결정 사항. (`_decisions/`는 현 볼트에 아직 없음 — 진짜 결정 문서가 생길 때까지 둔다. 이미 닫힌 결정은 본문에서 실재 문서로 연결.)
 
 ---
 
@@ -113,7 +113,7 @@ gaugeValue   = clamp(0, 100, gaugeValue + delta)
 
 ## 5. 색상 (Colors) — constants.js 실측
 
-> **이 섹션은 [[colors]]로 이전됨.** 색의 단일 출처는 `render/colors.md`. 아래는 원본 보존용이며, 갱신은 colors.md에서 한다.
+> **이 섹션은 [[theme]]로 이전됨.** 색의 단일 출처는 `render/theme.md`. 아래는 원본 보존용이며, 갱신은 theme.md에서 한다.
 
 
 ### 노트 렌더
@@ -220,7 +220,7 @@ D = {
 ### lineEvents 필드 (⚠️ 핵심 미완성 영역)
 - `lines: [25,25,25,25]` = 4개 라인 각각의 폭/위치 값 (내부 단위, 합 100 기준 추정)
 - **state/cache/commands/load-chart에는 배선됨**: `lineEventsSorted` 캐시, `AddLineEvent` 커맨드, `invalidateLinesCache` 존재
-- **편집 UI·렌더·게임 적용은 미구현** → `_decisions/03_lineevents.md`에서 결정 필요
+- **편집 UI·렌더·게임 적용은 미구현** → 미사용 데이터라 보존 대상 아님. 신 설계는 백지 [신규] → [[lane-events]].
 
 ### shape 위치 스냅
 - `sPosSnapVals = [4, 2, 1]` (레벨 0/1/2)
@@ -274,7 +274,7 @@ L6 entry:   main
 + scene-*:  scene-manager, scene-title, scene-modeselect, scene-settings
 ```
 
-> ⚠️ **핵심 구조 문제**: `play-*` 8개가 "에디터 play 탭"에서 자라나서 game 로직이 editor-state(`ES`)에 의존성을 끌 가능성. 재구현 시 **game을 editor의 하위가 아니라 동등한 씬으로 승격**, 공유 코어(판정·게이지·타이밍 순수 로직)를 아래로 내리는 의존성 역전 필요. → `_decisions/02_game_editor_split.md`
+> ⚠️ **핵심 구조 문제**: `play-*` 8개가 "에디터 play 탭"에서 자라나서 game 로직이 editor-state(`ES`)에 의존성을 끌 가능성. 재구현 시 **game을 editor의 하위가 아니라 동등한 씬으로 승격**, 공유 코어(판정·게이지·타이밍 순수 로직)를 아래로 내리는 의존성 역전 필요. → 닫힘: [[architecture]] §5 (game·editor 형제 그래프) + [[rationale]] (의존성 역전·editor scene 통일).
 
 ---
 

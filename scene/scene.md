@@ -117,7 +117,7 @@ title 다음의 공용 진입 scene. 세 모드로 갈린다.
 담는 5개 (전부 [[settings]] 영속 값의 부분집합):
 
 - **scrollSpeed** — 스크롤 속도. 가장 자주 만짐.
-- **gaugeMode** — Normal/Hard/AS/AP/FC/Cascade. 무슨 도전인가 → [[gauge]].
+- **gaugeMode** — normal/hard/fc/ap/as/cascade. 무슨 도전인가 → [[gauge]].
 - **mirror** — 레인 미러. 기록 **유지**.
 - **staticShape** — shape 고정(연습). 켜면 **기록 안 됨**.
 - **autoplay** — 자동 플레이. 켜면 **기록 안 됨**.

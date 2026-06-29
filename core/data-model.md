@@ -91,7 +91,7 @@ note = { startTick, duration, lane, isWide }
 **활성구간**: Tap = `[t, t]`, Hold = `[head, head+dur)`. 두 노트의 활성구간이 겹치면 hit.
 
 **단일 검출, capacity로 분기**:
-- 같은 lane 안에서 같은 검출을 돌린다. lane이 2키(L2·L3, `OVERLAP_CHANNELS`)면 `overlap`, 1키(L1·L4)면 `conflict`.
+- 같은 lane 안에서 같은 검출을 돌린다. lane이 2키(L2·L3, `OVERLAP_LANES`)면 `overlap`, 1키(L1·L4)면 `conflict`.
 - Wide는 따로 모아 같은 활성구간 규칙으로 검출 → 겹치면 `conflict`(전폭이 겹쳐 독립 타격 불가).
 
 **`overlap`(2키 lane) 세부 분류** — 두 노트 관계로:

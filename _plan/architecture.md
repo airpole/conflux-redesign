@@ -94,8 +94,8 @@ edit와 game은 형제다. 빌드별로 한쪽만 켤 수 있다.
 
 scene-manager(register/goScene/goBack/replace/lazy-mount)는 **메커니즘 하나**고, 그 위에 **두 개의 독립 그래프**가 얹힌다:
 
-- **game 그래프** — `title → mode-select → song-select → credit → play → result`. **스택형**(goBack이 드릴다운을 되감음). 정의·전환 규칙 → [[scene]].
-- **editor 그래프** — `notes ↔ shapes ↔ play ↔ meta`. **평면형**(자유 전환, goBack보다 직접 이동이 자연스러움). [수정]: 현재 코드는 editor를 1 scene + 내부 탭(`tab-nav.js`)으로 두지만, 재설계에선 탭 개념을 폐기하고 **editor도 scene 그래프**로 통일한다 — scene-manager 재사용, 탭 전용 코드 제거, 무거운 play의 lazy mount 이득.
+- **game 그래프** — `title → mode-select → song-select → song-credit → gameplay → result`. **스택형**(goBack이 드릴다운을 되감음). 정의·전환 규칙 → [[scene]].
+- **editor 그래프** — `notes ↔ shapes ↔ test ↔ meta`. **평면형**(자유 전환, goBack보다 직접 이동이 자연스러움). [수정]: 현재 코드는 editor를 1 scene + 내부 탭(`tab-nav.js`)으로 두지만, 재설계에선 탭 개념을 폐기하고 **editor도 scene 그래프**로 통일한다 — scene-manager 재사용, 탭 전용 코드 제거, 무거운 play 엔진(`test` scene)의 lazy mount 이득.
 
 두 그래프는 **형제 축**이고 최상위에서 빌드 게이트(§4)로 분기한다. 한 트리에 섞지 않는다(game↔editor 경계가 흐려지고 scene이 비대해짐).
 

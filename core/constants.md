@@ -36,7 +36,7 @@ start: `normal` 0 / `hard` 100. 둘 다 상한 100(`gaugeMax`).
 - **normal**: 양수 delta만 `×a` 스케일. `a = GAUGE_NORMAL_TOTAL_GAIN / 총콤보`, 세션 시작 시 1회 계산. 콤보 수 = tap 1, hold 2(head+tail). 올-SYNC면 잠재 회복 +150%인데 100 상한이라 초과분 폐기 → 75% 클리어는 대략 SYNC의 절반 분량. **손실은 절대값**(차트 길이 무관, 후살 비용 일정).
 - **hard**: 전 항목 절대 퍼센트, 저게이지 자비 없음. MISS −5.0 → 20연속 MISS면 풀바 소진.
 - 판정 종류는 SYNC/PERFECT/GOOD/MISS 4종 + tail 성공/중간 릴리즈가 각각 SYNC/MISS로 통합됨([[judge]] §6, [[glossary]]). 구 코드 TAIL_OK/TAIL_MISS는 폐기.
-- gaugeMode 정의·terminate·Cascade는 [[gauge]]. 여기는 normal/hard 증감 값만.
+- gaugeMode 정의·terminate·cascade는 [[gauge]]. 여기는 normal/hard 증감 값만.
 
 ## 3. rank 임계 (`RANK_TABLE`, 백만점제, 높음→낮음 첫 도달)
 
