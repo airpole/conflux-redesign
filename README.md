@@ -38,7 +38,7 @@
 ### `scene/` — 화면 그래프
 | 문서 | 내용 |
 |---|---|
-| [scene](scene/scene.md) | game 흐름 화면 그래프 (title→modeselect→song-select→credit→play→result), 전환·스택·호스트 |
+| [scene](scene/scene.md) | 화면 그래프 (공용 루트 title·mode-select + game/editor/settings 모드 그래프), overlay·전환·호스트 |
 
 ### `_meta/` — 비(非)로직 정의
 | 문서 | 내용 |
@@ -116,7 +116,7 @@ core → env → render → edit/game → scene → app
 
 > 게이지(gaugeMode 6종·terminate·Cascade·state)는 **정의 [[gauge]] / 수치 [[constants]] §2**로 분리 단일 출처화. (정의가 무거워져 glossary 한 섹션에서 전용 문서로 독립 — 근거 [[rationale]].) AS/AP/FC/Cascade 단일 축 평탄화는 [수정](코드의 gaugeType×lock 직교를 유저 관점 1축으로).
 
-> scene 그래프는 **game 흐름 1급**으로 작성: title→modeselect→song-select→credit→play→result (editor는 별도 축, 범위 밖). song-select(←music-select 개명), credit(신규 인터스티셜), play/result(overlay→정식 scene).
+> scene 그래프: **공용 루트(title·mode-select) + 세 모드 그래프**(game 스택형 / editor·settings 평면형). game 흐름 title→mode-select→song-select→song-credit→gameplay→result. `play`(모드)/`gameplay`(scene) 분리, `song-credit`(곡)/`credits`(제작진), editor `play`탭→`test`, `music-select`→`song-select`. overlay 정식화(pause=overlay 엔진 살림, result=scene 승격, lead-in 3초 [보존]). 빠른 옵션 패널 5종(scrollSpeed/gaugeMode/mirror/staticShape/autoplay) song-select·test 공유.
 
 > 크레딧·설정 정리: `artist→musicBy`·`charter→chartBy`·`jacketBy` 신규(저장은 값만, "by"는 표시 레이어). 곡별 `jacketBrightness` 폐기→전역 [[settings]]로 통일·개명. `measureLabelOffset` 곡공통 [번복]→에디터 settings. `cmod`·`hidden` 폐기. 설정 단일 출처 [[settings]] 신설(`_meta/`). 근거 [[rationale]].
 
@@ -127,6 +127,6 @@ core → env → render → edit/game → scene → app
 **다음 후보** (명세 다지기 우선, 재구현은 미룸):
 - **검토 채팅 1회** — 누적 13문서 메타 검토(단순화/누락/단일출처/링크). 명세 다지기의 핵심.
 - 검토 수선 — 검토가 지적한 항목 닫기 (작업 채팅)
-- scene 잔여 — credit 표시초·pause/result 입력 키 등 구체값 (scene.md §10)
+- scene 잔여 — song-credit 표시초·pause/result 입력 키 등 구체값 (scene.md §10)
 - editor 그래프 전환 규칙 — 향후 editor 문서 (architecture §5 잔여)
 - `_plan/build-order.md` — **재구현 직전에** 꺼냄 (지금은 미룸: 명세가 흔들리면 같이 흔들림)
