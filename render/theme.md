@@ -3,7 +3,7 @@
 > render가 화면을 그릴 때 참조하는 **정해진 표현 값**(색·draw order·치수·폰트)을 한 곳에 모은다.
 > core의 [[constants]](로직 수치: 판정창·게이지 증감)와 분리된다 — 이건 "어떻게 보이나", 저건 "어떻게 동작하나". 바꾸면 보이는 것만 달라진다.
 > 정의 문서(glossary 등)는 "무엇을 표시하는가"만, 표현 값은 여기서만 정한다. 값은 현재 코드 실측, 태그 `[보존]`(바꾸려면 [수정]).
-> 색·draw order는 이번에 확정. **치수·폰트(§3·§4)는 game-render 정밀 추출 후 채울 placeholder** — 기억으로 채우지 않는다.
+> 값은 현재 코드 실측, 태그 `[보존]`(바꾸려면 [수정]). 색·draw order·치수·폰트 모두 실측 확정. 남은 건 일부 색의 변수 경유 hex 재확인(§5 잔여)뿐 — 기억으로 채우지 않는다.
 
 ---
 
@@ -114,22 +114,93 @@
 
 ---
 
-## 3. 치수 (dimension) — placeholder
+## 3. 치수 (dimension)
 
-> ⚠️ **미추출.** jY(판정선 Y 비율)·gw/gh 산출·선 굵기·히트이펙트 반지름·HUD 앵커 등 레이아웃 수치는 `game-render.js`/`play-render.js` 정밀 추출 패스에서 실측으로 채운다. 기억으로 채우지 않는다. 현재까지 단서(실측 일부):
+실측: `play-render.js` / `game-render.js`. 모든 치수는 플레이필드 폭 `gw` 또는 높이 `gh`의 비율로 잡혀 해상도 독립이다. 태그 `[보존]`.
 
-- 판정선 기본 위치: `jY = gy + gh × min(8/9, judgeLinePos)`. 기본 `8/9`(최하단), raise-only → [[settings]].
-- 게이지 바 두께: `6px`(track), leading glow `12px` 언저리.
-- combo 글자: `gw × 0.06`, 판정 텍스트: `gw × 0.021`.
-- combo 블록 Y: `jY − gh × (8/9 − 0.22)` 근방 (판정선 따라 이동).
-- hit effect 반지름: `gw × 0.045` 언저리.
-- (전수: 레인 구분선 굵기, 곡정보 띠 레이아웃, sudden 커버 높이 = sudden% × … 등)
+### 플레이필드 박스
+
+| 값 | 산출 | 비고 |
+|---|---|---|
+| 종횡비 | **16:9** (`asp = 16/9`) | 캔버스에 레터박스, 중앙 정렬 |
+| `gw/gh/gx/gy` | 캔버스 `cw/ch`에서 16:9로 맞춰 산출 | 넘치는 축에 여백, DPR 반영 |
+| 캔버스 바깥 | `#000`, 플레이필드 바닥 `#050508` | §1 배경 |
+| 클립 | 플레이필드 박스로 `ctx.clip()` | 바깥으로 안 새게 |
+
+### 판정선 · 게이지 바
+
+| 값 | 산출 |
+|---|---|
+| 판정선 Y | `jY = gy + gh × min(8/9, judgeLinePos)`. 기본 `8/9`=최하단, raise-only → [[settings]] |
+| 게이지 트랙 두께 | `6px` (`jY−3 … jY+3`) |
+| 게이지 글로우 | `12px` (`jY−6 … jY+6`), leading edge |
+| baseline 선 | `1px` 흰선 |
+
+### notes · lane
+
+| 값 | 산출 |
+|---|---|
+| 노트 두께 | `noteThickness × (wide ? 1 : 0.9)`. 기본 `noteThickness=15px` → [[settings]] |
+| 노트 좌우 패딩 | normal `lnW × 0.05`, wide `0` |
+| lane 폭 `lnW` | wide=전폭 `sw`; normal=`(lines[li]/100) × sw` (구분선 비율) |
+| conflict 테두리 | `lineWidth 2`, `CONFLICT_COLOR` |
+
+### 키 빔 · 선
+
+| 값 | 산출 |
+|---|---|
+| 키 빔 상단 | `beamTop = gy + gh × 0.30` (1/3 지점부터 페이드 인), jY까지 |
+| 키 빔 헤드 | `jY−10 … jY` 높이 10px |
+| 마디선 | `lineWidth 1.5`, `#ffffff22` |
+| step 선(shape 점프) | `lineWidth 2`, `#7ad6ff66` (마디선 위, sky-blue) |
+
+### sudden · hit effect
+
+| 값 | 산출 |
+|---|---|
+| sudden 커버 높이 | `(jY − gy) × min(0.95, sudden/100)` — 상단부터, 최대 95% |
+| hit effect 반지름 | `FIXED_R = gw × 0.045` (shape 폭과 무관, 고정) |
+| effect 지속 | `300ms` (hold fade `250ms`) |
+
+### HUD (drawUnifiedHUD)
+
+기준 격자 `cell = gw / 16`. 글자 크기는 전부 `gw`(또는 cell) 비율.
+
+| 값 | 산출 |
+|---|---|
+| combo 글자 | `gw × 0.06` |
+| 판정 텍스트 | `gw × 0.021` |
+| 카운터 | `gw × 0.014` |
+| 퍼센트 | `gw × 0.01625` |
+| F/S 텍스트 | `gw × 0.016` |
+| combo 블록 Y | `comboY = jY − gh × (8/9 − 0.22)` — 판정선 따라 이동 |
+| 판정 Y | `comboY + comboSz/2 + G + judgeSz/2` (`G = gw × 0.008`) |
+| pause 버튼 | 좌상단 cell 내 두 막대 `barW=cell×0.12`, `barH=cell×0.45` |
+| 곡정보 띠 | 기본 밴드 `[jYDefault → 바닥]`에 **고정**(판정선 raise 무관) |
+| 곡명 | `cell × 0.28`, `#ffffffdd` |
+| 아티스트 | `titleSz × 0.8`, `#ffffff99` |
+
+> **HUD 밴드 고정**: 곡정보 띠는 늘 기본 밴드(`jYDefault = gy + gh × 8/9` 아래)에 그려져, 판정선을 올려도(`judgeLinePos`) 띠는 제자리·combo 블록만 따라 오른다 → §2 draw order.
 
 ---
 
-## 4. 폰트 · 텍스트 스타일 — placeholder
+## 4. 폰트 · 텍스트 스타일
 
-> ⚠️ **미추출.** 곡명·콤보 숫자·판정 텍스트·text event의 폰트 패밀리·웨이트·정렬을 추출 패스에서 채운다.
+실측: HUD·text event 전부 **`bold {size}px sans-serif`** 한 패밀리. 크기는 §3 표(전부 `gw`/`cell` 비율). 정렬·그림자만 추가:
+
+| 요소 | 정렬 | 그림자(blur) |
+|---|---|---|
+| combo | center | `gw × 0.012` |
+| 판정 텍스트 | center | `gw × 0.01` |
+| 카운터·퍼센트 | center | `gw × 0.008` |
+| F/S | center | `gw × 0.008` |
+| 곡명·아티스트 | left | `gw × 0.006` |
+| pause 막대 | — | `gw × 0.004` |
+
+- 전 텍스트 **수직 중앙 정렬**(`drawTextVC`: ascent/descent 보정).
+- text event 색 `TEXT_COLOR`(§1), 폰트 동일 sans-serif.
+
+> 폰트 패밀리가 `sans-serif` 단일이라 별도 폰트 로딩 없음. 굵기는 전부 bold. 커스텀 폰트는 미사용 [보존].
 
 ---
 
@@ -141,8 +212,9 @@
 - [x] `INVALID_COLOR`→`CONFLICT_COLOR` 개명 ([[glossary]] overlap/conflict와 정합)
 - [x] draw order(z-층) 실측 확정 — sudden 위치·판정선=게이지·HUD 밴드 고정·pause DOM
 - [x] 판정 색(hit effect)·배경 색 추가 추출
+- [x] §3 치수 전수 추출 (16:9 박스·jY·노트/lane·키빔·sudden·hit effect·HUD 앵커)
+- [x] §4 폰트 — `bold {size}px sans-serif` 단일, 커스텀 폰트 없음
 
 잔여:
-- [ ] §3 치수 전수 추출 (game-render/play-render 정밀 패스) — 별도 세션
-- [ ] §4 폰트·텍스트 스타일 추출
-- [ ] 게이지 75% 반전 색 정확한 hex
+- [ ] 게이지 75%(`NORMAL_CLEAR_PCT`) 반전 색 정확한 hex (코드가 변수라 리터럴 미확정)
+- [ ] state·gauge 일부 색의 정확한 hex 재확인 (추출 시 변수 경유분)
