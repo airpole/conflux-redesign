@@ -245,8 +245,13 @@ app-*     부트스트랩 / 빌드별 진입점 / config
 확정 (overlap/conflict 단일화 세션):
 - [x] 단일 검출 + capacity 분기: 2키 lane(L2·L3)=`overlap`(노랑), 1키 lane(L1·L4)+Wide-on-Wide=`conflict`(빨강). 구 `invalid`/`misplaced`→`conflict`
 - [x] 검출은 파생 속성(domain, `noteOverlapMap`), 알고리즘 단일 출처 [[data-model]] §5.1. render는 색·above/below 표시만, judge는 모름
-- [x] 색 상수 `INVALID_COLOR`→`CONFLICT_COLOR` (적용은 묶음3 theme)
+- [x] 색 상수 `INVALID_COLOR`→`CONFLICT_COLOR` (묶음3 theme에서 적용 완료)
 - [x] judge.md §8 문구 "render가 스스로 판단" → 검출=domain(`noteOverlapMap`)/표시=render로 정밀화 (data-model §5.1 링크)
+
+확정 (theme 세션):
+- [x] `colors.md`→`theme.md` 승격·개명 (render 표현값 단일 출처). core `constants`(로직)와 분리
+- [x] draw order(z-층) 실측 확정, 판정/배경 색 추가. 치수·폰트는 placeholder(추출 세션)
+- [x] colors 참조 전부 theme로 갱신 (gauge·README 등)
 
 확정 (이번 논의):
 - [x] 노트 4종 확정: Tap / Hold / WideTap / WideHold (`isWide` × `duration` 조합)
@@ -264,7 +269,7 @@ app-*     부트스트랩 / 빌드별 진입점 / config
 - [x] 모든 시간축 이벤트 `startTick` 통일, 이벤트 배열 자연복수(`tempos`/`notes` + `*Events`)
 - [x] `channel`→`lane` 통일, 단어 폐기. `key`(1~6) 물리입력만 분리. `OVERLAP_LANES`
 - [x] 5선 멘탈모델은 B/R 양끝 + 1·2·3, 데이터 병합 안 함 (isBlue/lineNum 유지). 0/4 숫자 폐기 → 순서 압박 제거, 교차 허용
-- [x] state 색 → [[colors]] 단일출처. EXTRACTED 새 볼트로 이전
+- [x] state 색 → [[theme]] 단일출처(구 colors). EXTRACTED 새 볼트로 이전
 - [x] audioFile/offset 곡공통(metadata) 고정 — 난이도별 음원/싱크 분기 차단
 - [x] offset 정의 ([[glossary]] 타이밍): 오디오 시작 보정, 양수=음악 당김, leadIn과 별개
 - [x] FAST/SLOW = 순간표시(flashTiming, 기록X) + 누적카운트(fastCount/slowCount, result 표시). SYNC바깥~MISS안쪽 normal만

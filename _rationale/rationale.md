@@ -137,3 +137,9 @@ mode-select는 game·editor·settings 어느 모드도 아닌 공용 루트다. 
 
 ### 검출을 render가 아니라 파생 속성(domain)으로 본 이유
 구 glossary는 "render가 판단한다"고 적었으나, 실측상 검출은 notes에 의존하는 캐시 패스(`noteOverlapMap`)이고 render는 그 map을 읽어 색만 입힌다. 검출은 입력/표시와 무관한 순수 계산(파생 속성)이라 domain에 두는 게 레이어상 맞다 — render는 결과의 소비자일 뿐. 그래서 알고리즘 단일 출처를 [[data-model]] §5.1(파생)에 두고 glossary·render는 참조한다.
+
+## colors.md를 theme.md로 승격한 이유
+colors.md는 색만 모았지만, render가 화면을 그릴 때 참조하는 "정해진 값"은 색만이 아니다 — draw order(z-층)·치수·폰트도 같은 성격(바꾸면 보이는 것만 달라지는 표현 값)이다. colors.md 자신이 말미에 "플레이필드 레이아웃은 이 문서로 합친다"고 예고했었다. 이들을 한 우산(`theme`)에 모으면 render 표현값의 단일 출처가 생기고, core의 `constants`(판정창·게이지 증감 같은 로직 수치)와 깨끗이 갈린다 — constants는 "어떻게 동작하나"(Node에서도 의미 있음), theme는 "어떻게 보이나"(브라우저 표현). `theme`라는 이름은 색·치수·타이포를 묶는 표준어이고, 미래에 스킨/다크모드가 생기면 그 그릇도 된다. 단 치수·폰트는 아직 실측 안 됐으므로(EXTRACTED_FACTS placeholder), 이번엔 색·draw order만 확정하고 나머지는 placeholder로 둔다 — 기억으로 채우지 않는다는 원칙.
+
+## draw order를 theme(render)에 둔 이유
+z-층(무엇이 무엇 위에 그려지나)은 판정·데이터와 무관한 순수 표현 순서다. 실측상 캔버스 패스 순서가 곧 z-순서이고(아래부터 그려 덮음), pause만 인터랙티브라 캔버스 위 DOM 1층이다. 이건 render의 관심사라 theme에 두고, scene(§9 overlay)·settings(judgeLinePos)는 참조한다. sudden이 notes 뒤·판정선 앞이라는 위치, 판정선이 게이지를 겸한다는 것, HUD 곡정보 띠가 기본 밴드에 고정(판정선 raise와 무관)이라는 것이 실측으로 확정됐다.

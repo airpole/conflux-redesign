@@ -33,7 +33,7 @@
 ### `render/` — 렌더
 | 문서 | 내용 |
 |---|---|
-| [colors](render/colors.md) | 모든 색 단일 출처 |
+| [theme](render/theme.md) | 표현 값 단일 출처 (색·draw order; 치수·폰트 placeholder) |
 
 ### `scene/` — 화면 그래프
 | 문서 | 내용 |
@@ -112,7 +112,7 @@ core → env → render → edit/game → scene → app
 
 ## 진행 상태
 
-**완료**: naming, glossary, data-model, timing, judge, lane-events, shape, gauge, colors, constants, scene, settings, architecture + 받침 문서
+**완료**: naming, glossary, data-model, timing, judge, lane-events, shape, gauge, theme(←colors), constants, scene, settings, architecture + 받침 문서
 
 > 게이지(gaugeMode 6종·terminate·Cascade·state)는 **정의 [[gauge]] / 수치 [[constants]] §2**로 분리 단일 출처화. (정의가 무거워져 glossary 한 섹션에서 전용 문서로 독립 — 근거 [[rationale]].) AS/AP/FC/Cascade 단일 축 평탄화는 [수정](코드의 gaugeType×lock 직교를 유저 관점 1축으로).
 

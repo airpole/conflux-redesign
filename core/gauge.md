@@ -29,10 +29,10 @@
 | `AP` | 100 고정 | — | PERFECT 미만 | `AP` | `F` |
 | `FC` | 100 고정 | — | MISS 발생 | `FC` | `F` |
 
-- `AS`/`AP`/`FC`는 게이지가 무의미하다 (terminate가 유일한 실패 경로). 막대는 100 고정으로 해당 색만 표시 → [[colors]].
+- `AS`/`AP`/`FC`는 게이지가 무의미하다 (terminate가 유일한 실패 경로). 막대는 100 고정으로 해당 색만 표시 → [[theme]].
 - `Cascade`는 terminate가 아니라 **강등**으로 동작하므로 이 표에 넣지 않는다 (§4).
 - 안 친 곡은 state `N` (Not played).
-- state 색은 정의가 아니라 render 속성 → [[colors]].
+- state 색은 정의가 아니라 render 속성 → [[theme]].
 
 ---
 
@@ -61,4 +61,4 @@ terminate 임계(SYNC 외 / PERFECT 미만 / MISS)가 가리키는 판정 종류
 - **증감 수치**: [[constants]] §2. 여기는 동작만.
 - **판정 종류 정의** (SYNC/PERFECT/GOOD/MISS): [[judge]]. 여기는 어느 판정이 terminate를 부르는지만.
 - **rank** (점수 등급): state와 **독립 축**. [[glossary#게이지 / 결과]] 색인 + [[constants]] §3. gauge 생사와 무관하므로 여기서 정의하지 않는다.
-- **state 색**: render 속성 → [[colors]].
+- **state 색**: render 속성 → [[theme]].
