@@ -119,11 +119,11 @@ title 다음의 공용 진입 scene. 세 모드로 갈린다.
 - **scrollSpeed** — 스크롤 속도. 가장 자주 만짐.
 - **gaugeMode** — normal/hard/fc/ap/as/cascade. 무슨 도전인가 → [[gauge]].
 - **mirror** — 레인 미러. 기록 **유지**.
-- **staticShape** — shape 고정(연습). 켜면 **기록 안 됨**.
+- **staticShape** — shape 고정(연습). 켜면 **기록 안 됨** `[수정]`. (shape 변형은 Conflux의 핵심 도전 요소라, 고정하면 읽기가 유리해진다 → 기록 제외. 구 코드에선 render-only라 기록을 막지 않았다.)
 - **autoplay** — 자동 플레이. 켜면 **기록 안 됨**.
 
 > **공유 부품**: 이 패널은 컴포넌트 하나로, `song-select`와 editor `test`가 **똑같이** 띄운다(§9 overlay). 값은 [[settings]] 한 곳에 있어 어디서 바꾸든 동기된다. 컴포넌트는 edit/game 공용이라 그보다 아래 레이어 → [[architecture]].
-> **no-record**: staticShape·autoplay 중 하나라도 켜지면 그 판은 기록(rank·state)을 안 남긴다. 단일 판정(코드 `noRecordOption()` 승격). mirror는 기록 유지.
+> **no-record**: 기록(rank·state)이 남으려면 **처음부터 시작 + autoplay 아님**이어야 한다 `[보존]` (구 코드 게이트 `startedFromBeginning && !autoplay` 실측 — 곡 중간부터 시작한 판은 기록 안 됨). 여기에 **staticShape도 무기록**을 추가한다 `[수정]`(위 사유). 즉 무기록 = `중간 시작 OR autoplay OR staticShape`. mirror는 기록 유지(게이트와 무관). 배속(`playUsedSlowRate`)은 기록을 막지 않는다 — 구 코드가 의식적으로 게이트에서 뺐다(에디터에서 늦춰 보는 건 기록돼야 하므로).
 
 `[폐기]`: `cmod`(등속 스크롤), `hidden`(레인 커버). hidden은 judgeLinePos raise가 대체. F/S 표시는 빠른 패널이 아니라 settings(visual) 소속(1회 정하면 고정).
 
@@ -133,7 +133,7 @@ title 다음의 공용 진입 scene. 세 모드로 갈린다.
 
 곡 선택 확정 후 gameplay 직전, 이 곡의 크레딧을 잠깐 보여주는 통과 화면.
 
-- **자동 진행**: 유저 입력을 받지 않는다. **5초** 표시 후 gameplay로 자동 전환 [신규]. (scene 내부에서 다른 scene으로 직접 전환 불가 — 타이머가 끝내는 통과점.) 스킵 불가: 재시작(Retry/Back)은 gameplay로 직행해 song-credit을 다시 안 거치므로(§6 back-stack), 반복 대기가 없어 스킵이 불필요하다.
+- **자동 진행**: 유저 입력을 받지 않는다. **5초** 표시 후 gameplay로 자동 전환 [신규]. (scene 내부에서 다른 scene으로 직접 전환 불가 — 타이머가 끝내는 통과점.) **스킵 불가**. 근거 → [[rationale#song-credit과 credits를 가른 이유]].
 - **되돌아갈 수 없다**: 도중 뒤로 가기 없음. song-select 이후는 gameplay까지 직진.
 - 표시: `Music by ○○○` / `Jacket by ○○○` / `Chart by ○○○`. 저장 필드는 `musicBy`·`jacketBy`(song 공통) / `chartBy`(chart별) — "by"는 표시 레이어가 붙인다(저장은 값만). → [[data-model]].
 
@@ -189,7 +189,7 @@ result
 - **pause는 overlay**(§9): gameplay 엔진을 죽이지 않고 멈춘다. **Esc로 토글** ([보존] 키 + [수정] 동작: 현재 코드 Esc는 `stopPlay`(완전 정지)이나, 재구현에선 pause overlay 토글로). Resume은 멈춘 지점 **3초 전부터 lead-in**(노트가 안 내려오는 무음 run-up) 후 재개 `[보존]`(`LEAD_IN_MS`=3000). Exit는 그때 비로소 song-select로 scene 전환.
 - **Retry**(result)와 **Resume**(pause)은 다르다: Retry=처음부터 새 판, Resume=멈춘 지점 이어서.
 - **Exit / Back**: song-credit이 replace로 빠졌으므로(§6) song-select로 곧장. 방금 친 곡에 커서가 남은 채 복귀.
-- gameplay 종료 판정·state 산출은 엔진과 [[gauge]] 소관. scene은 "언제 result로 넘어가는가"라는 전환점만 안다.
+- gameplay 종료 판정·state 산출은 엔진과 [[gauge]] 소관. scene은 "언제 result로 넘어가는가"라는 전환점만 안다. (종료 트리거 3종: clear/fail 판정 → [[gauge]], force-end 발생원 → [[judge]] §5.)
 
 ---
 
@@ -225,7 +225,7 @@ gameplay 로직(엔진)은 **호스트를 모른다**. 단일 컨텍스트 `CTX`
 - [x] mode-select = 모드 확장 단일 지점
 - [x] 빌드 플래그 게이트 일반화, 부팅 폴백
 - [x] 용어: `gameplay`(scene)/`play`(모드), `song-credit`(곡)/`credits`(제작진), editor `play`탭→`test`, `song-select`(←music-select)
-- [x] 빠른 옵션 패널 5종(scrollSpeed/gaugeMode/mirror/staticShape/autoplay), song-select·test 공유, no-record(staticShape·autoplay)
+- [x] 빠른 옵션 패널 5종(scrollSpeed/gaugeMode/mirror/staticShape/autoplay), song-select·test 공유, no-record(중간시작 OR autoplay [보존] + staticShape [수정])
 - [x] F/S·cmod·hidden은 빠른 패널서 제외(F/S→settings, cmod/hidden 폐기)
 - [x] song-credit 신규 — 자동·되돌리기 불가, →gameplay replace
 - [x] gameplay/result overlay→정식 scene 승격
@@ -239,4 +239,5 @@ gameplay 로직(엔진)은 **호스트를 모른다**. 단일 컨텍스트 `CTX`
 - [ ] song-credit 연출 구체값(페이드 등)
 - [ ] editor 그래프 내부 전환 규칙 (→ 향후 editor 문서)
 - [ ] settings 그래프 scene 묶음(visual/sound…) 구체 (→ settings 문서)
+- [ ] `credits`(제작진) scene 귀속·전환 미정 — title/settings 중 어디 소속인지 (naming·glossary엔 등록, game 그래프 밖)
 - [ ] 빠른 패널 공유 컴포넌트의 정확한 레이어 위치 (→ architecture/settings)
