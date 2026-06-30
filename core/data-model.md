@@ -156,7 +156,8 @@ playState   = { gaugePct, gaugeMode, combo, maxCombo, hits, misses, holds,
 ```
 
 - 코어 함수에는 song 전체가 아니라 **활성 보면**(곡 공통 tempos/timeSignatures + 현재 chart)을 펼쳐 넘긴다. 코어는 멀티 난이도 구조를 모른다.
-- 필드 상세는 [[naming]] 상태 객체 대응표.
+- playState 필드 구조의 단일 출처는 여기다. [[naming]] 상태 객체 대응표는 **구 `PS`→신 `playState` 개명 추적**용(이름 매핑만).
+- result 산출물(`score`/`accuracy`/`rank`/`state` + `fastCount`/`slowCount`)은 `computeResult`가 playState에서 읽어 **반환**하는 값이지 playState 저장 필드가 아니다. 계산식 → [[constants]] §3, state → [[gauge]].
 
 ---
 

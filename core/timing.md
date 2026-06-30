@@ -162,4 +162,4 @@ sub = round(subTick / (tpbUnit / gridDivisor))
 
 ## 11. 미해결
 
-- [ ] gridDivisor 드롭다운 기본 목록 값 확정.
+- [ ] gridDivisor 드롭다운 기본 목록: 구 코드 `GDIVS` = `[1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64]` 실측. 이 목록을 그대로 채택할지 결정만 남음.

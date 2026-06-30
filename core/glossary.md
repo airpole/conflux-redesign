@@ -30,14 +30,8 @@
 
 
 
-- **`judgment`** — 키 입력 타이밍 `abs(diff_ms)`를 임계로 자른 결과. normal과 wide는 임계 테이블만 다르다.
-
-| `abs(diff_ms)` | ≤ 25 | ≤ 50 | ≤ 100 | > 100 |
-|---|---|---|---|---|
-| **normal** (`isWide=false`) | `SYNC` | `PERFECT` | `GOOD` | `MISS` |
-| **wide** (`isWide=true`) | `SYNC` | `SYNC` | `SYNC` | `MISS` |
-
-- **`window`** (`WINDOW_*_MS`) — 위 임계값. SYNC 25 / PERFECT 50 / GOOD 100.
+- **`judgment`** — 키 입력 타이밍 `abs(diff_ms)`를 임계로 자른 결과(`SYNC`/`PERFECT`/`GOOD`/`MISS`). normal과 wide는 임계 테이블만 다르다(wide는 SYNC 아니면 MISS). 임계 매핑 → [[judge]] §3, 수치 → [[constants]] §1.
+- **`window`** (`WINDOW_*_MS`) — judgment 임계 시간. 값은 → [[constants]] §1.
 - **`judgeLine`** — 노트를 쳐야 하는 기준 가로선. 위로만 올릴 수 있다(raise-only). 올리면 아래 HUD(게이지·곡명 등)도 따라 올라간다.
 - **`FAST` / `SLOW`** — 판정 종류가 아니라 `diff`의 **부호**로, 두 층위로 쓰인다.
   - **순간 표시** (`flashTiming`) — 판정 당시 'FAST'/'SLOW'를 화면에 잠깐 깜빡인다. 기록 안 됨.

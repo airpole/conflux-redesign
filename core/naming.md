@@ -284,6 +284,6 @@ app-*     부트스트랩 / 빌드별 진입점 / config
 - [x] 용어 잔재 정리 (Lane/Channel 제목 → Lane, EXTRACTED 옛용어 경고)
 - [ ] textEvents 구체 필드 (편집 UI 설계 시)
 - [ ] 입력단계 지역변수(linePos 등) lane/targetPos 기준 정리 (재구현 시)
-- [ ] gridDivisor 드롭다운 기본 목록 값 확정
+- [ ] gridDivisor 드롭다운 기본 목록: 구 코드 `GDIVS`=[1,2,3,4,6,8,12,16,24,32,48,64] 실측 — 채택 여부만 (→ [[timing]] §11)
 - [x] gridDivisor 상세를 timing.md로 이관 (glossary는 링크만)
 - [x] core/timing.md 신설 — tick↔ms·스크롤 진행도·마디 세그먼트·gridDivisor. scrollYAt은 render, clock은 game으로 경계 확정. measure도 BPM과 같은 세그먼트 패턴으로 통일, sub 분할 gridDivisor와 통일(16 폐기)

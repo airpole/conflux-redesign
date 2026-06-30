@@ -54,4 +54,5 @@ start: `normal` 0 / `hard` 100. 둘 다 상한 100(`gaugeMax`).
 | F | 0 |
 
 - 점수 = (SYNC+tail성공 + PERFECT + GOOD×0.5) / 총콤보 × 1,000,000.
-- rank는 state와 독립 축([[glossary]]).
+- accuracy(%) = (SYNC+tail성공 + PERFECT×0.7 + GOOD×0.3) / 총콤보 × 100. 점수와 **별개 지표**다 (가중이 다름: 점수는 PERFECT 풀·GOOD 0.5, accuracy는 PERFECT 0.7·GOOD 0.3). `computeResult`가 score·rank·state와 함께 반환. `[보존]`
+- rank는 state와 독립 축([[glossary]]). result 화면이 이 중 무엇을 어떻게 표시하는지(레이아웃)는 core 밖 — scene/render 소관.
