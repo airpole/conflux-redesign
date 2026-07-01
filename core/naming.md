@@ -217,6 +217,8 @@ app-*     부트스트랩 / 빌드별 진입점 / config
 
 구 파일 행선지: `play-options.js`(에디터 Play탭 옵션바)는 **삭제가 아니라 흡수**된다 — gauge/lock은 [[settings]] scene으로 이미 이전됐고, 남은 mirror·F/S 토글은 빠른 옵션 패널 공유 컴포넌트(edit/game 공용, [[scene]] §5)로 흡수된다. mirror는 `setSetting`으로 settings에 라우팅되어 단일 출처 유지.
 
+**core로 승격되는 현재 파일**(순수 로직·계산, 전역 `D` import를 인자 전달로 재배선 — [[architecture]] §2): `timing.js`·`shape.js`·`play-judgment.js`·`gauge.js`·`constants.js`. 이들이 `core-*` 접두 레이어가 된다.
+
 ---
 
 ## 6. 결정 완료 / 잔여
