@@ -119,11 +119,11 @@ title 다음의 공용 진입 scene. 세 모드로 갈린다.
 - **scrollSpeed** — 스크롤 속도. 가장 자주 만짐.
 - **gaugeMode** — normal/hard/fc/ap/as/cascade. 무슨 도전인가 → [[gauge]].
 - **mirror** — 레인 미러. 기록 **유지**.
-- **staticShape** — shape 고정(연습). 켜면 **기록 안 됨** `[수정]`. (shape 변형은 Conflux의 핵심 도전 요소라, 고정하면 읽기가 유리해진다 → 기록 제외. 구 코드에선 render-only라 기록을 막지 않았다.)
+- **staticShape** — shape 고정(연습). 켜면 **기록 안 됨** `[보존]`. (shape 변형이 Conflux 핵심 도전이라 고정 시 유리 — 무기록. 상세·단일 출처 → [[settings]] §2.)
 - **autoplay** — 자동 플레이. 켜면 **기록 안 됨**.
 
 > **공유 부품**: 이 패널은 컴포넌트 하나로, `song-select`와 editor `test`가 **똑같이** 띄운다(§9 overlay). 값은 [[settings]] 한 곳에 있어 어디서 바꾸든 동기된다. 컴포넌트는 edit/game 공용이라 그보다 아래 레이어 → [[architecture]].
-> **no-record**: 기록(rank·state)이 남으려면 **처음부터 시작 + autoplay 아님**이어야 한다 `[보존]` (구 코드 게이트 `startedFromBeginning && !autoplay` 실측 — 곡 중간부터 시작한 판은 기록 안 됨). 여기에 **staticShape도 무기록**을 추가한다 `[수정]`(위 사유). 즉 무기록 = `중간 시작 OR autoplay OR staticShape`. mirror는 기록 유지(게이트와 무관). 배속(`playUsedSlowRate`)은 기록을 막지 않는다 — 구 코드가 의식적으로 게이트에서 뺐다(에디터에서 늦춰 보는 건 기록돼야 하므로).
+> **no-record**: 무기록 = `autoplay OR staticShape OR 중간시작` (셋 다 `[보존]`, 상세·근거·단일 출처 → [[settings]] §2). mirror는 기록 유지, 배속도 기록을 막지 않는다.
 
 `[폐기]`: `cmod`(등속 스크롤), `hidden`(레인 커버). hidden은 judgeLinePos raise가 대체. F/S 표시는 빠른 패널이 아니라 settings(visual) 소속(1회 정하면 고정).
 
@@ -225,7 +225,7 @@ gameplay 로직(엔진)은 **호스트를 모른다**. 단일 컨텍스트 `CTX`
 - [x] mode-select = 모드 확장 단일 지점
 - [x] 빌드 플래그 게이트 일반화, 부팅 폴백
 - [x] 용어: `gameplay`(scene)/`play`(모드), `song-credit`(곡)/`credits`(제작진), editor `play`탭→`test`, `song-select`(←music-select)
-- [x] 빠른 옵션 패널 5종(scrollSpeed/gaugeMode/mirror/staticShape/autoplay), song-select·test 공유, no-record(중간시작 OR autoplay [보존] + staticShape [수정])
+- [x] 빠른 옵션 패널 5종(scrollSpeed/gaugeMode/mirror/staticShape/autoplay), song-select·test 공유, no-record(autoplay OR staticShape OR 중간시작, 전부 [보존], 단일 출처 settings §2)
 - [x] F/S·cmod·hidden은 빠른 패널서 제외(F/S→settings, cmod/hidden 폐기)
 - [x] song-credit 신규 — 자동·되돌리기 불가, →gameplay replace
 - [x] gameplay/result overlay→정식 scene 승격

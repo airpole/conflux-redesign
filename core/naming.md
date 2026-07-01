@@ -215,6 +215,8 @@ app-*     부트스트랩 / 빌드별 진입점 / config
 
 **철칙**: import는 위→아래 한 방향만(`core-*`가 `render-*`를 import하면 위반). 상세·근거 → [[architecture]].
 
+구 파일 행선지: `play-options.js`(에디터 Play탭 옵션바)는 **삭제가 아니라 흡수**된다 — gauge/lock은 [[settings]] scene으로 이미 이전됐고, 남은 mirror·F/S 토글은 빠른 옵션 패널 공유 컴포넌트(edit/game 공용, [[scene]] §5)로 흡수된다. mirror는 `setSetting`으로 settings에 라우팅되어 단일 출처 유지.
+
 ---
 
 ## 6. 결정 완료 / 잔여
