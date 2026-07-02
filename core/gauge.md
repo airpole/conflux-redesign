@@ -31,8 +31,19 @@
 
 - mode `fc`/`ap`/`as`는 게이지가 무의미하다 (terminate가 유일한 실패 경로). 막대는 100 고정으로 해당 색만 표시 → [[theme]]. (저장값은 소문자 mode, 표시·state는 대문자 `FC`/`AP`/`AS`.)
 - `cascade`는 terminate가 아니라 **강등**으로 동작하므로 이 표에 넣지 않는다 (§4).
-- 안 친 곡은 state `N` (Not played).
 - state 색은 정의가 아니라 render 속성 → [[theme]].
+
+### state 종류 (7종)
+
+곡을 끝낸 결과는 다음 7종 중 하나. best 기록은 이 우선순위로 갱신된다 (왼쪽이 상위):
+
+`AS` > `AP` > `FC` > `H` > `C` > `F` > `N`
+
+- `AS` All Sync / `AP` All Perfect / `FC` Full Combo / `H` hard clear / `C` normal clear(≥75%) — 위 §2 "성공 시 state".
+- `F` **Fail** — 클리어 못 한 모든 판(게이지 미달로 끝까지 갔든, terminate로 중도 종료됐든 하나로). 기록은 남는다(친 곡).
+- `N` **Not played** — 아예 안 친 곡(기록 없음). 그래서 `N`이 우선순위 맨 아래 — 한 번이라도 친 `F`가 안 친 `N`보다 상위다.
+
+`[수정]` — 구 코드는 "끝까지 쳤지만 미달"을 `P`(played, record exists)로, "중도 강제종료"를 `F`로 갈랐고 best 우선순위도 `…C > P > N > F`였다. 재설계는 유저 관점에서 "클리어 실패는 하나"라 보고 **`P`를 `F`에 흡수**, F를 N 위로 올려 `…C > F > N`으로 단일화한다. 근거 → [[rationale#state에서 P를 F로 흡수한 이유]]. (안 친 노트는 전부 MISS 처리되므로 미달 판도 실제 플레이 결과다.)
 
 ---
 

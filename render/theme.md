@@ -26,7 +26,7 @@
 
 ### state (결과 상태)
 
-종류 정의는 [[glossary]], 색은 여기.
+종류·우선순위 정의는 [[gauge]] (7종, `P`는 `F`에 흡수됨), 색은 여기.
 
 | state | 의미 | HEX |
 |---|---|---|
@@ -43,11 +43,11 @@
 | mode | HEX |
 |---|---|
 | `normal` | `#4aff8a` (초록) |
-| `normal` 75%(`NORMAL_CLEAR_PCT`) 도달 | `#…` 밝은 하늘 (clear-secured 신호) |
+| `normal` 75%(`NORMAL_CLEAR_PCT`) 도달 | `#4ad6ff` 밝은 하늘 (clear-secured 신호, 채운 바 전체 재착색) |
 | `hard` | `#ff4a5a` (빨강) |
 | AS/AP/FC 모드 바 | state 색 따름 (위 표) |
 
-> 게이지 75% 색 반전 임계 `NORMAL_CLEAR_PCT`의 **수치**는 [[constants]](로직), 그때의 **색**은 여기. 정확한 hex는 §3 추출 패스에서 확정.
+> 게이지 75% 색 반전 임계 `NORMAL_CLEAR_PCT`의 **수치**는 [[constants]](로직), 그때의 **색**(`#4ad6ff`)은 여기. below-clear는 `#4aff8a`(초록), clear-secured는 `#4ad6ff`(하늘). game-render 실측.
 
 ### 판정 피드백 (Fast / Slow)
 
@@ -103,14 +103,14 @@
 9  text event 표시                                   ┘
 10 HUD: combo 블록 · 곡정보 띠 · pause 버튼           [play-render, drawGameFrame 위]
 ── (DOM) ──────────────────────────────────────────
-11 pause overlay (메뉴·버튼)                          [인터랙티브, 캔버스 위 DOM]
+11 pause overlay (메뉴·버튼)                          [인터랙티브, 캔버스 위 DOM · [수정] 예정, 현재 미구현]
 ```
 
 확정 포인트 (실측):
 - **sudden은 notes 뒤·판정선 앞**(5 < 6 < 7) — 노트를 가리되 판정선·게이지·이펙트는 가리지 않는다.
 - **판정선 = 게이지 바**: 같은 자리(`jY`)에 그려지고, live 세션이면 게이지로 채워진다.
 - **HUD 띠는 기본 밴드 고정**: 판정선을 raise해도(`judgeLinePos`) 하단 곡정보 띠는 기본 위치에 남고, combo 블록만 판정선을 따라 올라간다 → [[settings]] judgeLinePos.
-- **pause만 DOM**: 버튼 클릭 판정이 필요해 캔버스가 아니라 위 DOM 층. 나머지는 전부 캔버스 패스. overlay 개념 → [[scene]] §9.
+- **pause만 DOM**: 버튼 클릭 판정이 필요해 캔버스가 아니라 위 DOM 층. 나머지는 전부 캔버스 패스. (단 pause overlay는 **현재 미구현** — 구 코드 Esc는 `stopPlay`(완전정지)이고, overlay 토글은 `[수정]` 예정. 이 층은 다른 [보존] 층과 달리 재설계 산물이다.) overlay 개념 → [[scene]] §9.
 
 ---
 
@@ -159,7 +159,7 @@
 | 값 | 산출 |
 |---|---|
 | sudden 커버 높이 | `(jY − gy) × min(0.95, sudden/100)` — 상단부터, 최대 95% |
-| hit effect 반지름 | `FIXED_R = gw × 0.045` (shape 폭과 무관, 고정) |
+| hit effect 반지름 | normal `FIXED_R = gw × 0.045`, wide `FIXED_R × 1.6` (여러 lane 걸쳐 더 큰 물결). shape 폭과는 무관(고정) |
 | effect 지속 | `300ms` (hold fade `250ms`) |
 
 ### HUD (drawUnifiedHUD)
@@ -216,5 +216,4 @@
 - [x] §4 폰트 — `bold {size}px sans-serif` 단일, 커스텀 폰트 없음
 
 잔여:
-- [ ] 게이지 75%(`NORMAL_CLEAR_PCT`) 반전 색 정확한 hex (코드가 변수라 리터럴 미확정)
 - [ ] state·gauge 일부 색의 정확한 hex 재확인 (추출 시 변수 경유분)
