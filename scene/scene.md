@@ -109,6 +109,7 @@ title 다음의 공용 진입 scene. 세 모드로 갈린다.
 - **Enter** (곡 커서 위에서) → song-credit 진입 (§6) → gameplay.
 - **Space** → 빠른 옵션 패널 토글 (아래).
 - 입력이 깔끔히 갈린다: Enter=시작, Space=옵션.
+- 곡 목록에는 chart별 **`bestState`·`bestRank` 뱃지**를 표시한다 `[신규]` — 두 축이 독립이라 함께 보여야 의미가 선다. 데이터 → [[records]].
 
 ### 빠른 옵션 패널 (Space 토글)
 
@@ -179,6 +180,7 @@ song-select
 gameplay
   ├ 종료(클리어 / fail / force-end) ─▶ result
   └ pause (overlay, 엔진 살림) ─┬ Resume ─▶ gameplay (lead-in 3초 후 재개)
+                                ├ Retry  ─▶ gameplay (처음부터)
                                 └ Exit   ─▶ song-select   [song-credit 안 거침]
 
 result
@@ -187,9 +189,13 @@ result
 ```
 
 - **pause는 overlay**(§9): gameplay 엔진을 죽이지 않고 멈춘다. **Esc로 토글** ([보존] 키 + [수정] 동작: 현재 코드 Esc는 `stopPlay`(완전 정지)이나, 재구현에선 pause overlay 토글로). Resume은 멈춘 지점 **3초 전부터 lead-in**(노트가 안 내려오는 무음 run-up) 후 재개 `[보존]`(`LEAD_IN_MS`=3000). Exit는 그때 비로소 song-select로 scene 전환.
-- **Retry**(result)와 **Resume**(pause)은 다르다: Retry=처음부터 새 판, Resume=멈춘 지점 이어서.
+- **Retry**는 pause와 result 양쪽에 있다(pause 항목은 `[신규]` → [[rationale#pause 메뉴에 Retry를 넣은 이유]]). **Resume**과 다르다: Retry=처음부터 새 판, Resume=멈춘 지점 이어서.
 - **Exit / Back**: song-credit이 replace로 빠졌으므로(§6) song-select로 곧장. 방금 친 곡에 커서가 남은 채 복귀.
 - gameplay 종료 판정·state 산출은 엔진과 [[gauge]] 소관. scene은 "언제 result로 넘어가는가"라는 전환점만 안다. (종료 트리거 3종: clear/fail 판정 → [[gauge]], force-end 발생원 → [[judge]] §5.)
+
+### result 표시 항목 `[보존]`
+
+곡 제목·아티스트·난이도+레벨 / rank + state(색 → [[theme]]) / 점수(7자리) / accuracy(%) / **NEW BEST** 플래그 / 판정 4종 카운트(SYNC·PERFECT·GOOD·MISS) / FAST·SLOW 누적 / MAX COMBO / best 기록(bestScore·bestState → [[records]]) / 적용 옵션 표기. 동작은 Retry·Back — 키는 [[settings]] §2 (Retry `F5` / Back `Enter` / `Esc` 무기능). 레이아웃·치수는 잔여.
 
 ---
 
@@ -229,13 +235,14 @@ gameplay 로직(엔진)은 **호스트를 모른다**. 단일 컨텍스트 `CTX`
 - [x] F/S·cmod·hidden은 빠른 패널서 제외(F/S→settings, cmod/hidden 폐기)
 - [x] song-credit 신규 — 자동·되돌리기 불가, →gameplay replace
 - [x] gameplay/result overlay→정식 scene 승격
-- [x] pause = overlay(엔진 살림), Resume(lead-in 3초)/Exit. result = Retry/Back
+- [x] pause = overlay(엔진 살림), Resume(lead-in 3초)/Retry/Exit. result = Retry/Back
 - [x] overlay = scene 소유 층(공유 부품 예외), game+render 분담, 새 레이어 아님
 - [x] song-credit 표시 5초, 스킵 불가 (근거는 §6 → rationale)
 - [x] pause = Esc 토글([보존] 키 + [수정] stopPlay→pause)
+- [x] pause 메뉴 3항목 Resume/Retry/Exit [신규] · 전체 키 매핑 확정 → [[settings]] §2 (메뉴 네비 방향키+Enter, result: Retry F5 / Back Enter / Esc 무기능)
+- [x] result 표시 항목 [보존] 명문화(§8) · song-select 기록 뱃지 state+rank [신규](§5 → [[records]])
 
 잔여:
-- [ ] result/pause 메뉴의 전체 키 매핑(방향키+Enter+클릭) → **settings 키 배치 단일 출처로 이관** (여기서 단발로 안 정함, [[settings]] 잔여)
 - [ ] song-credit 연출 구체값(페이드 등)
 - [ ] editor 그래프 내부 전환 규칙 (→ 향후 editor 문서)
 - [ ] settings 그래프 scene 묶음(visual/sound…) 구체 (→ settings 문서)

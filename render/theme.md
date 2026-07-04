@@ -3,7 +3,7 @@
 > render가 화면을 그릴 때 참조하는 **정해진 표현 값**(색·draw order·치수·폰트)을 한 곳에 모은다.
 > core의 [[constants]](로직 수치: 판정창·게이지 증감)와 분리된다 — 이건 "어떻게 보이나", 저건 "어떻게 동작하나". 바꾸면 보이는 것만 달라진다.
 > 정의 문서(glossary 등)는 "무엇을 표시하는가"만, 표현 값은 여기서만 정한다. 값은 현재 코드 실측, 태그 `[보존]`(바꾸려면 [수정]).
-> 색·draw order·치수·폰트 모두 실측 확정. 남은 건 일부 색의 변수 경유 hex 재확인(§5 잔여)뿐 — 기억으로 채우지 않는다.
+> 색·draw order·치수·폰트 모두 실측 확정 (변수 경유분 hex도 constants.js 재실측으로 일치 확인 완료).
 
 ---
 
@@ -216,4 +216,4 @@
 - [x] §4 폰트 — `bold {size}px sans-serif` 단일, 커스텀 폰트 없음
 
 잔여:
-- [ ] state·gauge 일부 색의 정확한 hex 재확인 (추출 시 변수 경유분)
+- [x] state·gauge 색 hex 재확인 완료 — `STATE_COLOR`/`GAUGE_COLOR`/`LOCK_COLOR`/`FAST_COLOR`/`SLOW_COLOR` 재실측, 본문 값과 전부 일치

@@ -44,6 +44,7 @@
 | 문서 | 내용 |
 |---|---|
 | [settings](_meta/settings.md) | 플레이어·에디터 설정 단일 출처 (곡 데이터 아님) |
+| [records](_meta/records.md) | 플레이 기록 단일 출처 (chart당 best 기록·갱신 규칙·no-record 연동) |
 
 ### `_plan/` — 재구현 계획
 | 문서 | 내용 |
@@ -112,7 +113,7 @@ core → env → render → edit/game → scene → app
 
 ## 진행 상태
 
-**완료**: naming, glossary, data-model, timing, judge, lane-events, shape, gauge, theme(←colors), constants, scene, settings, architecture + 받침 문서
+**완료**: naming, glossary, data-model, timing, judge, lane-events, shape, gauge, theme(←colors), constants, scene, settings, records, architecture + 받침 문서
 
 > 게이지(gaugeMode 6종·terminate·cascade·state)는 **정의 [[gauge]] / 수치 [[constants]] §2**로 분리 단일 출처화. (정의가 무거워져 glossary 한 섹션에서 전용 문서로 독립 — 근거 [[rationale]].) fc/ap/as/cascade 단일 축 평탄화는 [수정](코드의 gaugeType×lock 직교를 유저 관점 1축으로).
 
@@ -124,9 +125,11 @@ core → env → render → edit/game → scene → app
 
 > 아키텍처: 레이어 7층 `core→env→render→edit/game→scene→app`, 단일 출처 [[architecture]](README·naming은 요약/링크). `plat`→`env` 개명. env=브라우저 API 직접 호출, render=매 프레임 그리기. core는 전역 D 대신 활성 보면 인자 주입 [수정](동작 보존·의존 재배선). CTX 호스트 seam [보존]. editor도 scene 그래프 [수정](game과 형제 두 그래프). 근거 [[rationale]].
 
+> 잔여 일괄 확정(실측 기반): [[records]] 신설(chart당 1기록·5필드·no-record 연동, `_meta/`) · cascade 래칫 + 플레이 중 막대 규칙 + 검증 시나리오([[gauge]] §4) · hold 키 추적/이양·mirror 매핑(1↔4·2↔3)·autoplay 히트음 150ms 사전 스케줄([[judge]] [보존] 명문화) · visualOffset "미배선" 서술 [번복]([보존]으로 정정 — 실측상 이미 배선) · 키 매핑 표 확정([[settings]] §2: pause 메뉴 Resume/Retry/Exit, result Retry F5·Back Enter) · gridDivisor 분음표 표기(V=구N×4, 기본 32, `GRID_DIVISORS` ~256)([[timing]] §6) · symmetry 축 확정(shape: 기본 0·−8~+8 드래그 / lane: 쌍 선택·init 중점) · schemaVersion 시작 `1`. 근거 [[rationale]].
+
 **다음 후보** (명세 다지기 우선, 재구현은 미룸):
-- **검토 채팅 1회** — 누적 13문서 메타 검토(단순화/누락/단일출처/링크). 명세 다지기의 핵심.
-- 검토 수선 — 검토가 지적한 항목 닫기 (작업 채팅)
-- scene 잔여 — song-credit 표시초·pause/result 입력 키 등 구체값 (scene.md §10)
-- editor 그래프 전환 규칙 — 향후 editor 문서 (architecture §5 잔여)
+- **editor 문서** — 실측부터(notes-input/notes-tools/shape-input/shape-tools/commands): 그래프 전환 규칙(architecture §5 잔여) → 커맨드 계약(naming §2 시그니처) → 편집 인터랙션
+- **.cfx·영속성 문서** — 실측부터(import-export/file-manager): 포맷 상세·song id([[records]] 키 교체)·라이브러리
+- scene 잔여 — song-credit 연출 구체값 등 (scene.md §10)
+- `_extracted/` 두 문서(EXTRACTED_FACTS·timing-verification) 검토 잔여
 - `_plan/build-order.md` — **재구현 직전에** 꺼냄 (지금은 미룸: 명세가 흔들리면 같이 흔들림)

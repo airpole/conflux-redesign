@@ -117,6 +117,7 @@ shape와 laneEvents를 데이터로 병합하지 않는다(좌표계·역할이 
 곡을 끝내면 **rank**(점수 등급)와 **state**([[gauge]])가 **따로** 기록된다. 서로 영향 없다.
 
 - **`rank`** — 점수(백만점 기준) 등급. U / S+ / S / A+ / A / B / C / D / E / F. 임계·점수식 → [[constants]] §3.
+- **`record`** — chart당 1개 저장되는 best 기록(`bestScore`/`bestRank`/`bestState`/`maxCombo`/`playCount`). 전 gaugeMode 통합, 무기록 게이트는 [[settings]] §2. 단일 출처 → [[records]].
 
 ---
 
@@ -128,7 +129,7 @@ shape와 laneEvents를 데이터로 병합하지 않는다(좌표계·역할이 
 - **`leadIn`** (`LEAD_IN_MS`) — 곡이 시작되기 전 비어 있는 스크롤 구간.
 - **`offset`** (`metadata.offset`, ms) — 오디오 싱크 보정. 음악 시작 위치에만 더해진다(`startAudio(startMs + offset)`). 양수면 음악을 트랙 안으로 더 들어가 시작 → 음악이 노트보다 늦을 때 당겨준다. **곡 공통**이며 난이도별로 갈리지 않는다(음원이 하나이므로). leadIn(시작 전 빈 구간)과는 별개. (플레이어 장비 지연 보정은 settings `audioOffset` — **다른 축**, [[settings]] PLAY.)
 - **`scroll`** — 노트는 **시간 등속**으로 흐른다(ms 공간 선형). BPM은 노트 간격만 바꾸고 낙하 속도는 일정. "가변속"은 `tickToMs`의 BPM 누적 부산물. 진행도 정의·`scrollProgressAt` → [[timing]] §3.
-- **`gridDivisor`** — 노트 배치용 분박 그리드. "1박을 N등분"(박자 독립, 기본 8). 마디 표기 sub·lane 스냅도 이 N을 공유한다. 입력 위계·틱 반올림 등 상세 → [[timing]] §6.
+- **`gridDivisor`** — 노트 배치용 분박 그리드. 값 V는 분음표 단위("V분" 격자, 박자 독립, 기본 32). 마디 표기 sub·lane 스냅도 이 V를 공유한다. 입력 위계·틱 반올림 등 상세 → [[timing]] §6.
 - **`scrollSpeed`** — (위 절대분리 항목 참조.) `visMs = SCROLL_VIEW_MS / scrollSpeed` → [[timing]] §3.
 
 ---

@@ -132,7 +132,7 @@ Blue = -2,  Red = +2   (폭 4, 중앙 0 대칭)
 shape 탭에서 두 체인(Blue·Red)을 raw로 보여주고 직접 편집한다. lane-events와 같은 타임라인·드래그·easing을 공유하고 선택자(isBlue)만 다르다.
 
 - **스냅**: 시간축은 노트 분박 그리드 공유([[glossary]] `gridDivisor`). 위치축은 §3 스냅(0.25/0.5/1).
-- **symmetry**: 중앙축 기준으로 반대편 이벤트를 생성(`targetPos → −targetPos`, `isBlue → !isBlue`).
+- **symmetry**: 대칭축 기준으로 반대편 이벤트를 생성: `targetPos′ = 2×축 − targetPos`, `isBlue → !isBlue`. 축은 기본 `0`, **드래그로 −8~+8 임의 설정** 가능(§3 위치 스냅 단계 공유) `[신규]`.
 - **init 이동**: init 위치(기본 -2/+2)도 차트별로 옮길 수 있다.
 
 판정 코어는 shape를 모른다. shape를 아는 건 render와 editor뿐.
@@ -157,8 +157,8 @@ shape 탭에서 두 체인(Blue·Red)을 raw로 보여주고 직접 편집한다
 - [x] lane-events와 easing·Arc 동일
 - [x] chain 평가 단일 출처를 §4로 확정 (이벤트 1종, easing null=anchor / 첫 anchor=init 호칭, lane은 이 절 참조)
 - [x] Step = 저장 안 되는 입력 라벨(=Linear+duration0). 데이터 easing은 3종+null 유지
+- [x] symmetry 축: 기본 0, 드래그로 −8~+8 임의 설정
 
 잔여:
-- [ ] symmetry 중앙축이 항상 0인지 임의 축 지정 가능인지
 - [ ] render 폭 매핑·선 굵기 구체 수치 (render/playfield 추출 시)
 - [ ] L/R/C/P 입력 툴, normalize 등 편집 인터랙션 (편집 UI 설계 시)
