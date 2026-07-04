@@ -77,9 +77,9 @@ gaugeValue   = clamp(0, 100, gaugeValue + delta)
 
 - 모든 항목이 절대 퍼센트, **저게이지 자비(mercy) 없음**.
 
-> ⚠️ **메모리와 코드 불일치 주의**: 시스템 메모리에는 "Hard mercy removed, TAIL_MISS = MISS, 100% cap, a=150%/total"로 잡혀있는데, 이는 **Normal 게이지** 기준 설명. 현재 코드에는 Normal/Hard **두 게이지가 공존**하고 Hard는 TAIL_MISS≠MISS(−2.5 vs −5).
+> **실측 주의**: Normal/Hard **두 게이지가 공존**하며, Hard는 TAIL_MISS(−2.5) ≠ MISS(−5).
 >
-> ✅ **결정됨**(재설계): 게이지는 **6종 단일 축** gaugeMode(normal/hard/AS/AP/FC/Cascade)로 확정. 코드의 2게이지(gaugeType) × lock(lockTarget/lockMode) 직교 구조를 유저 관점 단일 선택지로 평탄화한 [수정]. AS/AP/FC는 게이지 무의미(terminate 유일 실패), Cascade는 강등 사슬을 게이지 본체까지 확장. 단일 출처 → [[gauge]] gaugeMode 표 + Cascade 단락. 수치(위 표)는 [보존].
+> **구 코드 구조**: 2게이지(`gaugeType`) × lock(`lockTarget`/`lockMode`) 직교. → 재설계는 이를 단일 축 gaugeMode로 평탄화([수정]). 결정·표기·수치의 단일 출처 → [[gauge]].
 
 ---
 
@@ -90,7 +90,7 @@ gaugeValue   = clamp(0, 100, gaugeValue + delta)
 - `lockMode`:
   - `terminate` = 조건 깨지는 순간 강제 종료
   - `cascade` = 한 단계 강등(AS→AP→FC→bare gauge)하고 계속, 곡 끝에 살아남은 최고 티어가 최종 마크. **코드의 bare gauge는 시작 시 고른 gaugeType 하나뿐**(fc 아래가 곧 끝).
-    - ✅ 재설계 [수정]: 강등 사슬을 `AS→AP→FC→Hard→Normal`로 확장(게이지 본체 2종까지 포함). 코드엔 없는 신규 → [[gauge]] Cascade.
+    - → 재설계는 이 강등 모델을 [수정]. 병렬 평가·사슬 정의의 단일 출처 → [[gauge]] cascade.
 
 ### 랭크 (백만점제, `RANK_TABLE`, 높음→낮음 첫 도달)
 | 랭크 | 점수 |
@@ -107,7 +107,7 @@ gaugeValue   = clamp(0, 100, gaugeValue + delta)
 | F | 0 |
 
 ### 기록 적격성 (recordEligible)
-`startedFromBeginning && !usedSlowRate && !autoplay` (메모리 기준; 코드에서 재확인 필요 → placeholder)
+`playStartedFromBeginning && !playAutoplay` (gauge.js:223 실측). 배속(`playUsedSlowRate`)은 기록을 막지 않는다 — 에디터 검수용 감속도 기록돼야 하고 게임은 rate 조절을 노출 안 함. 플래그는 미래 slow-practice용으로 추적만 유지.
 
 ---
 
@@ -213,7 +213,7 @@ D = {
 
 ### shapeEvents 필드
 - `isBlue`: true=L(Blue), false=R(Red). **schema v3** (이전 `isRight` → `isBlue` 폴라리티 반전 마이그레이션 완료)
-- `targetPos`: 도착 위치 (내부 단위)
+- `targetPos`: 도착 위치 (내부 단위 0~64). 신 설계는 외부단위 −8~+8로 개명·재설계 → [[shape]].
 - `easing`: `null`=Linear, `0`(duration=0)=Step. 'Step' easing 문자열은 v2→Linear 자동 마이그레이션됨.
 - `duration`: 0이면 Step(즉시 점프), >0이면 Linear 보간
 
@@ -244,10 +244,12 @@ D = {
 | scene-modeselect.js | 128 | 존재 |
 | scene-settings.js | 300 | 존재 |
 
-### 없는 씬 (⚠️ 기획 공백)
+### 없는 씬 (구 코드에 파일 부재)
 - ❌ `scene-music-select.js` — 곡 선택 화면
 - ❌ `scene-game.js` — 게임 플레이 씬 (현재 play-*는 에디터 play 탭 기반)
-- ❌ Result 씬 독립 여부 미정 (play-result.js는 있으나 씬 통합 안 됨)
+- ❌ Result 씬 독립 여부 (play-result.js는 있으나 씬 통합 안 됨)
+
+→ 닫힘: [[scene]]에서 재설계 확정 (song-select·gameplay scene 정의, result scene 승격). "코드에 파일 없음"은 구 코드 사실로 유지, 기획 공백은 해소됨.
 
 ---
 
@@ -285,7 +287,6 @@ L6 entry:   main
 - [ ] **렌더 레이아웃 전수**: jY(판정선 Y), gw/gh 산출, 레인 구분선 굵기, 콤보 블록 Y앵커, 게이지 바 위치/75% 색 반전, 히트이펙트 반지름(gw×0.045), sudden lane cover, 판정 텍스트 위치 — game-render.js/play-render.js 정밀 추출
 - [ ] **play-* 의존성 그래프**: 각 play 파일이 ES(editor-state)를 import하는 지점 전수 → 분리 경계 확정 근거
 - [ ] **scene-title/modeselect/settings 실제 내용**: 화면 구성·전환 타깃
-- [ ] **recordEligible 코드 위치·정확한 조건**
 - [ ] **textEvents/keybeam/shape boundary alpha** 등 세부 렌더 수치
 - [ ] **.cfx 포맷 직렬화 코드** (import-export.js): fflate 사용부, content-hash asset ID, GC
 - [ ] **timing의 t2y (tick→Y 좌표) 변환식** 전체 (가변속 스크롤 핵심)
