@@ -231,7 +231,7 @@ gameplay 로직(엔진)은 **호스트를 모른다**. 단일 컨텍스트 `CTX`
 - [x] gameplay/result overlay→정식 scene 승격
 - [x] pause = overlay(엔진 살림), Resume(lead-in 3초)/Exit. result = Retry/Back
 - [x] overlay = scene 소유 층(공유 부품 예외), game+render 분담, 새 레이어 아님
-- [x] song-credit 표시 5초, 스킵 불가(재시작은 gameplay 직행이라 반복 대기 없음)
+- [x] song-credit 표시 5초, 스킵 불가 (근거는 §6 → rationale)
 - [x] pause = Esc 토글([보존] 키 + [수정] stopPlay→pause)
 
 잔여:
