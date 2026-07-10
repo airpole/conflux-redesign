@@ -139,7 +139,6 @@ core → env → render → edit/game → scene → app
 > editor·cfx·영속성 확정(71+12문 배치 Q&A, 실측 기반): **[[persistence]]·[[cfx]]·editor 3문서 신설**. 스토어 4분리·에셋 분리(SHA-256)+sweep GC·autosave 30초·무명 슬롯 소멸 · songId=UUID 불변·chartId=발급 정수(수정 가능, 표기 `1.2`)·records 키 `songId:chartId` · 구 포맷 변환기 미탑재 · 에디터 탭=형제 scene(Tab 순환에서 meta 제외)·세로축 ms 비례 통일 [수정] · 커맨드 [보존]+lane 3종 신설·Flip→Mirror 재명명 · test: Space=씬 내 즉시 재생/Enter=gameplay(3초 lead-in)·에디터 발원 판 무기록(no-record 4조건) · symmetry 축 동적 스냅샷 [번복]·mirror(Ctrl+F) 축 0·Ctrl+D 구간 복제 · textEvent 필드 확정. 근거 [[rationale]].
 
 **다음 후보** (명세 다지기 우선, 재구현은 미룸):
-- **보류 토의** — chart 전환 undo 정책·chart 구조 커맨드 scope ([[editor-graph]] §4·[[editor-commands]] §7 잔여)
 - **신설 3+2 문서 검토 1회** — persistence/cfx/editor 3문서 메타 검토(단순화/누락/단일출처/링크)
 - scene 잔여 — song-credit 연출 구체값 등 (scene.md §10)
 - `_extracted/` 두 문서(EXTRACTED_FACTS·timing-verification) 검토 잔여

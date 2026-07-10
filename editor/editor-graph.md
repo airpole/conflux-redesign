@@ -36,8 +36,8 @@ editor 진입 ─▶ start (새 곡 / 불러오기·최근 목록 → persistenc
 ## 4. meta 탭
 
 - 상단 = **chart 소속**(difficulty·level·chartBy + chart 목록: 추가/삭제/복제/**chartId 편집** — [[cfx]] §3), 하단 = **song 공통**(metadata·tempos·timeSignatures). 한 화면 + 구획 표시 `[수정]`.
-- chart 전환은 상단 바 드롭다운(모든 탭에서 노출) `[신규]`. 전환 시 undo 스택 초기화(잠정).
-- 잔여(보류 — 토의 필요): chart 전환의 undo 정책 구체화, chart 추가/삭제/복제 커맨드의 스코프([[editor-commands]] §7).
+- chart 전환은 상단 바 드롭다운(모든 탭에서 노출) `[신규]`. **전환 시 n/s undo 스택 초기화** — 전환은 커맨드가 아니다(undo 대상 아님).
+- **chart 구조 조작(추가·복제·chartId 편집·삭제)은 커맨드/undo 체계 밖** `[신규]`: 즉시 적용·undo 불가, **삭제만 confirm**으로 보호. 근거 → [[rationale#chart 구조 조작을 undo 밖에 둔 이유]]. 상세는 [[editor-commands]] §7.
 
 ## 5. test 탭과 gameplay
 
@@ -64,6 +64,7 @@ test는 판정·게이지가 도는 **실제 플레이 엔진**을 쓴다. gamep
 - [x] test: Space=씬 내 즉시 재생, Enter=gameplay(3초 lead-in), Esc 복귀, M·F 삭제
 - [x] 에디터 발원 판 무기록
 
+- [x] chart 전환 = 스택 초기화(비커맨드), 구조 조작 = undo 밖·삭제만 confirm
+
 잔여:
-- [ ] chart 전환 undo 정책·chart 구조 커맨드 스코프 (보류 — 토의)
 - [ ] viewMs 기본값·줌 범위 (재구현 시 실측 확정)
