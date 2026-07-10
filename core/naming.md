@@ -100,10 +100,13 @@
 | `undoCmd`/`redoCmd` | `undo` / `redo` | | 보존 |
 | `hasUndo`/`hasRedo` | `canUndo` / `canRedo` | | 보존 |
 | `clearAllHistory` | `clearHistory` | | 보존 |
-| `AddNotes`,`DeleteNotes`,`MoveNotes`,`FlipNotes`,`ReplaceNotes`,`SetNoteDuration` | 동일 패턴 유지 (`AddNotes` 등) | 노트 커맨드들 | 보존 |
-| `AddShapeEvents`,`DeleteShapeEvents`,`MutateShapeEvents`,`FlipShapeEvents`,`ApplyShapeOps` | 동일 유지 | shape 커맨드 | 보존 |
-| `AddLineEvent` | `AddLaneEvent` (개명 확정, 시그니처는 laneEvents 기획 후) | | 수정 |
-| `AddTempo`,`AddTimeSig`,`AddTextEvents` 등 | 동일 유지 | 메타 커맨드 | 보존 |
+| `AddNotes`,`DeleteNotes`,`MoveNotes`,`ReplaceNotes`,`SetNoteDuration` | 동일 유지 | 노트 커맨드들 (시그니처 → [[editor-commands]] §6) | 보존 |
+| `FlipNotes` | `MirrorNotes` | flip→mirror 재명명, 매핑은 [[judge]] §4 | 수정 |
+| `AddShapeEvents`,`DeleteShapeEvents`,`MutateShapeEvents`,`ApplyShapeOps` | 동일 유지 | shape 커맨드 | 보존 |
+| `FlipShapeEvents` | `MirrorShapeEvents` | flip→mirror 재명명 | 수정 |
+| `AddLineEvent` | `AddLaneEvents` (+`DeleteLaneEvents`/`MutateLaneEvents` 신설) | 시그니처 확정 → [[editor-commands]] §6 | 수정 |
+| `AddTempo`,`AddTextEvents` 등 | 동일 유지 | 메타 커맨드 | 보존 |
+| `EditTempoBpm`,`AddTimeSig` 등 | `EditTempo`,`AddTimeSignature` 등 | 축약 해소 → [[editor-commands]] §6 | 수정 |
 
 \** 커맨드는 보존하되, **saveHist 경로를 완전 제거하고 dispatch가 유일 통로**가 되는 게 [수정].
 

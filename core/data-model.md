@@ -137,11 +137,16 @@ laneEvent = { startTick, duration, lineNum, targetPos, easing }
 ## 8. textEvents (연출 텍스트)
 
 ```
-textEvent = { startTick, ... }   // 텍스트 내용·위치 (구체 필드 미확정)
+textEvent = {
+  startTick,   // 등장 tick
+  duration,    // 표시 길이 (tick)
+  text,        // 내용
+  position,    // 'left' | 'middle' | 'right' | 'lane1' | 'lane2' | 'lane3' | 'lane4'
+}
 ```
 
 - 특정 tick에 화면에 텍스트를 띄우는 연출. 특수 연출·튜토리얼용이라 드물다.
-- 구체 필드는 편집 UI 설계 시 확정.
+- 등장·퇴장 연출은 **fade 고정** `[신규]`. 폰트·크기 등 표시 스타일은 [[theme]] 잔여. 편집은 text 툴 2클릭 → [[editor-editing]] §1.
 
 ---
 
@@ -164,11 +169,10 @@ playState   = { gaugePct, gaugeMode, combo, maxCombo, hits, misses, holds,
 ## 10. 버전 / 교환
 
 - **`schemaVersion`** — 재구현 시작값 **`1`**(숫자, `v` 접두 없음). 구 코드의 v3 체계(isRight→isBlue 등)와 별개의 새 체계 — 포맷이 백지 재설계라 이어 세지 않는다.
-- **`.cfx`** — 교환 포맷. ZIP(fflate), content-hash 에셋 ID. 오디오 1 + 자켓 1 + 난이도별 chart JSON N개. 상세는 별도 문서(미작성).
+- **`.cfx`** — 교환 포맷. ZIP, content-hash 에셋, 오디오 1 + 자켓 0~1 + chart JSON N. **상세 → [[cfx]]** (songId·chartId 정의 포함).
 
 ---
 
 ## 11. 미해결
 
-- [ ] textEvent 구체 필드
-- [ ] .cfx 포맷 상세 문서 (data-model에서 분리)
+(없음 — textEvent 필드 확정(§8), .cfx는 [[cfx]]로 분리 완료.)

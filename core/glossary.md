@@ -118,6 +118,8 @@ shape와 laneEvents를 데이터로 병합하지 않는다(좌표계·역할이 
 
 - **`rank`** — 점수(백만점 기준) 등급. U / S+ / S / A+ / A / B / C / D / E / F. 임계·점수식 → [[constants]] §3.
 - **`record`** — chart당 1개 저장되는 best 기록(`bestScore`/`bestRank`/`bestState`/`maxCombo`/`playCount`). 전 gaugeMode 통합, 무기록 게이트는 [[settings]] §2. 단일 출처 → [[records]].
+- **`songId`** — 곡의 전역 식별자(UUID, 최초 생성 시 발급·불변). 단일 출처 → [[cfx]] §2.
+- **`chartId`** — song 내 chart 식별자(발급 정수, 재배치를 위해 수정 가능). 기록 키 = `songId:chartId`. 단일 출처 → [[cfx]] §3.
 
 ---
 

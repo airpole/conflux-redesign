@@ -64,7 +64,7 @@ resetSceneStack()      // 스택 비우기 — title을 새 루트로 되돌릴 
 
 - **공용 루트**: `title`, `mode-select`. 어느 모드도 아닌 최상위 진입 scene.
 - **game 그래프** (스택형 드릴다운): `song-select → song-credit → gameplay → result`. 정의·전환은 본 문서(§5~§8).
-- **editor 그래프** (평면형 자유 전환): `notes ↔ shapes ↔ test ↔ meta`. 구체 전환은 **향후 editor 문서**가 소유. ([수정] 구 코드의 "1 editor scene + 내부 탭"을 scene 그래프로 — [[architecture]] §5.)
+- **editor 그래프** (평면형 자유 전환): `notes ↔ shapes ↔ test ↔ meta`(+진입 화면, test → 전체화면 gameplay 진입 포함). 구체 전환·상태 규칙은 **[[editor-graph]]**가 소유. ([수정] 구 코드의 "1 editor scene + 내부 탭"을 scene 그래프로 — [[architecture]] §5.)
 - **settings 그래프** (평면형): `visual ↔ sound ↔ …`. 설정값 정의는 [[settings]], 화면 묶음은 settings 문서가 소유.
 
 세 그래프는 **형제 축**이고 mode-select에서 빌드 게이트(§7)로 갈린다. 한 트리에 섞지 않는다 → [[architecture]] §5.
@@ -244,7 +244,6 @@ gameplay 로직(엔진)은 **호스트를 모른다**. 단일 컨텍스트 `CTX`
 
 잔여:
 - [ ] song-credit 연출 구체값(페이드 등)
-- [ ] editor 그래프 내부 전환 규칙 (→ 향후 editor 문서)
 - [ ] settings 그래프 scene 묶음(visual/sound…) 구체 (→ settings 문서)
 - [ ] `credits`(제작진) scene 귀속·전환 미정 — title/settings 중 어디 소속인지 (naming·glossary엔 등록, game 그래프 밖)
 - [ ] 빠른 패널 공유 컴포넌트의 정확한 레이어 위치 (→ architecture/settings)
