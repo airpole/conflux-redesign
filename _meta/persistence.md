@@ -1,71 +1,78 @@
 # persistence — 영속성 단일 출처
 
-> 에디터 작업 저장소·autosave·게임 라이브러리·import/export의 계약을 정의한다.
-> 저장 설비 자체는 env 소관([[architecture]]) — 이 문서는 계약(스토어 구성·키·갱신 규칙)만 정한다. 권장 매체: IndexedDB(대용량 바이너리 실측 문제 — 아래 §2).
-> 교환 포맷은 [[cfx]], 기록 스키마는 [[records]], 설정 스키마는 [[settings]].
+> 에디터 workspace(복구)·autosave·게임 라이브러리·열기/export의 계약을 정의한다.
+> **정본은 유저의 파일이다**([[cfx]]) — 로컬 영속은 복구·라이브러리·기록·설정만 담당한다.
+> 저장 설비 자체는 env 소관([[architecture]]) — 이 문서는 계약(스토어 구성·키·갱신 규칙)만 정한다. 권장 매체: IndexedDB(바이너리 blob 저장 — 아래 §2).
+> 파일 포맷은 [[cfx]], 기록 스키마는 [[records]], 설정 스키마는 [[settings]].
 > 출처: `file-manager.js`·`autosave.js`·`import-export.js` 실측. 태그 명시 없으면 `[보존]`.
 
 ---
 
 ## 1. 스토어 4분리 `[수정]`
 
-`songs / assets / records / settings` 네 스토어로 분리한다.
+`workspace / library / records / settings` 네 스토어로 분리한다.
 
-- **[수정] 근거**: 구 코드는 localStorage 한 접두사를 차트·설정·기록·autosave가 공유해 예약 이름 로직(`FM_RESERVED`, `score_*` 금지)이 필요했다. 스토어 분리로 이름 충돌 문제가 원천 소멸한다. → [[rationale#스토어를 4분리한 이유]]
-- records·settings의 스키마는 각자 문서가 단일 출처([[records]], [[settings]]). 매체 계약은 이 문서와 동일(로컬 영속, env 소관).
+- 구성 `[번복]`: 이전 결정(songs/assets — 에디터 정본 저장소 + 공유 에셋)을 폐기한다. 정본이 파일로 이동해([[cfx]] §1) "저장소"가 필요 없어졌고, 남는 로컬 영속은 성격이 다른 넷뿐이다: 에디터 복구(workspace) / 게임의 import 곡(library) / 기록(records) / 설정(settings).
+- **[수정] 근거**(유지): 구 코드는 localStorage 한 접두사를 차트·설정·기록·autosave가 공유해 예약 이름 로직(`FM_RESERVED`, `score_*` 금지)이 필요했다. 스토어 분리로 이름 충돌이 원천 소멸한다. → [[rationale#스토어를 4분리한 이유]]
+- records·settings의 스키마는 각자 문서가 단일 출처([[records]], [[settings]]).
 
-## 2. songs / assets 스토어
+## 2. workspace — 단일 슬롯 `[번복]`
 
-- **songs**: song 단위 문서([[data-model]] song — charts[] 포함). 키 = `songId`(UUID, [[cfx]] §2). 저장 시각 `_savedAt` 갱신.
-- **assets**: 오디오·자켓 바이너리. 키 = content-hash([[cfx]] §4). song 문서는 해시로 참조만 한다.
-  - `[수정]` 자켓 인라인 폐지: 구 코드는 자켓을 data URL로 chart JSON에 인라인 — 20MB급에서 저장 직렬화가 메인 스레드를 정지시키고 QuotaExceeded가 실측됐다(autosave.js 주석).
-  - `[수정]` 오디오도 보존: 구 코드는 파일명 문자열만 저장해 재시작마다 수동 재로드가 필요했다. 에셋 스토어에 바이너리를 보존해 재시작 후 그대로 재생.
-- **에셋 GC — sweep**: 곡 삭제 시 전 곡을 스캔해 어느 곡도 참조하지 않는 에셋을 제거한다. (해시 공유로 두 곡이 같은 오디오를 참조할 수 있으므로 즉시 삭제 불가. 참조 카운트 대신 sweep — 곡 수가 적어 단순함이 이긴다.) `[신규]`
+에디터의 **마지막 작업 하나**만 담는 복구 슬롯. 곡별 다중 저장을 두지 않는다 — 정본이 둘(파일 vs 슬롯)이 되어 어긋남 관리가 생기는 것을 차단한다.
+
+- 내용: 편집 중인 chart 문서(자립 — 공통 필드 포함, [[cfx]] §2) + **music·jacket 바이너리 blob**.
+  - `[수정]` 바이너리 포함: 구 코드는 파일명 문자열만 저장해 재시작마다 오디오 수동 재로드가 필요했다. blob 보존으로 세션 이어가기 시 자동 복원. (구판이 우려한 직렬화 정지·QuotaExceeded는 data URL 인라인 + localStorage의 문제 — IndexedDB blob에는 해당 없음.)
+- 곡 전환 = 파일 열기(§5). workspace는 그때 새 작업으로 교체된다.
 
 ## 3. autosave
 
-- 마지막 편집(커맨드 dispatch, [[editor-commands]]) **30초** 후 자기 `songId`에 저장.
+- 마지막 편집(커맨드 dispatch, [[editor-commands]]) **30초** 후 workspace에 저장.
 - 에디터 이탈(editor → mode-select/title) 시 즉시 저장.
 - 실패(용량 등)는 인디케이터로 표시하고 throw하지 않는다.
-- `[수정]` 무명 슬롯(`__autosave__`) 소멸: 새 곡도 생성 즉시 UUID를 받으므로 "무명 작업"이 없다. 복원은 §5의 진입 화면(최근 곡)이 담당.
+- 슬롯이 하나뿐이라 구판의 무명 슬롯(`__autosave__`) 문제는 성립 자체가 안 한다.
 
-## 4. 저장 UX
+## 4. 저장·export·파생 UX
 
-- **Ctrl+S** = 즉시 저장(autosave와 같은 곳 — 안심 버튼).
-- **Ctrl+Shift+S** = **duplicate** `[수정]`: 새 UUID로 곡 복제. ("다른 이름으로 저장"은 id 체계에서 무의미 — 이름은 metadata에서 유도.) 노트 구간 복제(Ctrl+D, [[editor-editing]])와 무관.
-- 이름 변경 = `metadata.title` 수정으로 갈음. 표시명 = `{title}_{musicBy}` 유도(저장 키 아님).
-- 삭제 = confirm 후. 현재 곡이면 편집 상태 해제.
+| 키 | 동작 | 나가는 곳 |
+|---|---|---|
+| **Ctrl+S** | workspace 즉시 저장 (안심 버튼) | 로컬 (다운로드 아님) |
+| **Ctrl+E** | chart `.json` export — `version` +1, 파일명 `_v{n}` ([[cfx]] §7) | 다운로드 |
+| **Ctrl+Shift+S** | **derive(파생)** `[수정]` — 현재 곡의 songId를 새 UUID로 재발급 | (상태 변경만) |
 
-## 5. 진입·파일 매니저
+- export는 **현재 메모리 상태 기준**(WYSIWYG — 저장을 강제하지 않는다).
+- derive = 리믹스 시작점. 새 UUID = 기록 단절이므로 confirm 후 실행. UUID 재발급의 유일한 경로다(구 duplicate 개명 — "복제 저장"은 저장소가 없어 무의미).
+- 이름 변경 = `metadata.title` 수정으로 갈음 — 파일명은 export 시 유도([[cfx]] §1).
 
-- 에디터 진입 시 **"새 곡 / 불러오기" 화면** `[신규]` (ED-5). 불러오기 = 최근 목록.
-- 목록 표시: 표시명(`{title}_{musicBy}`) + **마지막으로 편집한 chart** + 저장 시각. `_savedAt` 최신순 정렬, 현재 편집 중 표시, 삭제 버튼.
+## 5. 진입·열기
 
-## 6. 게임 라이브러리 — 에디터 저장소와 완전 분리
+- **start scene** `[신규]` (정식 scene, 진입 1회 — [[scene]]): **새 곡** / **파일 열기** / **이어서 편집**(workspace가 있을 때만 표시).
+  - 새 곡 = init(id 0) 생성 플로우([[cfx]] §5) — metadata 입력부터.
+  - 파일 열기 = chart `.json` 또는 `.cfx`. `.cfx`는 내부 chart 선택 + music·jacket 자동 로드. 단 저장은 chart export로 나간다([[cfx]] §1 — .cfx 직접 덮어쓰기 없음).
+- 이후 **Ctrl+O = OS 파일 픽커 직행**. 구판의 파일 매니저 overlay(저장 목록)는 목록의 데이터원이 사라져 폐지 `[번복]`.
+- 열기 후처리: 성공 = 로드 → 화면 동기화 → **히스토리 기준선 클리어**([[editor-commands]] §5) → 토스트. 실패(디코딩 등) = 토스트로 에러, music은 수동 재지정 허용([[cfx]] §3).
+- 디버그 덤프 폐지 `[번복]` — chart `.json`이 이미 텍스트라 역할을 흡수했다.
+
+## 6. 게임 라이브러리 — 에디터와 완전 분리
 
 - **game-public** 빌드: 번들된 큐레이트 .cfx 정적 목록만.
-- **game-internal** 빌드: 번들 + 게임 라이브러리 스토어(사용자가 import한 .cfx).
-- 에디터에서 만든 곡을 게임에서 치는 경로 = **.cfx export → 게임에서 import** (라이브러리 스토어에 등록). 에디터 저장소를 게임이 직접 읽지 않는다. → [[rationale#게임 라이브러리를 에디터 저장소와 분리한 이유]]
-- song-select 기록 뱃지의 데이터는 [[records]] (키 = `songId:chartId`).
+- **game-internal** 빌드: 번들 + **library 스토어**(사용자가 import한 .cfx).
+- 저장 형태 = **.cfx blob 통째** `[신규]` (키 = songId). import 시 로더 검증([[cfx]] §8) 통과분만 등록, 파싱은 로드 시.
+  - 에셋 GC(sweep) 폐지 `[번복]` — 에셋이 blob 안에 있으므로 곡 삭제 = blob 삭제 한 방. 참조 관리 개념이 소멸한다.
+- **같은 songId 재import** `[번복]`: confirm 다이얼로그로 **chart별 version을 나란히 비교 표시**(예: `보유 Trace v2·Surge v2 / 가져옴 Trace v2·Surge v3`) 후 **덮어쓰기**. records 키(`songId:chartId`)가 유지되므로 기록은 이어진다. 구판의 복제(새 UUID) 선택지는 폐기 — 별개 곡을 원하면 에디터의 derive(§4)가 그 경로다.
+- **곡 삭제**: song-select에서 confirm 후 blob 삭제. **기록은 잔존**(재import 시 복원 — 고아 기록 규칙([[cfx]] §5)과 동일 논리).
+- song-select 기록 뱃지의 데이터는 [[records]].
 
-## 7. import / export
-
-- **.cfx export**: 파일명 `{title}-{musicBy}-YYMMDD_HHMMSS.cfx` ([[cfx]] §6).
-- **.cfx import 후처리**: 성공 = 로드 → 화면 동기화 → **히스토리 기준선 클리어**([[editor-commands]] §5) → 토스트. 실패 = 토스트로 에러.
-- **같은 songId 재import**: 물어보기 — 덮어쓰기 / 복제(새 UUID 발급) 선택. `[신규]`
-- **디버그 덤프** `[수정]`: song 전체를 단일 JSON(에셋 제외, `schemaVersion` 포함)으로 export/import. 구 "chart 단독 JSON"은 신 스키마에서 tempos가 없어 단독 로드 불가한 반쪽이라 폐기. → [[rationale#디버그 덤프를 song 전체로 바꾼 이유]]
-- **구 포맷(v1~v3 .json) import: 미지원** — 변환기를 탑재하지 않는다([[cfx]] §7).
-
-## 8. 결정 완료 / 잔여
+## 7. 결정 완료 / 잔여
 
 확정:
-- [x] 스토어 4분리(songs/assets/records/settings), 예약 이름 로직 소멸
-- [x] song 단위 저장 + 에셋 분리(자켓 인라인 폐지, 오디오 보존), GC = sweep
-- [x] autosave 30초·이탈 시 저장·실패 인디케이터, 무명 슬롯 소멸
-- [x] Ctrl+S 저장 / Ctrl+Shift+S duplicate / rename = title 수정
-- [x] 진입 화면(새 곡/불러오기), 목록 표시·정렬
-- [x] 게임 라이브러리 분리, .cfx 경유
-- [x] import 후처리·재import 물어보기·디버그 덤프 = song 전체
+- [x] 스토어 4분리 유지, 구성 교체 `[번복]`: workspace/library/records/settings
+- [x] workspace = 단일 슬롯(마지막 작업), chart 문서 + music·jacket blob 포함
+- [x] autosave 30초·이탈 시 저장·실패 인디케이터
+- [x] Ctrl+S = workspace 저장 / Ctrl+E = export(v+1, WYSIWYG) / Ctrl+Shift+S = derive(새 UUID, confirm)
+- [x] start scene(새 곡/파일 열기/이어서 편집), Ctrl+O = OS 픽커, 파일 매니저 overlay 폐지 `[번복]`
+- [x] library = .cfx blob 통째(키 songId), GC sweep 폐지 `[번복]`
+- [x] 재import = version 비교 confirm 후 덮어쓰기(복제 선택지 폐기 `[번복]`), 삭제 = confirm·기록 잔존
+- [x] 디버그 덤프 폐지 `[번복]`
 
 잔여:
 - (없음 — 스토어 내부 스키마·인덱스는 구현 자유)
