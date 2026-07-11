@@ -2,6 +2,7 @@
 
 > 게이지 증감 / 판정창 / rank 임계 등 "얼마"에 해당하는 값을 한곳에 모은다.
 > "무엇"(정의)은 각 문서, "얼마"(수치)는 여기. 코드 `constants.js`에 대응.
+> 분류 기준: **로직 계산에 쓰이는 수치 = constants / 순수 표시 값 = [[theme]] / 취향·환경 값 = [[settings]]**. 근거 → [[rationale#constants와 settings의 분류 기준]]
 > 출처: `constants.js` 정밀 추출. 전부 `[보존]` (값이 틀리면 회귀).
 > 용어: [[glossary]] / 근거: [[rationale]]
 
@@ -56,3 +57,13 @@ start: `normal` 0 / `hard` 100. 둘 다 상한 100(`gaugeMax`).
 - 점수 = (SYNC+tail성공 + PERFECT + GOOD×0.5) / 총콤보 × 1,000,000.
 - accuracy(%) = (SYNC+tail성공 + PERFECT×0.7 + GOOD×0.3) / 총콤보 × 100. 점수와 **별개 지표**다 (가중이 다름: 점수는 PERFECT 풀·GOOD 0.5, accuracy는 PERFECT 0.7·GOOD 0.3). `computeResult`가 score·rank·state와 함께 반환. `[보존]`
 - rank는 state와 독립 축([[glossary]]). result 화면이 이 중 무엇을 어떻게 표시하는지(레이아웃)는 core 밖 — scene/render 소관.
+
+## 4. 스크롤 속도 범위 (`SCROLL_SPEED_*`)
+
+| 상수 | 값 |
+|---|---|
+| `SCROLL_SPEED_MIN` | 1.0 |
+| `SCROLL_SPEED_MAX` | 10.0 |
+| `SCROLL_SPEED_STEP` | 0.1 |
+
+- `[보존]` (구 `SPEED_MIN/MAX/STEP`). scrollSpeed의 현재값은 취향([[settings]])이지만, 허용 범위·스텝은 `visMs = SCROLL_VIEW_MS / scrollSpeed`([[timing]] §3) 로직의 경계 조건이라 여기 둔다 — 머리말 분류 기준. 정의·절대분리는 [[glossary]].
