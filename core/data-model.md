@@ -158,7 +158,7 @@ textEvent = {
 차트 데이터와 별개로, 플레이/편집 중에만 존재하는 상태. 저장 대상 아님.
 
 ```
-editorState = { currentChartIndex, scrollSpeed, ... 선택/툴/뷰포트/히스토리 }
+editorState = { scrollSpeed, ... 선택/툴/뷰포트/히스토리 }   // 세션 = chart 하나([[editor-graph]] §4) — chart 포인터 없음
 playState   = { gaugePct, gaugeMode, combo, maxCombo, hits, misses, holds,
                 keysHeld, laneMap, fastCount, slowCount, flashTiming, forceEnded, ... }
 ```

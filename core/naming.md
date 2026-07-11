@@ -156,7 +156,7 @@
 | `D.lineEvents` | `chart.laneEvents` | chart별. 개명 확정 |
 | `D.textEvents` | `chart.textEvents` | chart별 |
 | `D.metadata.difficulty/level/charter` | `chart.difficulty / .level / .chartBy` | metadata→chart로 내림. `charter`→`chartBy` 개명 |
-| `ES` (현재 chart 포인터) | `editorState.currentChartIndex` | 편집 중 난이도 |
+| `ES` (현재 chart 포인터) | (폐지) | 단일 chart 세션 `[번복]` — 세션 = chart 파일 1개, [[editor-graph]] §4 |
 | `ES.pvSpd` | `editorState.scrollSpeed` | scrollSpeed (playbackRate 아님) |
 | `PS.gaugeValue` | `playState.gaugePct` | 0~100 |
 | `PS.gaugeType` + `lockTarget`/`lockMode` | `playState.gaugeMode` | normal / hard / fc / ap / as / cascade (단일 축, [[gauge]]) |
@@ -212,6 +212,15 @@
 | 오디오 에셋 | `music` | song=패키지 전체, music=오디오. `musicBy`와 정합 |
 | (신규) | `init` | chartId 0, 에디터 전용 템플릿 채보 |
 | 파일 매니저 overlay | (폐지) | Ctrl+O = OS 파일 픽커 직행 |
+
+**에디터 툴** — 정의 → [[editor-editing]] §1·§2 (여기는 색인만):
+
+| 현재 | 새 이름 | 비고 |
+|---|---|---|
+| `n` / `ln` / `w` / `wl` / `txt` | `tap` / `hold` / `wideTap` / `wideHold` / `text` | notes 탭 툴 (키 Q/W/E/R/T) |
+| `sel` / `del` | `select` / `delete` | 모디파이어 A·D가 기본 호출 |
+| `L` / `C` / `R` / `P` | `Blue` / `center` / `Red` / `pinch` | shape 서브모드 툴 (키 Q/W/E/R) |
+| (구 line 툴) | `line1` / `line2` / `line3` | lane 서브모드 툴 `[신규]` (키 Q/W/E) |
 
 ---
 

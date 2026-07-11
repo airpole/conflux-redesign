@@ -145,8 +145,9 @@ core → env → render → edit/game → scene → app
 
 > **파일 정본 체제 전환**(cfx·persistence 전면 개정 + core 파급): .cfx 통합 컨테이너(song.json+charts/+hash assets) 폐기 `[번복]` → **두 층**(chart `.json` 작업 / .cfx 배포 zip 수동 조립). chart 자립(공통 필드 사본, 불일치=최저 chartId 정본+경고), id 0=init(에디터 전용, 로더 무언 스킵)·1~4 고정 슬롯·5+ 추가, difficulty 6종 enum·subtitle(차분명, `[...]`=표시 규약), version(export+1 `[신규]`)/schemaVersion(파일 단위 `[번복]`). 에셋 접미 규칙 `*_music`/`*_jacket`(content-hash `[번복]`, 권장 접두 `{title}_{musicBy}_`). 스토어 구성 교체 `[번복]`: songs/assets→workspace(단일 슬롯+blob)/library(.cfx blob, GC sweep 폐지). Ctrl+S=workspace·Ctrl+E=export(v+1)·derive(구 duplicate, 새 UUID confirm). start scene(새 곡/파일 열기/이어서 편집)·Ctrl+O=OS 픽커(파일 매니저 overlay 폐지 `[번복]`). 재import=chart별 version 비교 후 덮어쓰기(복제 선택지 폐기 `[번복]`)·디버그 덤프 폐지 `[번복]`. metadata의 `subtitle`·`audioFile` 철회(구 코드에 없음 실측)·`jacketImage` 폐기 `[수정]`(에셋=파일, 참조 필드 없음). 근거 [[rationale]].
 
+> editor 3문서 파급 + 질문지(INT/STR/EDT) 반영: **단일 chart 세션 확정 `[번복]`**(chart 목록·드롭다운·전환 스택 초기화 폐기, 새 난이도 = 세션 교체, 삭제 = OS 소관, chartId는 difficulty·subtitle에서 유도 — init 0/기본 1~4 자동/추가 5+ 입력, 중복은 로더 전담). 에디터 키 유일 출처 = editing §5~§6(STR-1)·툴 naming 색인(STR-3)·start 정식 scene(STR-4). quick-hold 실측 정정 [보존](300ms·savedLNDur 재사용·치환 규칙 — "시작 모드" 서술 폐기)·test idle 구성 실측 기입 [보존]. EDT 확정: A 모디파이어(대체/Shift 추가)·선택/Ctrl+A 서브모드 필터(mirror만 합산)·symmetry 단일 배치 툴만+수동 축 토글 off까지·conflict에 지속 hold 포함·클립보드 textEvents 동반. Ctrl+S=workspace/Ctrl+E=chart export/Ctrl+Shift+S=derive/Ctrl+O=OS 픽커. PC 시리즈 처분: PC-1·2 무효(전제 소멸)·PC-3 로더 검증 대체·PC-4·5(기록 백지)·6은 신판에 기반영. 근거 [[rationale]].
+
 **다음 후보** (명세 다지기 우선, 재구현은 미룸):
-- **editor 3문서 파급 패치** — 단일 chart 세션 체제 반영(chart 구조 조작 재서술·새 난이도·Ctrl+E/O 키 표) — 질문지(INT/STR/EDT) 패치와 병합, PC 시리즈 답은 파일 정본 체제로 무효화 처리
 - **신설 3+2 문서 검토 1회** — persistence/cfx/editor 3문서 메타 검토(단순화/누락/단일출처/링크)
 - scene 잔여 — song-credit 연출 구체값 등 (scene.md §10)
 - `_extracted/` 두 문서(EXTRACTED_FACTS·timing-verification) 검토 잔여
