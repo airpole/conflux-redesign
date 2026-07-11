@@ -52,8 +52,8 @@
 |---|---|
 | [settings](_meta/settings.md) | 플레이어·에디터 설정 단일 출처 (곡 데이터 아님) |
 | [records](_meta/records.md) | 플레이 기록 단일 출처 (chart당 best 기록·갱신 규칙·no-record 연동) |
-| [persistence](_meta/persistence.md) | 영속성 단일 출처 (스토어 4분리·autosave·라이브러리·import/export) |
-| [cfx](_meta/cfx.md) | .cfx 교환 포맷 단일 출처 (컨테이너·songId/chartId·content-hash 에셋) |
+| [persistence](_meta/persistence.md) | 영속성 단일 출처 (파일 정본 체제·workspace/library·autosave·열기/export) |
+| [cfx](_meta/cfx.md) | 파일 포맷 단일 출처 (두 층: chart .json 작업 / .cfx 배포 zip·songId/chartId·difficulty) |
 
 ### `_plan/` — 재구현 계획
 | 문서 | 내용 |
@@ -72,7 +72,7 @@
 ## 확정된 핵심 결정 (요약)
 
 **데이터 구조**
-- `song ⊃ chart[]` 2층. tempos/timeSignatures/audioFile/offset는 곡 공통, notes/events는 chart별.
+- `song ⊃ chart[]` 2층. tempos/timeSignatures/offset는 곡 공통, notes/events는 chart별. chart 파일 직렬화는 공통 필드 사본 포함(자립).
 - 노트 4종 = `isWide` × `duration` (Tap / Hold / WideTap / WideHold).
 - `channel` 폐기 → `lane`(1~4) 통일. `key`(1~6)는 물리 입력만.
 
@@ -95,6 +95,11 @@
 - core는 진행도(scrollProgressAt)까지. scrollYAt(px)은 render, clock(leadIn/offset)은 game.
 - 마디 표기 sub = gridDivisor 칸 번호(16 고정 폐기).
 - lane 스냅도 이 분박 시스템 공유.
+
+**파일 / 영속**
+- **정본 = 유저의 파일.** chart `.json`(작업 단위, 자립) / `.cfx`(배포 ZIP, 수동 조립: `*_music`·`*_jacket` + chart들).
+- chartId: 0=init(에디터 전용)·1~4=Trace/Drift/Surge/Flux 고정 슬롯·5+=추가 채보(기본 Phase). difficulty 6종 enum + subtitle(차분명). version(export마다 +1)/schemaVersion(규격) 두 축.
+- 스토어: workspace(단일 복구 슬롯+에셋 blob) / library(.cfx blob) / records / settings. Ctrl+S=workspace 저장·Ctrl+E=export·Ctrl+Shift+S=derive(새 UUID).
 
 ---
 
@@ -138,7 +143,10 @@ core → env → render → edit/game → scene → app
 
 > editor·cfx·영속성 확정(71+12문 배치 Q&A, 실측 기반): **[[persistence]]·[[cfx]]·editor 3문서 신설**. 스토어 4분리·에셋 분리(SHA-256)+sweep GC·autosave 30초·무명 슬롯 소멸 · songId=UUID 불변·chartId=발급 정수(수정 가능, 표기 `1.2`)·records 키 `songId:chartId` · 구 포맷 변환기 미탑재 · 에디터 탭=형제 scene(Tab 순환에서 meta 제외)·세로축 ms 비례 통일 [수정] · 커맨드 [보존]+lane 3종 신설·Flip→Mirror 재명명 · test: Space=씬 내 즉시 재생/Enter=gameplay(3초 lead-in)·에디터 발원 판 무기록(no-record 4조건) · symmetry 축 동적 스냅샷 [번복]·mirror(Ctrl+F) 축 0·Ctrl+D 구간 복제 · textEvent 필드 확정. 근거 [[rationale]].
 
+> **파일 정본 체제 전환**(cfx·persistence 전면 개정 + core 파급): .cfx 통합 컨테이너(song.json+charts/+hash assets) 폐기 `[번복]` → **두 층**(chart `.json` 작업 / .cfx 배포 zip 수동 조립). chart 자립(공통 필드 사본, 불일치=최저 chartId 정본+경고), id 0=init(에디터 전용, 로더 무언 스킵)·1~4 고정 슬롯·5+ 추가, difficulty 6종 enum·subtitle(차분명, `[...]`=표시 규약), version(export+1 `[신규]`)/schemaVersion(파일 단위 `[번복]`). 에셋 접미 규칙 `*_music`/`*_jacket`(content-hash `[번복]`, 권장 접두 `{title}_{musicBy}_`). 스토어 구성 교체 `[번복]`: songs/assets→workspace(단일 슬롯+blob)/library(.cfx blob, GC sweep 폐지). Ctrl+S=workspace·Ctrl+E=export(v+1)·derive(구 duplicate, 새 UUID confirm). start scene(새 곡/파일 열기/이어서 편집)·Ctrl+O=OS 픽커(파일 매니저 overlay 폐지 `[번복]`). 재import=chart별 version 비교 후 덮어쓰기(복제 선택지 폐기 `[번복]`)·디버그 덤프 폐지 `[번복]`. metadata의 `subtitle`·`audioFile` 철회(구 코드에 없음 실측)·`jacketImage` 폐기 `[수정]`(에셋=파일, 참조 필드 없음). 근거 [[rationale]].
+
 **다음 후보** (명세 다지기 우선, 재구현은 미룸):
+- **editor 3문서 파급 패치** — 단일 chart 세션 체제 반영(chart 구조 조작 재서술·새 난이도·Ctrl+E/O 키 표) — 질문지(INT/STR/EDT) 패치와 병합, PC 시리즈 답은 파일 정본 체제로 무효화 처리
 - **신설 3+2 문서 검토 1회** — persistence/cfx/editor 3문서 메타 검토(단순화/누락/단일출처/링크)
 - scene 잔여 — song-credit 연출 구체값 등 (scene.md §10)
 - `_extracted/` 두 문서(EXTRACTED_FACTS·timing-verification) 검토 잔여

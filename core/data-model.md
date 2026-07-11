@@ -29,12 +29,9 @@ song = {
 ```
 metadata = {
   title,        // 곡 제목
-  subtitle,     // 부제
   musicBy,      // 작곡 크레딧 (구 artist). 표시 "Music by ○○○"는 credit 씬이 붙임 → [[scene]]
   jacketBy,     // 자켓 제작 크레딧 [신규]. 표시 "Jacket by ○○○"
-  audioFile,    // 오디오 파일 참조 (곡 공통 — 난이도별로 안 갈림)
   offset,       // 오디오 싱크 보정 ms (양수=음악 당김). [[glossary]] offset
-  jacketImage,  // 자켓 이미지 (없으면 placeholder 생성)
 }
 ```
 
@@ -42,6 +39,7 @@ metadata = {
 - `chartBy`(채보 크레딧) / `difficulty` / `level`은 metadata가 아니라 **chart별**이다 (§4).
 
 > **제거됨**: `jacketBrightness`(자켓 배경 밝기)는 곡 데이터가 아니라 **전역 플레이어 설정**으로 이전·개명 → [[settings]] `jacketBrightness`. `measureLabelOffset`은 곡 데이터가 아니라 **에디터 설정**으로 이전 → [[settings]]. 근거 [[rationale]].
+> **철회됨**: `subtitle`(곡 부제)·`audioFile`은 명세 초안이 추가했던 필드로 철회 — 구 코드에 없음(실측). 철회로 chart별 `subtitle`(§4)과의 이름 충돌도 소멸. `jacketImage`도 폐기 `[수정]` — **에셋은 참조 필드 없이 파일로만 존재**한다(파일명 접미 규칙 → [[cfx]] §3). 자켓 부재 시 placeholder 생성 규칙은 유지(표시 레이어).
 
 ---
 
@@ -61,15 +59,20 @@ timeSignatures: [{ startTick, numerator, denominator }] // 박자. 마디선 위
 
 ```
 chart = {
-  difficulty,    // 난이도 명칭 (문자열: "Trace" / "Drift" / "Surge" …)
+  chartId,       // song 내 식별 정수. 0=init·1~4 고정 슬롯·5+ 추가 채보 → [[cfx]] §5
+  difficulty,    // 6종 enum: init/Trace/Drift/Surge/Flux/Phase → [[cfx]] §6
+  subtitle,      // 차분명·용도 설명 (선택 문자열) [신규] → [[cfx]] §6
   level,         // 난이도 수치 (숫자)
   chartBy,       // 이 난이도의 채보 제작자 (구 charter). 난이도마다 다를 수 있어 chart별. 표시 "Chart by ○○○"
+  version,       // 내용의 판 — export마다 +1 [신규] → [[cfx]] §7
   notes,         // §5
   shapeEvents,   // §6
   laneEvents,    // §7 (상세 [[lane-events]])
   textEvents,    // §8
 }
 ```
+
+- chart가 **파일로 직렬화될 때는 곡 공통 필드(§1~§3) 사본을 함께 담는다**(자립 파일 — [[cfx]] §2). 논리 소유는 여전히 song이며, 이 문서의 소속 구분은 논리 모델 기준이다.
 
 ---
 
@@ -169,7 +172,7 @@ playState   = { gaugePct, gaugeMode, combo, maxCombo, hits, misses, holds,
 ## 10. 버전 / 교환
 
 - **`schemaVersion`** — 재구현 시작값 **`1`**(숫자, `v` 접두 없음). 구 코드의 v3 체계(isRight→isBlue 등)와 별개의 새 체계 — 포맷이 백지 재설계라 이어 세지 않는다.
-- **`.cfx`** — 교환 포맷. ZIP, content-hash 에셋, 오디오 1 + 자켓 0~1 + chart JSON N. **상세 → [[cfx]]** (songId·chartId 정의 포함).
+- **파일 형태** — chart `.json`(에디터 작업 단위, 자립) / `.cfx`(게임 배포 단위, 수동 조립 ZIP). schemaVersion·version 두 축 포함 **상세 → [[cfx]]** (songId·chartId·difficulty 정의 포함).
 
 ---
 

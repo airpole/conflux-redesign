@@ -202,6 +202,17 @@
 
 > `play`는 **모드**(mode-select 항목), `gameplay`는 **scene**(곡 치는 화면), `test`는 **editor 그래프 scene**(같은 엔진 다른 호스트). 셋 다 안 겹친다.
 
+**영속성 / 파일** — 정의 → [[persistence]]·[[cfx]]:
+
+| 현재 | 새 이름 | 비고 |
+|---|---|---|
+| autosave 슬롯(`__autosave__`) | `workspace` | 단일 복구 슬롯(마지막 작업 + music·jacket blob) |
+| (신규) | `library` | 게임 internal의 import된 .cfx blob 스토어 |
+| duplicate(Ctrl+Shift+S) | `derive` | "복제 저장" → "새 UUID 파생"으로 의미 이동 (정본이 파일이라 저장소 복제가 무의미) |
+| 오디오 에셋 | `music` | song=패키지 전체, music=오디오. `musicBy`와 정합 |
+| (신규) | `init` | chartId 0, 에디터 전용 템플릿 채보 |
+| 파일 매니저 overlay | (폐지) | Ctrl+O = OS 파일 픽커 직행 |
+
 ---
 
 ## 5. 파일명 규칙 (접두사 = 레이어)
@@ -279,7 +290,7 @@ app-*     부트스트랩 / 빌드별 진입점 / config
 - [x] `channel`→`lane` 통일, 단어 폐기. `key`(1~6) 물리입력만 분리. `OVERLAP_LANES`
 - [x] 5선 멘탈모델은 B/R 양끝 + 1·2·3, 데이터 병합 안 함 (isBlue/lineNum 유지). 0/4 숫자 폐기 → 순서 압박 제거, 교차 허용
 - [x] state 색 → [[theme]] 단일출처(구 colors). EXTRACTED 새 볼트로 이전
-- [x] audioFile/offset 곡공통(metadata) 고정 — 난이도별 음원/싱크 분기 차단
+- [x] offset 곡공통(metadata) 고정 — 난이도별 싱크 분기 차단 (audioFile은 철회 — 에셋은 참조 필드 없이 파일로만, [[cfx]] §3)
 - [x] offset 정의 ([[glossary]] 타이밍): 오디오 시작 보정, 양수=음악 당김, leadIn과 별개
 - [x] FAST/SLOW = 순간표시(flashTiming, 기록X) + 누적카운트(fastCount/slowCount, result 표시). SYNC바깥~MISS안쪽 normal만
 - [x] textEvents = tick별 텍스트 연출, game/notes 양쪽 렌더, chart별

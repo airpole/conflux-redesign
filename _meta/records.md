@@ -11,7 +11,7 @@
 
 기록은 **chart(난이도)당 1개**다. gaugeMode별로 갈리지 않는다 — 어느 모드로 쳤든 한 기록에 병합된다. cascade 판도 같다(결과 state가 그대로 병합).
 
-- **키**: `songId:chartId` `[수정]` — songId = UUID, chartId = song 내 발급 정수([[cfx]] §2·§3). UI 표기 `1.2`. (구 metadata 슬러그 폐기 — 구 기록은 이관하지 않는다.)
+- **키**: `songId:chartId` `[수정]` — songId = UUID, chartId = song 내 식별 정수([[cfx]] §4·§5). UI 표기는 3자리 패딩(`001`). (구 metadata 슬러그 폐기 — 구 기록은 이관하지 않는다.)
 - **고아 기록**: 라이브러리 곡을 chartId 구성이 바뀐 .cfx로 덮어쓰면 대응 없는 기록은 표시되지 않는다(데이터는 잔존, 삭제 안 함) `[신규]`.
 - **매체**: 로컬 영속. 저장 설비는 env 소관([[architecture]]) — 이 문서는 계약(스키마·갱신 규칙)만 정한다.
 

@@ -24,7 +24,7 @@
 - **`song`** — 곡 하나. 오디오·메타·타이밍 등 **곡 공통** 정보 + chart 배열.
 - **`chart`** — 칠 수 있는 보면 하나 = 난이도 하나. song에 N개.
 - **`difficulty`** = 난이도 **명칭**(문자열, `Trace`/`Drift`/`Surge`…). **`level`** = 난이도 **수치**(숫자). 다른 개념.
-- **곡 공통**: metadata·tempos·timeSignatures·audioFile·offset (오디오가 하나이므로 난이도와 무관, 분기 차단).
+- **곡 공통**: metadata·tempos·timeSignatures·offset (오디오가 하나이므로 난이도와 무관, 분기 차단). 오디오는 참조 필드 없이 파일로 존재 → [[cfx]] §3.
 - **chart별**: notes·shapeEvents·laneEvents·textEvents·chartBy (난이도마다 자유).
 - 런타임은 **한 번에 한 chart**만 다룬다. 코어에는 song 전체가 아니라 활성 보면을 펼쳐 넘긴다.
 
@@ -118,8 +118,11 @@ shape와 laneEvents를 데이터로 병합하지 않는다(좌표계·역할이 
 
 - **`rank`** — 점수(백만점 기준) 등급. U / S+ / S / A+ / A / B / C / D / E / F. 임계·점수식 → [[constants]] §3.
 - **`record`** — chart당 1개 저장되는 best 기록(`bestScore`/`bestRank`/`bestState`/`maxCombo`/`playCount`). 전 gaugeMode 통합, 무기록 게이트는 [[settings]] §2. 단일 출처 → [[records]].
-- **`songId`** — 곡의 전역 식별자(UUID, 최초 생성 시 발급·불변). 단일 출처 → [[cfx]] §2.
-- **`chartId`** — song 내 chart 식별자(발급 정수, 재배치를 위해 수정 가능). 기록 키 = `songId:chartId`. 단일 출처 → [[cfx]] §3.
+- **`songId`** — 곡의 전역 식별자(UUID, 최초 생성 시 발급·불변). 단일 출처 → [[cfx]] §4.
+- **`chartId`** — song 내 chart 식별 정수. 0=`init`·1~4=Trace/Drift/Surge/Flux 고정 슬롯(수정 불가)·5+=추가 채보(수정 가능). 저장은 정수, 표기는 3자리 패딩(`001`). 기록 키 = `songId:chartId`. 단일 출처 → [[cfx]] §5.
+- **`init`** — chartId 0의 **에디터 전용 템플릿 채보**(metadata만 입력, 노트 백지). 새 난이도의 파생 원본. 게임 로더는 무언 스킵. 단일 출처 → [[cfx]] §5. (shape 체인의 첫 anchor 호칭 init과는 다른 개념 — 문맥이 가른다.)
+- **`subtitle`** — chart별 차분명 겸 용도 설명(선택 문자열, 예: `GIMMICK`). `[...]` 대괄호는 표시 규약. 파일명 유일성 = difficulty+subtitle. 단일 출처 → [[cfx]] §6.
+- **`version`** / **`schemaVersion`** — 내용의 판(export마다 +1) / 그릇의 규격(포맷 세대). 두 축, 파일마다 포함. 단일 출처 → [[cfx]] §7.
 
 ---
 
@@ -171,7 +174,11 @@ shape와 laneEvents를 데이터로 병합하지 않는다(좌표계·역할이 
 - **레이어 7층** — `core → env → render → edit/game → scene → app`, import 위→아래 한 방향. 정의·의존 규칙·CTX seam·빌드 게이트 단일 출처 → [[architecture]]. 파일명 접두사 규칙 → [[naming]] §5.
 - **`env`** (`env-*`, 구 `plat`) — 브라우저 설비 래핑 레이어. canvas 생성·DPR, WebAudio, IndexedDB, raw input 등 브라우저 API 직접 호출. core가 "환경 무관"이면 env는 "환경 의존".
 - **`CTX`** — play 엔진의 호스트 주입 seam. 엔진은 editor/game 어느 호스트인지 모르고 CTX 한 객체만 본다. editor는 editorState 프록시, game은 자기 소유. 필드 집합·seam 계약 → [[architecture]] §3.
-- **`.cfx`** — 차트 교환 포맷. ZIP(fflate) 기반, content-hash로 에셋 ID를 만들어 자동 중복 제거.
+- **`.cfx`** — 곡 하나의 **배포 ZIP**(수동 조립): `*_music.<ext>` + `*_jacket.<ext>` + chart `.json` × N. 에디터의 작업 단위는 chart `.json` 낱개(자립 파일)다. 단일 출처 → [[cfx]].
+- **`workspace`** — 에디터의 단일 복구 슬롯(마지막 작업 + music·jacket blob). 정본은 유저의 파일이고 workspace는 복구·세션 이어가기 전용. 단일 출처 → [[persistence]] §2.
+- **`library`** — 게임 internal 빌드가 import된 .cfx를 blob 통째로 담는 스토어(키 = songId). 단일 출처 → [[persistence]] §6.
+- **`derive`** — 현재 곡의 songId를 새 UUID로 재발급(Ctrl+Shift+S, confirm). 리믹스 시작 = 기록 단절의 유일한 경로. 단일 출처 → [[persistence]] §4.
+- **`music`** — 곡의 오디오 에셋. song(패키지 전체)과 구분하는 호칭 — `musicBy`와 정합. 파일명 접미 규칙 → [[cfx]] §3.
 
 ---
 
