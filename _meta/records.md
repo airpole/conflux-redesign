@@ -13,6 +13,7 @@
 
 - **키**: `songId:chartId` `[수정]` — songId = UUID, chartId = song 내 식별 정수([[cfx]] §4·§5). UI 표기는 3자리 패딩(`001`). (구 metadata 슬러그 폐기 — 구 기록은 이관하지 않는다.)
 - **고아 기록**: 라이브러리 곡을 chartId 구성이 바뀐 .cfx로 덮어쓰면 대응 없는 기록은 표시되지 않는다(데이터는 잔존, 삭제 안 함) `[신규]`.
+- **chartId 마이그레이션** `[신규]`: 같은 songId의 .cfx를 재import할 때, 보유 chart와 **본문 4배열(notes·shapeEvents·laneEvents·textEvents)이 완전 동일**한데 chartId만 다른 쌍이 있으면 기록 키를 새 id로 이전한다(rename 감지). 메타(difficulty·subtitle·level·chartBy·version)는 비교에서 제외 — 채보의 정체성은 id가 아니라 본문. 동일 본문 후보가 복수면(복제 채보) 이전하지 않는다(안전). 실행 주체는 재import 로더([[persistence]] §6) — 에디터는 records를 건드리지 않는다. 근거 → [[rationale#chartId 마이그레이션을 내용 일치 기반으로 둔 이유]].
 - **매체**: 로컬 영속. 저장 설비는 env 소관([[architecture]]) — 이 문서는 계약(스키마·갱신 규칙)만 정한다.
 
 ---
@@ -50,7 +51,7 @@ record = {
 
 ## 4. 무기록 (no-record)
 
-게이트 정의는 [[settings]] §2가 단일 출처(`autoplay ‖ staticShape ‖ 중간시작`). 무적격 판은 **result 화면만 표시**하고, 저장·`playCount` 증가를 모두 하지 않는다.
+게이트 정의는 [[settings]] §2가 단일 출처 — 무기록 = `autoplay ‖ staticShape ‖ 중간시작 ‖ editorOrigin`. 무적격 판은 **result 화면만 표시**하고, 저장·`playCount` 증가를 모두 하지 않는다.
 
 ---
 
@@ -72,6 +73,7 @@ record = {
 
 확정 (추가):
 - [x] 키 = `songId:chartId`, 구 기록 이관 없음, 고아 기록 숨김·보존
+- [x] chartId 마이그레이션 — 본문 4배열 완전 일치 기반 rename 감지, 재import 로더 수행, 복수 후보 시 이전 안 함 (§1)
 
 잔여:
 - (없음)

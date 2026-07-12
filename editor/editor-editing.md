@@ -22,7 +22,7 @@
 | — | delete | del | 클릭 삭제. **select 상태에서 선택이 있으면 delete는 툴 전환 대신 선택 삭제** |
 
 - select/delete는 모디파이어 키(§5 `A`·`D`)로 부르는 게 기본 — 툴바 버튼도 유지.
-- **quick-hold 상세** `[보존]`(실측: notes-input.js — 구 명세의 "hold 시작 모드 진입" 서술을 실측으로 정정): 롱프레스 **300ms**(그 사이 이동 없음) 발화 시 `savedLNDur` 길이의 hold를 **즉시 배치**한다 — 끝점 확정 단계 없음. `savedLNDur`는 hold 툴 2클릭 확정 때마다 그 duration으로 갱신된다. 배치 규칙: lane 2·3은 용량 초과 시 기존 tap 치환, lane 1·4는 기존 hold가 있으면 무시하되 기존 tap 위에는 그대로 얹어 invalid overlap 경고로 노출(치환 안 함 — 유저가 보고 해소), wide는 기존 wide tap 치환.
+- **quick-hold 상세** `[보존]`(실측: notes-input.js — 구 명세의 "hold 시작 모드 진입" 서술을 실측으로 정정): 롱프레스 **300ms**(그 사이 이동 없음) 발화 시 `savedLNDur` 길이의 hold를 **즉시 배치**한다 — 끝점 확정 단계 없음. `savedLNDur`는 hold 툴 2클릭 확정 때마다 그 duration으로 갱신된다. 배치 규칙: lane 2·3은 용량 초과 시 기존 tap 치환, lane 1·4는 기존 hold가 있으면 무시하되 기존 tap 위에는 그대로 얹어 conflict 경고로 노출(치환 안 함 — 유저가 보고 해소), wide는 기존 wide tap 치환.
 - 판정 반경·드래그 임계 등 나머지 미세 수치는 재구현 시 원본 재실측으로 채움(기억 금지).
 
 ### 드래그 이동
@@ -41,6 +41,8 @@
 - lane 1·4 (키 1개): 2겹부터 conflict.
 - lane 2·3 (키 2개): 2겹 = overlap, 3겹부터 conflict.
 - wide: 동시 2겹부터 conflict.
+- 검출 알고리즘(sweep-line·동시 활성 집합)의 단일 출처는 [[data-model]] §5.1 — conflict는 그 순간의 동시 활성 집합 전체에 표시된다.
+- **conflict 해소 삭제** `[신규]`: conflict 집합을 대상으로 delete를 실행하면 **배치(추가)된 순서의 역순으로 capacity 초과분만** 삭제한다 — lane 2의 3겹 = 1개, 4겹 = 2개 삭제. 자동 삭제가 아니라 유저의 del 실행에만 반응한다. (notes 배열 순서 = 배치 순서 전제 → [[data-model]] §5.1. 근거 → [[rationale#overlap과 conflict 검출을 sweep-line n-way로 확장한 이유]].)
 
 ## 2. shapes 씬 — 서브모드 shape / lane
 
@@ -139,6 +141,7 @@ ON이면 배치 시 대칭축 반대편에 자동 생성한다. **축 기본값 
 - [x] note 툴 Q/W/E/R/T = tap/hold/wideTap/wideHold/text, sel+del 콤보, 드래그·클립보드 [보존]
 - [x] quick-hold 실측 반영(300ms·savedLNDur 재사용·치환 규칙 — "시작 모드" 서술 정정)
 - [x] overlap/conflict 기준 = 요구 입력 수 vs 키 수, **지속 중 hold 포함** / 클립보드 textEvents 동반
+- [x] conflict 해소 삭제 = 배치 역순 초과분만 (검출 sweep-line·집합 표시는 data-model §5.1 단일 출처)
 - [x] shapes 씬 서브모드(T 전환), shape 툴 Q/W/E/R = Blue/center/Red/pinch, lane 툴 Q/W/E = line1/2/3
 - [x] easing 1/2/3/4 = Arc/In/Out/Linear, V = 위치 스냅 순환
 - [x] symmetry(S): 동적 스냅샷 축 + 드래그(수동 축은 토글 off까지·자동 복귀 버튼), 단일 배치 툴만 적용, lane 쌍 = 키 조합, 오른쪽 기준 배치

@@ -79,7 +79,7 @@
 **판정 / 게이지**
 - judgment = `abs(diff)` 임계 (SYNC 25 / PERFECT 50 / GOOD 100). wide는 SYNC/MISS만.
 - gaugeMode(normal/hard/fc/ap/as/cascade) → state(C/H/AS/AP/FC/F/N) 한 표로. rank는 독립 축.
-- terminate = "게이지 즉시 0" 단일 메커니즘.
+- terminate = "게이지 즉시 0" 단일 메커니즘 (cascade 제외 — 강등으로 동작, gauge §4).
 
 **연출 (시각, 판정 무관)**
 - shape = 바깥 경계(Blue/Red), laneEvents = 안쪽 구분선(1·2·3). 둘 다 순수 시각.

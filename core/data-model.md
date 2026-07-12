@@ -89,20 +89,26 @@ note = { startTick, duration, lane, isWide }
 
 ### 5.1 겹침 검출 — overlap / conflict (파생)
 
-노트에 저장되는 필드가 아니라 notes에서 **계산되는 파생 속성**이다(`noteOverlapMap`, notes 변하면 갱신). 개념·색은 → [[glossary]]; 여기는 알고리즘 단일 출처.
+노트에 저장되는 필드가 아니라 notes에서 **계산되는 파생 속성**이다(`noteOverlapMap`). 재계산 트리거는 **notes를 invalidate하는 dispatch뿐** — shape·lane 이벤트는 겹침과 무관. 개념·색은 → [[glossary]]; 여기는 알고리즘 단일 출처.
 
-**활성구간**: Tap = `[t, t]`, Hold = `[head, head+dur)`. 두 노트의 활성구간이 겹치면 hit.
+**활성구간**: Tap = `[t, t]`, Hold = `[head, head+dur)`.
 
-**단일 검출, capacity로 분기**:
-- 같은 lane 안에서 같은 검출을 돌린다. lane이 2키(L2·L3, `OVERLAP_LANES`)면 `overlap`, 1키(L1·L4)면 `conflict`.
-- Wide는 따로 모아 같은 활성구간 규칙으로 검출 → 겹치면 `conflict`(전폭이 겹쳐 독립 타격 불가).
+**검출 = sweep-line** `[수정]`: 풀(lane 1~4 각각 + Wide)별로 활성구간의 시작/종료 이벤트를 정렬해 한 번 훑으며 **그 순간의 동시 활성 노트 수와 집합**을 구한다. O(n log n)이라 극단적 다중 겹침에도 안전. (구 코드의 쌍(pairwise) 검출을 n-way로 일반화 — 2겹까지는 결과 동일. 근거 → [[rationale#overlap과 conflict 검출을 sweep-line n-way로 확장한 이유]].)
+
+**capacity로 분기**: 동시 활성 수가 그 풀의 키 수(capacity)를 초과하면 `conflict`, capacity 이내의 겹침은 `overlap`.
+- lane 1·4 (1키): 2겹부터 conflict.
+- lane 2·3 (2키, `OVERLAP_LANES`): 2겹 = overlap, 3겹부터 conflict.
+- Wide 풀: 2겹부터 conflict(전폭이 겹쳐 독립 타격 불가).
+- conflict는 **그 순간 동시 활성인 노트 집합 전체**에 표시한다. 해소 삭제(del로 초과분만 제거)는 → [[editor-editing]] §1.
 
 **`overlap`(2키 lane) 세부 분류** — 두 노트 관계로:
 - `merged` — 활성구간 동일 → 한 장만 노랗게(다른 한 장 `hidden`).
 - `yellow` / `clipped` — 부분 겹침 → 늦은/짧은 쪽 겹침부가 노랗게(`yellow`), 흰 노트는 겹침구간 몸통을 깎음(`clipped`).
 
-**`conflict`(1키 lane + Wide-on-Wide)**:
-- 겹친 두 장 모두 `conflict`. 흰 채움 + 빨간 경고 테두리. merged/yellow 분류 없음(연주 불가라 표시가 목적).
+**`conflict`(capacity 초과 — 1키 lane 2겹·2키 lane 3겹·Wide 2겹)**:
+- 동시 활성 집합 전체가 `conflict`. 흰 채움 + 빨간 경고 테두리. merged/yellow 분류 없음(연주 불가라 표시가 목적).
+
+> **notes 배열 순서 = 배치 순서** `[신규]`: notes는 배치(추가)된 순서를 배열 순서로 보존한다(직렬화 포함 — 시간순 접근은 정렬 캐시 몫). conflict 해소 삭제의 "배치 역순" 기준([[editor-editing]] §1)이 이 순서에 의존한다.
 
 > **검출(domain) vs 표시(render)**: 어느 노트끼리 겹쳤고 overlap이냐 conflict냐는 이 파생 패스(domain)가 정한다. 그 map을 받아 색·테두리·above/below 쌓임을 입히는 건 render다. judge는 둘 다 모른다(입력만). 구 `invalid`→`conflict` 개명. 근거 → [[rationale]].
 
@@ -143,13 +149,14 @@ laneEvent = { startTick, duration, lineNum, targetPos, easing }
 textEvent = {
   startTick,   // 등장 tick
   duration,    // 표시 길이 (tick)
-  text,        // 내용
-  position,    // 'left' | 'middle' | 'right' | 'lane1' | 'lane2' | 'lane3' | 'lane4'
+  content,     // 내용 (개행 허용) [보존]
+  position,    // 'left' | 'middle' | 'right' | 'lane1' | 'lane2' | 'lane3' | 'lane4'  (구 pos → 개명, 'line:N' → 'laneN') [수정: 명명]
 }
 ```
 
-- 특정 tick에 화면에 텍스트를 띄우는 연출. 특수 연출·튜토리얼용이라 드물다.
-- 등장·퇴장 연출은 **fade 고정** `[신규]`. 폰트·크기 등 표시 스타일은 [[theme]] 잔여. 편집은 text 툴 2클릭 → [[editor-editing]] §1.
+- 특정 tick에 화면에 텍스트를 띄우는 연출. 특수 연출·튜토리얼용이라 드물다. 필드는 구 코드 실측 `{startTick, duration, content, pos, transition, mode}` 기반 확정.
+- 등장·퇴장 연출은 **fade 고정(등장·퇴장 각 300ms)** `[수정]` — 구 `transition`(fade/appear 2종)을 폐기하고 fade 단일화. 구 `mode`(옵션이 tutorial 하나뿐인 죽은 축)도 폐기 `[수정]`. 근거 → [[rationale#textEvent의 transition·mode 축을 폐기한 이유]].
+- 표시 스타일·배치(3분할 컬럼 / lane 인디케이터)는 구 방식 [보존] → [[theme]] §3. 편집은 text 툴 2클릭 → [[editor-editing]] §1.
 
 ---
 
@@ -178,4 +185,4 @@ playState   = { gaugePct, gaugeMode, combo, maxCombo, hits, misses, holds,
 
 ## 11. 미해결
 
-(없음 — textEvent 필드 확정(§8), .cfx는 [[cfx]]로 분리 완료.)
+(없음 — textEvent 필드 실측 확정(§8), .cfx는 [[cfx]]로 분리 완료.)

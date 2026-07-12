@@ -48,7 +48,7 @@ editor 진입 ─▶ start (정식 scene, 진입 1회: 새 곡 / 파일 열기 /
 
 test는 판정·게이지가 도는 **실제 플레이 엔진**을 쓴다. gameplay는 "test에서 에디터 기능을 빼고 제약(전체화면 등)을 더한 것" — 같은 엔진을 공유하고 호스트만 다르다. → [[rationale#gameplay를 test의 제약형으로 보는 이유]]
 
-- **idle 구성** `[보존]`(실측: play-render.js drawPlayIdle): 16:9 게임 프레임에 현재 위치의 **정지 프리뷰**(노트·shape·판정선, invalid 경고 표시 유지) + HUD(직전 세션 값) + 시크 바. 여기에 빠른 옵션 패널([[scene]] §9)이 추가된다 `[수정]`.
+- **idle 구성** `[보존]`(실측: play-render.js drawPlayIdle): 16:9 게임 프레임에 현재 위치의 **정지 프리뷰**(노트·shape·판정선, conflict 경고 표시 유지) + HUD(직전 세션 값) + 시크 바. 여기에 빠른 옵션 패널([[scene]] §9)이 추가된다 `[수정]`.
 - 재생 두 경로: **씬 안 즉시 재생**(현재 위치부터, lead-in 없음, 판정·게이지 있음 `[수정 — 구는 3초 lead-in]`)과 **gameplay 진입**(전체화면, 현재 위치부터 3초 lead-in `[수정]`). 키는 [[editor-editing]] §5의 test 씬 표.
 - 구 idle 단축키 중 `M`(mirror)·`F`(Fast/Slow)는 **삭제** `[수정]` — 빠른 패널([[scene]] §9)이 대체.
 - gameplay가 곡 끝에 닿으면 result를 띄우고 Back으로 test에 복귀.

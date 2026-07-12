@@ -58,8 +58,8 @@
 - **game-internal** 빌드: 번들 + **library 스토어**(사용자가 import한 .cfx).
 - 저장 형태 = **.cfx blob 통째** `[신규]` (키 = songId). import 시 로더 검증([[cfx]] §8) 통과분만 등록, 파싱은 로드 시.
   - 에셋 GC(sweep) 폐지 `[번복]` — 에셋이 blob 안에 있으므로 곡 삭제 = blob 삭제 한 방. 참조 관리 개념이 소멸한다.
-- **같은 songId 재import** `[번복]`: confirm 다이얼로그로 **chart별 version을 나란히 비교 표시**(예: `보유 Trace v2·Surge v2 / 가져옴 Trace v2·Surge v3`) 후 **덮어쓰기**. records 키(`songId:chartId`)가 유지되므로 기록은 이어진다. 구판의 복제(새 UUID) 선택지는 폐기 — 별개 곡을 원하면 에디터의 derive(§4)가 그 경로다.
-- **곡 삭제**: song-select에서 confirm 후 blob 삭제. **기록은 잔존**(재import 시 복원 — 고아 기록 규칙([[cfx]] §5)과 동일 논리).
+- **같은 songId 재import** `[번복]`: confirm 다이얼로그로 **chart별 version을 나란히 비교 표시**(예: `보유 Trace v2·Surge v2 / 가져옴 Trace v2·Surge v3`) 후 **덮어쓰기**. records 키(`songId:chartId`)가 유지되므로 기록은 이어진다. chartId가 이동된 chart(본문 동일·id만 다름)는 로더가 기록 키를 이전한다(rename 감지 `[신규]` → [[records]] §1). 구판의 복제(새 UUID) 선택지는 폐기 — 별개 곡을 원하면 에디터의 derive(§4)가 그 경로다.
+- **곡 삭제**: song-select에서 confirm 후 blob 삭제. **기록은 잔존**(재import 시 복원 — 고아 기록 규칙([[records]] §1)과 동일 논리).
 - song-select 기록 뱃지의 데이터는 [[records]].
 
 ## 7. 결정 완료 / 잔여
