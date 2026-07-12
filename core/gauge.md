@@ -8,20 +8,22 @@
 
 ## 1. gauge
 
-- **`gauge`** (`gaugePct`, 0~100) — 생명력 막대. 0이 되면 게임이 강제 종료되어 result로 간다.
+- **`gauge`** (`playState.gauge = {hardPct, normalPct}`, 각 0~100) — 생명력 막대. 두 게이지는 **모든 모드에서 병렬 누적**된다(단일 코드 경로 — cascade가 특별해지지 않게). 모드가 어느 값을 소비할지 정하고(§2 표·§4), lock 3종은 게이지를 소비하지 않는다(표시 100 고정). `[수정 — 구 단일 `gaugeValue`]` 필드 구조 → [[data-model]] §9, 근거 → [[rationale#gauge를 2값 병렬 + tier 단일 구조로 통일한 이유]].
 - **terminate** = 별도 종료 경로가 아니라 **"게이지를 즉시 0으로"** 만드는 것. 거의 모든 실패가 이 한 경로를 탄다. (예외: `cascade`는 terminate 대신 강등 — §4.)
 
 증감 수치(normal/hard delta, `×a` 스케일, 클리어 75%)는 [[constants]] §2.
 
 ---
 
-## 2. gaugeMode → state (한 표)
+## 2. gaugeMode → state (단일 모드 5종)
 
 **`gaugeMode`** = 플레이 모드(무슨 도전인가). 각 모드는 게이지 동작 + terminate 조건 + **성공 시 state**를 함께 정의한다.
 
 **`state`** = 곡을 끝낸 결과(어떻게 끝냈는가). gaugeMode와 성공/실패로 결정된다.
 
-| gaugeMode | start | recovery | terminateBelow | 성공 시 state | 실패 시 |
+6종 중 `cascade`는 아래 5종을 병렬 평가하는 **메타 모드**라 이 표에 없다 — §4에서 별도 정의한다.
+
+| gaugeMode | start | recovery | terminate 조건 | 성공 시 state | 실패 시 |
 |---|---|---|---|---|---|
 | `normal` | 0 | 있음 (끝에 ≥75%) | 없음 | `C` | `F` (끝에 <75%) |
 | `hard` | 100 | 없음 | gauge 0 | `H` | `F` |
@@ -62,9 +64,10 @@ terminate 임계(SYNC 외 / PERFECT 미만 / MISS)가 가리키는 판정 종류
 - `as`/`ap`/`fc`: 각 terminate 조건(SYNC 외 / PERFECT 미만 / MISS)이 깨지면 그 티어가 떨어지고 한 칸 내려간다 (`as → ap → fc`). 강등 순서·조건은 §2 표와 같다.
 - `fc`까지 깨지면 그 아래는 **`hard` 게이지**가 state를 가른다 (state `H`). `hard` 게이지가 0에 닿으면 `normal`로 내려간다.
 - `normal` 게이지가 곡 끝에 75% 미만이면 `F`.
-- **게이지 2종은 곡 내내 병렬로 누적**된다 — 강등은 "어느 게이지를 결과로 보느냐"가 내려가는 것이지, 전환 순간 새로 시작하는 게 아니다. `hard`가 0이 될 때 `normal` 값은 그동안 따로 쌓여 이미 거기 있다.
+- **게이지 2종은 곡 내내 병렬로 누적**된다 — 강등은 "어느 게이지를 결과로 보느냐"가 내려가는 것이지, 전환 순간 새로 시작하는 게 아니다. `hard`가 0이 될 때 `normal` 값은 그동안 따로 쌓여 이미 거기 있다. (병렬 누적 자체는 cascade 전용이 아니라 전 모드 공통 구조다 — §1, [[data-model]] §9.)
 - `hard`·`normal` 게이지는 **일반 `hard`·`normal` 모드와 완전히 동일한 규칙**(delta·`×a` 스케일·75% 임계, [[constants]] §2). 그래야 "cascade로 H 클리어 = hard로 클리어"가 성립한다.
-- **result 게이지 막대는 항상 `hard` 게이지 값**으로 표시한다 (lock 3종은 게이지가 무의미하므로 — §2). `as`/`ap`/`fc`가 끝까지 살아 결과가 `AS`/`AP`/`FC`여도 막대 자체는 hard 값. hard가 탈락한 판은 0이 그대로 표시된다.
+- **result 게이지 막대는 최종 생존 티어 기준**으로 표시한다 `[번복 — 구안은 "항상 hard 값"]`: lock(`as`/`ap`/`fc`) 생존 종결 → 100 고정 + 해당 state 색(§2와 동일 규칙), `hard` 단계 종결 → hard 값·색, `normal` 단계 종결 → normal 값·색. 플레이 중 막대(아래 항목)와 result가 연속되고, 각 단일 모드의 result 표시와 동치 — "cascade로 C = normal 모드 클리어"가 표시까지 성립한다. 근거 → [[rationale#cascade result 막대를 최종 티어 기준으로 바꾼 이유]].
+- 현재 생존 티어는 `playState.tier`(∈ `as`/`ap`/`fc`/`hard`/`normal`) 하나로 추적한다 `[신규]` — 강등이 비가역(아래 래칫)이라 티어 하나가 래칫까지 표현한다. 단일 모드에서는 모드에 대응하는 값으로 고정. 필드 → [[data-model]] §9.
 - **탈락은 래칫(비가역)** — hard 게이지가 한 번 0에 닿으면 이후 delta로 값이 회복돼도 `H`로 복귀하지 않는다(lock 3종의 조건 위반이 비가역인 것과 같다). "cascade로 `H` = hard 모드로 클리어"의 동치를 지키기 위함 — hard 모드였다면 0에 닿은 순간 죽은 판이다. 근거 → [[rationale#cascade의 hard 탈락을 래칫으로 둔 이유]].
 - **플레이 중 게이지 막대는 살아있는 최고 티어**를 따른다: lock(`as`/`ap`/`fc`) 생존 중엔 100 고정 + 해당 state 색, hard 단계면 hard 값·색, normal 단계면 normal 값·색 → [[theme]].
 

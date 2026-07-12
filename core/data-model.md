@@ -166,7 +166,9 @@ textEvent = {
 
 ```
 editorState = { scrollSpeed, ... 선택/툴/뷰포트/히스토리 }   // 세션 = chart 하나([[editor-graph]] §4) — chart 포인터 없음
-playState   = { gaugePct, gaugeMode, combo, maxCombo, hits, misses, holds,
+playState   = { gauge: {hardPct, normalPct},  // 두 게이지 병렬 누적, 모드가 소비만 결정([[gauge]] §1) [수정 — 구 단일 gaugeValue]
+                tier,                          // 현재 생존 티어 as|ap|fc|hard|normal — 단일 모드는 고정([[gauge]] §4) [신규]
+                gaugeMode, combo, maxCombo, hits, misses, holds,
                 keysHeld, laneMap, fastCount, slowCount, flashTiming, forceEnded, ... }
 ```
 
