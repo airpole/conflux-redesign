@@ -135,11 +135,11 @@ laneEvent = { startTick, duration, lineNum, targetPos, easing }
 ```
 
 - **lineNum** ∈ {1,2,3} — 어느 구분선.
-- **targetPos** — 0~1 상대비율 (0=Blue, 1=Red). shape와 달리 **상대**.
+- **targetPos** — 상대 좌표(실수 전체, 범위 제한 없음). 0/1 = 그 tick에서 왼쪽/오른쪽 경계(Blue·Red 중 왼쪽에 있는 쪽이 0, 동적) `[번복 — 구 0~1 제한·"0=Blue, 1=Red" 고정]`. 데이터는 무구속 — 경계·순서 구속은 gameplay 투영이 담당. shape와 달리 **상대**. 상세 → [[lane-events]] §3.
 - **easing / duration** — shape와 동일.
 - 구분선 1·2·3이 각각 독립 체인. 구속·좌표계·렌더는 → [[lane-events]].
 
-> shape와 동형이나 선택자(isBlue↔lineNum)와 좌표계(절대 -8~+8 ↔ 상대 0~1)가 다르다. 병합하지 않는다.
+> shape와 동형이나 선택자(isBlue↔lineNum)와 좌표계(절대 -8~+8 ↔ 상대 실수 무구속)가 다르다. 병합하지 않는다.
 
 ---
 

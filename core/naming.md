@@ -26,7 +26,7 @@
 2. **함수는 동사+목적어.** 이름만 보고 무엇을 반환/수행하는지 안다. `getShape` 보다 `shapeGeometryAt(tick)`.
 3. **불리언은 is/has/can.** `isWide`, `hasUndo`, `canPlace`.
 4. **도메인 개념은 [[glossary]]의 영어 용어 하나로 고정.** 한 개념에 두 이름을 두지 않는다. 특히 `scrollSpeed`와 `playbackRate`는 영원히 분리. (한국어 설명은 쓰되, 개념을 가리키는 단어는 영어 그대로.)
-5. **단위를 이름에 박는다.** ms/tick/px/pct가 헷갈리는 곳은 접미사로: `durationMs`, `startTick`, `widthPx`, `gauge.hardPct`.
+5. **단위를 이름에 박는다.** ms/tick/px/pct가 헷갈리는 곳은 접미사로: `durationMs`, `startTick`, `widthPx`, `gaugePct`.
 6. **상태 객체는 전체 단어.** `D`/`ES`/`PS` → `chart`/`editorState`/`playState`.
 7. **레이어 접두사가 파일명.** `core-`, `env-`, `render-`, `edit-`, `game-`, `scene-`, `app-`. 파일명만 보고 의존 방향을 안다 (위→아래만 import). 레이어 정의 → [[architecture]].
 8. **모든 시간축 이벤트는 `startTick`을 가진다.** duration 없는 순간 이벤트(tempo·timeSignature)도 `tick`이 아니라 `startTick`. 시작점 개념은 동일하다.
@@ -130,7 +130,7 @@
 | `SPEED_MIN/MAX/STEP` | `SCROLL_SPEED_MIN/MAX/STEP` | scrollSpeed 명시 |
 | `GDIVS` | `GRID_DIVISORS` | 분음표 표기 재명명(V=4N, +6, ~256) → [[timing]] §6 |
 | (리터럴 `2000`) | `SCROLL_VIEW_MS` | game-render 내부 리터럴 → 명명 승격 ([[timing]] §3) |
-| `LEAD_IN_MS`,`LN_RELEASE_GRACE_MS` | 유지 | |
+| `LEAD_IN_MS` | 유지 | `LN_RELEASE_GRACE_MS`는 폐기 `[수정]` — [[judge]] §6 |
 
 ---
 
@@ -158,7 +158,8 @@
 | `D.metadata.difficulty/level/charter` | `chart.difficulty / .level / .chartBy` | metadata→chart로 내림. `charter`→`chartBy` 개명 |
 | `ES` (현재 chart 포인터) | (폐지) | 단일 chart 세션 `[번복]` — 세션 = chart 파일 1개, [[editor-graph]] §4 |
 | `ES.pvSpd` | `editorState.scrollSpeed` | scrollSpeed (playbackRate 아님) |
-| `PS.gaugeValue` | `playState.gauge` = `{hardPct, normalPct}` | 병렬 2값(각 0~100) + `tier` — 구조는 [[gauge]] §1·[[data-model]] §9 `[수정]` |
+| (신규) | `editorState.laneGridDivisor` | lane 가로 분할 수 N (기본 4) — [[lane-events]] §5 |
+| `PS.gaugeValue` | `playState.gaugePct` | 0~100 |
 | `PS.gaugeType` + `lockTarget`/`lockMode` | `playState.gaugeMode` | normal / hard / fc / ap / as / cascade (단일 축, [[gauge]]) |
 | `PS.playCombo`/`playMaxCombo` | `playState.combo` / `playState.maxCombo` | |
 | `PS.playHitMap` | `playState.hits` | note→판정상태 |
@@ -168,7 +169,7 @@
 | `PS.lineMap` | `playState.laneMap` | 미러 매핑 |
 | `PS.fastCount`/`slowCount` | `playState.fastCount` / `slowCount` | 세션 누적, result 표시 |
 | `PS.flashTiming` | `playState.flashTiming` | 'FAST'/'SLOW'/null 순간표시 (기록 안 됨) |
-| (신규) | `playState.tier` | 현재 생존 티어 (as/ap/fc/hard/normal) — [[gauge]] §4. state는 result 산출물이라 playState에 없음([[data-model]] §9) |
+| (신규) | `playState.state` | 달성 중 clear state (AS/AP/FC/H/C/F/N) |
 
 ---
 
@@ -306,7 +307,7 @@ app-*     부트스트랩 / 빌드별 진입점 / config
 
 잔여 (기획 진행하며 확정):
 - [x] easing shape/lane 100% 동일, symmetry 데칼코마니, init 이동 → [[lane-events]] §7
-- [x] 분박 그리드: 1순위 드롭다운(3·4배수)/2순위 타이핑(특수 N), 박자 독립(마디선만 박자종속), 틱 반올림 스냅, lane도 공유 → [[glossary]] `gridDivisor`
+- [x] 분박 그리드: 1순위 드롭다운(3·4배수)/2순위 타이핑(특수 N), 박자 독립(마디선만 박자종속), 틱 반올림 스냅 → [[glossary]] `gridDivisor`. lane **가로** 스냅은 전용 `laneGridDivisor`로 분리 `[번복]` — [[lane-events]] §5
 - [x] core/judge.md 신설 (입력매칭 [보존] + overlap render이관 [수정])
 - [x] core/data-model.md 신설 — 스키마 단일출처, glossary 경량화
 - [x] gaugeMode+state 단일 표 통합 (AS/AP/FC 중복 제거)

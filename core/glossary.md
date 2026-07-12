@@ -101,8 +101,8 @@ shape와 laneEvents를 데이터로 병합하지 않는다(좌표계·역할이 
 - **`isBlue`** — shape 체인 식별자. true=Blue 체인, false=Red 체인. 방향이 아니라 두 체인의 이름 — 두 경계는 교차할 수 있다(순서 구속 없음).
 - **`easing`** — 변형의 보간 곡선. 저장값 3종(`Linear`/`In-Sine`/`Out-Sine`) + `null`. `null`인 이벤트는 **anchor** — 보간 없이 값을 못박는다(체인의 첫 anchor는 **init**이라 부름). `Step`(즉시 점프)·`Arc`(교번)는 저장 안 되는 **에디터 입력 라벨**. 평가·공식·입력모드 전체 → [[shape]] §4·§5.
 - **`chain`** — shape·laneEvents가 공유하는 평가 메커니즘. 한 체인 = 한 선택자값(shape `isBlue`, lane `lineNum`)에 묶인 이벤트들의 시간축 사슬. anchor로 시작해 보간 이벤트로 흐른다. 단일 출처 → [[shape]] §4.
-- **`targetPos`** — 변형이 도달할 목표 위치(외부단위 -8~+8, 0.25 스텝).
-- **`laneEvents`** (현재 코드의 `lineEvents`를 개명·확장) — Blue/Red 경계 **안쪽의 구분선 3개(1·2·3)**를 시간에 따라 움직이는 이벤트. shape가 바깥 경계를 움직이듯, laneEvents는 내부 구분선을 움직인다. **순수 시각 연출이며 판정과 무관**. 데이터·구속·좌표계 전체는 → [[lane-events]] 참조.
+- **`targetPos`** — 변형이 도달할 목표 위치. shape는 외부단위 −8~+8(0.25 스텝), lane은 경계 span 기준 상대 실수(0=왼쪽 경계·1=오른쪽 경계, **범위 제한 없음** — [[lane-events]] §3).
+- **`laneEvents`** (현재 코드의 `lineEvents`를 개명·확장) — Blue/Red 경계 **안쪽의 구분선 3개(1·2·3)**를 시간에 따라 움직이는 이벤트. shape가 바깥 경계를 움직이듯, laneEvents는 내부 구분선을 움직인다. **순수 시각 연출이며 판정과 무관**. 데이터는 무구속(실수 전체), 구속은 gameplay 투영이 담당 — 좌표계·렌더 규칙 전체는 → [[lane-events]] 참조.
 - **`textEvents`** (`{startTick, duration, content, position}`) — 특정 tick에 화면에 텍스트를 띄우는 연출 이벤트. 게임·에디터 양쪽에서 렌더된다. 특수 연출·튜토리얼용이라 일반 차트엔 드물다. chart별 데이터. (필드 확정 → [[data-model]] §8)
 
 ---
@@ -134,7 +134,7 @@ shape와 laneEvents를 데이터로 병합하지 않는다(좌표계·역할이 
 - **`leadIn`** (`LEAD_IN_MS`) — 곡이 시작되기 전 비어 있는 스크롤 구간.
 - **`offset`** (`metadata.offset`, ms) — 오디오 싱크 보정. 음악 시작 위치에만 더해진다(`startAudio(startMs + offset)`). 양수면 음악을 트랙 안으로 더 들어가 시작 → 음악이 노트보다 늦을 때 당겨준다. **곡 공통**이며 난이도별로 갈리지 않는다(음원이 하나이므로). leadIn(시작 전 빈 구간)과는 별개. (플레이어 장비 지연 보정은 settings `audioOffset` — **다른 축**, [[settings]] PLAY.)
 - **`scroll`** — 노트는 **시간 등속**으로 흐른다(ms 공간 선형). BPM은 노트 간격만 바꾸고 낙하 속도는 일정. "가변속"은 `tickToMs`의 BPM 누적 부산물. 진행도 정의·`scrollProgressAt` → [[timing]] §3.
-- **`gridDivisor`** — 노트 배치용 분박 그리드. 값 V는 분음표 단위("V분" 격자, 박자 독립, 기본 32). 마디 표기 sub·lane 스냅도 이 V를 공유한다. 입력 위계·틱 반올림 등 상세 → [[timing]] §6.
+- **`gridDivisor`** — 노트 배치용 분박 그리드. 값 V는 분음표 단위("V분" 격자, 박자 독립, 기본 32). 마디 표기 sub가 이 V를 공유한다. lane의 **가로** 스냅은 전용 `laneGridDivisor`(기본 4)로 분리 `[번복]` — [[lane-events]] §5. 입력 위계·틱 반올림 등 상세 → [[timing]] §6.
 - **`scrollSpeed`** — (위 절대분리 항목 참조.) `visMs = SCROLL_VIEW_MS / scrollSpeed` → [[timing]] §3.
 
 ---

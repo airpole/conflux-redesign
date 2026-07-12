@@ -17,7 +17,7 @@
 | GOOD | ≤ 100 | 이 밖은 MISS |
 | WIDE SYNC | ≤ 100 | wide 노트는 SYNC만, ±100 |
 
-- LN 릴리즈 유예 `LN_RELEASE_GRACE_MS` = 50.
+- LN 릴리즈 유예 `LN_RELEASE_GRACE_MS`(구 50)는 **폐기** `[수정]` — tail 분류 임계는 GOOD 창을 그대로 쓴다([[judge]] §6).
 - 판정 로직은 [[judge]], 여기는 값만.
 
 ## 2. 게이지 증감 (`GAUGE_DELTA`)

@@ -85,15 +85,13 @@ hold는 **키 단위**로 추적한다: `holds[key] = note`(구 `playHoldState`)
 
 - **keydown**: 판정된 노트가 hold면 `holds[key]`에 건다. **판정 없는 눌림**이고 그 키가 빈손이면 진행 중 hold를 **상속**한다(크로스 바인딩 복구): wide hold는 아무 키에서, normal hold는 같은 lane 키에서만. 2키 lane에서 tap을 노린 손가락이 LN head를 가로챘을 때, 실제로 lane을 누르고 있는 손가락이 LN을 이어받아 lift가 MISS로 새지 않게 한다.
 - **keyup — 이양**: 놓은 키에 hold가 걸려 있고 조건 맞는 다른 눌린 키가 빈손이면 그 키로 **이양**하고 분류를 유예한다(wide → 아무 키 / normal → 같은 lane 키만).
-- **keyup — 분류**: 이양할 곳이 없으면 tail을 분류한다: `curMs < tailMs − WINDOW_GOOD_MS − LN_RELEASE_GRACE_MS`면 **중간 릴리즈**, 아니면 **tail 성공**(위 두 항목). 릴리즈 유예(`LN_RELEASE_GRACE_MS` = 50 → [[constants]] §1)는 사람 손의 lift 부정확성 보정이다.
+- **keyup — 분류**: 이양할 곳이 없으면 tail을 분류한다: `curMs < tailMs − WINDOW_GOOD_MS`면 **중간 릴리즈**, 아니면 **tail 성공**(위 두 항목). `[수정 — 구 임계는 tailMs − 100 − 50 (추가 유예 LN_RELEASE_GRACE_MS). GOOD이 콤보가 이어지는 최소 판정이므로 tail도 GOOD 창(±100ms)을 그대로 따른다 — 특례 상수 폐기]` keyup의 `curMs`도 §3과 **동일한 보정 시계**(visualOffset 차감)를 쓴다 `[보존]` — keydown만 보정하는 구현은 오류다. 근거 → [[rationale#tail 릴리즈 유예를 폐기한 이유]].
 
 ---
 
 ## 7. 중간 시작 시드 (seedPlayStateAt)
 
 곡 중간부터 플레이하거나 resume할 때, `curMs` 이전의 모든 노트를 **SYNC로 autoplay된 것처럼** 시드한다. AP/FC 유효성을 보존(과거 노트를 안 친 것으로 두면 FC가 깨지므로). hold는 tail까지 과거면 combo를 2 올린다. `[보존]`
-
-**게이지도 시드한다** `[수정 — 구는 hits·combo만 시드, 게이지는 시작값 그대로]`: 시드된 SYNC들의 델타를 게이지에 그대로 적용한다 — normal은 시드 유닛 수 × `a` 누적(상한 100), hard는 +델타가 상한에 막혀 100 유지와 동치. 규칙은 "시드 = SYNC 델타 적용" 하나이고, 두 게이지 병렬 구조([[gauge]] §1)에 동일하게 먹인다. 중간 시작은 어차피 무기록([[settings]] §2) — FC/AP 유효성은 시드로 보존하면서 게이지 유효성만 버리는 구 코드의 비대칭을 바로잡는 것이 목적. 근거 → [[rationale#중간 시작 시 게이지를 시드하는 이유]].
 
 ---
 
