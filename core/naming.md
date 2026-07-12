@@ -72,12 +72,12 @@
 | `seedPlayStateFromCurMs` | `seedPlayStateAt(nowMs)` | 중간 시작 시 과거 노트 SYNC 시드 | 보존 |
 | `feedFastSlow` | `recordFastSlow` | Fast/Slow 피드백 기록 | 보존 |
 
-† TAIL_OK/TAIL_MISS 판정 종류를 폐기하고 SYNC/MISS로 통합. 함수는 남되 별도 judgment kind를 만들지 않는다. ([[glossary]] 판정 종류 참조)
+† TAIL_OK/TAIL_MISS 판정 종류를 폐기하고 SYNC/MISS로 통합 — **게이지 델타 포함 완전 통합**([[constants]] §2 `[수정]`, hard tail 특례 폐기). 함수는 남되 별도 judgment kind를 만들지 않는다. ([[glossary]] 판정 종류 참조)
 
 ### 게이지 / 결과
 | 현재 | 새 이름 | 역할 | 태그 |
 |---|---|---|---|
-| `gaugeOnJudgment(kind)` | `applyGaugeChange(judgment)` | 판정 결과를 게이지에 반영 | 보존 |
+| `gaugeOnJudgment(kind)` | `applyGaugeChange(judgment)` | 판정 결과를 게이지에 반영 — 구 6종 kind(TAIL 포함) → judgment 4종 | 수정† |
 | `resetGauge` | `resetGauge` (유지) | 게이지 초기화 | 보존 |
 | `computeResult` | `computeResult` (유지) | 곡 종료 결과 산출 (rank + state) | 보존 |
 | `evaluateEnd` / `_evalSorted` | `evaluateState` / (내부화) | clear state(AS/AP/FC/H/C/F) 평가·terminate 판정 | 수정‡ |
@@ -253,7 +253,7 @@ app-*     부트스트랩 / 빌드별 진입점 / config
 - [x] `lineEvents` → `laneEvents` 개명
 - [x] 상태객체 `editorState` / `playState` (State 접미사)
 - [x] core 함수 인자명 `nowMs` 통일
-- [x] TAIL_OK/TAIL_MISS → SYNC/MISS 통합
+- [x] TAIL_OK/TAIL_MISS → SYNC/MISS 통합 (게이지 델타 포함 — constants §2)
 - [x] clear state 축을 rank와 분리 (AS/AP/FC/H/C/F/N)
 
 확정 (크레딧·settings 개명 세션):
