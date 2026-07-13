@@ -34,8 +34,8 @@
 | `AP` | All Perfect | `#ffd23f` (노랑) |
 | `FC` | Full Combo | `#5ad1ff` (하늘) |
 | `C` | Clear (normal) | `#4aff8a` (초록) |
-| `H` | Hard clear | `#ff4a5a` (빨강) |
-| `F` | Fail | `#ff4a5a` (빨강) |
+| `H` | Hard clear | `#ff9a3f` (주황) `[수정 — 구 #ff4a5a: F와 동색이라 분리]` |
+| `F` | Fail | `#8f2a38` (maroon — 어두운 적갈) `[수정 — 구 #ff4a5a]` |
 | `N` | Not played | `#9aa0a6` (회색) |
 
 ### gauge (게이지 바)
@@ -109,7 +109,7 @@
 확정 포인트 (실측):
 - **sudden은 notes 뒤·판정선 앞**(5 < 6 < 7) — 노트를 가리되 판정선·게이지·이펙트는 가리지 않는다.
 - **판정선 = 게이지 바**: 같은 자리(`jY`)에 그려지고, live 세션이면 게이지로 채워진다.
-- **HUD 띠는 기본 밴드 고정**: 판정선을 raise해도(`judgeLinePos`) 하단 곡정보 띠는 기본 위치에 남고, combo 블록만 판정선을 따라 올라간다 → [[settings]] judgeLinePos.
+- **HUD 띠도 판정선을 따른다** `[수정 — 구는 기본 밴드 고정(코드 주석 "the strip stays put" 실측)]`: 판정선을 raise하면(`judgeLinePos`) 게이지(판정선 겸)·combo 블록·하단 곡정보 띠가 함께 올라간다. 띠 내부 높이는 기본 밴드 높이를 유지한 채 **위로 이동만** 한다(늘어나지 않음 — 아래 남는 공간은 여백). → [[settings]] judgeLinePos, 근거 → [[rationale#판정선 raise 시 곡정보 띠도 따라 올리는 이유]].
 - **pause만 DOM**: 버튼 클릭 판정이 필요해 캔버스가 아니라 위 DOM 층. 나머지는 전부 캔버스 패스. (단 pause overlay는 **현재 미구현** — 구 코드 Esc는 `stopPlay`(완전정지)이고, overlay 토글은 `[수정]` 예정. 이 층은 다른 [보존] 층과 달리 재설계 산물이다.) overlay 개념 → [[scene]] §9.
 
 ---
@@ -142,7 +142,7 @@
 |---|---|
 | 노트 두께 | `noteThickness × (wide ? 1 : 0.9)`. 기본 `noteThickness=15px` → [[settings]] |
 | 노트 좌우 패딩 | normal `lnW × 0.05`, wide `0` |
-| lane 폭 `lnW` | wide=전폭 `sw`; normal=`(lines[li]/100) × sw` (구분선 비율) |
+| lane 폭 `lnW` | wide=전폭 `sw`; normal=**gameplay 투영된 구분선 간격**(laneLayoutAt → 경계·순서 클램프+최소 간격, [[lane-events]] §3) `[수정 — 구 `lines[li]/100` 수식은 폐기된 lineEvents 데이터 참조]` |
 | conflict 테두리 | `lineWidth 2`, `CONFLICT_COLOR` |
 
 ### 키 빔 · 선
@@ -185,11 +185,11 @@
 | combo 블록 Y | `comboY = jY − gh × (8/9 − 0.22)` — 판정선 따라 이동 |
 | 판정 Y | `comboY + comboSz/2 + G + judgeSz/2` (`G = gw × 0.008`) |
 | pause 버튼 | 좌상단 cell 내 두 막대 `barW=cell×0.12`, `barH=cell×0.45` |
-| 곡정보 띠 | 기본 밴드 `[jYDefault → 바닥]`에 **고정**(판정선 raise 무관) |
+| 곡정보 띠 | 판정선 하단 밴드 — 판정선을 **따라 이동**, 내부 높이는 기본 밴드 높이 고정 `[수정 — 구는 jYDefault 고정]` |
 | 곡명 | `cell × 0.28`, `#ffffffdd` |
 | 아티스트 | `titleSz × 0.8`, `#ffffff99` |
 
-> **HUD 밴드 고정**: 곡정보 띠는 늘 기본 밴드(`jYDefault = gy + gh × 8/9` 아래)에 그려져, 판정선을 올려도(`judgeLinePos`) 띠는 제자리·combo 블록만 따라 오른다 → §2 draw order.
+> **HUD 밴드 추종** `[수정]`: 곡정보 띠는 판정선 바로 아래 밴드에 그려져 판정선과 함께 오른다(내부 높이 = 기본 밴드 높이 `gh × 1/9` 고정, 이동만·스케일 없음). 구 코드는 띠를 `jYDefault = gy + gh × 8/9`에 고정했다 → §2 draw order.
 
 ---
 
@@ -226,4 +226,4 @@
 - [x] text event 렌더 실측 기입 — fade 300ms·3분할/lane 배치 (§3)
 
 잔여:
-- [x] state·gauge 색 hex 재확인 완료 — `STATE_COLOR`/`GAUGE_COLOR`/`LOCK_COLOR`/`FAST_COLOR`/`SLOW_COLOR` 재실측, 본문 값과 전부 일치
+- [x] state·gauge 색 hex 재확인 완료 — `STATE_COLOR`/`GAUGE_COLOR`/`LOCK_COLOR`/`FAST_COLOR`/`SLOW_COLOR` 재실측. 이후 H·F는 `[수정]`으로 분리(주황/maroon — §1), 나머지는 실측 일치

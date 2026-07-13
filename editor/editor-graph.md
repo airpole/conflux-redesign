@@ -37,6 +37,8 @@ editor 진입 ─▶ start (정식 scene, 진입 1회: 새 곡 / 파일 열기 /
 
 ## 4. meta 탭 — 단일 chart 세션 `[번복]`
 
+> meta 씬에는 **'에디터 설정' 구역** `[신규]`이 있다 — 에디터 전용 설정([[settings]] §3, 현재 `measureLabelOffset`)의 유일한 UI 노출 지점. 게임 settings 씬에는 나타나지 않는다.
+
 에디터 세션은 **chart 파일 하나**를 편집한다 — 이전 확정(chart 목록·드롭다운 전환·전환 시 스택 초기화)을 폐기한다 `[번복]`. 난이도 이동 = 다른 파일 열기, 또는 **새 난이도**(아래). → [[rationale#에디터를 단일 chart 세션으로 둔 이유]]
 
 - 상단 = **chart 소속**(chartId·difficulty·subtitle·level·chartBy), 하단 = **song 공통**(metadata·tempos·timeSignatures). 한 화면 + 구획 표시 `[수정]`.

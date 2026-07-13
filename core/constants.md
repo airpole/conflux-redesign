@@ -32,7 +32,7 @@ start: `normal` 0 / `hard` 100. 둘 다 상한 100(`gaugeMax`).
 | GOOD | +0.5 ×a | 0 |
 | MISS | **−2.0** (절대) | **−5.0** |
 
-- **normal**: 양수 delta만 `×a` 스케일. `a = GAUGE_NORMAL_TOTAL_GAIN / 총콤보`, 세션 시작 시 1회 계산. 콤보 수 = tap 1, hold 2(head+tail). 올-SYNC면 잠재 회복 +150%인데 100 상한이라 초과분 폐기 → 75% 클리어는 대략 SYNC의 절반 분량. **손실은 절대값**(차트 길이 무관, 후살 비용 일정).
+- **normal**: 양수 delta만 `×a` 스케일. `a = GAUGE_NORMAL_TOTAL_GAIN / 총콤보`, **`GAUGE_NORMAL_TOTAL_GAIN = 150`** `[보존]`. 세션 시작 시 1회 계산. 콤보 수 = tap 1, hold 2(head+tail). 올-SYNC면 잠재 회복 +150%인데 100 상한이라 초과분 폐기 → 75% 클리어는 대략 SYNC의 절반 분량. **손실은 절대값**(차트 길이 무관, 후살 비용 일정).
 - **hard**: 전 항목 절대 퍼센트, 저게이지 자비 없음. MISS −5.0 → 20연속 MISS면 풀바 소진. 중간 릴리즈도 MISS와 동일 −5.0 `[수정 — 구 −2.5]`, tail 성공도 SYNC와 동일 +0.15 `[수정 — 구 +0.1]`.
 - 판정은 SYNC/PERFECT/GOOD/MISS **4종 단일 축** — hold tail도 **게이지 델타까지 완전 통합** `[수정]`: tail 성공 = SYNC 델타, 중간 릴리즈 = MISS 델타([[judge]] §6). 구 코드의 게이지 피드는 6종 kind였고 **hard에만** tail 특례(TAIL_OK +0.1 / TAIL_MISS −2.5)가 있었다 — normal은 구에서도 동일 값이라 실변경은 hard뿐. 근거 → [[rationale#hold tail의 게이지 특례를 폐기한 이유]].
 - gaugeMode 정의·terminate·cascade는 [[gauge]]. 여기는 normal/hard 증감 값만.

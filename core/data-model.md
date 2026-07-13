@@ -12,6 +12,7 @@
 ```
 song = {
   schemaVersion,
+  songId,            // 곡 전역 식별자(UUID) — 발급·의미의 단일 출처는 [[cfx]] §4
   metadata,          // 곡 공통 (아래 §2)
   tempos,            // 곡 공통 (§3)
   timeSignatures,    // 곡 공통 (§3)

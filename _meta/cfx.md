@@ -20,7 +20,7 @@
 
 chart 파일 하나에 그 채보의 전부가 들어간다(구 에디터의 단일 JSON 감각 계승, 스키마는 신규).
 
-- **곡 공통 필드 사본 포함**: `songId`·`metadata(title·musicBy·…)`·`tempos`·`timeSignatures`·`offset`·`schemaVersion`을 모든 chart 파일이 갖는다. 논리 소유는 여전히 song([[data-model]] — 에디터 안에선 한 곳에만 존재), 파일은 직렬화 사본이다.
+- **곡 공통 필드 사본 포함**: `songId`·`metadata(title·musicBy·offset·…)`·`tempos`·`timeSignatures`·`schemaVersion`을 모든 chart 파일이 갖는다(offset은 별도 최상위 필드가 아니라 metadata 내부 — [[data-model]] §2). 논리 소유는 여전히 song([[data-model]] — 에디터 안에선 한 곳에만 존재), 파일은 직렬화 사본이다.
 - chart 고유 필드: `chartId`·`difficulty`·`subtitle`·`level`·`chartBy`·`version`·notes/shapeEvents/laneEvents/textEvents.
 - 파일명은 편의 규약이고 **정본은 내부 필드다**(파일명을 바꿔도 정체성 불변).
 

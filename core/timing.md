@@ -76,13 +76,13 @@ tpm     = tpbUnit × numerator        // 1마디의 tick
 
 누적: 세그먼트 i의 `measure` = i−1의 `measure` + ⌊(구간 길이 tick) / (i−1의 `tpm`)⌋.
 
-- **`tickToMeasure(tick)`** → `"measure.beat.sub"` 문자열. 세그먼트 룩업 후 한 번의 분해: [보존]
+- **`tickToMeasure(tick, labelOffset)`** → `"measure.beat.sub"` 문자열. 세그먼트 룩업 후 한 번의 분해: [보존]
   - `rel = tick − seg.startTick`, `m = ⌊rel/seg.tpm⌋`, `r = rel − m·seg.tpm`
   - `beat = ⌊r/seg.tpbUnit⌋ + 1`, `subTick = r − (beat−1)·seg.tpbUnit`
-  - `measure = 1 + seg.measure + m + measureLabelOffset`
+  - `measure = 1 + seg.measure + m + labelOffset`
   - `subTick==0 && beat==1` → `"{measure}"`; `subTick==0` → `"{measure}.{beat}"`; else → `"{measure}.{beat}.{sub}"` (sub는 §5)
-- **`measureToTick(str)`** — 역방향. `measureLabelOffset`을 먼저 빼고 같은 세그먼트로 역산. [보존]
-- **`measureLabelOffset`**([[data-model]] §2) — 표시용 마디번호 보정. 출력에 더하고 입력에서 빼므로 tick⇄문자열 왕복은 항등.
+- **`measureToTick(str, labelOffset)`** — 역방향. `labelOffset`을 먼저 빼고 같은 세그먼트로 역산. [보존]
+- **`measureLabelOffset`**([[settings]] §3 — 에디터 전용 설정) — 표시용 마디번호 보정. core는 settings를 모르므로 **인자 주입** `[신규]`: 호출측(edit)이 설정값을 `labelOffset` 인자로 전달하고, game 쪽 호출은 `0`을 넘긴다. 출력에 더하고 입력에서 빼므로 tick⇄문자열 왕복은 항등.
 - 음수 tick은 첫 세그먼트 외삽으로 처리(현재 코드의 음수 전용 분기 3겹을 제거). [수정: 구조]
 - **`getGridLines(startTick, endTick)`** → 그 범위의 마디선·박선 tick 목록. 같은 마디 세그먼트를 `tpbUnit` 간격으로 순회해 `{tick, isMeasure, measureNum, beatInMeasure, isPreRoll}`를 낸다. 순수 로직(px 없음) → timing core. render는 이 목록을 받아 그리기만 한다(`scrollProgressAt`↔`scrollYAt`과 같은 분리). [보존]
 
