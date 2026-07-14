@@ -13,9 +13,22 @@
 4. **용어는 영어 단일** — 개념은 영어 이름 하나로 고정, 설명은 한국어. ([`core/glossary.md`](core/glossary.md))
 5. **단일 출처** — 한 개념은 한 곳에서만 정의. 다른 문서는 링크로 참조.
 
+설계 판단의 세부 기준은 [DESIGN_PRINCIPLES](DESIGN_PRINCIPLES.md)를 따른다.
+
 ---
 
 ## 문서 지도
+
+### Project governance
+
+| 문서 | 역할 |
+|---|---|
+| [PROJECT_OPERATING_GUIDELINE](PROJECT_OPERATING_GUIDELINE.md) | 세션, 역할, 결정, 커밋 운영 절차 |
+| [DESIGN_PRINCIPLES](DESIGN_PRINCIPLES.md) | 좋은 설계를 판단하는 프로젝트 원칙 |
+| [REVIEW_CHECKLIST](REVIEW_CHECKLIST.md) | spec 종료 전 공통 리뷰와 Closure Gate |
+| [DECISION_LOG](DECISION_LOG.md) | 중요한 확정·번복·보류 결정의 상태 색인 |
+
+권장 읽기 순서: `README → PROJECT_OPERATING_GUIDELINE → 대상 spec → 관련 rationale`
 
 ### `core/` — 핵심 정의
 | 문서 | 내용 |
@@ -119,13 +132,24 @@ core → env → render → edit/game → scene → app
 
 ## 작업 방식
 
-- **기획·검토**: 채팅 (대화형 의사결정). 세션 시작 시 이 레포를 fetch해 최신부터.
-- **재구현**: Claude Code on the Web (파일 생성·PR).
-- **검토 루프**: 큰 작업 하나 완료 → 비판적 검토(단순화/누락/개선) → 다음. 문어발 확장 방지.
+- **User (Product Owner):** 사용자가 제품 방향과 의식적 동작 변경을 최종 결정한다.
+- **Design Steward:** 채팅에서 최신 main을 읽고 조사·설계·비판적 리뷰·Implementation Agent 작업 지시·사후 검증을 담당한다.
+- **Implementation Agent:** 승인된 Change Scope를 최신 main에 반영하고 PR 없이 main에 직접 커밋한다. **Current implementation agent: Claude Code.**
+- **Session:** 하나의 논리적 커밋 단위로 운영하며, 커밋 검증 후 가능한 한 새 대화를 시작한다.
+- **Review:** spec을 닫기 전에 [REVIEW_CHECKLIST](REVIEW_CHECKLIST.md)를 적용한다.
+
+세부 절차는 [PROJECT_OPERATING_GUIDELINE](PROJECT_OPERATING_GUIDELINE.md)을 따른다.
 
 ---
 
 ## 진행 상태
+
+### Current Focus
+
+- **Active unit:** Project governance workflow
+- **Discussion Scope:** 운영·설계·리뷰·결정 추적 문서
+- **Change Scope:** README 및 governance 4문서
+- **Exit:** governance 문서 연결, 중복 제거, Implementation Agent 커밋, 최신 main 검증
 
 **완료**: naming, glossary, data-model, timing, judge, lane-events, shape, gauge, theme(←colors), constants, scene, settings, records, persistence, cfx, editor 3문서(graph/commands/editing), architecture + 받침 문서 — **전 영역 1차 명세 완료**
 
