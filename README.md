@@ -146,10 +146,10 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** Project governance workflow
-- **Discussion Scope:** 운영·설계·리뷰·결정 추적 문서
-- **Change Scope:** README 및 governance 4문서
-- **Exit:** governance 문서 연결, 중복 제거, Implementation Agent 커밋, 최신 main 검증
+- **Active unit:** persistence/cfx/editor specifications meta review
+- **Discussion Scope:** `_meta/persistence.md`
+- **Change Scope:** `_meta/persistence.md` 및 검토 중 확인되는 `_meta/cfx.md`, editor 문서, 관련 링크
+- **Exit:** 단순화·누락·Single Source·링크 검토, 필요한 결정 반영, Implementation Agent 커밋, 최신 main 검증
 
 **완료**: naming, glossary, data-model, timing, judge, lane-events, shape, gauge, theme(←colors), constants, scene, settings, records, persistence, cfx, editor 3문서(graph/commands/editing), architecture + 받침 문서 — **전 영역 1차 명세 완료**
 
