@@ -98,6 +98,7 @@ library의 `.cfx` 하나를 derived song group으로 표시하고 그 안의 pla
 
 - chart 선택 확정 + Enter → song-credit → gameplay.
 - Space → quick options overlay.
+- 기록 초기화: 선택 playable chart의 record 삭제 진입점. `FEATURES.recordReset`(game-internal)에서만 노출 — 규칙 단일 출처는 [[records]] §4.
 
 ### quick options
 
@@ -201,6 +202,7 @@ CTX 상세 → [[architecture]].
 - [x] quick options 공유·no-record link
 - [x] pause overlay·result scene·3s lead-in
 - [x] build gate
+- [x] 기록 초기화 진입점 — song-select, `FEATURES.recordReset` internal 게이트 (D-2026-017)
 
 잔여:
 - [ ] song-credit fade 등 구체 연출

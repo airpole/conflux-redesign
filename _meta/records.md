@@ -3,6 +3,7 @@
 > 플레이 결과(best 기록)의 저장 단위·스키마·갱신 규칙을 정의한다.
 > state는 [[gauge]], rank·점수식은 [[constants]] §3, no-record gate는 [[settings]] §2.
 > `.cfx`와 library는 records를 마이그레이션하지 않는다([[cfx]], [[persistence]]).
+> records는 로컬 개인 데이터다 — 각 플레이어 기기의 records store에만 존재하며 공유·서버 제출은 범위 밖이다(D-2026-019 보류).
 
 ---
 
@@ -10,14 +11,19 @@
 
 기록은 playable chart당 1개이며 gaugeMode별로 갈리지 않는다.
 
-- 현재 key: `songId:chartId`.
+- key: `songId:chartId`.
 - `songId`·`chartId` 의미는 [[cfx]] §3~§4.
 - init(`chartId 0`)은 records 대상이 아니다.
 - library에서 현재 대응 chart가 없으면 기록은 UI에서 숨기되 데이터를 즉시 삭제하지 않는다(고아 기록).
 - chartId가 바뀌어도 기록을 새 id로 이전하지 않는다 `[번복]`.
 - reimport loader는 본문 비교, rename 감지, record key 이동을 수행하지 않는다.
 
-> **보류:** 같은 `songId + chartId`에서 notes/timing/music이 수정됐을 때 기존 기록을 어떻게 분리·보존·재표시할지는 후속 `records / game library` review에서 결정한다. content fingerprint와 key 변경을 이 문서에서 아직 정의하지 않는다.
+### 내용 변경과 기록 (D-2026-017)
+
+기록은 chart identity를 따라 유지된다. 같은 `songId:chartId`에서 notes/timing/music이 수정되어도 시스템은 내용 변경을 판별하지 않으며, 기존 기록을 분리·숨김·이전하지 않는다. content fingerprint는 도입하지 않는다.
+
+- 부작용 수용: 리차팅으로 총 콤보 수가 줄면 저장된 `maxCombo`가 새 내용의 최대치를 넘거나, `bestState`가 새 내용 기준으로 재현 불가능한 값일 수 있다. 시스템은 이를 검증하지 않는다.
+- 내용판과 어긋난 기록의 정리는 유저가 기록 초기화(§4)로 수행한다.
 
 ---
 
@@ -54,7 +60,19 @@ bestState·maxCombo는 bestScore와 독립적으로 갱신한다.
 
 ---
 
-## 4. no-record
+## 4. 기록 초기화 `[신규]` (D-2026-017)
+
+유저가 chart 단위로 record를 삭제할 수 있다.
+
+- 대상: 선택한 playable chart의 record 1개(§2의 5필드 전체). 삭제 후 해당 chart는 `N`(Not played)으로 돌아간다.
+- confirm 필수. 실행 취소는 없다.
+- 진입점: song-select의 선택 chart([[scene]] §5).
+- 노출: `FEATURES.recordReset` — game-internal 빌드에서만 노출한다([[architecture]] §4). game-public 빌드에는 UI가 없다.
+- records store만 건드린다. `.cfx`·library blob·chart JSON은 불변이다.
+
+---
+
+## 5. no-record
 
 단일 출처는 [[settings]] §2.
 
@@ -66,7 +84,7 @@ no-record = autoplay OR staticShape OR 중간시작 OR editorOrigin
 
 ---
 
-## 5. 소비처
+## 6. 소비처
 
 - result: 이번 판과 best, NEW BEST 표시 → [[scene]] §8.
 - song-select: 현재 playable chart에 대응하는 bestState·bestRank badge → [[scene]] §5.
@@ -74,7 +92,7 @@ no-record = autoplay OR staticShape OR 중간시작 OR editorOrigin
 
 ---
 
-## 6. 결정 완료 / 잔여
+## 7. 결정 완료 / 잔여
 
 확정:
 - [x] playable chart당 1기록, gaugeMode 통합
@@ -83,8 +101,8 @@ no-record = autoplay OR staticShape OR 중간시작 OR editorOrigin
 - [x] init 제외
 - [x] chartId migration/rename 감지 폐기 `[번복]`
 - [x] 고아 기록 숨김·보존
+- [x] 내용 변경 무판별 — 기록은 identity 유지, fingerprint 미도입 (D-2026-017)
+- [x] 기록 초기화 — chart 단위·confirm·song-select 진입·internal 게이트 `[신규]` (D-2026-017)
 
-잔여 `[보류]`:
-- [ ] 같은 identity에서 playable content가 변경될 때 기록 연결·분리
-- [ ] content fingerprint의 입력·hash·record key 적용
-- [ ] 과거 fingerprint 기록의 보존·재표시 UX
+잔여:
+- (없음 — 서버 기반 기록·리더보드는 D-2026-019로 별도 보류.)

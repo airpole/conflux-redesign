@@ -134,8 +134,17 @@ settings는 사용자 입력, records는 game output이다. gauge/core에 persis
 ### automatic chartId migration을 제거한 이유 `[번복]`
 본문 비교로 rename을 추론하면 timing·music이 독립인 새 chart model에서 잘못 연결될 위험이 더 커진다. `.cfx`와 library가 records를 이동하지 않는 단순 경계를 우선한다. 수정 chart의 연결은 fingerprint를 포함한 records/game-library 문제로 별도 review한다.
 
-### fingerprint를 보류한 이유
-`.cfx` format closure와 record history semantics는 다른 책임이다. hash input·key evolution·old record reappearance를 함께 결정해야 하므로 이번 format commit에서 임의 정의하지 않는다.
+### 기록을 identity에 유지하고 수동 초기화로 돌린 이유 `[번복 반영 — 구 fingerprint 보류]`
+fingerprint는 key 확장 하나처럼 보이지만 canonical 직렬화 규칙·해시 캐시·표시 분기가 함께 딸려 온다. 리차팅 후 옛 best가 남는 문제는 유저 본인이 가장 잘 인지하며 초기화 한 번으로 끝난다. 조건 판별을 시스템에서 제거하고 유저 관리로 돌리는 것이 Reduce Concepts에 맞다. maxCombo 초과 같은 stale 값은 검증하지 않고 수용한다.
+
+### 기록 초기화를 internal 빌드로 게이트한 이유
+records는 로컬 개인 데이터라 타인의 기록을 건드릴 수 없지만, 공개 빌드 유저에게 삭제 UI를 노출할 이유도 없다. 권한·인증 시스템을 새로 만들지 않고 기존 빌드 게이트 축(`FEATURES`)으로 노출만 가른다.
+
+### 다운그레이드 reimport를 confirm 후 허용한 이유
+배포자 본인의 의도적 롤백이 정당한 유스케이스이고, 차단해도 "song 삭제 후 재import" 우회로가 항상 열려 있어 보호 효과는 절차 추가뿐이다. 실수 import는 confirm의 downgrade 표시가 방어한다. library가 blob 전체 교체 구조라 부분 수용은 애초에 존재하지 않는다.
+
+### 서버 기반 기록을 보류한 이유
+신뢰 가능한 기록(조작 방지·전체 유저 관리·리더보드)은 신뢰 경계 바깥(서버)의 검증으로만 성립한다. 현행 records는 로컬 개인 best 계약이며, 서버가 생겨도 identity key·초기화·reimport 결정과 충돌하지 않으므로 지금 확정할 필요가 없다.
 
 ### constants와 settings의 분류 기준
 logic calculation range는 constants, visual value는 theme, user preference/current value는 settings다.
@@ -297,3 +306,10 @@ appear는 실사용이 없고 mode는 tutorial 하나뿐인 dead axis였다. fad
 - 범용 jacket·미리듣기 기능은 이번 범위에서 미결정
 
 `.cfx` 내부 ZIP 폴더 구조(flat vs `charts/`+`assets/music`·`assets/jacket`)와 패키징 진입점(사용자 다중 선택 vs 작업 폴더 선택)의 관계는 이번 review에서 결정하지 않았다 — `DECISION_LOG.md` D-2026-016 참고.
+
+이번 records/game-library Closure Review에서 다음 근거가 기존 fingerprint 보류 근거를 대체한다.
+
+- records identity 유지·수동 초기화 (fingerprint 미도입, D-2026-017)
+- 기록 초기화의 internal 빌드 게이트
+- 다운그레이드 포함 reimport confirm 허용 (D-2026-018)
+- 서버 기반 기록 Deferred (D-2026-019)

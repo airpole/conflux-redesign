@@ -254,7 +254,7 @@ surge_music.ogg
 - `.cfx` packager/loader는 records를 이동·수정·마이그레이션하지 않는다.
 - chartId 변경에도 기록을 이전하지 않는다.
 - init은 records 대상이 아니다.
-- 수정 chart의 기존 기록 연결, fingerprint, record key evolution은 [[records]]의 후속 game/library review로 명시적 보류한다.
+- 기록은 chart identity를 따라 유지되며 내용 변경을 판별하지 않는다. fingerprint는 도입하지 않는다([[records]] §1, D-2026-017).
 
 ---
 
@@ -280,5 +280,4 @@ surge_music.ogg
 - [x] records migration 미수행
 
 잔여:
-- records의 수정 chart 연결/fingerprint 정책은 [[records]] 후속 review로 보류.
 - `.cfx` 내부 폴더 구조(flat 유지 vs `charts/`+`assets/music`·`assets/jacket` 분리)와 패키징 진입점(사용자 다중 선택 vs 작업 폴더 선택)을 둘 다로 유지할지 여부는 D-2026-004·D-2026-005와 상충 가능성이 있어 확정하지 않았다 — `DECISION_LOG.md` D-2026-016 참고.

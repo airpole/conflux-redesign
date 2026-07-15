@@ -213,4 +213,4 @@ playState   = {
 - [x] note/shape/lane/text 구조 및 런타임 상태
 
 잔여:
-- (없음 — records의 수정 chart 연결 정책은 [[records]] 범위에서 보류.)
+- (없음 — records의 내용 변경 무판별·identity 유지는 [[records]] §1에서 확정, D-2026-017.)

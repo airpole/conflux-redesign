@@ -104,7 +104,7 @@ Blue · 1 · 2 · 3 · Red
 - **version** — chart revision. 저장 시 사용자가 현재보다 큰 값으로 확정 → [[persistence]] §4.
 - **schemaVersion** — format generation.
 - **subtitle** — chart variation label. 표시 시 `[...]`; identity 자체가 아님.
-- current record key와 deferred content-change policy → [[records]].
+- record key·내용 변경 무판별·기록 초기화 → [[records]].
 
 ---
 

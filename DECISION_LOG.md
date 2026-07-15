@@ -84,22 +84,24 @@
 
 ### D-2026-007 — Modified-chart record linkage
 
-- **Status:** Deferred
+- **Status:** Superseded
 - **Decision:** 같은 chart identity에서 playable content가 바뀔 때의 fingerprint·record key·보존 UX를 후속 records/game-library review로 보류한다.
 - **Defined in:** `_meta/records.md`
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** records, library
 - **Supersedes:** None
+- **Superseded by:** D-2026-017
 - **Commit:** this commit
 
 ### D-2026-008 — Downgrade reimport policy
 
-- **Status:** Deferred
+- **Status:** Superseded
 - **Decision:** 보유 chart보다 낮은 version의 `.cfx` reimport를 허용할지 거부할지 persistence 후속 review로 보류한다.
 - **Defined in:** `_meta/persistence.md`
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** library reimport
 - **Supersedes:** None
+- **Superseded by:** D-2026-018
 - **Commit:** this commit
 
 ### D-2026-009 — Version-gated chart save
@@ -180,6 +182,36 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** `.cfx` packaging structure, packaging entry UX
 - **Supersedes:** None (pending)
+- **Commit:** this commit
+
+### D-2026-017 — Records follow chart identity; manual reset
+
+- **Status:** Accepted
+- **Decision:** 기록은 `songId:chartId` identity를 따라 유지되며 내용 변경을 판별하지 않는다. content fingerprint를 도입하지 않는다. 유저가 chart 단위 기록 초기화(confirm 필수, song-select 진입, `FEATURES.recordReset` game-internal 게이트)로 관리한다.
+- **Defined in:** `_meta/records.md` §1·§4, `scene/scene.md` §5, `_plan/architecture.md` §4
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** records, song-select, build gate
+- **Supersedes:** D-2026-007
+- **Commit:** this commit
+
+### D-2026-018 — Downgrade-inclusive reimport allowed after confirm
+
+- **Status:** Accepted
+- **Decision:** 같은 songId `.cfx` reimport는 blob 전체 교체이며 chart 단위 부분 병합이 없다. confirm UI(추가·삭제·upgrade·downgrade 표시)에서 사용자가 진행을 확정하면 다운그레이드가 포함되어도 허용한다. 자동 overwrite는 없다.
+- **Defined in:** `_meta/persistence.md` §12
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** library reimport
+- **Supersedes:** D-2026-008
+- **Commit:** this commit
+
+### D-2026-019 — Server-backed records
+
+- **Status:** Deferred
+- **Decision:** 조작 방지·전체 유저 기록 관리·리더보드는 로컬 records store로 성립하지 않으며 서버 제출·검증이 필요하다. 현행 records는 로컬 개인 best 계약으로 한정하고, 서버 기반 기록은 별도 설계 주제로 보류한다. 이번 결정(identity key·초기화·reimport)은 서버 도입과 충돌하지 않는다.
+- **Defined in:** `_meta/records.md` (범위 한정 머리말)
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** records (미래)
+- **Supersedes:** None
 - **Commit:** this commit
 
 ## Entry Template
