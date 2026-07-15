@@ -86,7 +86,7 @@ no-record = autoplay OR staticShape OR 중간시작 OR editorOrigin
 
 ## 6. 소비처
 
-- result: 이번 판과 best, NEW BEST 표시 → [[scene]] §8.
+- result: 이번 판과 best, NEW BEST 표시 → [[scene]] §9.
 - song-select: 현재 playable chart에 대응하는 bestState·bestRank badge → [[scene]] §5.
 - 현재 library chart와 연결할 수 없는 고아 기록은 표시하지 않는다.
 

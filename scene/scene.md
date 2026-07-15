@@ -56,16 +56,19 @@ resetSceneStack()
 
 - game: `song-select → song-credit → gameplay → result`.
 - editor: `notes ↔ shapes ↔ test ↔ meta` + start scene. 상세 [[editor-graph]].
-- settings: visual/sound 등. 값은 [[settings]].
+- settings: `play ↔ visual ↔ gauge ↔ option` 4 scene 평면 graph `[수정]` — 구 단일 scene + 4 tab을 editor와 같은 scene mechanism으로 통일. category·값 정의는 [[settings]] §2.
+- credits: mode graph가 아닌 root 소속 단일 scene(§7).
 
 | id | 화면 |
 |---|---|
 | title | 아무 입력 → mode-select |
-| mode-select | play/editor/settings hub |
+| mode-select | play/editor/settings/credits hub |
 | song-select | derived song group + playable chart 선택 |
 | song-credit | 선택 chart credit 자동 표시 |
 | gameplay | active chart gameplay |
 | result | result·best 표시 |
+| settings-play/-visual/-gauge/-option | player settings 4 category |
+| credits | project staff credit `[신규]` |
 
 `song-select`의 song은 persisted 객체가 아니라 같은 `songId` chart들의 파생 group이다([[data-model]]).
 
@@ -75,7 +78,8 @@ resetSceneStack()
 
 - play → song-select
 - editor → editor start/graph
-- settings → settings graph
+- settings → settings graph (진입 scene: `settings-play`)
+- credits → credits scene. 항상 노출, build gate 없음.
 - Back/Esc → title
 
 mode 추가의 단일 확장점이다.
@@ -118,6 +122,8 @@ song-select와 editor test가 같은 component를 사용한다. no-record 단일
 
 선택한 playable chart의 credit를 gameplay 직전에 5초 표시하고 자동 진행한다. 입력·skip·back 없음.
 
+연출 `[신규]`: fade-in → 유지 → fade-out. 텍스트 3줄 동시 fade, 배경은 gameplay와 같은 검정. 수치는 [[constants]] `CREDIT_*` 단일 출처.
+
 표시:
 
 - `Music by {selectedChart.metadata.musicBy}`
@@ -130,7 +136,17 @@ song-select와 editor test가 같은 component를 사용한다. no-record 단일
 
 ---
 
-## 7. build gate
+## 7. credits `[신규]`
+
+project staff credit scene. chart credit(song-credit)과 별개 — 근거는 [[rationale#song-credit과 credits를 가른 이유]].
+
+- 진입: mode-select. 이탈: Back/Esc → mode-select.
+- 입력·상호작용 없음(스크롤 제외). engine을 사용하지 않는 정적 scene.
+- 표시 내용은 미확정(placeholder) — scene 골격만 확정하고 내용은 후속 결정으로 채운다.
+
+---
+
+## 8. build gate
 
 `FEATURES.*`가 mode item·scene 노출을 결정한다.
 
@@ -140,7 +156,7 @@ song-select와 editor test가 같은 component를 사용한다. no-record 단일
 
 ---
 
-## 8. game transition graph
+## 9. game transition graph
 
 ```text
 title → mode-select → song-select → song-credit → gameplay → result
@@ -171,13 +187,15 @@ records 연결은 [[records]], score/state는 [[constants]]·[[gauge]].
 
 ---
 
-## 9. overlay와 host
+## 10. overlay와 host
 
 ### overlay
 
 - pause: gameplay-owned interactive DOM overlay.
 - text-event: gameplay canvas 표시.
-- quick options: song-select/test가 각각 띄우는 shared component.
+- quick options: layer-agnostic shared component. 배치는 host 소유 —
+  - song-select: Space로 여닫는 interactive DOM overlay(pause와 같은 층). 열림 중 scene 입력 차단, Esc/Space로 닫기. `[신규]`
+  - editor test: scene embedded 상시 panel. `[보존]` (구 Play-tab option bar 계승)
 
 ### engine host seam
 
@@ -191,7 +209,7 @@ CTX 상세 → [[architecture]].
 
 ---
 
-## 10. 결정 완료 / 잔여
+## 11. 결정 완료 / 잔여
 
 확정:
 - [x] 공용 root + 세 mode graph
@@ -203,9 +221,10 @@ CTX 상세 → [[architecture]].
 - [x] pause overlay·result scene·3s lead-in
 - [x] build gate
 - [x] 기록 초기화 진입점 — song-select, `FEATURES.recordReset` internal 게이트 (D-2026-017)
+- [x] song-credit fade 연출 — 수치는 [[constants]] `CREDIT_*` (D-2026-020)
+- [x] settings graph = play/visual/gauge/option 4 scene (D-2026-020)
+- [x] credits = root 소속 단일 scene, mode-select 진입 (D-2026-020)
+- [x] quick options 배치 = host 소유 — song-select overlay / test embedded panel (D-2026-020)
 
 잔여:
-- [ ] song-credit fade 등 구체 연출
-- [ ] settings graph scene 묶음
-- [ ] project `credits` scene 귀속
-- [ ] quick options component의 정확한 layer 위치
+- [ ] credits scene 표시 내용 (scene 골격은 확정, 내용은 후속 결정)

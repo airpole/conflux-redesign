@@ -3,7 +3,7 @@
 > 게이지 증감 / 판정창 / rank 임계 등 "얼마"에 해당하는 값을 한곳에 모은다.
 > "무엇"(정의)은 각 문서, "얼마"(수치)는 여기. 코드 `constants.js`에 대응.
 > 분류 기준: **로직 계산에 쓰이는 수치 = constants / 순수 표시 값 = [[theme]] / 취향·환경 값 = [[settings]]**. 근거 → [[rationale#constants와 settings의 분류 기준]]
-> 출처: `constants.js` 정밀 추출. 전부 `[보존]` (값이 틀리면 회귀).
+> 출처: `constants.js` 정밀 추출. 별도 태그가 없으면 `[보존]` (값이 틀리면 회귀).
 > 용어: [[glossary]] / 근거: [[rationale]]
 
 ---
@@ -65,3 +65,13 @@ start: `normal` 0 / `hard` 100. 둘 다 상한 100(`gaugeMax`).
 | `SCROLL_SPEED_STEP` | 0.1 |
 
 - `[보존]` (구 `SPEED_MIN/MAX/STEP`). scrollSpeed의 현재값은 취향([[settings]])이지만, 허용 범위·스텝은 `visMs = SCROLL_VIEW_MS / scrollSpeed`([[timing]] §3) 로직의 경계 조건이라 여기 둔다 — 머리말 분류 기준. 정의·절대분리는 [[glossary]].
+
+## 5. song-credit 연출 (`CREDIT_*`) `[신규]`
+
+| 상수 | 값 |
+|---|---|
+| `CREDIT_FADE_IN_MS` | 500 |
+| `CREDIT_HOLD_MS` | 4000 |
+| `CREDIT_FADE_OUT_MS` | 500 |
+
+- 합 5000ms 고정 — song-credit scene 총 표시 시간([[scene]] §6). 입력·skip 없음이므로 로직 경계값이라 여기 둔다.

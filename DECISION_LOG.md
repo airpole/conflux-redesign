@@ -214,6 +214,16 @@
 - **Supersedes:** None
 - **Commit:** this commit
 
+### D-2026-020 — Scene remainder resolution
+
+- **Status:** Accepted
+- **Decision:** song-credit 연출을 fade 500/4000/500ms(`CREDIT_*`)로 확정, settings graph를 category별 4 scene(play/visual/gauge/option)으로 통일, credits를 root 소속 단일 scene(mode-select 진입, 내용은 placeholder)으로 신설, quick options 배치를 host 소유(song-select overlay / editor test embedded panel)로 확정.
+- **Defined in:** `scene/scene.md` §3·§6·§7·§10, `core/constants.md` §5, `_meta/settings.md`
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** scene graph, settings UI, constants
+- **Supersedes:** None
+- **Commit:** this commit
+
 ## Entry Template
 
 ```md

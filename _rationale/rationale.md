@@ -109,6 +109,12 @@ pause는 engine을 살려야 하며 모든 현재 overlay가 특정 scene 소속
 ### quick options를 공유하는 이유
 song-select와 editor test가 같은 persistent settings subset을 편집하므로 component 하나가 자연스럽다.
 
+### quick options 배치를 host 소유로 둔 이유
+song-select는 탐색 중 일시 진입(overlay), editor test는 charting 중 상시 접근(panel)으로 접근 패턴이 다르다. component는 값 편집만 담당하고 layer를 강제하지 않는다.
+
+### settings를 category별 4 scene으로 나눈 이유
+editor tab 폐기와 같은 방향의 mechanism 통일이다. 구 단일 scene + 4 tab을 같은 scene manager 위의 평면 graph로 옮기면 별도 tab 장치가 사라진다.
+
 ### theme를 별도 source로 둔 이유
 색·draw order·치수·font는 표현 값이고 constants의 logic 수치와 다르다.
 

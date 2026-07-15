@@ -100,9 +100,10 @@
 - 없음
 
 ## Closure Gate
-- [ ] Behavior
-- [ ] Structure
-- [ ] Simplicity
-- [ ] Implementation Readiness
-- [ ] Change Scope
+- [ ] 🔴 항목 없음
+- [ ] 🟡 항목 결정 또는 명시적 보류
+- [ ] 정의 완결
+- [ ] 파급 파일 식별
+- [ ] Implementation Agent 지시·Acceptance Criteria 작성 가능
+- [ ] 마지막 단순화 검토 완료
 ```

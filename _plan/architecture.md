@@ -79,7 +79,7 @@ play 엔진(game 레이어)은 editor 안에서도, 독립 game scene에서도 *
 - **game 호스트**: `CTX`가 **자기 객체를 소유**. song-select가 곡 길이·플레이 옵션을 채워 만든다. 쓰기가 에디터로 새지 않는다.
 - 호스트 주입은 play 진입 시 **1회**(`setPlayContext`). 엔진은 다음 프레임부터 새 객체를 읽는다. 엔진 코드는 안 바뀐다.
 
-> 이 seam이 "아래는 위를 모른다"의 구체형이다. game 레이어가 자기를 부른 게 editor인지 scene인지 모른 채 CTX만 본다. → [[scene]] §9.
+> 이 seam이 "아래는 위를 모른다"의 구체형이다. game 레이어가 자기를 부른 게 editor인지 scene인지 모른 채 CTX만 본다. → [[scene]] §10.
 
 ---
 
@@ -88,7 +88,7 @@ play 엔진(game 레이어)은 editor 안에서도, 독립 game scene에서도 *
 edit와 game은 형제다. 빌드별로 한쪽만 켤 수 있다.
 
 - **게이트 = 플래그**(`FEATURES.editor`·`FEATURES.recordReset` 등). 코드를 빼는 게 아니라 **플래그만 여닫는다**. `recordReset`은 game-internal에서만 켜는 기록 초기화 노출 게이트다([[records]] §4).
-- scene **lazy mount**(→ [[scene]] §2·§7)와 맞물려, 꺼진 축의 scene은 `mount()`도 안 돌아 비용(DOM·메모리)을 안 낸다. game 전용 빌드는 editor scene을 한 번도 mount하지 않는다.
+- scene **lazy mount**(→ [[scene]] §2·§8)와 맞물려, 꺼진 축의 scene은 `mount()`도 안 돌아 비용(DOM·메모리)을 안 낸다. game 전용 빌드는 editor scene을 한 번도 mount하지 않는다.
 - app 레이어가 어떤 게이트로 부팅할지 정한다.
 
 ---
