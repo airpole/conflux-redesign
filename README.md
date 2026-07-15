@@ -23,12 +23,12 @@
 
 | 문서 | 역할 |
 |---|---|
-| [PROJECT_OPERATING_GUIDELINE](PROJECT_OPERATING_GUIDELINE.md) | 세션·역할·결정·commit 절차 |
+| [PROJECT-OPERATING-GUIDELINE](PROJECT-OPERATING-GUIDELINE.md) | 세션·역할·결정·commit 절차 |
 | [DESIGN_PRINCIPLES](DESIGN_PRINCIPLES.md) | 좋은 설계 판단 원칙 |
 | [REVIEW_CHECKLIST](REVIEW_CHECKLIST.md) | Closure Gate |
 | [DECISION_LOG](DECISION_LOG.md) | Accepted/Superseded/Deferred 결정 색인 |
 
-권장 순서: `README → PROJECT_OPERATING_GUIDELINE → 대상 spec → rationale`.
+권장 순서: `README → PROJECT-OPERATING-GUIDELINE → 대상 spec → rationale`.
 
 ### `core/`
 
