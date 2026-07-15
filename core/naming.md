@@ -8,13 +8,14 @@
 
 ## 0. 출처 태그 (모든 동작 서술에 부착)
 
-새 설계에서 각 동작은 현재 코드 대비 셋 중 하나다. 문서·테스트·커밋에 태그로 표시:
+새 설계에서 각 동작은 현재 코드 또는 이전 재설계 결정 대비 넷 중 하나다. 문서·테스트·커밋에 태그로 표시:
 
 | 태그 | 의미 | 하네스 테스트 |
 |---|---|---|
 | `[보존]` | 현재 코드 동작을 1:1 유지. 바뀌면 회귀 버그. | 현재 테스트를 그대로 물려 통과 |
 | `[수정]` | 현재는 이랬으나 의식적으로 바꿈. **왜** 한 줄 필수. | 테스트 새로 작성, 옛것 의도적 폐기 |
 | `[신규]` | 현재 없음. 기획으로 결정. | 처음부터 작성 |
+| `[번복]` | 이전 재설계 결정을 후속 결정으로 대체. 무엇을 뒤집었는지 명시. | 후속 결정 기준으로 작성, 폐기된 명세·테스트 제거 |
 
 → 이 태그가 "실수로 바뀐 것"과 "일부러 바꾼 것"을 항상 구분 가능하게 만든다.
 
@@ -26,7 +27,7 @@
 2. **함수는 동사+목적어.** 이름만 보고 무엇을 반환/수행하는지 안다. `getShape` 보다 `shapeGeometryAt(tick)`.
 3. **불리언은 is/has/can.** `isWide`, `hasUndo`, `canPlace`.
 4. **도메인 개념은 [[glossary]]의 영어 용어 하나로 고정.** 한 개념에 두 이름을 두지 않는다. 특히 `scrollSpeed`와 `playbackRate`는 영원히 분리. (한국어 설명은 쓰되, 개념을 가리키는 단어는 영어 그대로.)
-5. **단위를 이름에 박는다.** ms/tick/px/pct가 헷갈리는 곳은 접미사로: `durationMs`, `startTick`, `widthPx`, `gaugePct`.
+5. **단위를 이름에 박는다.** ms/tick/px/pct가 헷갈리는 곳은 접미사로: `durationMs`, `startTick`, `widthPx`, `hardPct`.
 6. **상태 객체는 전체 단어.** `D`/`ES`/`PS` → `chart`/`editorState`/`playState`.
 7. **레이어 접두사가 파일명.** `core-`, `env-`, `render-`, `edit-`, `game-`, `scene-`, `app-`. 파일명만 보고 의존 방향을 안다 (위→아래만 import). 레이어 정의 → [[architecture]].
 8. **모든 시간축 이벤트는 `startTick`을 가진다.** duration 없는 순간 이벤트(tempo·timeSignature)도 `tick`이 아니라 `startTick`. 시작점 개념은 동일하다.
@@ -54,13 +55,13 @@
 |---|---|---|---|
 | `getShape(tick)` | `shapeGeometryAt(tick)` | 그 틱의 두 경계 위치 `{blue, red}` (구 `{left,right}`) | 수정 |
 | `buildShapePointArrays` | `buildFieldSamplePoints` | 레인 곡선 샘플 배열 생성 | 보존 |
-| `getLines(tick)` | `laneLayoutAt(tick)` | 그 틱의 구분선 1·2·3 상대위치(0~1) | 수정* |
+| `getLines(tick)` | `laneLayoutAt(tick)` | 그 틱의 구분선 1·2·3 상대위치(실수 전체) | 수정* |
 | `normalizeShapeChain` | `normalizeShapeChain` (유지 가능) | shape 이벤트 체인 정규화 | 보존 |
 | `sp2f(...)` | `shapePosToField(...)` | shape 외부단위(-8~+8) → 필드 좌표 (구 내부0~64) | 수정 |
 | `getStepTicks` / `isStepTick` | `stepTicks` / `isStepTick` | step(즉시점프) 이벤트 틱 | 보존 |
 | `applyEasing(t, type)` | `applyEasing(t, easing)` | easing 곡선 적용 (linear/arc/inSine/outSine 등) | 보존 |
 
-\* `laneLayoutAt`은 구분선 상대위치만 반환. px 변환은 render가 경계와 lerp. 전체 설계 → [[lane-events]].
+\* `laneLayoutAt`은 무구속 상대 실수를 반환한다. px 변환과 경계·순서·최소 간격 구속은 gameplay render의 투영 단계가 담당한다. 전체 설계 → [[lane-events]].
 
 ### 판정 / 입력
 | 현재 | 새 이름 | 역할 | 태그 |
@@ -77,13 +78,13 @@
 ### 게이지 / 결과
 | 현재 | 새 이름 | 역할 | 태그 |
 |---|---|---|---|
-| `gaugeOnJudgment(kind)` | `applyGaugeChange(judgment)` | 판정 결과를 게이지에 반영 — 구 6종 kind(TAIL 포함) → judgment 4종 | 수정† |
+| `gaugeOnJudgment(kind)` | `applyGaugeChange(judgment)` | 판정 결과를 병렬 `hardPct`·`normalPct` 게이지에 반영 — 구 6종 kind(TAIL 포함) → judgment 4종 | 수정† |
 | `resetGauge` | `resetGauge` (유지) | 게이지 초기화 | 보존 |
 | `computeResult` | `computeResult` (유지) | 곡 종료 결과 산출 (rank + state) | 보존 |
-| `evaluateEnd` / `_evalSorted` | `evaluateState` / (내부화) | clear state(AS/AP/FC/H/C/F) 평가·terminate 판정 | 수정‡ |
-| (신규) | `clearState(playState)` | 현재 달성 중인 state 산출 (rank와 별개 축) | 신규 |
+| `evaluateEnd` / `_evalSorted` | `evaluateState` / (내부화) | gaugeMode 조건 평가·terminate/강등 및 최종 state 산출 보조 | 수정‡ |
+| (구 재설계안) | `clearState(playState)` (폐기) | 플레이 중 생존 단계는 `playState.tier`; 최종 state는 `computeResult`가 산출 | 번복 |
 
-‡ 기존 lock/clearMark 평가를 **state 축**으로 재정의. `fc`/`ap`/`as`/`cascade`는 gaugeMode 값(단일 축)이고, 결과는 rank와 **독립적으로** 기록되는 state(AS/AP/FC/H/C/F/N). gaugeMode 정의는 [[gauge]] 단일 출처.
+‡ `fc`/`ap`/`as`/`cascade`는 gaugeMode 값이고, 플레이 중에는 `playState.tier`가 현재 생존 단계를 추적한다. `state`는 runtime 저장 필드가 아니라 `computeResult` 반환값이며 rank와 독립적으로 기록된다. gaugeMode 정의는 [[gauge]] 단일 출처.
 
 ### 노트 색/스킨
 | 현재 | 새 이름 | 역할 | 태그 |
@@ -138,38 +139,40 @@
 
 | 현재 | 새 이름 | 비고 |
 |---|---|---|
-| `D` | `song` | 곡 전체 (2층 구조의 최상위) |
-| (신규) | `chart` | song.charts[]의 한 원소 = 난이도 하나 |
+| `D` | `chart` | 저장·편집·재생의 canonical 최상위 문서 하나 |
+| (구 재설계안의 persisted `song`) | `song group` | 같은 `songId` chart들의 파생 view. 별도 persisted 객체 없음 `[번복]` |
 | `ES` | `editorState` | 에디터 런타임 |
 | `PS` | `playState` | 플레이 런타임 |
-| `D.metadata` | `song.metadata` | 곡 공통 |
-| `D.metadata.artist` | `song.metadata.musicBy` | 작곡 크레딧 개명. 표시 "Music by" → [[scene]] |
-| (신규) | `song.metadata.jacketBy` | 자켓 크레딧 [신규]. 표시 "Jacket by" |
-| `D.metadata.jacketBrightness` | (폐기) | 곡 데이터 아님 → 전역 [[settings]] `jacketBrightness`로 이전·개명 |
-| `D.metadata.measureLabelOffset` | (폐기) | 곡 데이터 아님 → 에디터 [[settings]]로 이전 |
-| `D.tempo` | `song.tempos` | 곡 공통. 복수형 + startTick |
-| `D.timeSignatures` | `song.timeSignatures` | 곡 공통 |
-| `D.schemaVersion` | `song.schemaVersion` | |
-| (신규) | `song.charts` | 난이도 배열 |
+| `D.metadata` | `chart.metadata` | chart 소유 |
+| `D.metadata.artist` | `chart.metadata.musicBy` | 작곡 크레딧 개명. 표시 "Music by" → [[scene]] |
+| (신규) | `chart.metadata.jacketBy` | 자켓 크레딧 [신규]. 표시 "Jacket by" |
+| `D.metadata.jacketBrightness` | (폐기) | chart 데이터 아님 → 전역 [[settings]] `jacketBrightness`로 이전·개명 |
+| `D.metadata.measureLabelOffset` | (폐기) | chart 데이터 아님 → 에디터 [[settings]]로 이전 |
+| `D.tempo` | `chart.tempos` | chart 소유. 복수형 + startTick |
+| `D.timeSignatures` | `chart.timeSignatures` | chart 소유 |
+| `D.schemaVersion` | `chart.schemaVersion` | |
+| (신규) | `chart.songId` | 관련 chart들을 파생 그룹화하는 UUID |
+| (신규) | `chart.musicFile` / `chart.jacketFile` | chart가 참조하는 bare file name. 명시적 asset 연결 `[번복]` |
 | `D.notes` | `chart.notes` | chart별. note 필드: `{startTick, duration, lane, isWide}` (channel→lane) |
 | `D.shapeEvents` | `chart.shapeEvents` | chart별 |
 | `D.lineEvents` | `chart.laneEvents` | chart별. 개명 확정 |
 | `D.textEvents` | `chart.textEvents` | chart별 |
-| `D.metadata.difficulty/level/charter` | `chart.difficulty / .level / .chartBy` | metadata→chart로 내림. `charter`→`chartBy` 개명 |
+| `D.metadata.difficulty/level/charter` | `chart.difficulty / .level / .chartBy` | chart 직속 필드. `charter`→`chartBy` 개명 |
 | `ES` (현재 chart 포인터) | (폐지) | 단일 chart 세션 `[번복]` — 세션 = chart 파일 1개, [[editor-graph]] §4 |
 | `ES.pvSpd` | `editorState.scrollSpeed` | scrollSpeed (playbackRate 아님) |
 | (신규) | `editorState.laneGridDivisor` | lane 가로 분할 수 N (기본 4) — [[lane-events]] §5 |
-| `PS.gaugeValue` | `playState.gaugePct` | 0~100 |
+| `PS.gaugeValue` | `playState.gauge` | `{hardPct, normalPct}`. 두 값 모두 0~100이며 병렬 누적 `[번복]` |
 | `PS.gaugeType` + `lockTarget`/`lockMode` | `playState.gaugeMode` | normal / hard / fc / ap / as / cascade (단일 축, [[gauge]]) |
+| (신규) | `playState.tier` | 현재 생존 단계: as / ap / fc / hard / normal |
 | `PS.playCombo`/`playMaxCombo` | `playState.combo` / `playState.maxCombo` | |
 | `PS.playHitMap` | `playState.hits` | note→판정상태 |
 | `PS.playMissSet` | `playState.misses` | |
 | `PS.playHoldState` | `playState.holds` | key→지속중 hold 노트. 이양 규칙 → [[judge]] §6 |
 | `PS.playKeyHeld` | `playState.keysHeld` | 눌린 키 집합 |
 | `PS.lineMap` | `playState.laneMap` | 미러 매핑 |
-| `PS.fastCount`/`slowCount` | `playState.fastCount` / `slowCount` | 세션 누적, result 표시 |
+| `PS.fastCount`/`slowCount` | `playState.fastCount` / `playState.slowCount` | 세션 누적, result 표시 |
 | `PS.flashTiming` | `playState.flashTiming` | 'FAST'/'SLOW'/null 순간표시 (기록 안 됨) |
-| (신규) | `playState.state` | 달성 중 clear state (AS/AP/FC/H/C/F/N) |
+| (구 재설계안의 `playState.state`) | `result.state` | `computeResult` 산출물. playState에 저장하지 않음 `[번복]` |
 
 ---
 
@@ -192,7 +195,7 @@
 
 | 현재 | 새 이름 | 비고 |
 |---|---|---|
-| `scene-music-select` | `song-select` | 개명. song⊃chart 선택 의미 명확화 |
+| `scene-music-select` | `song-select` | 개명. 파생 song group과 그 안의 chart 선택 의미 명확화 |
 | `modeselect` | `mode-select` | 하이픈 표기 통일. 공용 진입 허브 |
 | (신규) | `song-credit` | gameplay 직전 자동 인터스티셜 (이 곡의 크레딧) |
 | (신규) | `credits` | 프로젝트 제작진 (게임 개발자·엔진 등). song-credit과 다른 화면 |
@@ -210,7 +213,7 @@
 | autosave 슬롯(`__autosave__`) | `workspace` | 단일 복구 슬롯(마지막 작업 + music·jacket blob) |
 | (신규) | `library` | 게임 internal의 import된 .cfx blob 스토어 |
 | duplicate(Ctrl+Shift+S) | `derive` | "복제 저장" → "새 UUID 파생"으로 의미 이동 (정본이 파일이라 저장소 복제가 무의미) |
-| 오디오 에셋 | `music` | song=패키지 전체, music=오디오. `musicBy`와 정합 |
+| 오디오 에셋 | `music` | song group=관련 chart 집합, music=오디오. `musicBy`와 정합 |
 | (신규) | `init` | chartId 0, 에디터 전용 템플릿 채보 |
 | 파일 매니저 overlay | (폐지) | Ctrl+O = OS 파일 픽커 직행 |
 
@@ -251,11 +254,13 @@ app-*     부트스트랩 / 빌드별 진입점 / config
 
 확정:
 - [x] 용어 방향: **영어 단일 용어 + 한국어 설명** (한↔영 대응표 없음)
+- [x] 출처 태그: `[보존]` / `[수정]` / `[신규]` / `[번복]`
 - [x] `lineEvents` → `laneEvents` 개명
 - [x] 상태객체 `editorState` / `playState` (State 접미사)
 - [x] core 함수 인자명 `nowMs` 통일
 - [x] TAIL_OK/TAIL_MISS → SYNC/MISS 통합 (게이지 델타 포함 — constants §2)
-- [x] clear state 축을 rank와 분리 (AS/AP/FC/H/C/F/N)
+- [x] `playState.gauge = {hardPct, normalPct}` 병렬 누적, 현재 생존 단계는 `playState.tier`
+- [x] 최종 state는 `result.state` 산출물이며 rank와 분리 (AS/AP/FC/H/C/F/N)
 
 확정 (크레딧·settings 개명 세션):
 - [x] `artist`→`musicBy`, `charter`→`chartBy`(chart별 유지), `jacketBy` 신규. "by" 접미사는 표시 레이어(credit 씬)
@@ -288,20 +293,24 @@ app-*     부트스트랩 / 빌드별 진입점 / config
 - [x] overlap은 노트 타입이 아니라 렌더 현상 (L2·L3 세로 겹침 금색 표시) → [[glossary]] 이동
 - [x] gaugeMode terminate = "게이지 즉시 0" 단일 메커니즘 (hard 자연실패와 같은 경로)
 - [x] laneEvents 설계 확정 → 별도 문서 [[lane-events]]
-  - 데이터: `{startTick, duration, lineNum∈{1,2,3}, targetPos(0~1 상대), easing}`
-  - 좌표계: 상대 단일 (전체비율). 절대는 에디터 입력보조로만(보류)
-  - 구속: Blue≤1≤2≤3≤Red, 역전금지는 **에디터 단계** (가독성 보호, 코어는 무관)
+  - 데이터: `{startTick, duration, lineNum∈{1,2,3}, targetPos∈실수, easing}`
+  - 좌표계: 그 tick의 왼쪽 경계=0, 오른쪽 경계=1인 상대 좌표. 경계 밖 값도 유효
+  - 구속: 데이터·editor에는 없음. gameplay render가 경계·순서·최소 간격을 지킨 투영을 생성
+  - shapes scene은 데이터 위치를 그대로 표시하고 gameplay 투영과 다른 구간을 점선으로 표시
   - 판정과 완전 분리: 판정 코어는 laneEvents를 모른다
 
-확정 (데이터 구조 단순화):
-- [x] song ⊃ chart[] 2층 구조. tempos/timeSignatures 곡공통, notes/events는 chart별
-- [x] `D`→`song`, `chart`=난이도 하나, difficulty(명칭)/level(숫자) 구분
+확정 (독립 chart 데이터 구조):
+- [x] canonical 저장 단위 = 독립 `chart`; 별도 persisted `song` 객체 없음 `[번복]`
+- [x] song group = 같은 `songId` chart들의 파생 집합
+- [x] `D`→`chart`; difficulty(명칭)/level(숫자) 구분
+- [x] 각 chart가 metadata·tempos·timeSignatures·offset·musicFile·jacketFile·모든 event를 독립 소유 `[번복]`
+- [x] `musicFile`·`jacketFile`은 chart가 명시적으로 참조하는 bare file name `[번복]`
+- [x] Representative Chart는 init 우선, 없으면 최저 playable chart이며 group 선택 전 표시 기본값만 제공
 - [x] 모든 시간축 이벤트 `startTick` 통일, 이벤트 배열 자연복수(`tempos`/`notes` + `*Events`)
 - [x] `channel`→`lane` 통일, 단어 폐기. `key`(1~6) 물리입력만 분리. `OVERLAP_LANES`
 - [x] 5선 멘탈모델은 B/R 양끝 + 1·2·3, 데이터 병합 안 함 (isBlue/lineNum 유지). 0/4 숫자 폐기 → 순서 압박 제거, 교차 허용
 - [x] state 색 → [[theme]] 단일출처(구 colors). EXTRACTED 새 볼트로 이전
-- [x] offset 곡공통(metadata) 고정 — 난이도별 싱크 분기 차단 (audioFile은 철회 — 에셋은 참조 필드 없이 파일로만, [[cfx]] §3)
-- [x] offset 정의 ([[glossary]] 타이밍): 오디오 시작 보정, 양수=음악 당김, leadIn과 별개
+- [x] offset 정의 ([[glossary]] 타이밍): chart별 오디오 시작 보정, 양수=음악 당김, leadIn과 별개
 - [x] FAST/SLOW = 순간표시(flashTiming, 기록X) + 누적카운트(fastCount/slowCount, result 표시). SYNC바깥~MISS안쪽 normal만
 - [x] textEvents = tick별 텍스트 연출, game/notes 양쪽 렌더, chart별
 
