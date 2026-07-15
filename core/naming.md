@@ -210,9 +210,9 @@
 
 | 현재 | 새 이름 | 비고 |
 |---|---|---|
-| autosave 슬롯(`__autosave__`) | `workspace` | 단일 복구 슬롯(마지막 작업 + music·jacket blob) |
+| autosave 슬롯(`__autosave__`) | `workspace` | dirty 작업 전용 복구 슬롯(chart + music·jacket blob + dirty + baseVersion) `[번복]` |
 | (신규) | `library` | 게임 internal의 import된 .cfx blob 스토어 |
-| duplicate(Ctrl+Shift+S) | `derive` | "복제 저장" → "새 UUID 파생"으로 의미 이동 (정본이 파일이라 저장소 복제가 무의미) |
+| duplicate(Ctrl+Shift+S) | (폐기) | "복제 저장" → 한때 `derive`(새 UUID 파생)로 이름이 옮겨갔으나 기능 자체가 폐기됨. 새 song은 새 chart(init) 만들기로만 시작 `[번복]` |
 | 오디오 에셋 | `music` | song group=관련 chart 집합, music=오디오. `musicBy`와 정합 |
 | (신규) | `init` | chartId 0, 에디터 전용 템플릿 채보 |
 | 파일 매니저 overlay | (폐지) | Ctrl+O = OS 파일 픽커 직행 |

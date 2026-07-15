@@ -124,10 +124,8 @@ ON이면 배치 시 대칭축 반대편에 자동 생성한다. **축 기본값 
 
 | 키 | 동작 | 태그 |
 |---|---|---|
-| `Ctrl+S` | workspace 즉시 저장 ([[persistence]] §4) | `[수정]` |
-| `Ctrl+Shift+S` | **derive** — 새 UUID 파생 (confirm — [[persistence]] §4) | `[수정]` |
-| `Ctrl+O` | 파일 열기 — OS 파일 픽커 직행 ([[persistence]] §5) | `[번복 — 파일 매니저 overlay 폐지]` |
-| `Ctrl+E` | chart `.json` export — version +1, 현재 메모리 상태 기준 ([[persistence]] §4·[[cfx]] §7) | `[수정]` |
+| `Ctrl+S` | 현재 chart를 새 version JSON 파일로 저장 — 저장 창 매번 표시 ([[persistence]] §4) | `[번복]` |
+| `Ctrl+O` | 파일 열기 — OS 파일 픽커 직행 ([[persistence]] §9) | `[번복 — 파일 매니저 overlay 폐지]` |
 | `Ctrl+Z` / `Ctrl+Shift+Z`·`Ctrl+Y` | undo / redo (활성 scope — [[editor-commands]]) | |
 | `Ctrl+C` / `Ctrl+V` | 복사 / 붙여넣기 | |
 | `Ctrl+F` | **mirror** (§4) | `[수정 — 구 flip-paste]` |
@@ -148,7 +146,7 @@ ON이면 배치 시 대칭축 반대편에 자동 생성한다. **축 기본값 
 - [x] symmetry(S): 동적 스냅샷 축 + 드래그(수동 축은 토글 off까지·자동 복귀 버튼), 단일 배치 툴만 적용, lane 쌍 = 키 조합, 오른쪽 기준 배치
 - [x] mirror(Ctrl+F): 축 0 고정, isBlue 반전, shape+lane 합산, Ctrl+D 구간 복제 신설
 - [x] A 드래그 선택(모디파이어 — 대체/Shift 추가) / D 삭제 / Delete만 / Z·X 줌 / F·G 유지 / 에디터 키 고정
-- [x] 선택·Ctrl+A 서브모드 필터(mirror만 합산) / Ctrl+S=workspace·Ctrl+E=chart export·derive·Ctrl+O=OS 픽커 / **키 유일 출처 = 본 문서**
+- [x] 선택·Ctrl+A 서브모드 필터(mirror만 합산) / Ctrl+S=새 version 저장·Ctrl+O=OS 픽커, Ctrl+E·Ctrl+Shift+S(derive) 제거 `[번복]` / **키 유일 출처 = 본 문서**
 
 잔여:
 - [ ] 히트 반경·드래그 임계 등 미세 수치 (재구현 시 원본 재실측 — 롱프레스 300ms는 실측 완료)

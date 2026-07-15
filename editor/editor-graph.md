@@ -14,11 +14,12 @@ editor 진입 ─▶ start (새 chart / 파일 열기 / .cfx 열기 / 이어서 
 ```
 
 - start는 정식 scene이며 editor 진입 때 한 번 거친다.
-- Ctrl+O는 어디서나 OS file picker([[persistence]] §5).
+- "새 chart(init) 만들기"는 새 song 생성이다([[persistence]] §7). "이어서 편집"은 유효한 dirty workspace가 있을 때만 노출([[persistence]] §6).
+- Ctrl+O는 어디서나 OS file picker([[persistence]] §9).
 - Tab 순환: `notes → shapes → test → notes`. meta는 click 진입.
 - editor shortcut의 단일 출처는 [[editor-editing]] §5~§6.
 - scene 전환은 editorState를 reset하지 않는다.
-- editor 이탈 시 즉시 autosave.
+- editor 이탈 시 dirty라면 즉시 workspace 저장을 시도한다([[persistence]] §6). 다른 세션으로 교체 시 dirty confirm은 [[persistence]] §5.
 
 ## 2. shared editorState
 
@@ -41,7 +42,7 @@ meta scene 한 화면에서 현재 chart의 모든 편집 필드를 구획한다
 
 ### chart identity·display
 
-- songId(read-only except derive)
+- songId(read-only)
 - chartId
 - difficulty
 - subtitle
@@ -70,12 +71,10 @@ meta scene 한 화면에서 현재 chart의 모든 편집 필드를 구획한다
 
 ### 새 chart 파생
 
-“새 난이도”는 현재 chart에서 같은 `songId`의 새 독립 chart session을 시작한다.
+“새 난이도”는 현재 chart에서 같은 `songId`의 새 독립 chart session을 시작한다. `Start Blank`/`Use Current Chart` 모드와 필드·배열 복사 규칙의 단일 출처는 [[persistence]] §8.
 
-- metadata·timing·asset 연결은 시작값으로 copy 가능;
-- events는 blank;
 - 새 chart는 파생 직후부터 독립적으로 diverge;
-- 실행 전 current workspace save;
+- 현재 세션이 dirty면 실행 전 [[persistence]] §5의 확인 절차(Save New Version/Discard/Cancel)를 거친다;
 - command가 아니라 session replacement, history clear.
 
 chart field edit는 즉시 적용·undo 밖([[editor-commands]] §7). 삭제는 OS/library 소관.
@@ -96,7 +95,8 @@ chart field edit는 즉시 적용·undo 밖([[editor-commands]] §7). 삭제는 
 - [x] start + 4 scene graph, Tab cycle(meta 제외)
 - [x] single independent chart session `[번복]`
 - [x] chart-owned metadata·timing·asset UI `[번복]`
-- [x] new chart = same-songId independent derivation
+- [x] new chart = same-songId independent derivation, dirty confirm before session switch `[번복]`
+- [x] songId read-only in meta scene(derive 제거) `[번복]`
 - [x] ms-proportional vertical axis
 - [x] test/gameplay shared engine·editor-origin no-record
 

@@ -101,7 +101,7 @@ Blue · 1 · 2 · 3 · Red
 ### identity
 
 - **chartId** — songId group 내 정수. 0=init, 1~4 fixed slots, 5+=additional.
-- **version** — chart revision, export마다 +1.
+- **version** — chart revision. 저장 시 사용자가 현재보다 큰 값으로 확정 → [[persistence]] §4.
 - **schemaVersion** — format generation.
 - **subtitle** — chart variation label. 표시 시 `[...]`; identity 자체가 아님.
 - current record key와 deferred content-change policy → [[records]].
@@ -149,9 +149,9 @@ Blue · 1 · 2 · 3 · Red
 - **CTX** — engine host injection seam.
 - **chart JSON** — independent editor work file.
 - **.cfx** — 같은 songId의 selected chart JSON과 referenced assets를 담는 flat distribution ZIP.
-- **workspace** — last chart + connected asset blob recovery slot.
+- **workspace** — dirty chart + connected asset blob의 복구 전용 슬롯 → [[persistence]] §6.
 - **library** — imported `.cfx` blob store, key=songId.
-- **derive** — current chart의 songId를 new UUID로 바꾸어 새 group을 시작.
+- **dirty** — 마지막 성공한 파일 저장 이후 workspace-persisted state가 바뀐 상태 → [[persistence]] §5.
 - **music** — chart가 `musicFile`로 참조하는 audio asset.
 - **jacket** — chart가 `jacketFile`로 참조하는 optional image asset.
 - **packager** — user-selected chart input을 group/validate해 `.cfx`를 만드는 UI.

@@ -85,7 +85,7 @@ chartId,       // songId 그룹 안의 식별 정수
  subtitle,     // 차분명·용도 설명 (선택 문자열)
  level,        // 난이도 수치
  chartBy,      // 채보 제작자. "Chart by"는 표시 레이어가 붙임
- version       // 내용의 판. export마다 +1
+ version       // 내용의 판. 저장 시 사용자가 현재보다 큰 값으로 확정 ([[persistence]] §4)
 ```
 
 - identity = `songId + chartId`. 특정 revision = `songId + chartId + version`.
@@ -197,7 +197,7 @@ playState   = {
 ## 10. 버전 / 교환
 
 - `schemaVersion`: 재구현 시작값 `1`. 스키마 변경 때 명세가 올린다.
-- `version`: chart 내용의 판. export할 때마다 +1.
+- `version`: chart 내용의 판. 저장 창에서 사용자가 현재 열린 version보다 큰 값으로 확정한다([[persistence]] §4). 저장 성공 시에만 확정된다.
 - 파일 형태: chart `.json`(작업 단위) / `.cfx`(songId 그룹 배포 단위). 상세 → [[cfx]].
 
 ---

@@ -43,12 +43,13 @@
 
 ### D-2026-003 — Representative Chart
 
-- **Status:** Accepted
+- **Status:** Superseded
 - **Decision:** init 우선·최저 playable chart fallback으로 Representative Chart를 정하고 표시 기본값만 제공한다.
 - **Defined in:** `_meta/cfx.md`
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** package naming, song-select, preview, reimport
 - **Supersedes:** init 무언 skip만 정의한 이전 역할
+- **Superseded by:** D-2026-013
 - **Commit:** this commit
 
 ### D-2026-004 — Explicit per-chart asset references
@@ -57,7 +58,7 @@
 - **Decision:** chart가 `musicFile`·`jacketFile`을 명시하고 flat `.cfx` root의 전역 파일명 충돌을 검증한다.
 - **Defined in:** `core/data-model.md`, `_meta/cfx.md`
 - **Rationale:** `_rationale/rationale.md`
-- **Affects:** export, workspace, packager, loader
+- **Affects:** save, workspace, packager, loader
 - **Supersedes:** suffix-based implicit package-wide asset discovery
 - **Commit:** this commit
 
@@ -99,6 +100,86 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** library reimport
 - **Supersedes:** None
+- **Commit:** this commit
+
+### D-2026-009 — Version-gated chart save
+
+- **Status:** Accepted
+- **Decision:** `Ctrl+S`는 현재 chart를 새 version JSON 파일로 저장하며, 저장 창을 매번 표시하고 현재보다 큰 version을 요구한다. 저장 성공 시에만 메모리 version을 확정한다.
+- **Defined in:** `_meta/persistence.md`, `core/data-model.md`
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** editor save UX, chart version semantics
+- **Supersedes:** Ctrl+S=workspace 즉시 저장
+- **Commit:** this commit
+
+### D-2026-010 — Remove Ctrl+E / derive / duplicate-as-new-song
+
+- **Status:** Accepted
+- **Decision:** chart export(`Ctrl+E`)와 derive(`Ctrl+Shift+S`, duplicate-as-new-song)를 에디터 기능에서 제거한다. 새 song은 새 chart(init) 만들기로만 시작한다.
+- **Defined in:** `_meta/persistence.md`, `_meta/cfx.md`, `editor/editor-editing.md`, `editor/editor-graph.md`
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** editor shortcuts, new-song creation flow
+- **Supersedes:** Ctrl+E=chart export, Ctrl+Shift+S=derive
+- **Commit:** this commit
+
+### D-2026-011 — Workspace as dirty-only recovery slot
+
+- **Status:** Accepted
+- **Decision:** workspace는 dirty 편집 작업만 저장하는 단일 복구 슬롯이다(`chart`+asset blob+`dirty`+`baseVersion`). clean이면 유지하지 않고, 저장 성공 시 삭제한다. `dirty`/`baseVersion`은 chart JSON·`.cfx` 스키마에 포함하지 않는다.
+- **Defined in:** `_meta/persistence.md`
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** workspace autosave, session recovery, "이어서 편집" 진입 조건
+- **Supersedes:** workspace=마지막 작업 chart 무조건 저장
+- **Commit:** this commit
+
+### D-2026-012 — Session-switch dirty confirm
+
+- **Status:** Accepted
+- **Decision:** dirty 상태에서 `Ctrl+O`·새 난이도 생성·editor 이탈 등으로 세션을 교체할 때 `Save New Version`/`Discard Changes`/`Cancel`을 확인한다. clean이면 확인 없이 전환한다.
+- **Defined in:** `_meta/persistence.md`
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** editor session switching, history baseline
+- **Supersedes:** None
+- **Commit:** this commit
+
+### D-2026-013 — init required for `.cfx` packaging
+
+- **Status:** Accepted
+- **Decision:** 선택한 `songId` 그룹에 init이 없으면 패키징을 차단한다. init은 그룹당 `.cfx`의 고정 Representative Chart이며 표시 기본값만 제공한다.
+- **Defined in:** `_meta/cfx.md`
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** packaging validation, Representative Chart 정의
+- **Supersedes:** D-2026-003
+- **Commit:** this commit
+
+### D-2026-014 — `.cfx` filename includes version
+
+- **Status:** Accepted
+- **Decision:** `.cfx` 기본 파일명은 `{init.title}_{init.musicBy}_v{init.version}.cfx`다. 각 playable chart version은 각 chart JSON 내부에 별도로 유지된다.
+- **Defined in:** `_meta/cfx.md`
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** packaging output naming
+- **Supersedes:** `.cfx` 파일명에 version 없음
+- **Commit:** this commit
+
+### D-2026-015 — New-difficulty Start Blank / Use Current Chart modes
+
+- **Status:** Accepted
+- **Decision:** 새 난이도는 init 또는 현재 playable chart에서 만들며, `Start Blank`(비플레이 필드만 초기값 복사)와 `Use Current Chart`(Notes/Shapes/Lanes/Text 배열을 사용자가 선택해 복사, 기본 전체 선택) 두 모드를 제공한다.
+- **Defined in:** `_meta/persistence.md`, `editor/editor-commands.md`, `editor/editor-graph.md`
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** new-difficulty creation UX
+- **Supersedes:** 단순 "시작값 복사 가능"만 정의한 이전 서술
+- **Commit:** this commit
+
+### D-2026-016 — `.cfx` internal ZIP layout vs. packaging entry point
+
+- **Status:** Deferred
+- **Decision:** 이번 meta-review 지시문은 `.cfx` 내부에 `charts/`+`assets/music`·`assets/jacket` 하위 폴더 구조("권장"으로 표기하면서도 loader 경로는 고정 지정)와, 패키징을 "작업 폴더 하나 선택 후 자동 탐색"으로 시작하는 흐름을 제시한다. 이는 기존 flat ZIP·전역 파일명 유일 결정(D-2026-004)과 user-selected 다중 파일 선택을 기본으로 하는 결정(D-2026-005)과 직접 상충할 수 있어 이번 커밋에서는 해소하지 않았다. flat ZIP 구조와 다중 파일 선택 기본 흐름을 그대로 유지했다.
+- **Defined in:** `_meta/cfx.md` §8~§9 (잔여 항목으로 표시)
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** `.cfx` packaging structure, packaging entry UX
+- **Supersedes:** None (pending)
 - **Commit:** this commit
 
 ## Entry Template

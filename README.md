@@ -60,7 +60,7 @@
 |---|---|
 | [settings](_meta/settings.md) | player/editor settings |
 | [records](_meta/records.md) | chart별 best record·no-record |
-| [persistence](_meta/persistence.md) | workspace·library·autosave·open/export/package |
+| [persistence](_meta/persistence.md) | workspace·library·autosave·open/save/package |
 | [cfx](_meta/cfx.md) | chart JSON·`.cfx` format·identity·packager/loader |
 
 ### `_plan/`·받침 문서
@@ -99,11 +99,12 @@
 
 - **정본 = 사용자 파일.** chart `.json` 작업 / `.cfx` 배포 ZIP.
 - chart identity=`songId+chartId`, revision=`+version`.
-- init(0)은 editor-only이며 Representative Chart 우선 후보. 없으면 최저 playable chart가 대표.
+- init(0)은 editor-only이며 `.cfx`에 필수 포함되는 고정 Representative Chart.
 - chart는 `musicFile`·`jacketFile`을 명시한다. `.cfx`는 flat root와 전역 파일명 유일 규칙을 사용한다.
 - packager는 chart JSON 직접 선택이 기본이며 folder scan은 optional prefill이다.
-- workspace는 chart 하나+asset blob, library는 `.cfx` blob.
-- Ctrl+S=workspace, Ctrl+E=chart export, Ctrl+Shift+S=derive(new songId).
+- Ctrl+S=현재 chart를 새 version JSON으로 저장(저장 창 매번 표시). Ctrl+E·Ctrl+Shift+S(derive)는 제거.
+- workspace는 dirty 작업 전용 복구 슬롯(chart+asset blob+dirty+baseVersion), library는 `.cfx` blob.
+- 새 song=새 chart(init) 만들기, 새 난이도=Start Blank/Use Current Chart 두 모드.
 - `.cfx`/library는 record migration을 하지 않는다. 수정 chart의 fingerprint 정책은 Deferred.
 
 ---
@@ -144,6 +145,8 @@ naming, glossary, timing, judge, lane-events, shape, gauge, theme, constants, sc
 
 `.cfx`는 Behavioral/Structural/Implementation Closure Review와 commit 검증을 통과했다. 독립 chart 소유·Representative Chart·명시적 asset 참조·user-selected packager·비파괴 packaging·전체 package validation이 최신 main에 반영되어 있다.
 
+persistence/cfx meta-review를 반영했다. version-gated Ctrl+S 저장(Ctrl+E·derive 제거), dirty 전용 workspace 복구 슬롯과 세션 전환 confirm, 새 song=init 생성과 새 난이도 Start Blank/Use Current Chart 모드, `.cfx` init 필수 포함과 version 포함 파일명이 최신 main에 반영되어 있다.
+
 프로젝트 운영 가이드와 Claude Code 구현 지침을 갱신했다. 설계 대화는 C → B → A 수렴 모델, 주제 분류, 범위 통제, 객관적 Closure Judgment를 따른다.
 
 ### Deferred
@@ -151,6 +154,7 @@ naming, glossary, timing, judge, lane-events, shape, gauge, theme, constants, sc
 - 수정된 playable chart와 기존 records의 연결 방식
 - content fingerprint·record key evolution·과거 기록 재표시 UX
 - 구버전 `.cfx` reimport 허용/거부 정책
+- `.cfx` 내부 ZIP 폴더 구조(flat vs 종류별 하위폴더)와 패키징 진입점(다중 파일 선택 vs 작업 폴더 선택)의 관계 — `DECISION_LOG.md` D-2026-016
 
 ### 다음 후보
 

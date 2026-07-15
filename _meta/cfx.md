@@ -10,12 +10,12 @@
 
 | 층 | 파일 | 단위 | 만드는 곳 |
 |---|---|---|---|
-| 작업 | `{title}_{musicBy}_{difficulty}[_{subtitle}]_v{n}.json` | 독립 chart 하나 | 에디터 export |
-| 배포 | `{representative.title}_{representative.musicBy}.cfx` | 같은 `songId`의 선택 chart 집합 | 패키징 화면 |
+| 작업 | `{title}_{musicBy}_{difficulty}[_{subtitle}]_v{n}.json` | 독립 chart 하나 | 에디터 저장([[persistence]] §4) |
+| 배포 | `{init.title}_{init.musicBy}_v{init.version}.cfx` | 같은 `songId`의 선택 chart 집합 | 패키징 화면(§8) |
 
 - chart JSON은 metadata·timing·asset 파일명 참조·events를 스스로 소유한다.
 - `.cfx`는 선택된 chart JSON과 그 chart들이 참조하는 asset 파일을 평탄 ZIP으로 묶는다.
-- `.cfx`를 에디터에서 열어도 저장은 chart JSON export로 나간다. `.cfx`를 직접 덮어쓰지 않는다.
+- `.cfx`를 에디터에서 열어도 저장은 chart JSON 새 version 저장으로 나간다([[persistence]] §4). `.cfx`를 직접 덮어쓰지 않는다.
 - outer `.cfx` 파일명은 identity가 아니며 사용자가 자유롭게 수정할 수 있다.
 
 ---
@@ -27,7 +27,7 @@
 - 파일명은 편의 규약이다. 내부 `songId + chartId`가 identity다.
 - 특정 revision은 `songId + chartId + version`으로 구별한다.
 - `musicFile`·`jacketFile`은 경로가 아닌 파일명만 저장한다.
-- music 없이 작업 chart를 export할 수 있다(`musicFile: null`). jacket은 항상 선택이다.
+- music 없이 작업 chart를 저장할 수 있다(`musicFile: null`, [[persistence]] §10). jacket은 항상 선택이다.
 - JSON 하나가 binary asset을 inline하지는 않는다. 실제 작업 단위는 JSON + 같은 작업 위치의 별도 asset 파일이다.
 
 ---
@@ -37,8 +37,8 @@
 ` songId`는 서로 관련된 chart들을 그룹화하는 UUID다.
 
 - 별도 persisted `song` 객체는 없다.
-- 새 chart를 같은 곡 그룹에 추가하려면 기존 chart(init 포함)에서 파생하여 `songId`를 유지한다.
-- 새 곡/리믹스로 분리할 때만 derive가 새 UUID를 발급한다([[persistence]] §4).
+- 새 chart를 같은 곡 그룹에 추가하려면 기존 chart(init 포함)에서 새 난이도를 파생해 `songId`를 유지한다([[persistence]] §8).
+- 새 곡/리믹스로 분리할 때는 새 song 생성이 새 UUID를 발급한다([[persistence]] §7). derive·duplicate-as-new-song 경로는 없다.
 - 패키징 화면은 선택된 chart를 `songId`별로 나누고, 각 그룹을 별도 `.cfx`로 만든다.
 
 ---
@@ -75,19 +75,15 @@
 
 ---
 
-## 6. init과 Representative Chart `[신규]`
+## 6. init과 Representative Chart `[번복]`
 
 init(`chartId 0`)은:
 
 - 새 chart 파생의 시작점;
-- 선택적으로 `.cfx`에 포함되는 editor chart;
+- `.cfx`에 **필수로 포함**되는 editor chart;
 - gameplay와 records 대상이 아닌 non-playable chart다.
 
-Representative Chart 선택 순서:
-
-1. 패키지에 포함된 선택 init;
-2. init이 없으면 가장 낮은 playable `chartId`;
-3. playable chart도 없으면 패키징 불가.
+선택한 `songId` 그룹에 init이 없으면 패키징을 차단한다. init은 그룹당 `.cfx`의 고정 Representative Chart다.
 
 Representative Chart는 다음 **표시 기본값만** 제공한다.
 
@@ -136,7 +132,16 @@ surge_music.ogg
 - ZIP root의 실제 파일명은 종류와 관계없이 전역 유일.
 - chart JSON 파일명도 전역 유일. 중복이면 거부.
 - 참조되지 않는 선택 asset은 “unused”로 표시하고 package에서 제외한다. 이것만으로 패키징을 막지 않는다.
-- `.cfx` 파일명에는 version을 붙이지 않는다. chart별 version이 최신성 비교를 담당한다.
+
+### `.cfx` 파일명 `[번복]`
+
+기본 제안: `{init.title}_{init.musicBy}_v{init.version}.cfx`.
+
+- 저장 창에서 사용자가 수정할 수 있다.
+- 내부 데이터가 정본이다.
+- init version은 패키지 대표 기준 version이다.
+- 각 playable chart version은 각 chart JSON 내부에 유지된다(§4).
+- 기본 이름 충돌 시 처리는 §11.
 
 ---
 
@@ -152,9 +157,11 @@ surge_music.ogg
 6. 찾지 못한 참조 asset만 사용자가 추가 선택한다.
 7. 최종 구성을 보여주고 그룹별 검증 후 생성한다.
 
-- 폴더 탐색은 같은 입력 목록을 미리 채우는 선택적 편의 기능일 뿐 package 의미의 source가 아니다.
+- 폴더 탐색은 같은 입력 목록을 미리 채우는 선택적 편의 기능일 뿐 package 의미의 source가 아니다. 사용자가 작업 폴더 하나를 지정하면 접근 권한 범위(하위 폴더 포함)에서 chart JSON·music·jacket asset을 자동 탐색해 위 1~6단계의 선택 목록을 미리 채운다.
 - 후보 목록을 다시 scan/rebuild하면 수동으로 고른 구버전을 유지하지 않고 다시 최고 version을 추천한다.
 - 서로 다른 `songId` 그룹은 독립 검증·생성한다. 한 그룹의 오류·취소가 다른 그룹을 rollback하지 않는다.
+
+> 폴더 스캔을 패키징의 유일한 진입점으로 만들지, 직접 다중 파일 선택과 대등한 두 진입 경로로 유지할지는 아직 확정하지 않았다 — `DECISION_LOG.md` D-2026-016 참고.
 
 ---
 
@@ -163,12 +170,12 @@ surge_music.ogg
 하나의 그룹은 다음을 모두 만족해야 한다.
 
 - playable chart가 최소 1개;
-- Representative Chart 결정 가능;
+- init(Representative Chart) 정확히 1개 포함;
 - 포함 playable chart 모두 `musicFile != null`;
 - Representative Chart도 `musicFile != null`;
 - 모든 non-null asset 참조가 정확한 파일명으로 해소됨;
 - 그룹의 모든 chart가 같은 `songId`;
-- chartId 중복 없음, init 최대 1개;
+- chartId 중복 없음;
 - chartId 1~4와 difficulty 고정 대응 일치;
 - playable `difficulty + normalized subtitle` 중복 없음;
 - 지원 `schemaVersion`;
@@ -238,7 +245,7 @@ surge_music.ogg
 4. 선택 chart + 그 chart가 참조하는 music/jacket만 단일 workspace에 복원;
 5. editor history 기준선 clear;
 6. 다른 chart는 workspace에 펼치지 않음;
-7. 저장은 chart JSON export.
+7. 저장은 chart JSON 새 version 저장([[persistence]] §4).
 
 ---
 
@@ -262,10 +269,11 @@ surge_music.ogg
 확정:
 - [x] 독립 chart JSON / songId 파생 그룹 `[번복]`
 - [x] chart별 metadata·timing·asset 참조 `[번복]`
-- [x] init + Representative Chart 규칙
+- [x] init `.cfx` 필수 포함, 없으면 패키징 차단 `[번복]`
 - [x] 명시적 `musicFile`/`jacketFile`, 정확한 파일명 연결
 - [x] 평탄 ZIP·전역 파일명 유일·same-name asset 규칙
-- [x] 사용자 선택 중심 패키징·최신 revision 추천
+- [x] `.cfx` 파일명 = `{init.title}_{init.musicBy}_v{init.version}.cfx` `[번복]`
+- [x] 사용자 선택 중심 패키징·최신 revision 추천, 폴더 스캔은 선택 목록 prefill
 - [x] 그룹별 독립 생성·비파괴 상태 전이
 - [x] package 전체 구조 거부·decode 계층별 처리
 - [x] `.cfx` 편집 시 chart 하나만 workspace 복원
@@ -273,3 +281,4 @@ surge_music.ogg
 
 잔여:
 - records의 수정 chart 연결/fingerprint 정책은 [[records]] 후속 review로 보류.
+- `.cfx` 내부 폴더 구조(flat 유지 vs `charts/`+`assets/music`·`assets/jacket` 분리)와 패키징 진입점(사용자 다중 선택 vs 작업 폴더 선택)을 둘 다로 유지할지 여부는 D-2026-004·D-2026-005와 상충 가능성이 있어 확정하지 않았다 — `DECISION_LOG.md` D-2026-016 참고.
