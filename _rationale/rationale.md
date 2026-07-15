@@ -1,251 +1,256 @@
 # 설계 근거 (Rationale)
 
-> 정의 문서들이 깨끗하게 "무엇(what)"만 담도록, "왜(why)"는 여기 모은다.
-> 결정을 되짚을 때(특히 `[수정]` 항목) 같은 논의를 반복하지 않기 위함.
+> 정의 문서는 what만, 이 문서는 why를 기록한다. 최신 spec과 충돌하는 과거 근거는 최신 spec이 우선한다.
 
 ---
 
-## judgment을 임계 테이블로 둔 이유
-SYNC/PERFECT/GOOD/MISS는 별개 규칙이 아니라 `abs(diff_ms)` 하나를 자른 구간이다. wide는 "임계 테이블만 다른 노트"라 normal과 한 표에 합쳐진다. 개별 산문 정의보다 테이블이 짧고, 구현도 임계 배열 룩업 하나로 끝난다. FAST/SLOW는 판정이 아니라 diff의 부호라 종류에서 분리했다.
+## 판정·gauge
 
-## gaugeMode를 단일 축 6종으로 둔 이유
-코드는 gaugeType(normal/hard) × lockTarget(none/fc/ap/as) × lockMode(terminate/cascade) **직교 3축**이다. 유저가 실제로 하는 선택은 "이 곡을 어떤 방식으로 도전할까" 하나뿐이라, 이 직교 조합을 **단일 축 6종**(normal/hard/fc/ap/as/cascade)으로 평탄화했다. [수정] — 직교의 표현력 일부(예: normal+as 조합)를 버리는 대신 정의가 짧고 한 줄로 읽힌다.
+### judgment을 threshold table로 둔 이유
+SYNC/PERFECT/GOOD/MISS는 `abs(diff_ms)` 한 축의 구간이다. wide도 다른 threshold row일 뿐이라 한 table lookup으로 표현한다. FAST/SLOW는 diff 부호라 judgment 종류와 분리한다.
 
-게이지 정의(gaugeMode→state 표·cascade·terminate)는 처음 [[glossary]] 한 섹션에 두려 했으나, 분량이 한 줄을 한참 넘겨 무거워졌다. "정의가 무거워지면 전용 문서로 분리" 원칙에 따라 [[gauge]]로 독립했다. 수치는 단일 출처 원칙대로 [[constants]] §2에 그대로 둔다(정의만 이주, 수치는 잔류).
+### gaugeMode를 단일 축 6종으로 둔 이유
+과거 gaugeType×lockTarget×lockMode 3축은 사용자 선택 하나를 과도하게 분해했다. normal/hard/fc/ap/as/cascade 6종으로 평탄화하면 UI와 engine 분기가 일치한다. terminate는 gauge 0으로 수렴하고 cascade만 강등 규칙을 둔다.
 
-`fc`/`ap`/`as`는 게이지 동작이 같고 terminate 임계만 다르다(MISS/PERFECT미만/SYNC외). terminate를 별도 종료 경로로 두지 않고 "게이지를 즉시 0으로"로 환원하면, 거의 모든 실패가 hard 자연실패와 같은 코드 경로를 타서 분기가 사라진다. `fc`/`ap`/`as`는 게이지가 무의미하므로 막대를 100 고정·해당 색으로만 표시한다.
+### hold tail 특례를 폐기한 이유
+head/tail을 일반 judgment와 같은 SYNC/MISS 규칙으로 처리하면 display·count·lock·gauge가 한 의미를 공유한다. hard tail 수치는 일부 바뀌지만 예외 signal과 전용 delta가 사라진다.
 
-`cascade`만 예외다. terminate(종료) 대신 **강등**으로 받으므로 "즉시 0" 모델에 안 맞아 단일 표에서 빼고 별도 단락으로 둔다. 구 코드는 lock 티어만 내리고 게이지는 단일·연속이었는데, 이를 게이지 2종(hard·normal)을 곡 내내 **병렬 평가**하고 살아있는 최고 티어를 결과로 삼는 모델로 [수정]했다: "한 번 삐끗했다고 끝나지 않고, 그 플레이가 도달한 최고 상태를 보여주는" 단일 모드다. 게이지 2종이 일반 모드와 동일 규칙을 쓰는 게 핵심 — cascade를 더 유리하게 만들지 않고, "cascade로 H 클리어 = hard로 클리어"가 성립해야 등급의 의미가 보존된다.
-
-Normal은 완주해도 끝에 75% 미만이면 실패(F)다 — "노페일"이 아니다.
-
-## duration 규칙을 공통으로 올린 이유
-note(tap/hold), shape(step/보간), lane(step/보간) 모두 `duration==0 ? 즉시 : 지속`이라는 같은 분기다. 각 문서에서 step/linear를 따로 정의하면 같은 규칙을 세 번 쓰게 된다. 한 곳(glossary 노트 섹션)에서 정의하고 참조시킨다.
+### tail release grace를 폐기한 이유
+GOOD window가 이미 성공 허용 범위이므로 추가 50ms grace는 중복이다. tail도 같은 window를 사용한다.
 
 ---
 
-## laneEvents 설계 근거
+## 공통 duration·grid
 
-### 좌표계를 상대 단일로 둔 이유
-절대(0~64 고정단위 — [[shape]])는 두 문제가 있다. (1) 경계가 좁아지면 clamp로 무늬가 뭉개진다. (2) `laneLayoutAt`에 절대/상대 모드 분기와 변환 로직을 강요해 코어를 복잡하게 만든다. 상대(전체비율)는 경계와 함께 스케일되어 직선→arc 변형에도 미학적으로 정합하고, 비율이라 경계를 구조적으로 못 넘어 clamp가 거의 없다.
+### duration 규칙을 공통으로 올린 이유
+note/shape/lane 모두 `duration==0`이면 순간, `>0`이면 지속이다. 같은 조건을 세 문서에 다른 말로 두지 않는다.
 
-절대가 주는 "그 안에서 정밀하게 찍는 느낌"은 좌표계가 아니라 **에디터 스냅**으로 해결한다. 정밀함은 데이터 표현이 아니라 입력 보조의 문제다. 절대 입력이 정말 필요하면 에디터가 찍는 순간의 경계를 읽어 상대값으로 환산해 저장하는 보조만 추가하면 되고, 데이터·코어는 끝까지 상대 하나로 둔다.
+### subdivision을 time signature와 분리한 이유
+subdivision은 한 beat를 N등분하는 축이고 time signature는 measure boundary 축이다. 입력도 dropdown+typed special value로 분리한다.
 
-### 역전 금지를 에디터 단계에만 둔 이유
-역전을 막는 건 판정 보호가 아니라 **플레이어 가독성 보호**다. 레인이 꼬여 보이면(1·3이 자리를 바꾸면) 플레이어가 노트를 오독해 불쾌함을 느낀다. 판정 자체는 channel 고정이라 역전이 일어나도 멀쩡하다. 따라서 무결성 검증을 코어에 넣지 않고 에디터 입력 단계에서만 막는다. 덕분에 판정 코어는 laneEvents를 아예 몰라도 되고, 레이어가 깨끗하게 분리된다.
+### gridDivisor를 분음표 표기로 바꾼 이유
+에디터·DAW 관례와 맞추기 위해 구 beat division N을 `N×4` 분음표 값으로 표기한다. 좌표 계산은 동일하다.
 
-### shape와 통합한 이유
-laneEvent는 shape 이벤트와 선택자(isBlue↔lineNum) 하나만 다른 동형 객체다. 좌표계는 다르지만(shape 절대 0~64, lane 상대 0~1 — 정의는 [[shape]]·[[lane-events]]) 평가·캐시·편집 인터랙션이 거의 같아, 별도 도구를 만들기보다 shape 워크플로우에 lineNum을 더해 재사용하는 편이 단순하다. 단, 둘을 하나의 객체로 완전 병합하는 것은 좌표계 차이 때문에 과한 단순화라 하지 않는다.
-
----
-
-## shape 설계 근거
-
-### 좌표계를 외부단위(-8~+8)로 통일한 이유
-구 코드는 내부 0~64로 저장하고 표시는 `posToExt = 내부/4−8`, render는 `sp2f = 내부/64`로 두 번 변환했다. 저장 단위가 보이는 단위와 달라 디버깅·검수 때 늘 머릿속 환산이 필요했고, 변환 함수가 두 개 살아 있었다. 어차피 입력이 0.25 스텝으로 끊기므로 외부단위를 그대로 저장하면 표시=저장이 일치하고 변환 하나(`shapePosToField`)만 남는다. 정밀도 손실 없음(0.25 = 내부 1단위).
-
-### init fallback을 대칭(-2/+2)으로 바꾼 이유
-구 기본값은 내부 32/40 = 외부 0/+2로 비대칭이었다. fallback은 차트에 init 이벤트가 없을 때만 쓰는 안전값이라 거의 안 보이지만, 기본 기하가 비대칭일 이유가 없다. 중앙 0 기준 ±2 대칭이 멘탈모델("플레이필드가 가운데에서 양쪽으로 열린다")과 맞다.
-
-### Arc를 입력 모드로 둔 이유 (저장 안 함)
-Arc는 곡선 자체가 아니라 "직전과 반대로 휘어라"는 편집 의도다. 데이터에 'Arc'를 저장하면 평가기가 직전 이벤트를 거슬러 봐야 결과가 정해져 평가가 문맥 의존이 된다. 입력 순간에 `resolveArcEasing`으로 Out/In-Sine을 확정해 저장하면, 데이터는 항상 절대적인 3종이 되고 평가기는 직전을 몰라도 된다. Arc는 에디터 편의 기능으로만 남는다. 'Arc' 평가 가지(`sin(tπ)`)는 데이터에 안 들어오므로 재구현 평가기에서 뺀다.
-
-### Step을 입력 라벨로만 둔 이유 (저장 안 함)
-구 코드엔 `easing: 'Step'`이 따로 있었으나 폐기됐고, `{easing:'Linear', duration:0}`이 그 역할을 대신한다(실측 shape.js 주석). Step을 데이터 값으로 되살리면 easing 종류가 늘고 평가기에 가지가 하나 더 붙는다. "즉시 점프"는 이미 `duration===0`이 표현하므로 데이터엔 불필요하다. 다만 사용자는 점프를 "Step"이라 부르는 게 직관적이라, Arc와 같은 방식으로 **저장 안 되는 입력 라벨**로만 남긴다. 데이터 easing은 3종+null로 깨끗하게 유지. 입력 호칭(Step·Arc)과 저장값의 분리는 offset·shape 좌표의 저장/표시 분리와 같은 원칙이다.
-
-### anchor/transition으로 이벤트를 둘로 나누지 않고, chain-event.md를 만들지 않은 이유
-한때 `easing===null`(앵커)과 `easing≠null`(보간)을 anchor/transition 두 종으로 명명하고 전용 문서(chain-event.md)에 정의하려 했다. **둘 다 폐기한다.** (1) 데이터는 애초에 한 종류 객체이고, 두 동작은 `easing` 값 하나로 갈린다 — 새 타입을 만드는 게 아니라 조건을 부르는 이름일 뿐이라, 두 단어를 만들면 한 개념 한 단어 원칙에 역행하고 glossary만 늘어난다. (2) 이름값을 하는 자리는 "보간 안 하는 특수 이벤트"를 가리킬 때뿐이라, 특수한 쪽에만 `anchor`를 주고 일반 보간 이벤트는 무명으로 둔다(이름=예외 신호). 보간하는 일반항에까지 `transition`을 붙이는 건 과잉. (3) 두 종을 안 나누니 chain-event.md의 임무(두 종 정의)가 사라진다. 남는 건 "체인 평가 알고리즘" 하나인데, 그건 이미 shape §4에 잘 적혀 있고 lane §6이 줄여 반복하던 게 유일한 중복이었다. 문서를 새로 파는 대신 shape §4를 **chain 평가 단일 출처**로 명시하고 lane은 링크하게 해 중복만 걷었다 — 문서 개수를 늘리지 않는 게 단일화 정신에 맞다. `init`은 "체인의 첫 anchor" 호칭으로만 남긴다(별도 타입 아님, 평가기는 첫 번째인지 안 따짐).
-
-### isBlue를 체인 식별자로 (순서·교차 자유)
-구 코드 주석이 명시하듯 isBlue는 방향이 아니다. 두 경계는 어느 tick에서든 시각적 좌우가 바뀔 수 있다(교차). 양 끝을 line 0/4 같은 숫자로 부르면 "0 < 4"라는 순서 압박이 생겨 교차를 버그처럼 느끼게 한다. B/R 식별자로 부르면 순서 개념이 사라져 교차가 자연스러운 표현이 된다. 그래서 5선 멘탈모델의 양 끝도 0/4가 아니라 Blue/Red로 적는다.
-
-## 분박 그리드를 박자와 독립으로 둔 이유
-음악 이론·DAW 표준 모두 subdivision과 박자를 분리한다. subdivision은 "1박을 N등분"으로 박자와 무관하게 성립하고(7/8에서 2분할이 16분음표를 가리키듯 음표 이름만 박자에 종속), 박자는 마디선 위치만 결정한다. 입력은 드롭다운(흔한 3·4 배수, 빠른 선택)을 주력으로, 목록 밖 특수 N은 타이핑 보조로 둔다 — Reaper·Logic도 목록 + 목록 밖 값 직접 입력을 함께 제공한다. 현재 코드 주석("32 subdivisions는 박자 분모와 무관")도 이미 이 방향이라, 박자 독립 + 드롭다운/타이핑 2단 입력 + 틱 반올림(TPB가 7·9로 안 나눠떨어지는 경우)으로 확정.
-
-## 입력과 렌더를 분리하는 이유
-judge는 입력→판정만, render는 보여주기만 — 각자 책임이 확실해야 유지보수와 레이어 분리가 깨끗하다. 구 코드는 commitJudgment가 overlap의 above/below(시각 분리)를 계산해 이펙트에 실어보냈는데, 이는 입력 판정이 렌더 관심사를 침범한 설계 미스다. play-* 가 에디터 play 탭에서 자라며 생긴 오염. 재구현에서는 render가 "같은 lane·tick에 다른 노트가 있나"를 스스로 확인해 overlap을 적용하고, judge는 overlap을 전혀 모른다. 이 분리는 judge가 shape/laneEvents를 import하지 않는 것과 같은 원칙의 연장이다.
-
-## measureLabelOffset을 에디터 설정으로 옮긴 이유 [번복]
-
-앞선 결정은 이걸 곡 공통(metadata)에 뒀다 — "표시용 마디번호 보정은 그 대상인 timeSignatures와 한 몸이고, 같은 tick은 모든 난이도에서 같은 마디번호로 읽혀야 한다"는 논리였다. **이번에 번복한다.**
-
-핵심 재인식: measureLabelOffset은 **마디 구조를 바꾸지 않는다**. 내부 마디 인덱싱은 불변이고(코드 주석도 명시), 이건 순전히 **캔버스에 보이는 라벨 숫자만** 옮기는 편집 편의값이다 — 제작자가 8/16마디 루프를 눈으로 잡으려고 "여기를 1마디로 보이게" 당기는 도구. 즉 곡 데이터가 아니라 **에디터 작업 보조**다. 곡과 함께 배포·교환될 이유가 없고(.cfx에 실릴 값이 아님), 플레이어에겐 의미도 없다.
-
-"timeSignatures와 한 몸"이라는 근거는 *마디 구조*에는 맞지만 *라벨 표시 보정*에는 과한 결합이었다. 마디 구조(timeSignatures)는 곡 공통으로 남기고, 그 위에 덧씌우는 표시 보정은 에디터 설정([[settings]])으로 분리한다. 입력/렌더 분리와 같은 결 — 데이터(구조)와 표시(보정)를 섞지 않는다.
-
-## 곡별 jacketBrightness를 폐기하고 전역 settings로 통일한 이유
-
-코드엔 밝기가 둘 있었다 — 곡별 `metadata.jacketBrightness`(기본 50)와 전역 `settings.bgBrightness`(기본 100, 주석에 "mirrors jacketBrightness range"). 곡별 값은 play의 meta 설정이 곡 데이터로 새어든 흔적으로 보인다(입력/렌더 오염과 같은 종류의 누수). 자켓 배경을 얼마나 밝게 깔지는 **곡 제작자의 연출이 아니라 플레이어의 시야 취향**이다 — 배경이 노트를 가리지 않게 어둡게 두고 싶은 건 사람마다 다르고 곡과 무관하다. 따라서 곡별 값을 폐기하고, 전역 `bgBrightness`를 의미가 분명한 `jacketBrightness`로 개명해 [[settings]] 하나로 단일화한다. 곡 데이터(.cfx)에서 밝기 필드가 사라진다.
-
-## credit 필드를 값만 저장하고 "by"는 표시에서 붙인 이유
-
-`musicBy`(구 artist)·`jacketBy`(신규)·`chartBy`(구 charter)는 사람 이름 값만 담는다. "Music by / Jacket by / Chart by" 접미사는 credit 씬이 표시 시점에 붙인다. 저장에 "by"를 박으면 표기 변경(다국어·레이아웃)이 데이터 마이그레이션이 되고, 같은 정보가 값과 라벨 두 곳에 중복된다. 저장=값, 표시=라벨이라는 분리는 offset 저장값과 표시의 분리, shape 저장단위와 표시단위의 분리와 같은 원칙이다. `chartBy`만 chart별인 건 채보는 난이도마다 제작자가 다를 수 있기 때문(작곡·자켓은 곡 하나에 하나).
-
-## cmod·hidden을 폐기한 이유
-
-- **`cmod`**(등속 스크롤): 코드에서 settings UI가 `disabled, soon`으로 끝내 출시되지 않았다. Conflux의 스크롤은 "시간 등속"이 이미 기본이라(BPM은 간격만 바꿈, [[timing]]) cmod가 노리던 "일정 속도" 체감과 개념이 겹쳐 별도 모드의 명분이 약하다. 미출시 + 개념 중복 → 삭제.
-- **`hidden`**(상단 레인 커버): 판정선 올리기(`judgeLinePos` raise)가 같은 목적(노트가 보이는 구간을 위에서 줄이기)을 더 직접적으로 달성한다. 기능이 겹쳐 `hidden`을 폐기하고 raise로 대체한다. 단 `sudden`(상단 불투명 커버)은 성격이 다른 별개 커버라 유지한다.
-
-## music-select → song-select 개명 이유
-
-화면이 고르는 대상이 song(곡)이고 그 안에서 chart(난이도)까지 고른다. "music"은 오디오만 가리키는 듯해 2층 구조(song⊃chart)를 덜 드러낸다. 데이터 최상위 이름이 `song`으로 확정된 이상([[data-model]]) 화면 이름도 `song-select`로 맞춘다 — 한 개념 한 단어 원칙.
+### laneGridDivisor를 분리한 이유
+시간 subdivision과 공간 subdivision은 의미가 다르다. lane horizontal snap은 별도 2/3/4/6/8/12/16 계열을 사용한다.
 
 ---
 
-> **(폐기 이력)** "measureLabelOffset을 곡 공통으로 둔다"던 옛 결정은 위 [번복] 단락으로 대체됐다 — 곡 공통 결정은 무효.
+## shape·lane
 
-## 아키텍처 설계 근거
+### shape 좌표를 -8~+8로 저장하는 이유
+표시값과 저장값을 일치시키면 0~64 내부값 환산이 사라진다. 0.25 step과 정밀도도 동일하다.
 
-### plat을 env로 개명한 이유
-`plat`(platform 줄임)은 한 단어로 무엇을 가리키는지 안 와닿았다. `env`(environment)는 core와의 **대비**로 의미가 선다 — core="환경 무관, Node에서도 돈다", env="환경 의존, 브라우저 설비(canvas·audio·IndexedDB·input)에 직접 닿는다". `browser`는 더 직관적이나 데스크톱 래핑 등으로 확장하면 거짓이 되고, `host`는 CTX seam이 "game/editor 호스트"로 이미 점유해 한 개념 한 단어 원칙과 충돌, `io`는 canvas 생성·DPR 보정 같은 "출력 설비 마련"을 다 담지 못해 좁다. env가 추상도·미래안전·무충돌을 동시에 만족한다.
+### init fallback을 -2/+2로 둔 이유
+안전 fallback에 비대칭 이유가 없으며 중앙 기준 대칭 mental model이 자연스럽다.
 
-### 레이어 정의 단일 출처를 architecture로 옮긴 이유
-같은 레이어 도식이 README와 naming §5에 중복돼 있었다(단일 출처 위반). 레이어는 "파일명 접두사"보다 큰 개념이다 — 의존 방향·env/render 경계·CTX seam·빌드 게이트를 포함한다. 그래서 전용 문서(architecture)를 본가로 두고, naming §5는 "접두사가 곧 파일명"이라는 명명 규칙만 남겨 architecture를 링크, README는 요약+링크로 정리했다.
+### Step·Arc를 input label로만 둔 이유
+Step은 duration 0, Arc는 입력 순간 In/Out-Sine으로 resolve할 수 있어 저장 enum을 늘릴 필요가 없다. 평가기는 절대값만 본다.
 
-### core가 전역 D 대신 인자를 받게 한 이유 (동작 보존, 의존 재배선)
-현재 코드는 core 후보(timing·shape)가 전역 `D`를 직접 import해 에디터 전역에 용접돼 있다. 재구현에선 core가 활성 보면을 인자로 받는다([[data-model]] §9). 이는 동작 보존 재작성의 예외가 아니다 — 수치·알고리즘(결과 픽셀·판정)은 그대로 두고, 누가 누구를 import하는지(의존 구조)만 바꾼다. 이득은 셋: core를 브라우저 없이 Node에서 단위 테스트 가능, 레이어 한 방향 의존이 실제로 성립, play 엔진의 CTX seam과 같은 결(아래는 위를 모른다).
+### anchor/transition type을 나누지 않은 이유
+데이터는 easing 값 하나로 갈리는 같은 event다. 특수한 null만 anchor라 부르고 일반 보간에 새 type 이름을 만들지 않는다.
 
-### editor도 scene 그래프로 통일한 이유 (탭 개념 폐기)
-현재 editor는 1개 scene(`#app`) + 내부 탭(`tab-nav.js`, `.panel.on` 토글)이고, game만 scene 그래프다. 재설계에선 editor의 notes/shapes/test/meta도 scene으로 다룬다. (1) game·editor를 "scene"이라는 한 메커니즘으로 통일해 탭이라는 별도 개념이 사라진다. (2) 이미 만든 scene-manager(register/goScene/goBack/lazy-mount)를 그대로 재사용, tab-nav 폐기. (3) 무거운 play 엔진(`test` scene)을 안 열면 mount 안 되는 lazy 이득이 editor에도 생긴다. 단 game은 "되돌아가는 드릴다운"이라 스택형, editor는 "탭처럼 자유 이동"이라 평면형으로 전환 방식이 달라서, 한 트리에 섞지 않고 **형제 축 두 그래프**로 분리한다. game 그래프는 [[scene]]이, editor 그래프는 향후 editor 문서가 소유한다.
+### isBlue를 chain identity로 둔 이유
+Blue/Red는 방향이나 순서가 아니라 독립 chain 식별자다. 교차를 자연스럽게 허용한다.
 
-## 씬 구조·용어 설계 근거
+### lane data를 unconstrained로 둔 이유
+표현력을 data에서 막기보다 gameplay projection이 boundary/order/min-gap을 보장한다. editor는 raw truth와 projected difference를 보여준다.
 
-### play(모드)와 gameplay(scene)를 가른 이유
-`play`를 mode-select의 모드 이름으로 예약하고 싶었다(play/editor/settings). 그러면 곡을 치는 scene엔 다른 이름이 필요하다. `gameplay`는 모드 play와 한 글자도 안 겹쳐 충돌이 사라지고, 호스트 중립적이라 editor `test`에서 같은 엔진이 도는 것도 담는다(in-game은 "game 빌드 한정"이라 editor 케이스를 못 담아 탈락). 모드·scene은 층위가 달라 이론상 같은 이름도 가능하나, 헷갈림을 원천 차단하려 분리했다.
+### laneEvents와 shape workflow를 공유하는 이유
+평가·cache·editing pattern은 동형이지만 좌표계가 달라 object type은 합치지 않는다.
+
+---
+
+## domain·render 분리
+
+### input과 render를 분리하는 이유
+judge는 input→judgment, render는 표시만 담당한다. overlap·shape·lane visual을 judge가 알면 layer dependency가 오염된다.
+
+### overlap/conflict를 derived domain으로 둔 이유
+검출은 notes만으로 계산되는 순수 map이고 render는 색을 입히는 소비자다. capacity 이내=overlap, 초과=conflict로 한 검출 뒤 분기한다.
+
+### sweep-line n-way로 확장한 이유
+3중 이상 overlap에서 정확한 active set과 초과 수가 필요하다. O(n log n) sweep-line은 정확성과 성능을 동시에 만족한다.
+
+### conflict 삭제가 reverse insertion order인 이유
+배치 순서는 항상 total order이고 “나중에 얹은 초과분”을 지우는 편집 직관과 맞다. notes 배열은 insertion order를 보존한다.
+
+---
+
+## settings·theme·scene
+
+### measureLabelOffset을 editor setting으로 옮긴 이유 `[번복]`
+measure structure가 아니라 보이는 measure number label만 바꾸는 작업 보조다. chart와 배포할 이유가 없다.
+
+### jacketBrightness를 global setting으로 둔 이유
+background brightness는 chart author 연출보다 player visibility preference다. chart별 값과 global 값의 중복을 제거한다.
+
+### credit 값만 저장하는 이유
+이름 값과 `Music by` 같은 display label을 분리하면 localization·layout 변경이 data migration이 되지 않는다. 독립 chart 결정 후 musicBy/jacketBy/chartBy 모두 chart가 소유한다 `[번복 반영]`.
+
+### cmod·hidden을 폐기한 이유
+cmod는 미출시이면서 ms 등속 scroll과 개념이 겹친다. hidden은 judgeLine raise와 목적이 겹친다.
+
+### song-select 이름을 유지하는 이유 `[번복 반영]`
+저장 `song` 객체는 사라졌지만 사용자는 같은 `songId` chart group을 하나의 곡 단위로 탐색한다. `song-select`는 UI group 이름이고 data container를 뜻하지 않는다.
+
+### scene graph를 통일한 이유
+editor도 notes/shapes/test/meta scene graph를 사용하면 구 tab mechanism이 사라지고 game/editor가 같은 scene manager를 재사용한다. game은 stack형, editor는 flat형이다.
+
+### play mode와 gameplay scene을 가른 이유
+mode와 active play scene의 namespace 충돌을 피하고 editor test host까지 같은 engine으로 설명하기 위함이다.
 
 ### song-credit과 credits를 가른 이유
-두 종류의 크레딧이 있다. **곡 단위**(이 곡의 작곡·자켓·채보 = `musicBy`/`jacketBy`/`chartBy`)는 gameplay 직전에 뜨는 `song-credit` scene이 표시한다. **프로젝트 단위**(게임을 만든 개발자·엔진·디자인)는 `credits` scene이다. 데이터도 화면도 달라 이름을 갈랐다. `song-` 접두로 범위를 곡으로 좁히고, 제작진은 통상대로 복수형 `credits`로 둔다. 구 단수 `credit`은 `song-credit`으로 개명.
+chart credit와 project staff credit은 data와 transition이 다르다. song-credit은 선택 playable chart의 credit를 첫 진입에 보장한다.
 
-song-credit이 5초 자동·스킵 불가인 이유: 채보자 크레딧을 매 곡 최소 한 번은 보장하려는 의도다. 재시작(Retry/Back)은 gameplay로 직행해 song-credit을 다시 안 거치므로(scene §6 back-stack), 반복 대기가 없어 첫 진입의 5초만 부담한다 — 스킵을 막아도 비용이 1회로 묶인다.
+### overlay를 scene-owned로 둔 이유
+pause는 engine을 살려야 하며 모든 현재 overlay가 특정 scene 소속이다. global modal host를 미리 만들지 않는다.
 
-### editor play 탭을 test로 개명한 이유
-editor가 scene 그래프가 되면서(architecture §5) play 탭도 scene이 된다. 그 이름을 `play`로 두면 모드 `play`·scene `gameplay`와 삼중으로 헷갈린다. `test`는 "에디터에서 테스트 삼아 쳐본다"는 실제 의미를 정확히 담고, CTX seam으로 보면 gameplay(game 호스트)와 test(editor 호스트)가 같은 엔진의 두 호스트라는 구조와도 맞는다.
+### quick options를 공유하는 이유
+song-select와 editor test가 같은 persistent settings subset을 편집하므로 component 하나가 자연스럽다.
 
-### overlay를 scene-소유 층으로 둔 이유 (최상위 호스트 아님)
-pause는 gameplay 엔진을 죽이면 안 된다(Resume이 그 자리에서 이어져야). 그래서 scene 전환이 아니라 "scene을 살린 채 덮는 overlay"가 맞다. 구현은 DOM 최상위 단일 호스트가 아니라 **scene이 자기 overlay를 소유**하는 방식이다 — 우리 overlay들(pause·text-event·빠른 패널 — 종류는 [[scene]] §9)은 전부 특정 scene 소속이고 전역 모달이 없어서, 최상위로 끌어올리면 "어느 scene 거냐"를 인위적으로 다시 묶어야 하는 역설이 생긴다. 실측의 result overlay(z-index:9999 fixed)를 오히려 정식 scene으로 내린 방향과 같은 정신. 전역 overlay가 필요해지면 그때 최상위 호스트를 추가한다(YAGNI). overlay는 새 레이어가 아니라 game(상태·인터랙션)+render(그리기)로 분해되고, 기능별로 한 파일에 응집한다(유지보수 단위는 파일, 레이어는 분류).
+### theme를 별도 source로 둔 이유
+색·draw order·치수·font는 표현 값이고 constants의 logic 수치와 다르다.
 
-### 빠른 옵션 패널을 song-select·test 공유 부품으로 둔 이유
-배속·미러 등은 settings 한 곳에 영속되는 값이고, "빠른 패널"은 그 부분집합을 만지는 UI일 뿐이다(값 복제가 아님). 그래서 song-select에서 바꾸든 test에서 바꾸든 같은 settings 값이라 자동 동기된다. 패널 컴포넌트를 하나 만들어 두 scene이 각자 자기 overlay로 띄운다 — "공유 부품"(재사용되는 컴포넌트)과 "overlay"(띄우는 방식)는 다른 층위라 충돌하지 않는다. 담는 5종은 "판마다 바뀔 수 있는 것"(scrollSpeed/gaugeMode/mirror/staticShape/autoplay)이고, "한 번 정하면 고정"(F/S·judgeLinePos·볼륨 등)은 풀 settings로 내린다. 컴포넌트가 edit/game 양쪽에서 쓰이므로 그보다 아래 레이어에 둔다.
+### judge line raise 때 HUD strip도 이동하는 이유
+line과 strip 사이 dead space와 두 기준선을 없애되 strip 내부 높이는 고정해 stretch를 피한다.
 
-### mode-select를 공용 진입 허브로 둔 이유
-mode-select는 game·editor·settings 어느 모드도 아닌 공용 루트다. 여기를 **모드 추가의 단일 지점**으로 두면, 새 플레이 모드가 생겨도 mode-select 항목만 늘리면 되고 그래프 구조는 안 흔들린다. 확장점을 한 곳에 모으는 것이 목적.
+### H와 F state color를 분리한 이유
+song-select badge에서 색이 식별 축이므로 hard clear와 fail이 같은 빨강이면 구분되지 않는다.
 
-## overlap/conflict를 단일 검출 + capacity 분기로 둔 이유
-구 문서는 overlap(노란색, L2·L3)과 빨간 경고(L1·L4)를 별개 현상처럼 적었다. 실측(overlaps.js)은 둘이 **같은 검출기**임을 보여준다 — 활성구간 겹침 판정(Tap=[t,t], Hold=[head,head+dur))이 네 lane·Wide에 동일하게 돌고, 검출 *뒤*에 "그 lane이 2키냐 1키냐"(`OVERLAP_CHANNELS`, 개명 후 `OVERLAP_LANES` — [[naming]] §3)로만 갈린다. 그래서 "두 기능"이 아니라 "한 검출 + 한 분기"로 적는 게 사실에 맞고 단순하다. 2키 lane(L2·L3)은 겹침이 연주 가능이라 노란색 overlap, 1키 lane(L1·L4)과 Wide-on-Wide는 한 입력으로 둘을 못 쳐 빨간 conflict. Wide-on-Wide가 conflict에 포함되는 것도 실측에서 확인했다(구 서술에 빠져 있던 케이스).
+---
 
-### invalid/misplaced를 conflict로 통일한 이유
-같은 상태를 코드는 `invalid`, 초기 논의는 `misplaced`로 불렀다. `invalid`는 "무엇이 invalid인지" 막연하고, `misplaced`는 "잘못 놓임"이라 Wide-on-Wide(물리적으로 겹쳐 못 침)를 잘 못 담는다. `conflict`는 "두 노트가 한 키를 두고 충돌"이라 1키 lane도 Wide도 자연히 묶이고, `overlap`(공존 가능)↔`conflict`(공존 불가)의 대비가 선명하다. 한 검출의 두 결과라는 걸 이름쌍이 드러낸다.
+## records·settings
 
-### 검출을 render가 아니라 파생 속성(domain)으로 본 이유
-구 glossary는 "render가 판단한다"고 적었으나, 실측상 검출은 notes에 의존하는 캐시 패스(`noteOverlapMap`)이고 render는 그 map을 읽어 색만 입힌다. 검출은 입력/표시와 무관한 순수 계산(파생 속성)이라 domain에 두는 게 레이어상 맞다 — render는 결과의 소비자일 뿐. 그래서 알고리즘 단일 출처를 [[data-model]] §5.1(파생)에 두고 glossary·render는 참조한다.
+### no-record gate를 하나로 수렴한 이유
+과거 여러 미배선 조건을 합쳐 autoplay/staticShape/mid-start/editorOrigin 한 predicate로 두면 소비처마다 다른 적격 판정이 생기지 않는다.
 
-## colors.md를 theme.md로 승격한 이유
-colors.md는 색만 모았지만, render가 화면을 그릴 때 참조하는 "정해진 값"은 색만이 아니다 — draw order(z-층)·치수·폰트도 같은 성격(바꾸면 보이는 것만 달라지는 표현 값)이다. colors.md 자신이 말미에 "플레이필드 레이아웃은 이 문서로 합친다"고 예고했었다. 이들을 한 우산(`theme`)에 모으면 render 표현값의 단일 출처가 생기고, core의 `constants`(판정창·게이지 증감 같은 로직 수치)와 깨끗이 갈린다 — constants는 "어떻게 동작하나"(Node에서도 의미 있음), theme는 "어떻게 보이나"(브라우저 표현). `theme`라는 이름은 색·치수·타이포를 묶는 표준어이고, 미래에 스킨/다크모드가 생기면 그 그릇도 된다. 단 치수·폰트는 아직 실측 안 됐으므로(EXTRACTED_FACTS placeholder), 이번엔 색·draw order만 확정하고 나머지는 placeholder로 둔다 — 기억으로 채우지 않는다는 원칙.
+### state P를 F로 흡수한 이유
+완주 미달과 중도 실패는 사용자에게 모두 clear failure다. `F>N`으로 두어 play한 기록은 no-play보다 높게 유지한다.
 
-## draw order를 theme(render)에 둔 이유
-z-층(무엇이 무엇 위에 그려지나)은 판정·데이터와 무관한 순수 표현 순서다. 실측상 캔버스 패스 순서가 곧 z-순서이고(아래부터 그려 덮음), pause만 인터랙티브라 캔버스 위 DOM 1층이다. 이건 render의 관심사라 theme에 두고, scene(§9 overlay)·settings(judgeLinePos)는 참조한다. sudden이 notes 뒤·판정선 앞이라는 위치, 판정선이 게이지를 겸한다는 것이 실측으로 확정됐다. (HUD 곡정보 띠의 고정 여부는 이후 M5에서 뒤집힘 → [[#판정선 raise 시 곡정보 띠도 따라 올리는 이유]])
+### records를 별도 문서로 둔 이유
+settings는 사용자 입력, records는 game output이다. gauge/core에 persistence를 섞지 않는다.
 
-## no-record 게이트를 하나로 수렴한 이유
-구 코드엔 "이 판은 기록하지 말라"는 판정이 두 곳에 따로 있었다. `isRecordingDisabled()`(settings.js)는 `autoplay || staticShape || cmod`를, `recordEligible`(gauge.js)는 `startedFromBeginning && !autoplay`를 봤다. 둘 다 호출처가 없어(미배선) 어느 쪽도 "현행 동작"이라 못 박을 수 없었고, 겹치는 건 autoplay 하나뿐, staticShape은 settings 쪽에만·중간시작은 gauge 쪽에만 있었다. 재설계는 두 게이트를 하나로 합치되 **양쪽 조건의 합집합**을 택했다: 미배선이라 진짜 의도가 불명확할 땐 어느 쪽 조건도 버리지 않는 게 안전하고, autoplay·staticShape·중간시작은 셋 다 "온전한 실력 플레이가 아니다"라는 같은 취지라 합쳐도 정의가 일관된다. `cmod`만은 이미 미출시 기능으로 [폐기]했으므로 합집합에서 뺀다. 단일 출처는 [[settings]] §2에 두고, scene 등은 링크한다.
+### automatic chartId migration을 제거한 이유 `[번복]`
+본문 비교로 rename을 추론하면 timing·music이 독립인 새 chart model에서 잘못 연결될 위험이 더 커진다. `.cfx`와 library가 records를 이동하지 않는 단순 경계를 우선한다. 수정 chart의 연결은 fingerprint를 포함한 records/game-library 문제로 별도 review한다.
 
-## state에서 P를 F로 흡수한 이유
-구 코드는 곡을 끝낸 결과를 8종으로 갈랐다 — 클리어 계열(AS/AP/FC/H/C) 외에 `P`(played but not cleared, 끝까지 쳤으나 75% 미달·기록 존재), `F`(force-ended, terminate로 중도 강제종료), `N`(안 침). best 우선순위는 `AS>AP>FC>H>C>P>N>F`로 F가 맨 아래였다. 재설계는 `P`를 없애고 `F`에 합쳐 7종(AS/AP/FC/H/C/F/N)으로 줄였다. 유저 관점에서 "클리어 실패"는 하나의 결과이지, "완주했지만 미달"과 "중간에 터짐"을 상태로 구분할 실익이 크지 않다 — 둘 다 "이 판은 클리어 못 했다"로 충분하고, 판정 분포(fast/slow·miss 수)가 이미 "어떻게 실패했나"를 보여준다. 대신 흡수하면서 우선순위를 `…C>F>N`으로 바꿔 F를 N 위에 뒀다: 한 번이라도 친 곡(F, 기록 존재)이 아예 안 친 곡(N)보다 상위 기록인 게 자연스럽기 때문이다(구 코드의 P가 N보다 위였던 성질을 F가 계승). 안 친 노트는 전부 MISS로 처리되므로 미달로 끝난 판도 온전한 플레이 결과이고, 기록(playCount·bestState)은 그대로 남아 "친 곡" 추적에 문제가 없다.
+### fingerprint를 보류한 이유
+`.cfx` format closure와 record history semantics는 다른 책임이다. hash input·key evolution·old record reappearance를 함께 결정해야 하므로 이번 format commit에서 임의 정의하지 않는다.
 
+### constants와 settings의 분류 기준
+logic calculation range는 constants, visual value는 theme, user preference/current value는 settings다.
 
-## records를 별도 문서로 둔 이유
-settings는 사람이 정하는 환경·취향이고 records는 게임이 쓰는 결과값 — 성격이 달라 settings에 섞으면 "설정 단일 출처"가 흐려진다. gauge는 core 정의 문서라 영속성(저장 단위·키·갱신 규칙)이 레이어를 침범한다. 그래서 `_meta/records.md` 신설. 기록 단위 chart당 1개(전 gaugeMode 통합)는 [보존] — bestState 우선순위 사다리 자체가 모드 통합을 전제하고, cascade 결과도 자연 병합된다.
+---
 
-## cascade의 hard 탈락을 래칫으로 둔 이유
-"cascade로 H = hard 모드로 클리어" 동치가 근거다. hard 모드였다면 게이지가 0에 닿는 순간 죽은 판이므로, cascade에서도 hard가 한 번 0에 닿으면 이후 회복과 무관하게 H 불가여야 같은 플레이가 같은 결과를 낸다. lock 3종의 조건 위반이 비가역인 것과 같은 구조다.
+## architecture
 
-## visualOffset 미배선 서술을 번복한 이유
-settings·judge 초안은 "구 코드가 visualOffset을 주입만 하고 판정에 안 물렸다(미배선)"고 적고 [수정]으로 태그했으나, 실측(play-input.js) 결과 press·release 양쪽 입력 타임스탬프(curMs)에서 이미 차감하고 있었다(주석으로 의도 명시, 부호도 명세 서술과 일치). 입력 시각 보정과 diff 공식 보정은 수학적으로 동치이므로 [보존]으로 정정한다. 교훈: "미배선" 같은 부재 주장도 실측으로 확인한 뒤에 적는다.
+### plat을 env로 개명한 이유
+env는 core의 environment-independence와 대조되어 browser API boundary를 분명히 한다. host는 CTX 의미로 이미 사용한다.
 
-## gridDivisor 표기를 분음표 기준으로 바꾼 이유
-구 표기는 "1박을 N등분"(기본 8)이었으나 통상 채보 에디터·DAW는 분음표 표기(4분·8분·16분…)를 쓴다 — 구 N=1(1박 통짜)은 관례상 "4분"이다. 관례와의 혼동을 없애기 위해 V = 구 N × 4로 재명명한다(기본 8→32, `GDIVS`→`GRID_DIVISORS` ×4 + 6 추가, 256까지). 격자 좌표계는 동일하고, 6분(4분 셋잇단)처럼 박 단위로는 비정수인 등분이 자연스럽게 표현되는 부수 효과가 있다.
+### architecture를 layer source로 둔 이유
+README·naming에 중복된 layer diagram을 한 곳으로 모아 dependency, env/render boundary, CTX seam, build gate를 함께 정의한다.
 
-## result 키를 F5와 Enter로 둔 이유
-Retry는 [보존] 액션 키 restart(F5)의 재사용 — 세션 중이든 result에서든 같은 키가 같은 뜻("처음부터")을 가진다. Back은 메뉴 확정 키 Enter. Esc는 result에서 무기능으로 비운다 — gameplay의 pause 토글(Esc)과 붙어 있어, 곡 종료 직후의 연타 오입력이 화면을 넘기지 않게 한다.
+### core가 global data 대신 active chart를 받는 이유 `[번복 반영]`
+core가 editor global이나 library song group에 결합되지 않아 Node test와 one-way dependency가 가능하다. 새 model에서는 active chart가 timing까지 모두 소유한다.
 
-## pause 메뉴에 Retry를 넣은 이유
-실패 확정 전 재시작 경로가 구 코드엔 F5 액션 키뿐이라 발견성이 낮다. pause 메뉴를 Resume/Retry/Exit 3항목으로 두어 명시한다. Resume(멈춘 지점 이어서)과 Retry(처음부터)의 구분은 유지.
+### gameplay를 test의 restriction으로 보는 이유
+판정·gauge·render engine은 하나이고 game/editor host가 context만 다르게 주입한다.
 
+---
 
-## 스토어를 4분리한 이유
-구 코드는 localStorage 한 접두사를 차트·설정·기록·autosave가 공유해 예약 이름 로직과 "차트를 내부 키 이름으로 저장하면 앱 상태를 덮어쓰는" 위험이 상존했다(file-manager.js FM_RESERVED 실측). 스토어 분리로 충돌 문제가 원천 소멸하고, 각 스토어의 단일 출처 문서(records/settings)와 경계가 일치한다.
-(후기) 정본이 파일로 이동하며([[cfx]]) 구성은 songs/assets → **workspace/library**로 교체됐다 `[번복]` — "에디터 정본 저장소"가 사라지고 복구 슬롯과 게임 라이브러리만 남는다. 4분리 원칙 자체는 유지.
+## persistence·cfx
 
-## cfx를 두 층으로 나눈 이유
-에디터의 작업 단위(채보 하나를 고친다)와 게임의 소비 단위(곡 하나를 로드한다)가 다르다. 초안의 통합 컨테이너(.cfx가 교환·저장 겸용, 내부 song.json+charts/)는 에디터가 매 저장마다 zip을 읽고 써야 하고, 로컬 스토어와 파일 중 어느 쪽이 정본인지 이중화 문제를 낳았다. chart `.json`을 자립 파일(곡 공통 필드 사본 포함 — BMS가 25년 검증한 구조)로 두면 에디터는 낱개 파일만 알면 되고, .cfx는 "완성본을 폴더에 모아 압축"하는 수동 조립으로 충분하다. 사본 불일치는 로더 규칙(최저 chartId 정본)으로 해소하고, 조립 검증(songId 불일치·chartId 중복·music 부재 거부)이 안전망이다. 재import의 복제 선택지 폐기도 같은 흐름 — 새 UUID가 필요하면 에디터의 derive가 유일 경로라 게임 쪽 복제는 중복이었다.
+### store를 4분리한 이유
+workspace/library/records/settings의 성격이 달라 key collision·reserved name을 구조적으로 없앤다. user file이 canonical이라 editor database를 두지 않는다.
 
-## 게임 라이브러리를 에디터 저장소와 분리한 이유
-에디터 작업본은 항상 변하는 초안이고, 게임 라이브러리는 "완성본을 등록한 것"이다. 저장소를 공유하면 편집 중인 반쪽 차트가 song-select에 그대로 노출된다. .cfx export→import를 경유시키면 등록이 명시적 행위가 되고, 스토어 계약도 단순해진다.
+### chart JSON과 `.cfx` 두 층을 유지한 이유
+editor는 chart 하나를 자주 수정하고 game은 관련 chart 집합을 배포한다. 작업 파일과 배포 container를 분리하면 매 저장 zip rewrite와 canonical duplication이 사라진다.
 
-## 디버그 덤프를 song 전체로 바꾼 이유
-구 export는 D 통짜(tempo 포함)라 단독 로드가 가능했지만, 당시 스키마에선 tempos·timeSignatures가 song 공통이라 chart 단독 JSON은 재생도 로드도 못 하는 반쪽이었다. 디버그·diff 용도가 목적이므로 단위를 song 전체(에셋 제외)로 올렸다.
-(후기) 두 층 전환으로 chart 파일이 공통 필드 사본을 품는 자립 파일이 되며 "반쪽" 전제가 소멸 — chart `.json` 자체가 텍스트 정본이라 덤프는 폐지 `[번복]`. → [[cfx]]
+### independent chart ownership으로 번복한 이유 `[번복]`
+chart별 metadata·music·jacket·timing을 허용하려면 song-common copy 동기화와 “최저 chartId 정본”이 거짓이 된다. chart 자체를 완전한 작업 문서로 두고 songId는 grouping만 담당하는 것이 결정과 구조가 직접 대응한다.
 
-## song id를 UUID로 둔 이유
-content-hash(오디오·메타 유도)는 곡을 고치기만 해도 id가 바뀌어 기록이 끊긴다. UUID는 편집·리믹스에도 기록 연속성이 유지된다 — 유저 기대와 일치. 새 id 발급은 derive 한 경로로만 한다(초안의 import 복제 선택지는 폐기 — 위 "cfx를 두 층으로 나눈 이유" 참조).
+### persisted song container를 없앤 이유 `[번복]`
+공통 소유 state가 없는데 `{songId, charts[]}`를 canonical로 저장하면 group-by로 파생 가능한 wrapper를 중복 저장한다. loader/UI가 필요할 때만 view를 만든다.
 
-## 구 포맷 변환기를 탑재하지 않는 이유
-구→신 간극(channel→lane, 좌표계, lineEvents 구조, 단일 chart→charts[])이 커서 변환기 명세·유지 비용이 크다. 기존 자작 차트는 소수이고 lineEvents는 미사용이라, 외부(AI/수동) 일회 변환으로 충분하다. 앱은 신 포맷 하나만 안다 — 로더가 단순해진다.
+### explicit asset file reference가 필요한 이유 `[번복]`
+package-wide `*_music` 하나를 suffix로 찾는 규칙은 chart별 asset을 연결할 수 없다. chart가 file name을 저장하면 관계가 명시적이고 공유도 같은 name 참조로 표현된다.
 
-## meta 탭을 Tab 순환에서 뺀 이유
-tempo·박자·메타데이터는 작업 초기에 한 번 넣으면 잘 안 바꾸는 영역이다. Tab 순환(notes→shapes→test)은 초 단위로 오가는 편집·확인 루프에 최적화하고, meta는 클릭 진입으로 충분하다.
+### flat ZIP + global file-name uniqueness를 선택한 이유
+per-chart folder는 collision을 없애지만 package structure와 path semantics를 늘린다. package 생성 빈도가 낮고 user가 input을 명시하므로 flat root와 deterministic reject가 더 단순하다. packager는 자동 rename하지 않는다.
 
-## 에디터 세로축을 시간 비례로 바꾼 이유
-구 에디터는 tick 비례라 같은 노트 밀도가 BPM에 따라 다른 시각 밀도로 보였고, play(시간 비례)와 감각이 어긋났다. 시간 비례로 통일하면 "화면에서 노트가 나오는 시간"이 에디터와 플레이에서 같아진다. 그리드는 tick으로 계산해 ms로 투영 — 변속 구간에서 그리드 간격이 달라 보이는 건 정확한 반영이다.
+### same-name identical asset만 합치는 이유
+여러 chart가 같은 asset을 공유할 수 있게 하되 name이 같은 다른 binary를 조용히 선택하지 않는다. 다른 이름의 같은 binary까지 dedup하지 않아 content-address store를 되살리지 않는다.
 
-## gameplay를 test의 제약형으로 보는 이유
-판정·게이지·렌더는 하나의 플레이 엔진이다. test = 엔진 + 에디터 편의(중간 시작, 즉시 재생, 옵션 패널), gameplay = 엔진 + 제약(전체화면, 온전한 판). "무엇이 먼저냐"가 아니라 같은 엔진의 두 호스트로 명세해 중복 구현을 막는다.
+### user-selected packaging을 기본으로 둔 이유
+folder 전체 inference는 무관 JSON·여러 songId·version·asset association을 추론하게 해 format semantics를 복잡하게 만든다. 선택된 input 검증만 core flow로 두고 folder scan은 prefill로 낮춘다.
 
-## 에디터 발원 판을 항상 무기록으로 둔 이유
-에디터에선 차트가 수시로 바뀌므로 "기록이 가리키는 차트"와 실제 차트가 어긋나는 판이 쉽게 생긴다. 판별 조건을 붙이는 대신 에디터 발원(test 재생·test 경유 gameplay) 전체를 무기록으로 두면 게이트가 단순하고, 기록은 항상 게임 모드의 등록된 곡에서만 나온다.
+### re-scan이 latest recommendation으로 돌아가는 이유
+package 생성은 드물어 과거 manual old-version selection을 오래 유지할 근거가 약하다. candidate set을 새로 읽으면 최신을 다시 기준으로 삼는다. 이 규칙은 packager 후보 선택에만 해당하며 library의 구버전 reimport 허용 여부는 별도 보류다.
 
-## symmetry 축 기본값을 동적 스냅샷으로 되돌린 이유
-"기본 0 고정"(직전 확정)은 실측 전 결정이었다. 구 코드의 mirror는 그 tick의 shape 중심을 축으로 쓰고, 이 감각(현재 형태 기준 대칭)이 편집에 맞다. 다만 축 시점을 "대칭 시작 틱"이 아니라 "배치 지점의 grid 스냅 최근접 tick"으로 정밀화하고, 드래그 수동 조절을 얹는다. 선택물 제자리 mirror(Ctrl+F)는 별개 기능으로 축 0 고정 — 둘을 혼동하지 않도록 이름을 나눴다(symmetry/mirror).
+### Representative Chart가 display default만 제공하는 이유
+song group list에는 대표 title/jacket/preview가 필요하지만 이를 common canonical source로 만들면 chart independence를 다시 깨뜨린다. 선택 전 display에만 쓰고 선택 후 active chart로 전환한다.
 
+### packaging을 non-destructive로 둔 이유
+package는 selected files의 derived output이다. success/cancel/failure가 source version·workspace·JSON을 바꾸면 export와 package 책임이 섞인다.
 
-## chart 구조 조작을 undo 밖에 둔 이유
-chart 전환 시 n/s 스택을 초기화하기로 한 결정(단순함 우선)의 논리적 귀결이다. 구조 조작(추가·복제·chartId 편집·삭제)을 undo 대상으로 만들려면 전환을 넘어 생존하는 별도 스택이 필요한데, 그건 초기화로 얻은 단순함을 반납하는 꼴이고, "삭제 undo 시 그 chart의 편집 이력은 이미 소거됨" 같은 예외 각주도 따라온다. 구조 조작은 곡당 몇 번 수준으로 드물고 파괴적인 건 삭제뿐이므로, confirm 한 번이 undo보다 싸고 충분하다.
-(후기) 단일 chart 세션 확정(아래)으로 추가·복제·삭제·전환은 대상 자체가 소멸 `[번복]` — 남은 것은 현재 chart 메타 필드의 즉시 적용 편집뿐이며 "undo 밖" 결론은 그대로 성립한다.
+### whole-package rejection을 선택한 이유
+`.cfx`는 이미 conflict-resolved final unit이다. environment마다 정상 subset이 달라지는 partial load보다 명시적 fail이 재현 가능하다.
 
-## 에디터를 단일 chart 세션으로 둔 이유
-파일 정본 체제에서 에디터가 여러 파일의 chart를 동시에 물면 "저장이 어느 파일로 가나"부터 정본 관계가 흐려지고, 곡 공통 필드 사본의 동기 부담이 세션 안으로 들어온다. 한 세션 = chart 파일 하나면 열기(Ctrl+O)·저장(Ctrl+S)·export(Ctrl+E)·derive가 전부 파일 하나와 1:1이다. 난이도 이동은 파일 열기와 "새 난이도"(공통 필드 상속 + 백지) 파생으로 충분하다 — BMS의 차분 제작 감각과 같다. 구 확정의 chart 목록·드롭다운 전환·전환 시 스택 초기화는 폐기 `[번복]`.
+### decode validation을 layer별로 나눈 이유
+editor는 data recovery가 중요하고 game은 playable guarantee가 중요하다. packager가 cross-environment codec support를 보장할 수는 없다.
 
+### library를 editor workspace와 분리한 이유
+초안 chart가 game list에 노출되지 않도록 `.cfx` import라는 명시적 publish boundary를 둔다.
 
-## overlap과 conflict 검출을 sweep-line n-way로 확장한 이유
-구 코드의 쌍(pairwise) 검출은 2겹까지만 정확하고, 3겹 이상에서 "몇 개가 초과인가"를 세지 못한다. 재설계의 두 요구 — conflict를 그 순간의 동시 활성 집합 전체에 표시, del로 capacity 초과분만 삭제 — 는 정확한 동시 활성 수·집합을 전제한다. sweep-line(시작/종료 이벤트를 정렬해 한 번 훑기)은 O(n log n)이라 극단적 다중 겹침에도 성능이 안전해, "정확히 센다"와 "성능" 사이에 트레이드오프가 애초에 없다. 재계산은 notes를 invalidate하는 dispatch에만 연동한다 — shape·lane 이벤트는 겹침과 무관하므로. 2겹까지는 pairwise와 결과가 동일해 [보존] 범위가 유지되고, 3겹 이상 처리만 [수정]이다.
+### debug dump를 폐기한 이유
+독립 chart JSON이 이미 text canonical document라 별도 dump가 역할 중복이다.
 
-del 해소가 배치 역순인 이유: 겹친 노트들은 startTick이 같거나 겹쳐 있어 시간 순서가 삭제 기준이 되지 못한다. 배치(추가) 순서는 항상 전순서라 안정적이고, "나중에 얹은 것이 잘못 얹은 것"이라는 편집 직관과도 맞는다. 이를 위해 notes 배열 순서 = 배치 순서 보존을 데이터 전제로 명문화했다([[data-model]] §5.1 — 시간순 접근은 정렬 캐시가 담당하므로 배열 자체를 정렬할 이유가 없다). 초과분만 삭제(전량 아님)인 것은 capacity 이내로 되돌리는 최소 개입이 목적이기 때문이고, capacity를 넘었다고 자동 삭제하지 않는다 — 유저의 del 실행에만 반응한다(에디터는 유저 데이터를 임의로 지우지 않는다).
+### songId를 UUID로 둔 이유
+content change와 identity change를 분리하고 derive만 새 group UUID를 발급한다.
 
-## textEvent의 transition·mode 축을 폐기한 이유
-실측상 구 필드는 `{startTick, duration, content, pos, transition, mode}` 6종. `transition`은 fade/appear 2종이 있었으나 appear(즉시 등장)는 급작스러워 실사용이 없었고 tutorial 연출은 전부 fade만 썼다(제작자 확인). `mode`는 드롭다운 옵션이 tutorial 하나뿐인 죽은 축 — 정보량이 0이다. 둘 다 폐기하고 fade(등장·퇴장 각 300ms, 실측)를 고정 연출로 둔다. 미래에 모드·연출 종류가 실제로 생기면 schemaVersion을 올리며 필드를 추가한다(기본값 병합으로 하위호환). 이름은 `content` [보존](`text`는 textEvent와 겹쳐 자명하지 않고 content가 낫다), `pos`→`position` 개명(약어 해소 — naming §1), 값 `line:N`→`laneN`(lane 용어 통일). 초안의 "fade 고정 [신규]" 태그는 transition 필드가 구에 실존했으므로 [수정]으로 정정했다 — 부재 주장뿐 아니라 신규 주장도 실측으로 확인한 뒤 적는다(visualOffset 교훈과 같은 결).
+### legacy converter를 탑재하지 않는 이유
+구 schema와 lane/shape/event 차이가 커 앱 runtime이 두 format을 알게 하는 비용보다 외부 일회 변환이 작다.
 
-## chartId 마이그레이션을 내용 일치 기반으로 둔 이유
-채보의 정체성은 id가 아니라 본문(notes·shapeEvents·laneEvents·textEvents)이다. 완성된 채보를 다른 난이도 슬롯으로 옮기는 rename(예: Surge 완성본을 Flux로 이동)은 기록이 이어져야 하고, 본문이 바뀌었으면 다른 채보라 기록 단절이 맞다. 감지 방식으로 이력 필드(previousChartId)는 chart 파일을 오염시키고, 유사도 추론은 오작동 위험이 있다 — **본문 4배열의 완전 동일 비교**는 둘 다 피하면서 "id만 옮겼다"를 확실히 판별한다(메타 difficulty·subtitle·level·chartBy·version은 비교에서 제외 — 라벨이 바뀌어도 본문이 같으면 같은 채보). 동일 본문 후보가 복수면(복제 채보) 이전하지 않는다 — 잘못 잇는 것보다 안 잇는 게 싸다. 실행 주체는 .cfx 재import 로더다 — 에디터가 게임의 records 스토어를 직접 만지면 레이어 경계 위반이고, 기록은 외부 공개(.cfx 등록)된 채보에만 존재하므로 재import가 유일하게 필요한 시점이다. id 수정·마이그레이션 자체가 드문 일이라(채보 완성 후 슬롯 이동 정도) 이 정도 감지로 충분하다.
+---
 
-## constants와 settings의 분류 기준
-scrollSpeed 범위가 glossary·settings에 흩어지고, settings가 참조하는 `SCROLL_SPEED_*`가 정작 constants에 없는 댕글링이 있었다. 기준을 명문화해 해소한다: **로직 계산에 쓰이는 수치는 constants**(Node 하네스에서도 의미 있는 값 — 판정창·게이지·rank·스크롤 범위), **순수 표시 값은 theme, 취향·환경 값은 settings**. scrollSpeed의 현재값은 settings(취향)지만 허용 범위·스텝은 `visMs` 계산([[timing]] §3)의 경계 조건이라 constants로 옮긴다. 앞으로 수치의 배치가 애매할 때도 이 기준으로 가른다.
+## editor
 
+### meta scene을 Tab cycle에서 뺀 이유
+tempo·metadata는 편집 hot loop보다 드물게 바뀐다. notes→shapes→test를 빠른 cycle로 유지한다.
 
-## hold tail의 게이지 특례를 폐기한 이유
-실측상 구 게이지 피드(`gaugeOnJudgment`)는 judgment 4종이 아니라 6종 kind(TAIL_OK/TAIL_MISS 포함)를 받았다. 명세 초안은 "판정을 SYNC/MISS로 통합"이라면서 델타 표에는 tail 행을 남겨 인터페이스 모순이 있었다 — `applyGaugeChange(judgment)` 4종으로는 tail 전용 델타를 표현할 수 없어, 명세대로 구현하면 hard tail이 +0.15로 처리되는 회귀가 명세 안에 숨어 있던 셈이다. 선택지는 둘: (a) 6종 신호를 [보존]하고 통합을 카운트·lock 층위로 한정, (b) 게이지까지 완전 통합 [수정]. (b)를 택했다 — "끝까지 누르면 SYNC, 중간에 떼면 MISS"라는 정의 한 문장이 표시·카운트·lock·게이지 모든 층위를 관통하고, hold(head+tail 2유닛)가 일반 노트 2개와 완전 동치가 되어 특례가 사라진다. 실변경 폭도 작다: normal은 구에서도 tail 델타가 SYNC/MISS와 동일했고(구 코드 주석에 "MISS == TAIL_MISS" 명기), hard만 바뀐다 — tail 성공 +0.1 → +0.15(소폭 완화), 중간 릴리즈 −2.5 → −5.0(강화: hold를 끝까지 못 지킨 것을 MISS와 같은 무게로 취급). cascade의 hard 병렬 평가에도 동일하게 적용된다.
+### vertical axis를 time-proportional로 둔 이유
+editor와 gameplay에서 보이는 시간 밀도를 일치시킨다. grid는 tick 계산 후 ms로 투영한다.
 
+### editor-origin play를 no-record로 둔 이유
+workspace chart는 즉시 변하므로 stable library content의 record와 연결할 수 없다. 조건 추론보다 전체 editor-origin을 제외하는 것이 단순하다.
 
-## lane을 무구속 데이터 + 투영 렌더로 뒤집은 이유
-[번복] — 구안은 데이터에 순서 구속(`Blue ≤ 1 ≤ 2 ≤ 3 ≤ Red`)을 두고 에디터가 위반 입력을 롤백하는 모델이었다. 문제는 둘: 표현력(구분선을 경계 밖에 대기시켰다가 들어오게 하는 연출, 경계에 수렴시키는 연출이 불가능)과 편집 마찰(symmetry·mirror·그룹 이동의 결과가 구속에 걸릴 때마다 거부 규칙이 늘어남). 뒤집었다 — 데이터는 자유(targetPos ∈ 실수 전체), 구속은 gameplay 렌더가 투영 단계에서 지킨다(경계+순서 클램프+최소 간격). shapes 씬은 진실을 그리되 투영과 달라지는 구간을 점선으로 표시해 "지금 보이는 위치 ≠ 게임 위치"를 한 가지 기호로 전달한다. 위반 검사·롤백·거부 로직이 통째로 사라지고, 판정은 원래 laneEvents를 모르므로 게임 로직 영향은 없다. 0/1 기준도 "0=Blue 고정"에서 "왼쪽 경계=0" 동적 정규화로 바꿨다 — 경계 교차 시에도 lane 좌표가 항상 왼→오로 읽히고, 교차 순간 span이 0이라 위치는 연속이다.
+### symmetry axis를 dynamic snapshot으로 둔 이유
+배치 tick의 current shape center를 기준으로 하면 현재 형태에 대한 대칭이라는 편집 감각을 유지한다. Ctrl+F mirror는 axis 0의 별 기능이다.
 
-## lane 가로 그리드를 전용 분할 수로 분리한 이유
-[번복] — 구안은 노트 분박 gridDivisor(기본 32)를 lane 가로 스냅에도 공유했다. 그러나 시간 분박(몇 분음표)과 공간 분할(레인 폭을 몇 등분)은 의미가 다른 독립 축이고, 32처럼 촘촘한 시간 그리드를 가로에 그대로 쓰면 위치 스냅이 사실상 자유 배치가 된다. 전용 `laneGridDivisor`(드롭다운 2/3/4/6/8/12/16 + 정수, 기본 4)로 분리하고, 격자점은 k/N으로 0·1 바깥까지 연장한다(무구속 좌표와 짝). 기본 4 = 레인 4개의 자연 등분.
+### chart structure edit를 undo 밖에 둔 이유
+한 session=한 chart이고 session replacement에서 history가 clear된다. cross-file structure undo stack을 만들지 않는다.
 
-## tail 릴리즈 유예를 폐기한 이유
-[수정] — 구 임계는 `tailMs − WINDOW_GOOD_MS(100) − LN_RELEASE_GRACE_MS(50)` = tail보다 150ms 이르게 놔도 성공이었다. GOOD(±100ms)이 콤보가 이어지는 최소 판정이므로, tail 릴리즈도 같은 창을 그대로 따르는 게 판정 체계와 정합하다 — 임계 = `tailMs − WINDOW_GOOD_MS`, 특례 상수 하나 삭제. hold 특례 제거 시리즈(게이지 델타 통합)와 같은 결: hold의 head와 tail이 일반 노트와 동일한 규칙으로 수렴한다. 50ms 구간이 성공→MISS로 바뀌는 엄격화이며, 판정창 자체(±25/50/100, 실측 재확인 완료)는 그대로다. 부수 명문화: keyup도 keydown과 동일한 보정 시계(visualOffset)를 쓴다 [보존] — 이는 시계 보정이고 GOOD 창은 성공 인정 여유라 서로 다른 축이며 이중 보정이 아니다.
+### editor를 single-chart session으로 둔 이유
+workspace·open·export가 한 chart 파일과 1:1이면 canonical relation이 명확하다. 새 chart는 같은 songId에서 시작값을 복사하되 이후 독립적으로 diverge한다 `[번복 반영]`.
 
+---
 
-## 판정선 raise 시 곡정보 띠도 따라 올리는 이유
-[수정] — 구 코드는 곡정보 띠(title·musicBy·score)를 기본 밴드(`jYDefault` 아래)에 고정했다(코드 주석 "the strip stays put while the line + combo block move up" 실측). 고정의 이유는 밴드가 늘어나며 레이아웃이 깨지는 것(stretch) 방지였다. 그러나 판정선을 올리면 판정선과 띠 사이에 죽은 공간이 생기고, HUD가 두 기준선(판정선/기본 밴드)으로 쪼개져 시선이 분산된다. 띠를 판정선 하단에 붙여 함께 올리되 **내부 높이는 기본 밴드 높이로 고정**(이동만, 스케일 없음)해 구 설계의 stretch 우려도 같이 해소한다. glossary의 judgeLine 서술("올리면 아래 HUD도 따라 올라간다")이 이 [수정]으로 사실이 된다 — 문서 모순(glossary ↔ theme·settings)을 glossary 쪽으로 해소한 결정.
+## text event
 
-## state 색에서 H와 F를 분리한 이유
-[수정] — 실측상 구 `STATE_COLOR`는 H와 F가 동일한 `#ff4a5a`였다(hard 게이지 색 재사용 — 주석 "reuse gauge/neutral tones"). 구 코드는 글자 표기가 함께라 문제가 작았지만, 신설계에서는 song-select 뱃지 [신규]와 result 막대(최종 티어 색)에서 색이 식별 축이 되어 hard 클리어와 실패가 구분되지 않는다. H = `#ff9a3f`(주황 — 클리어 계열 유채색을 유지하면서 게이지 빨강과 인접하되 구별), F = `#8f2a38`(maroon — 실패 = 빨강 관습을 유지하면서 명도·채도로 분리). 이로써 H와 hard 게이지 색(#ff4a5a)의 연동은 끊기지만, 막대는 게이지의 색이고 뱃지는 state의 색 — 서로 다른 개념이라 무방하다.
+### transition·mode를 폐기한 이유
+appear는 실사용이 없고 mode는 tutorial 하나뿐인 dead axis였다. fade 300ms 고정과 `content`·`position`만 유지한다.
+
+---
+
+## 결정 상태
+
+이번 `.cfx` Closure Review에서 다음 근거가 기존 cfx/song-common/record-migration 근거를 대체한다.
+
+- independent chart ownership
+- derived songId group
+- Representative Chart display-only role
+- explicit per-chart asset references
+- flat package collision policy
+- user-selected packager flow
+- no automatic record migration
+- modified-chart record linkage Deferred

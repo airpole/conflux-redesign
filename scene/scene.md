@@ -1,249 +1,209 @@
 # scene — 화면 그래프
 
-> 한 번에 한 화면만 보인다. 화면 = **scene**. scene 전환은 최상위 한 겹이고, scene 위에 잠깐 덮는 **overlay**(§9)와, 여러 scene을 묶는 **모드 그래프**(§3)와는 직교한다.
-> 기준축: 공용 루트(title·mode-select) + 세 모드 그래프(game·editor·settings). game 그래프를 1급으로 적고, editor·settings 그래프의 내부 전환은 각자 문서가 소유한다(§3).
-> 근거(why)는 → [[rationale]]. 짝 문서: [[glossary]] (scene 용어 색인), [[architecture]] (레이어·CTX·overlay 귀속), [[gauge]] (도전 모드), [[settings]] (옵션 값), [[data-model]] (song⊃chart).
+> 한 번에 한 scene만 보인다. scene 위에 잠깐 덮는 층은 overlay다.
+> 공용 root(title·mode-select) 아래 game/editor/settings 세 mode graph가 형제로 갈린다.
+> 짝 문서: [[glossary]], [[architecture]], [[settings]], [[data-model]], [[cfx]].
 
 ---
 
-## 1. scene · overlay · 모드 그래프
+## 1. scene · overlay · mode graph
 
-세 축이 직교한다.
+- **scene**: 최상위 화면. 전환하면 이전 scene은 숨는다.
+- **overlay**: 현재 scene과 engine을 살린 채 위에 덮는다. pause·text-event·quick options.
+- **mode graph**: 여러 scene의 묶음. game/editor/settings는 형제다.
 
-- **scene** = 사용자에게 한 번에 하나만 보이는 최상위 화면. 전환하면 이전 scene은 숨고 새 scene만 보인다.
-- **overlay** (§9) = 한 scene **위에** 그 scene을 살린 채 잠깐 덮는 층. scene-manager를 거치지 않는다. 엔진·하위 상태가 계속 살아있다(예: pause, text-event). overlay를 띄운 주체는 그 scene이고, overlay의 내용물은 공유 부품일 수 있다(§5 빠른 패널).
-- **모드 그래프** (§3) = 여러 scene을 묶는 묶음. game/editor/settings 세 그래프가 공용 루트 아래 형제로 갈린다.
-
-> 구 모델의 "scene 내부 토글 패널(에디터 탭)"은 폐기됐다. 에디터 탭은 이제 각각 scene이다(editor 그래프, §3). 화면 위에 덮는 건 overlay로 일원화한다.
+editor의 notes/shapes/test/meta도 scene이며 구 내부 tab 개념은 폐기했다.
 
 ---
 
-## 2. scene 메커니즘 `[보존]`
+## 2. scene mechanism `[보존]`
 
-각 scene은 다음으로 등록된다.
-
-```
+```js
 scene = {
-  id,         // 고유 이름
-  mount(),    // 최초 진입 1회 — DOM 구축 (lazy)
-  onEnter(),  // 보일 때마다 — 리스너 부착·캔버스 리사이즈·포커스
-  onExit(),   // 떠날 때마다 — 리스너 해제·재생 정지·대기 취소
+  id,
+  mount(),
+  onEnter(),
+  onExit(),
 }
 ```
 
-- **lazy mount**: scene은 **처음 보일 때** `mount()`를 1회만 호출한다. 한 번도 안 본 scene은 비용(DOM·메모리)을 치르지 않는다. → §7 빌드 게이트의 토대.
-- **단일 가시성**: 항상 정확히 하나의 scene만 보인다. 떠나는 scene은 `onExit()` 후 숨고, 들어오는 scene은 보인 뒤 `onEnter()`.
+- lazy mount: 첫 진입 1회.
+- 단일 가시성: 항상 하나의 scene.
 
-### 전환 연산
-
-```
-goScene(id)            // id로 전환. 직전 scene을 back-stack에 push.
-goScene(id, replace)   // push 없이 교체 — "뒤로 갈 수 없는 통과점"용 (§6 song-credit).
-goBack()               // back-stack pop → 이전 scene. 스택이 비면 no-op.
-resetSceneStack()      // 스택 비우기 — title을 새 루트로 되돌릴 때.
+```js
+goScene(id)
+goScene(id, replace)
+goBack()
+resetSceneStack()
 ```
 
-- 같은 scene으로의 `goScene`은 no-op.
-- `goBack`은 떠나는 scene을 스택에 다시 넣지 않는다 (단방향 unwind).
-- 전환 방식은 그래프마다 다르다(§3): game은 **스택형**(goBack 의미 있음), editor·settings는 **평면형**(자유 전환).
+- 같은 scene 전환 no-op.
+- game은 stack형, editor/settings는 평면형.
 
 ---
 
-## 3. 공용 루트 + 세 모드 그래프
+## 3. 공용 root + 세 graph
 
-```
+```text
                        title
-                         │  (아무 입력)
-                    mode-select  ── 공용 진입 scene. 모드 추가로 확장 (§4)
-        ┌────────────────┼────────────────┐
-      play             editor            settings   (모드)
-        │                │                 │
-   [game 그래프]    [editor 그래프]    [settings 그래프]
-     스택형             평면형             평면형
+                         │
+                    mode-select
+       ┌─────────────────┼─────────────────┐
+     play              editor            settings
+       │                  │                 │
+ game graph          editor graph      settings graph
 ```
 
-- **공용 루트**: `title`, `mode-select`. 어느 모드도 아닌 최상위 진입 scene.
-- **game 그래프** (스택형 드릴다운): `song-select → song-credit → gameplay → result`. 정의·전환은 본 문서(§5~§8).
-- **editor 그래프** (평면형 자유 전환): `notes ↔ shapes ↔ test ↔ meta`(+진입 화면, test → 전체화면 gameplay 진입 포함). 구체 전환·상태 규칙은 **[[editor-graph]]**가 소유. ([수정] 구 코드의 "1 editor scene + 내부 탭"을 scene 그래프로 — [[architecture]] §5.)
-- **settings 그래프** (평면형): `visual ↔ sound ↔ …`. 설정값 정의는 [[settings]], 화면 묶음은 settings 문서가 소유.
+- game: `song-select → song-credit → gameplay → result`.
+- editor: `notes ↔ shapes ↔ test ↔ meta` + start scene. 상세 [[editor-graph]].
+- settings: visual/sound 등. 값은 [[settings]].
 
-세 그래프는 **형제 축**이고 mode-select에서 빌드 게이트(§7)로 갈린다. 한 트리에 섞지 않는다 → [[architecture]] §5.
+| id | 화면 |
+|---|---|
+| title | 아무 입력 → mode-select |
+| mode-select | play/editor/settings hub |
+| song-select | derived song group + playable chart 선택 |
+| song-credit | 선택 chart credit 자동 표시 |
+| gameplay | active chart gameplay |
+| result | result·best 표시 |
 
-### game 그래프 scene 목록
-
-| id | 화면 | 태그 |
-|---|---|---|
-| `title` | 타이틀. 아무 입력 → mode-select | `[보존]` |
-| `mode-select` | 허브. play / editor / settings (§4) | `[보존]` |
-| `song-select` | song+chart 선택. 빠른 옵션 패널 띄움 (§5) | `[수정]`¹ |
-| `song-credit` | 자동 인터스티셜. 이 곡의 크레딧 표시 (§6) | `[신규]` |
-| `gameplay` | 보면 플레이 (구 play scene) | `[수정]`² |
-| `result` | 결과 (점수·rank·state·판정 분포) | `[수정]`² |
-
-¹ `song-select`: 코드의 `music-select` 개명. 고르는 대상이 [[data-model]] `song`이므로 화면 이름도 song으로 통일(한 개념 한 단어).
-² `gameplay`·`result`: 코드에선 에디터 위에 덮이는 fullscreen overlay다. 각각 **정식 scene으로 승격** — game 호스트 경로를 1급으로(§9). `play`라는 이름은 **모드** 자리에 두고, 곡을 치는 scene은 `gameplay`로 분리(이름공간 충돌 제거). → [[rationale]].
-
-> `credits`(프로젝트 제작진 — 게임 개발자·엔진·디자인)은 곡 단위 `song-credit`과 다른 화면이다. title/settings 어딘가에 두며 본 문서 game 그래프 밖. 곡 크레딧(§6)과 혼동 금지.
+`song-select`의 song은 persisted 객체가 아니라 같은 `songId` chart들의 파생 group이다([[data-model]]).
 
 ---
 
-## 4. mode-select — 공용 허브 `[보존]`
+## 4. mode-select
 
-title 다음의 공용 진입 scene. 세 모드로 갈린다.
+- play → song-select
+- editor → editor start/graph
+- settings → settings graph
+- Back/Esc → title
 
-- `play` → game 그래프 (song-select)
-- `editor` → editor 그래프 (빌드 게이트, §7)
-- `settings` → settings 그래프
-- 로고/BACK/Esc → `goBack` → title
-
-> mode-select를 공용 루트로 두는 이유: **모드 추가 확장의 단일 지점**. 새 플레이 모드가 생기면 여기 항목만 추가한다. → [[rationale]].
+mode 추가의 단일 확장점이다.
 
 ---
 
-## 5. song-select — 곡 선택 + 빠른 옵션 패널
+## 5. song-select — group + chart 선택 `[번복 반영]`
 
-곡(song)과 그 안의 보면(chart, 난이도)을 고른다. [[data-model]] `song ⊃ chart[]`.
+library의 `.cfx` 하나를 derived song group으로 표시하고 그 안의 playable chart를 선택한다.
 
-### 진입 입력
+### 표시·preview
 
-- **Enter** (곡 커서 위에서) → song-credit 진입 (§6) → gameplay.
-- **Space** → 빠른 옵션 패널 토글 (아래).
-- 입력이 깔끔히 갈린다: Enter=시작, Space=옵션.
-- 곡 목록에는 chart별 **`bestState`·`bestRank` 뱃지**를 표시한다 `[신규]` — 두 축이 독립이라 함께 보여야 의미가 선다. 데이터 → [[records]].
+- chart 선택 전: Representative Chart의 title·musicBy·jacket·preview music.
+- playable chart 선택 후: 선택 chart의 metadata·jacket·music·timing.
+- chart 변경 시 preview music을 해당 chart music으로 전환한다.
+- init은 playable 목록에 표시하지 않는다.
+- chart별 `bestState`·`bestRank` badge는 [[records]].
 
-### 빠른 옵션 패널 (Space 토글)
+### 입력
 
-판마다 바뀔 수 있는 옵션만 빠르게 만진다. 1회 정하면 잘 안 바꾸는 값은 settings 그래프 소속([[settings]]).
+- chart 선택 확정 + Enter → song-credit → gameplay.
+- Space → quick options overlay.
 
-담는 5개 (전부 [[settings]] 영속 값의 부분집합):
+### quick options
 
-- **scrollSpeed** — 스크롤 속도. 가장 자주 만짐.
-- **gaugeMode** — normal/hard/fc/ap/as/cascade. 무슨 도전인가 → [[gauge]].
-- **mirror** — 레인 미러. 기록 **유지**.
-- **staticShape** — shape 고정(연습). 켜면 **기록 안 됨** `[보존]`. (shape 변형이 Conflux 핵심 도전이라 고정 시 유리 — 무기록. 상세·단일 출처 → [[settings]] §2.)
-- **autoplay** — 자동 플레이. 켜면 **기록 안 됨**.
+- scrollSpeed
+- gaugeMode
+- mirror
+- staticShape(no-record)
+- autoplay(no-record)
 
-> **공유 부품**: 이 패널은 컴포넌트 하나로, `song-select`와 editor `test`가 **똑같이** 띄운다(§9 overlay). 값은 [[settings]] 한 곳에 있어 어디서 바꾸든 동기된다. 컴포넌트는 edit/game 공용이라 그보다 아래 레이어 → [[architecture]].
-> **no-record**: 무기록 = `autoplay OR staticShape OR 중간시작 OR editorOrigin` (앞 셋 `[보존]`, editorOrigin `[수정]` — 상세·근거·단일 출처 → [[settings]] §2). mirror는 기록 유지, 배속도 기록을 막지 않는다.
+song-select와 editor test가 같은 component를 사용한다. no-record 단일 출처는 [[settings]] §2.
 
-`[폐기]`: `cmod`(등속 스크롤), `hidden`(레인 커버). hidden은 judgeLinePos raise가 대체. F/S 표시는 빠른 패널이 아니라 settings(visual) 소속(1회 정하면 고정).
-
----
-
-## 6. song-credit — 자동 인터스티셜 `[신규]`
-
-곡 선택 확정 후 gameplay 직전, 이 곡의 크레딧을 잠깐 보여주는 통과 화면.
-
-- **자동 진행**: 유저 입력을 받지 않는다. **5초** 표시 후 gameplay로 자동 전환 [신규]. (scene 내부에서 다른 scene으로 직접 전환 불가 — 타이머가 끝내는 통과점.) **스킵 불가**. 근거 → [[rationale#song-credit과 credits를 가른 이유]].
-- **되돌아갈 수 없다**: 도중 뒤로 가기 없음. song-select 이후는 gameplay까지 직진.
-- 표시: `Music by ○○○` / `Jacket by ○○○` / `Chart by ○○○`. 저장 필드는 `musicBy`·`jacketBy`(song 공통) / `chartBy`(chart별) — "by"는 표시 레이어가 붙인다(저장은 값만). → [[data-model]].
-
-### back-stack 처리 (핵심)
-
-song-credit은 통과점이라 스택에 남으면 안 된다.
-
-- `song-select → song-credit`: 입력을 안 받아 goBack이 끼어들 여지가 없다.
-- `song-credit → gameplay`: **`goScene('gameplay', replace)`** — song-credit을 스택에서 치환. play 시점 back-stack의 top은 **song-select**.
-- 효과: gameplay의 pause→Exit, result의 Back이 모두 **song-credit을 건너뛰고 song-select로 직행**(§8).
+`cmod`·`hidden`은 폐기. F/S·judge line·volume은 full settings 소관.
 
 ---
 
-## 7. 빌드 게이트 `[보존]` (+일반화 `[수정]`)
+## 6. song-credit
 
-mode-select 항목·scene은 **빌드 플래그**(`FEATURES.*`)로 노출 여부가 결정된다.
+선택한 playable chart의 credit를 gameplay 직전에 5초 표시하고 자동 진행한다. 입력·skip·back 없음.
 
-- 플래그 `false` → 그 항목 버튼이 렌더되지 않고, 부팅이 그 scene을 향해도 `title`로 폴백.
-- 같은 코드베이스에서 **플래그만** 여닫는다(코드를 빼지 않는다). lazy mount(§2)와 맞물려, 숨긴 scene은 `mount()`도 안 돌아 비용을 안 낸다.
+표시:
 
-활용:
-- `FEATURES.editor` — editor 그래프 게이트. `false`면 game 전용 공개 빌드. 내부 빌드는 `true`.
-- **미래 모드의 단계적 공개**: 새 모드를 테스트 중엔 `false`로 숨기고 검증 후 `true`로 노출. 빌드 분기 없이 점진 출시.
+- `Music by {selectedChart.metadata.musicBy}`
+- `Jacket by {selectedChart.metadata.jacketBy}`
+- `Chart by {selectedChart.chartBy}`
 
-부팅: `START_SCENE`이 게이트 off인 scene을 가리키면 `title`로 폴백. → [[architecture]] §4.
+저장값에는 `by`를 넣지 않는다.
+
+`song-credit → gameplay`는 `goScene('gameplay', replace)`로 통과점을 stack에서 제거한다. Retry/Back은 credit을 다시 거치지 않는다.
 
 ---
 
-## 8. 전환 그래프 (game 흐름)
+## 7. build gate
 
-```
-title
-  └─(아무 입력)─▶ mode-select
-                    ├ play ─────▶ song-select        (game 그래프)
-                    ├ editor ───▶ editor 그래프        (빌드 게이트 §7)
-                    └ settings ─▶ settings 그래프
+`FEATURES.*`가 mode item·scene 노출을 결정한다.
+
+- off면 button 미표시, direct start는 title fallback.
+- 코드는 제거하지 않으며 lazy mount로 비용을 피한다.
+- `FEATURES.editor`가 public/internal build를 가른다.
+
+---
+
+## 8. game transition graph
+
+```text
+title → mode-select → song-select → song-credit → gameplay → result
 
 song-select
-  ├ Space ─▶ 빠른 옵션 패널 토글 (overlay, 곡 맥락 유지)
-  └ Enter ─▶ song-credit
-               └─(자동, 입력 없음)─▶ gameplay   [song-credit→gameplay 는 replace]
+  Space: quick options overlay
+  Enter: selected chart 확정
 
 gameplay
-  ├ 종료(클리어 / fail / force-end) ─▶ result
-  └ pause (overlay, 엔진 살림) ─┬ Resume ─▶ gameplay (lead-in 3초 후 재개)
-                                ├ Retry  ─▶ gameplay (처음부터)
-                                └ Exit   ─▶ song-select   [song-credit 안 거침]
+  clear/fail/force-end → result
+  Esc → pause overlay
+    Resume: 3s lead-in 후 재개
+    Retry: 처음부터
+    Exit: song-select
 
 result
-  ├ Retry ─▶ gameplay (처음부터)
-  └ Back  ─▶ song-select                          [song-credit 안 거침]
+  Retry(F5): gameplay
+  Back(Enter): song-select
 ```
 
-- **pause는 overlay**(§9): gameplay 엔진을 죽이지 않고 멈춘다. **Esc로 토글** ([보존] 키 + [수정] 동작: 현재 코드 Esc는 `stopPlay`(완전 정지)이나, 재구현에선 pause overlay 토글로). Resume은 멈춘 지점 **3초 전부터 lead-in**(노트가 안 내려오는 무음 run-up) 후 재개 `[보존]`(`LEAD_IN_MS`=3000). Exit는 그때 비로소 song-select로 scene 전환.
-- **Retry**는 pause와 result 양쪽에 있다(pause 항목은 `[신규]` → [[rationale#pause 메뉴에 Retry를 넣은 이유]]). **Resume**과 다르다: Retry=처음부터 새 판, Resume=멈춘 지점 이어서.
-- **Exit / Back**: song-credit이 replace로 빠졌으므로(§6) song-select로 곧장. 방금 친 곡에 커서가 남은 채 복귀.
-- gameplay 종료 판정·state 산출은 엔진과 [[gauge]] 소관. scene은 "언제 result로 넘어가는가"라는 전환점만 안다. (종료 트리거 3종: clear/fail 판정 → [[gauge]], force-end 발생원 → [[judge]] §5.)
+pause는 engine을 살리는 overlay다. result는 정식 scene이다.
 
-### result 표시 항목 `[보존]`
+### result 표시
 
-곡 제목·아티스트·난이도+레벨 / rank + state(색 → [[theme]]) / 점수(7자리) / accuracy(%) / **NEW BEST** 플래그 / 판정 4종 카운트(SYNC·PERFECT·GOOD·MISS) / FAST·SLOW 누적 / MAX COMBO / best 기록(bestScore·bestState → [[records]]) / 적용 옵션 표기. 동작은 Retry·Back — 키는 [[settings]] §2 (Retry `F5` / Back `Enter` / `Esc` 무기능). 레이아웃·치수는 잔여.
+선택 chart의 title·musicBy·difficulty·subtitle·level / rank·state / score·accuracy / NEW BEST / judgment count / FAST·SLOW / max combo / best record / applied options.
+
+records 연결은 [[records]], score/state는 [[constants]]·[[gauge]].
 
 ---
 
-## 9. overlay, 그리고 엔진과 호스트
+## 9. overlay와 host
 
-### overlay — scene을 살린 채 덮는 층
+### overlay
 
-scene 전환은 이전 화면을 내리지만, overlay는 **그 scene을 살린 채 위에 덮는다**. scene-manager를 거치지 않는다.
+- pause: gameplay-owned interactive DOM overlay.
+- text-event: gameplay canvas 표시.
+- quick options: song-select/test가 각각 띄우는 shared component.
 
-- **pause** — gameplay scene이 자기 위에 띄우는 overlay. 엔진은 멈추되(paused) mount 유지. Resume이 걷는다. 인터랙티브(버튼)라 캔버스 위 DOM 층.
-- **text-event** — gameplay가 곡 진행 중 그리는 비인터랙티브 표시. 캔버스 패스로 그린다(별도 DOM 없음).
-- **빠른 옵션 패널**(§5) — song-select·test가 각자 자기 위에 띄우는 overlay. 내용물은 공유 부품.
-- overlay는 새 레이어가 아니다. 상태·인터랙션은 game(또는 edit), 그리기는 render가 나눠 맡고, 기능별로 한 파일에 응집한다 → [[architecture]].
+### engine host seam
 
-z-층(한 화면 안 쌓임): 캔버스 패스 순서(배경 < playfield < notes < text-event < HUD)로 쌓고, pause만 그 위 DOM 1층. draw order 단일 출처 → [[theme]].
+engine은 host를 모르고 `CTX` 하나만 본다.
 
-### 엔진은 호스트를 모른다 `[보존]`
+- game host: **선택 playable chart**의 metadata·timing·music과 settings를 주입.
+- editor host: 현재 workspace chart를 proxy.
+- engine은 Representative Chart나 songId group을 알지 않는다.
 
-gameplay 로직(엔진)은 **호스트를 모른다**. 단일 컨텍스트 `CTX` 하나만 본다.
-
-- **game 호스트** (정식): `CTX`가 자기 position·settings 소유. song-select가 곡 길이·옵션을 채워 만든다.
-- **editor 호스트**: `CTX`가 에디터 상태를 프록시. editor `test` scene에서 같은 엔진을 구동(동작 보존).
-- 엔진은 어느 호스트인지 모른다. 주입은 gameplay 진입 시 1회. CTX 필드·seam 상세 → [[architecture]] §3.
-
-> gameplay(game 호스트)와 test(editor 호스트)는 **같은 엔진의 두 호스트**다. 그래서 빠른 옵션 패널도 둘이 공유한다(§5).
+CTX 상세 → [[architecture]].
 
 ---
 
 ## 10. 결정 완료 / 잔여
 
 확정:
-- [x] 공용 루트(title·mode-select) + 세 모드 그래프(game 스택 / editor·settings 평면)
-- [x] mode-select = 모드 확장 단일 지점
-- [x] 빌드 플래그 게이트 일반화, 부팅 폴백
-- [x] 용어: `gameplay`(scene)/`play`(모드), `song-credit`(곡)/`credits`(제작진), editor `play`탭→`test`, `song-select`(←music-select)
-- [x] 빠른 옵션 패널 5종(scrollSpeed/gaugeMode/mirror/staticShape/autoplay), song-select·test 공유, no-record(autoplay OR staticShape OR 중간시작 OR editorOrigin, 단일 출처 settings §2)
-- [x] F/S·cmod·hidden은 빠른 패널서 제외(F/S→settings, cmod/hidden 폐기)
-- [x] song-credit 신규 — 자동·되돌리기 불가, →gameplay replace
-- [x] gameplay/result overlay→정식 scene 승격
-- [x] pause = overlay(엔진 살림), Resume(lead-in 3초)/Retry/Exit. result = Retry/Back
-- [x] overlay = scene 소유 층(공유 부품 예외), game+render 분담, 새 레이어 아님
-- [x] song-credit 표시 5초, 스킵 불가 (근거는 §6 → rationale)
-- [x] pause = Esc 토글([보존] 키 + [수정] stopPlay→pause)
-- [x] pause 메뉴 3항목 Resume/Retry/Exit [신규] · 전체 키 매핑 확정 → [[settings]] §2 (메뉴 네비 방향키+Enter, result: Retry F5 / Back Enter / Esc 무기능)
-- [x] result 표시 항목 [보존] 명문화(§8) · song-select 기록 뱃지 state+rank [신규](§5 → [[records]])
+- [x] 공용 root + 세 mode graph
+- [x] song-select = derived song group + playable chart 선택 `[번복 반영]`
+- [x] Representative preview → selected chart preview 전환
+- [x] song-credit = selected chart credit
+- [x] gameplay host = selected active chart
+- [x] quick options 공유·no-record link
+- [x] pause overlay·result scene·3s lead-in
+- [x] build gate
 
 잔여:
-- [ ] song-credit 연출 구체값(페이드 등)
-- [ ] settings 그래프 scene 묶음(visual/sound…) 구체 (→ settings 문서)
-- [ ] `credits`(제작진) scene 귀속·전환 미정 — title/settings 중 어디 소속인지 (naming·glossary엔 등록, game 그래프 밖)
-- [ ] 빠른 패널 공유 컴포넌트의 정확한 레이어 위치 (→ architecture/settings)
+- [ ] song-credit fade 등 구체 연출
+- [ ] settings graph scene 묶음
+- [ ] project `credits` scene 귀속
+- [ ] quick options component의 정확한 layer 위치

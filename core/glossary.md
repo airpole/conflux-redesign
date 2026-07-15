@@ -1,190 +1,166 @@
 # Glossary — 개념 사전
 
-> **위치**: 새 설계 볼트 1급 문서. 용어는 영어로 단일하게 고정하고, 설명은 한국어로 쓴다.
-> **목적**: 각 개념을 영어 이름 하나로 못박는다. 한 개념에 두 이름을 두지 않는다.
-> **짝 문서**: [[naming]]
+> 개념은 영어 이름 하나로 고정하고 설명은 한국어로 쓴다. 전체 schema는 [[data-model]], 명명 규칙은 [[naming]].
 
 ---
 
 ## ⚠️ scrollSpeed 와 playbackRate — 절대 분리
 
-가장 자주 혼동되는 두 개념. 영어 이름으로 영원히 갈라둔다.
+- **scrollSpeed** — note 화면 이동 밀도. audio와 무관. 범위는 [[constants]] §4.
+- **playbackRate** — audio 재생 속도. 항상 1.0.
 
-- **`scrollSpeed`** — 노트가 떨어지는 스크롤 속도. 오디오와 완전히 무관하다. 범위·단위 수치는 [[constants]] §4 `SCROLL_SPEED_*`. 화면에서 노트가 빠르게/느리게 흐르는 것만 바꾼다.
-- **`playbackRate`** — 오디오 재생 속도. 바꾸면 음정이 변한다. **항상 1.0 고정.**
-
-→ `scrollSpeed`를 오디오에 곱하거나 `playbackRate`를 노트 위치 계산에 쓰면 즉시 버그다. 이 둘은 코드 어디에서도 서로 닿지 않는다.
+둘을 서로 곱하지 않는다.
 
 ---
 
-## 데이터 구조 (Song / Chart)
+## 데이터 구조 (Chart / Song group) `[번복]`
 
-최상위는 **song**(곡)이고, 그 안에 **chart**(난이도별 보면) 배열이 들어가는 2층 구조다. 전체 스키마는 → [[data-model]].
+- **chart** — 저장·편집·재생의 canonical 문서 하나. metadata·timing·asset 참조·note/event를 독립 소유.
+- **songId** — 관련 chart들을 묶는 UUID.
+- **song group** — 같은 songId chart들의 파생 집합. 별도 persisted `song` object가 아니다.
+- **Representative Chart** — group 선택 전 display default를 제공하는 chart. init 우선, 없으면 최저 playable chart. 다른 chart의 canonical source가 아니다.
+- **active chart** — editor/game core가 현재 처리하는 chart 하나.
+- **difficulty** — Trace/Drift/Surge/Flux/Phase/init 명칭.
+- **level** — 난이도 숫자.
+- **metadata·tempos·timeSignatures·offset·musicFile·jacketFile** — 모두 chart-owned.
 
-- **`song`** — 곡 하나. 오디오·메타·타이밍 등 **곡 공통** 정보 + chart 배열.
-- **`chart`** — 칠 수 있는 보면 하나 = 난이도 하나. song에 N개.
-- **`difficulty`** = 난이도 **명칭**(문자열, `Trace`/`Drift`/`Surge`…). **`level`** = 난이도 **수치**(숫자). 다른 개념.
-- **곡 공통**: metadata·tempos·timeSignatures·offset (오디오가 하나이므로 난이도와 무관, 분기 차단). 오디오는 참조 필드 없이 파일로 존재 → [[cfx]] §3.
-- **chart별**: notes·shapeEvents·laneEvents·textEvents·chartBy (난이도마다 자유).
-- 런타임은 **한 번에 한 chart**만 다룬다. 코어에는 song 전체가 아니라 활성 보면을 펼쳐 넘긴다.
+runtime core에는 song group이 아니라 active chart를 넘긴다.
 
+---
 
+## 판정
 
-- **`judgment`** — 키 입력 타이밍 `abs(diff_ms)`를 임계로 자른 결과(`SYNC`/`PERFECT`/`GOOD`/`MISS`). normal과 wide는 임계 테이블만 다르다(wide는 SYNC 아니면 MISS). 임계 매핑 → [[judge]] §3, 수치 → [[constants]] §1.
-- **`window`** (`WINDOW_*_MS`) — judgment 임계 시간. 값은 → [[constants]] §1.
-- **`judgeLine`** — 노트를 쳐야 하는 기준 가로선. 위로만 올릴 수 있다(raise-only). 올리면 아래 HUD(게이지·곡명 등)도 따라 올라간다.
-- **`FAST` / `SLOW`** — 판정 종류가 아니라 `diff`의 **부호**로, 두 층위로 쓰인다.
-  - **순간 표시** (`flashTiming`) — 판정 당시 'FAST'/'SLOW'를 화면에 잠깐 깜빡인다. 기록 안 됨.
-  - **누적 카운트** (`fastCount` / `slowCount`) — 세션 동안 누적해 **result에 표시**한다.
-  - 카운트 조건: **SYNC 바깥 ~ MISS 안쪽 구간의 normal 노트만** (즉 PERFECT·GOOD). SYNC는 정타라 제외, MISS는 미입력이라 제외, wide·autoplay도 제외. 예: PERFECT +43ms → "FAST" 깜빡 + `fastCount` +1.
-- hold의 tail은 별도 판정 없이 성공=`SYNC`, 중간 릴리즈=`MISS`로 통합.
+- **judgment** — `abs(diff_ms)` threshold 결과: SYNC/PERFECT/GOOD/MISS.
+- **window** — `WINDOW_*_MS` threshold.
+- **judgeLine** — hit 기준선. raise하면 아래 HUD도 함께 이동.
+- **FAST/SLOW** — judgment 종류가 아니라 diff 부호.
+  - `flashTiming`: 순간 표시.
+  - `fastCount/slowCount`: result 누적.
+  - normal PERFECT/GOOD만 count; SYNC/MISS/wide/autoplay 제외.
+- hold tail: success=SYNC, early release=MISS.
 
-## 노트 (Note)
+---
 
-노트는 **4종류**다. 두 개의 독립 축(`isWide` × `duration`)의 조합으로 표현된다.
+## Note
 
-| | `duration == 0` (tap) | `duration > 0` (hold) |
+4종 = `isWide × duration`.
+
+| | duration=0 | duration>0 |
 |---|---|---|
-| **`isWide == false`** | `Tap` | `Hold` |
-| **`isWide == true`** | `WideTap` | `WideHold` |
+| isWide=false | Tap | Hold |
+| isWide=true | WideTap | WideHold |
 
-- **`isWide`** — false면 자기 레인 키로만 치는 일반 노트. true면 아무 키로나 칠 수 있고, 판정은 SYNC 아니면 MISS만 나온다.
-- **`tap`** (`duration == 0`) — 한번 누르면 끝. head만 가진다.
-- **`hold`** (`duration > 0`) — 누르고 있어야 한다. head와 tail을 가진다.
-- **`tail`** — hold의 끝. 릴리즈 타이밍이 판정 대상. (성공=SYNC, 중간 릴리즈=MISS로 통합)
+- **lane** 1~4 — note logical lane.
+- **key** 1~6 — physical input. `LANE_OF_KEY`로 lane mapping.
+- **duration** — note/shape/laneEvent 공통: 0=instant, >0=sustained/interpolated.
 
-> note 데이터 구조(`{startTick, duration, lane, isWide}`)는 → [[data-model]] §5.
+### overlap / conflict
 
-> **`duration` 공통 규칙** — note·shape·laneEvents 모두 동일하다. `duration == 0`이면 즉시(노트는 tap, 변형은 step 점프), `duration > 0`이면 지속(노트는 hold, 변형은 easing 보간). 이 규칙은 여기서 한 번만 정의하고 각 문서에서 반복하지 않는다.
+notes에서 sweep-line으로 계산하는 derived map.
 
-> overlap/conflict는 노트 종류가 아니라 파생 속성이다. → [[#겹침 표시 — overlap / conflict]].
+- overlap: capacity 이내, L2/L3 2중, playable, yellow.
+- conflict: capacity 초과, unplayable warning.
+- judge는 모른다. render는 map을 소비한다.
+
+상세 [[data-model]] §5.1.
 
 ---
 
-## 레인 (Lane)
+## Lane / Shape
 
-- **`lane`** (1~4) — 노트가 사는 곳이자 화면의 세로 통로. 데이터 필드도 `note.lane`. (구 `channel`은 폐기 — 같은 1~4 값을 두 단어로 부를 이유가 없다.)
-- **`key`** (1~6) — 사람이 누르는 물리 입력. `LANE_OF_KEY`로 lane에 매핑: key1→1, key2→2, key3→3, key4→2, key5→3, key6→4.
-- L2·L3는 각각 두 키(2+4, 3+5)를 받으므로 한 lane에 노트가 둘 공존할 수 있다(동시치기). L1·L4는 단일 키.
-- 입력 처리는 항상 lane 기준이며, shape·laneEvents의 시각 변형과 무관하다.
+### 5선 mental model
 
-### 5선 멘탈모델
-
-플레이필드는 5개 선으로 늘어선다. **이름일 뿐 데이터 필드가 아니다** (데이터는 shape의 `isBlue`, lane의 `lineNum`을 따로 쓴다):
-
-```
+```text
 Blue · 1 · 2 · 3 · Red
-(shape)  (laneEvents)  (shape)
 ```
 
-- **Blue / Red** = 두 바깥 경계(shape). 식별자일 뿐 순서 고정이 아니다 — 교차 가능.
-- **1 · 2 · 3** = 안쪽 구분선(laneEvents).
+- Blue/Red: shape chain identity, 교차 가능.
+- 1/2/3: laneEvents lineNum.
+- shape와 laneEvents는 좌표계가 달라 data type을 합치지 않는다.
 
-shape와 laneEvents를 데이터로 병합하지 않는다(좌표계·역할이 다름). 양 끝을 0/4 같은 숫자로 부르지 않는 건 순서 압박을 없애기 위함 — B/R 식별자는 교차해도 무방하다.
+### 용어
 
-### 겹침 표시 — overlap / conflict
-
-같은 lane(또는 Wide끼리)에서 노트들의 활성 구간이 겹치는 것을 **하나의 검출기**(sweep-line — 동시 활성 수·집합)가 잡는다. 결과는 그 풀의 **수용력(capacity)** 초과 여부로 갈린다 — 같은 검출, 색·의미만 다르다.
-
-- **검출 (단일)** — 노트 타입이 아니라 **파생 속성**이다. notes에서 계산되는 한 패스(`noteOverlapMap`, notes 변하면 갱신)가 모든 lane·Wide에 같은 활성구간 규칙으로 돈다. 활성구간: Tap = `[t,t]`, Hold = `[head, head+dur)`. judge는 이 결과를 모른다(입력/렌더 분리) — render가 map을 읽어 색만 입힌다.
-- **`overlap`** (L2·L3의 2겹, **노란색**) — 두 키를 받는 lane이라 capacity 이내의 겹침이 **연주 가능**하다(동시치기). 두 노트를 merged/yellow/clipped로 갈라 노랗게 표시. "겹쳐 보이는 건 두 노트"라는 안내만 하면 되고 입력 매핑엔 영향 없다.
-- **`conflict`** (capacity 초과 — L1·L4 2겹·L2·L3 3겹·Wide 2겹, **빨간 테두리**) — 동시 활성 수가 그 풀의 키 수를 넘어 전부 연주할 수 없다. 그 순간의 동시 활성 집합 전체에 표시하고, 제작자가 초과분을 지워야 한다(del 해소 → [[editor-editing]] §1). 흰 노트에 빨간 경고 테두리.
-- 가로로 **다른** lane의 같은 타이밍 노트는 겹침이 아니다(각자 다른 키).
-
-> 단일 검출 + capacity 분기. 구 `invalid`/`misplaced` 호칭은 `conflict`로 통일. 평가 알고리즘 상세·구현은 → [[data-model]] §5.1. 근거 → [[rationale]].
+- **shape / shapeEvents** — 외곽 boundary motion.
+- **laneEvents** — 내부 divider motion, visual only.
+- **chain** — 같은 selector의 event time sequence.
+- **anchor** — easing null, interpolation 없는 고정점.
+- **Step/Arc** — 저장되지 않는 editor input label.
+- **targetPos** — shape는 -8~+8, lane은 dynamic left=0/right=1 기준 실수 전체.
+- **textEvents** — `{startTick,duration,content,position}` visual text.
 
 ---
 
-## Shape / 플레이필드 지오메트리
+## Gauge / Result / Record
 
-- **`shape`** (`shapeEvents`) — 플레이필드 전체의 곡률을 시간에 따라 변형하는 이벤트. Conflux의 핵심 메커니즘.
-- **`isBlue`** — shape 체인 식별자. true=Blue 체인, false=Red 체인. 방향이 아니라 두 체인의 이름 — 두 경계는 교차할 수 있다(순서 구속 없음).
-- **`easing`** — 변형의 보간 곡선. 저장값 3종(`Linear`/`In-Sine`/`Out-Sine`) + `null`. `null`인 이벤트는 **anchor** — 보간 없이 값을 못박는다(체인의 첫 anchor는 **init**이라 부름). `Step`(즉시 점프)·`Arc`(교번)는 저장 안 되는 **에디터 입력 라벨**. 평가·공식·입력모드 전체 → [[shape]] §4·§5.
-- **`chain`** — shape·laneEvents가 공유하는 평가 메커니즘. 한 체인 = 한 선택자값(shape `isBlue`, lane `lineNum`)에 묶인 이벤트들의 시간축 사슬. anchor로 시작해 보간 이벤트로 흐른다. 단일 출처 → [[shape]] §4.
-- **`targetPos`** — 변형이 도달할 목표 위치. shape는 외부단위 −8~+8(0.25 스텝), lane은 경계 span 기준 상대 실수(0=왼쪽 경계·1=오른쪽 경계, **범위 제한 없음** — [[lane-events]] §3).
-- **`laneEvents`** (현재 코드의 `lineEvents`를 개명·확장) — Blue/Red 경계 **안쪽의 구분선 3개(1·2·3)**를 시간에 따라 움직이는 이벤트. shape가 바깥 경계를 움직이듯, laneEvents는 내부 구분선을 움직인다. **순수 시각 연출이며 판정과 무관**. 데이터는 무구속(실수 전체), 구속은 gameplay 투영이 담당 — 좌표계·렌더 규칙 전체는 → [[lane-events]] 참조.
-- **`textEvents`** (`{startTick, duration, content, position}`) — 특정 tick에 화면에 텍스트를 띄우는 연출 이벤트. 게임·에디터 양쪽에서 렌더된다. 특수 연출·튜토리얼용이라 일반 차트엔 드물다. chart별 데이터. (필드 확정 → [[data-model]] §8)
+- gauge/gaugeMode/state/cascade/terminate → [[gauge]].
+- combo — GOOD 이상 연속, MISS reset.
+- rank — score 등급, state와 독립.
+- record — playable chart best(`bestScore/bestRank/bestState/maxCombo/playCount`).
+- init은 record 대상이 아니다.
 
----
+### identity
 
-## 게이지 / 결과 (Gauge / Result)
-
-- **`gauge` / `gaugeMode` / `state` / `cascade` / terminate** — 게이지·클리어·종료·강등 정의 일체는 → [[gauge]]. (수치는 [[constants]] §2.)
-- **`combo`** — GOOD 이상으로 연속 처리한 노트 수. MISS면 0으로 초기화.
-
-### rank — state와 독립된 두 번째 기록 축
-
-곡을 끝내면 **rank**(점수 등급)와 **state**([[gauge]])가 **따로** 기록된다. 서로 영향 없다.
-
-- **`rank`** — 점수(백만점 기준) 등급. U / S+ / S / A+ / A / B / C / D / E / F. 임계·점수식 → [[constants]] §3.
-- **`record`** — chart당 1개 저장되는 best 기록(`bestScore`/`bestRank`/`bestState`/`maxCombo`/`playCount`). 전 gaugeMode 통합, 무기록 게이트는 [[settings]] §2. 단일 출처 → [[records]].
-- **`songId`** — 곡의 전역 식별자(UUID, 최초 생성 시 발급·불변). 단일 출처 → [[cfx]] §4.
-- **`chartId`** — song 내 chart 식별 정수. 0=`init`·1~4=Trace/Drift/Surge/Flux 고정 슬롯(수정 불가)·5+=추가 채보(수정 가능). 저장은 정수, 표기는 3자리 패딩(`001`). 기록 키 = `songId:chartId`. 단일 출처 → [[cfx]] §5.
-- **`init`** — chartId 0의 **에디터 전용 템플릿 채보**(metadata만 입력, 노트 백지). 새 난이도의 파생 원본. 게임 로더는 무언 스킵. 단일 출처 → [[cfx]] §5. (shape 체인의 첫 anchor 호칭 init과는 다른 개념 — 문맥이 가른다.)
-- **`subtitle`** — chart별 차분명 겸 용도 설명(선택 문자열, 예: `GIMMICK`). `[...]` 대괄호는 표시 규약. 파일명 유일성 = difficulty+subtitle. 단일 출처 → [[cfx]] §6.
-- **`version`** / **`schemaVersion`** — 내용의 판(export마다 +1) / 그릇의 규격(포맷 세대). 두 축, 파일마다 포함. 단일 출처 → [[cfx]] §7.
+- **chartId** — songId group 내 정수. 0=init, 1~4 fixed slots, 5+=additional.
+- **version** — chart revision, export마다 +1.
+- **schemaVersion** — format generation.
+- **subtitle** — chart variation label. 표시 시 `[...]`; identity 자체가 아님.
+- current record key와 deferred content-change policy → [[records]].
 
 ---
 
-## 타이밍 (Timing)
+## Timing
 
-> 변환·스크롤·세그먼트 상세는 → [[timing]]. 여기서는 개념만.
-
-- **`tick`** — 차트의 시간 단위. 1박 = 1920 tick(TPB).
-- **`leadIn`** (`LEAD_IN_MS`) — 곡이 시작되기 전 비어 있는 스크롤 구간.
-- **`offset`** (`metadata.offset`, ms) — 오디오 싱크 보정. 음악 시작 위치에만 더해진다(`startAudio(startMs + offset)`). 양수면 음악을 트랙 안으로 더 들어가 시작 → 음악이 노트보다 늦을 때 당겨준다. **곡 공통**이며 난이도별로 갈리지 않는다(음원이 하나이므로). leadIn(시작 전 빈 구간)과는 별개. (플레이어 장비 지연 보정은 settings `audioOffset` — **다른 축**, [[settings]] PLAY.)
-- **`scroll`** — 노트는 **시간 등속**으로 흐른다(ms 공간 선형). BPM은 노트 간격만 바꾸고 낙하 속도는 일정. "가변속"은 `tickToMs`의 BPM 누적 부산물. 진행도 정의·`scrollProgressAt` → [[timing]] §3.
-- **`gridDivisor`** — 노트 배치용 분박 그리드. 값 V는 분음표 단위("V분" 격자, 박자 독립, 기본 32). 마디 표기 sub가 이 V를 공유한다. lane의 **가로** 스냅은 전용 `laneGridDivisor`(기본 4)로 분리 `[번복]` — [[lane-events]] §5. 입력 위계·틱 반올림 등 상세 → [[timing]] §6.
-- **`scrollSpeed`** — (위 절대분리 항목 참조.) `visMs = SCROLL_VIEW_MS / scrollSpeed` → [[timing]] §3.
-
----
-
-## 화면 / Scene
-
-> 공용 루트 + 세 모드 그래프. 전환·overlay·호스트 상세는 → [[scene]]. 여기서는 색인만.
-
-- **`mode-select`** (구 `modeselect`) — title 다음 공용 허브. play/editor/settings 모드로 갈린다. 모드 추가의 단일 확장 지점.
-- **`song-select`** (구 `music-select`) — 곡(song)과 그 안의 난이도(chart)를 고르는 화면. Space로 빠른 옵션 패널 토글, Enter로 확정.
-- **`song-credit`** — 곡 확정 후 gameplay 직전, 이 곡의 크레딧을 보여주는 **자동 인터스티셜** [신규]. 입력 없이 자동 전환, 되돌아갈 수 없다(replace로 들어가 Exit/Back은 건너뛴다). 표시 `Music by`/`Jacket by`/`Chart by` — 접미사는 표시 레이어, 저장은 값만(`musicBy`·`jacketBy`·`chartBy` → [[data-model]]).
-- **`credits`** — 프로젝트 제작진(게임 개발자·엔진·디자인 등). 곡 단위 `song-credit`과 다른 화면.
-- **`gameplay`** (구 play overlay) — 곡을 치는 scene. `play`는 **모드** 이름이라, scene은 gameplay로 분리. overlay→정식 scene 승격.
-- **`result`** — 결과 화면(overlay→scene 승격). Retry/Back.
-- **`test`** — editor 그래프 scene(구 editor play 탭). gameplay와 같은 엔진을 editor 호스트로 구동.
-- **모드 그래프** — game(스택형)/editor(평면)/settings(평면). 셋은 형제 축 → [[scene]] §3.
-
-## overlay
-
-- **`overlay`** — 한 scene **위에** 그 scene을 살린 채 덮는 층. scene-manager를 안 거치고 엔진·하위 상태가 살아있다. 예: `pause`(gameplay 멈춤, Resume이 lead-in 3초 후 재개), text-event(캔버스 표시), 빠른 옵션 패널(song-select·test 공유). 새 레이어가 아니라 game+render 분담 → [[architecture]]. z-순서 → [[theme]].
-
-## 설정 / Settings
-
-- **`settings`** — 저장되는 곡 데이터와 별개로, 플레이어가 1회 정하는 영속 설정의 단일 객체. 정의·필드·소속 전체는 → [[settings]].
-- **빠른 옵션 패널** — settings 값 중 판마다 바뀔 수 있는 5종(`scrollSpeed`·`gaugeMode`·`mirror`·`staticShape`·`autoplay`)만 빠르게 만지는 공유 UI. song-select·test가 같이 띄움. 값은 settings 한 곳 → [[scene]] §5.
-- **`jacketBrightness`** — 자켓 배경 밝기(전역 설정). 곡별 값이 아니라 플레이어 취향이다. (구 곡별 `metadata.jacketBrightness`는 폐기, 구 전역 `bgBrightness`를 개명.)
-- **`judgeLine`** 의 세로위치(`judgeLinePos`)·`sudden`(상단 커버)·`noteSkin`·`scrollSpeed`·`showFastSlow`(F/S) 등도 settings 소속. ([폐기] `cmod`·`hidden`.)
+- **tick** — 1 beat=1920.
+- **leadIn** — start 전 empty scroll interval.
+- **offset** — active chart music sync adjustment; chart-owned.
+- **scroll** — ms-linear; BPM은 spacing만 변경.
+- **gridDivisor** — note time grid의 note-value denominator, default 32.
+- **laneGridDivisor** — lane horizontal spatial grid, default 4.
+- **scrollSpeed** — visual density only.
 
 ---
 
-## 빌드 / 구조 (Build / Structure)
+## Scene
 
-- **`build: editor`** — 내부 에디터 빌드. 개인 저작용.
-- **`build: game-internal`** — 내부 게임 빌드. .cfx 파일을 실제 게임 UX로 테스트(localImport 허용).
-- **`build: game-public`** — 공개 게임 빌드. 큐레이트된 곡만.
-- **`core`** (`core-*`) — 순수 로직 레이어. DOM·캔버스·전역 상태를 모른다. Node 하네스에서 그대로 import 가능. 전역 D 대신 활성 보면을 인자로 받는다([[data-model]] §9).
-- **레이어 7층** — `core → env → render → edit/game → scene → app`, import 위→아래 한 방향. 정의·의존 규칙·CTX seam·빌드 게이트 단일 출처 → [[architecture]]. 파일명 접두사 규칙 → [[naming]] §5.
-- **`env`** (`env-*`, 구 `plat`) — 브라우저 설비 래핑 레이어. canvas 생성·DPR, WebAudio, IndexedDB, raw input 등 브라우저 API 직접 호출. core가 "환경 무관"이면 env는 "환경 의존".
-- **`CTX`** — play 엔진의 호스트 주입 seam. 엔진은 editor/game 어느 호스트인지 모르고 CTX 한 객체만 본다. editor는 editorState 프록시, game은 자기 소유. 필드 집합·seam 계약 → [[architecture]] §3.
-- **`.cfx`** — 곡 하나의 **배포 ZIP**(수동 조립): `*_music.<ext>` + `*_jacket.<ext>` + chart `.json` × N. 에디터의 작업 단위는 chart `.json` 낱개(자립 파일)다. 단일 출처 → [[cfx]].
-- **`workspace`** — 에디터의 단일 복구 슬롯(마지막 작업 + music·jacket blob). 정본은 유저의 파일이고 workspace는 복구·세션 이어가기 전용. 단일 출처 → [[persistence]] §2.
-- **`library`** — 게임 internal 빌드가 import된 .cfx를 blob 통째로 담는 스토어(키 = songId). 단일 출처 → [[persistence]] §6.
-- **`derive`** — 현재 곡의 songId를 새 UUID로 재발급(Ctrl+Shift+S, confirm). 리믹스 시작 = 기록 단절의 유일한 경로. 단일 출처 → [[persistence]] §4.
-- **`music`** — 곡의 오디오 에셋. song(패키지 전체)과 구분하는 호칭 — `musicBy`와 정합. 파일명 접미 규칙 → [[cfx]] §3.
+- **mode-select** — play/editor/settings hub.
+- **song-select** — derived song group와 playable chart를 선택. selection 전 Representative Chart, 후 active chart preview.
+- **song-credit** — 선택 playable chart credit의 자동 interstitial.
+- **credits** — project staff screen.
+- **gameplay** — active chart play scene.
+- **result** — result scene.
+- **test** — editor host play scene.
+- **overlay** — scene을 살린 채 덮는 layer(pause/text-event/quick options).
+
+---
+
+## Settings
+
+- **settings** — chart data와 별개의 player/editor persistent preferences.
+- **quick options** — scrollSpeed/gaugeMode/mirror/staticShape/autoplay subset.
+- **jacketBrightness** — global player setting.
+- cmod·hidden은 폐기.
+
+---
+
+## Build / Structure / File
+
+- build: editor / game-internal / game-public.
+- layer: `core → env → render → edit/game → scene → app`.
+- **CTX** — engine host injection seam.
+- **chart JSON** — independent editor work file.
+- **.cfx** — 같은 songId의 selected chart JSON과 referenced assets를 담는 flat distribution ZIP.
+- **workspace** — last chart + connected asset blob recovery slot.
+- **library** — imported `.cfx` blob store, key=songId.
+- **derive** — current chart의 songId를 new UUID로 바꾸어 새 group을 시작.
+- **music** — chart가 `musicFile`로 참조하는 audio asset.
+- **jacket** — chart가 `jacketFile`로 참조하는 optional image asset.
+- **packager** — user-selected chart input을 group/validate해 `.cfx`를 만드는 UI.
 
 ---
 
 ## 사용 규칙
 
-1. 새 코드에서 개념을 가리킬 때는 **이 사전의 영어 용어**를 쓴다. 사전에 없으면 먼저 여기 추가한다.
-2. 한 개념에 두 이름을 두지 않는다. (예: 스크롤 속도를 어떤 곳은 speed, 어떤 곳은 scrollSpeed로 부르지 않는다.)
-3. 사전이 코드와 어긋나면 **사전이 기준**이다. 코드를 고친다.
-4. 설명·주석·문서 본문은 한국어로 쓰되, **개념을 가리키는 단어는 위 영어 용어 그대로** 박아 쓴다.
+1. 새 개념은 먼저 이 사전에 등록한다.
+2. 한 개념에 두 이름을 두지 않는다.
+3. glossary와 code가 어긋나면 spec/glossary를 기준으로 code를 고친다.
+4. 한국어 설명 안에서도 개념명은 위 English term을 사용한다.

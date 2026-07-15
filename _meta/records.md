@@ -1,79 +1,90 @@
 # records — 플레이 기록 단일 출처
 
-> 곡을 친 결과(best 기록)의 저장 단위·스키마·갱신 규칙을 정의한다.
-> 사람이 정하는 값([[settings]])과 성격이 다르다 — records는 게임이 쓰는 값이다. 근거 → [[rationale#records를 별도 문서로 둔 이유]].
-> state 정의·우선순위는 [[gauge]], rank·점수식은 [[constants]] §3, 무기록 게이트는 [[settings]] §2.
-> 출처: `play-result.js` 실측. 태그 명시 없으면 `[보존]`.
+> 플레이 결과(best 기록)의 저장 단위·스키마·갱신 규칙을 정의한다.
+> state는 [[gauge]], rank·점수식은 [[constants]] §3, no-record gate는 [[settings]] §2.
+> `.cfx`와 library는 records를 마이그레이션하지 않는다([[cfx]], [[persistence]]).
 
 ---
 
 ## 1. 저장 단위 — chart당 1개
 
-기록은 **chart(난이도)당 1개**다. gaugeMode별로 갈리지 않는다 — 어느 모드로 쳤든 한 기록에 병합된다. cascade 판도 같다(결과 state가 그대로 병합).
+기록은 playable chart당 1개이며 gaugeMode별로 갈리지 않는다.
 
-- **키**: `songId:chartId` `[수정]` — songId = UUID, chartId = song 내 식별 정수([[cfx]] §4·§5). UI 표기는 3자리 패딩(`001`). (구 metadata 슬러그 폐기 — 구 기록은 이관하지 않는다.)
-- **고아 기록**: 라이브러리 곡을 chartId 구성이 바뀐 .cfx로 덮어쓰면 대응 없는 기록은 표시되지 않는다(데이터는 잔존, 삭제 안 함) `[신규]`.
-- **chartId 마이그레이션** `[신규]`: 같은 songId의 .cfx를 재import할 때, 보유 chart와 **본문 4배열(notes·shapeEvents·laneEvents·textEvents)이 완전 동일**한데 chartId만 다른 쌍이 있으면 기록 키를 새 id로 이전한다(rename 감지). 메타(difficulty·subtitle·level·chartBy·version)는 비교에서 제외 — 채보의 정체성은 id가 아니라 본문. 동일 본문 후보가 복수면(복제 채보) 이전하지 않는다(안전). 실행 주체는 재import 로더([[persistence]] §6) — 에디터는 records를 건드리지 않는다. 근거 → [[rationale#chartId 마이그레이션을 내용 일치 기반으로 둔 이유]].
-- **매체**: 로컬 영속. 저장 설비는 env 소관([[architecture]]) — 이 문서는 계약(스키마·갱신 규칙)만 정한다.
+- 현재 key: `songId:chartId`.
+- `songId`·`chartId` 의미는 [[cfx]] §3~§4.
+- init(`chartId 0`)은 records 대상이 아니다.
+- library에서 현재 대응 chart가 없으면 기록은 UI에서 숨기되 데이터를 즉시 삭제하지 않는다(고아 기록).
+- chartId가 바뀌어도 기록을 새 id로 이전하지 않는다 `[번복]`.
+- reimport loader는 본문 비교, rename 감지, record key 이동을 수행하지 않는다.
+
+> **보류:** 같은 `songId + chartId`에서 notes/timing/music이 수정됐을 때 기존 기록을 어떻게 분리·보존·재표시할지는 후속 `records / game library` review에서 결정한다. content fingerprint와 key 변경을 이 문서에서 아직 정의하지 않는다.
 
 ---
 
 ## 2. 스키마
 
-```
+```js
 record = {
-  bestScore,   // 최고 점수 (백만점제 → constants §3)
-  bestRank,    // 최고 점수 판의 rank
-  bestState,   // state 우선순위 병합 — 점수와 독립 (→ gauge)
-  maxCombo,    // 독립 최대
-  playCount,   // 적격 판 수
+  bestScore,
+  bestRank,
+  bestState,
+  maxCombo,
+  playCount,
 }
 ```
 
-- rank는 점수의 순수 함수([[constants]] §3)라 `bestRank` = 최고 rank와 동치.
-- `fastCount`/`slowCount`는 저장하지 않는다(그 판 result 표시 전용, [[glossary]] FAST/SLOW).
+- `bestRank`는 최고 점수 판의 rank.
+- FAST/SLOW는 그 판 result 표시값이며 저장하지 않는다.
 
 ---
 
 ## 3. 갱신 규칙
 
-적격 판(§4)이 끝날 때마다:
+적격 판이 끝날 때마다:
 
 | 필드 | 규칙 |
 |---|---|
-| `bestScore` | `max(이번, 저장)` |
-| `bestRank` | 이번 점수가 최고면 이번 rank, 아니면 유지 |
-| `bestState` | [[gauge]] state 우선순위(`AS > AP > FC > H > C > F > N`)로 병합 — **점수와 독립**. 낮은 점수의 FC 판도 state는 갱신한다 |
-| `maxCombo` | `max(이번, 저장)` — 점수·state와 독립 |
-| `playCount` | +1 |
+| bestScore | `max(이번, 저장)` |
+| bestRank | 이번 점수가 최고면 이번 rank, 아니면 유지 |
+| bestState | `AS > AP > FC > H > C > F > N` 우선순위 병합 |
+| maxCombo | 독립 `max` |
+| playCount | +1 |
+
+bestState·maxCombo는 bestScore와 독립적으로 갱신한다.
 
 ---
 
-## 4. 무기록 (no-record)
+## 4. no-record
 
-게이트 정의는 [[settings]] §2가 단일 출처 — 무기록 = `autoplay ‖ staticShape ‖ 중간시작 ‖ editorOrigin`. 무적격 판은 **result 화면만 표시**하고, 저장·`playCount` 증가를 모두 하지 않는다.
+단일 출처는 [[settings]] §2.
+
+```text
+no-record = autoplay OR staticShape OR 중간시작 OR editorOrigin
+```
+
+무적격 판은 result만 표시하고 record 저장·playCount 증가를 하지 않는다.
 
 ---
 
 ## 5. 소비처
 
-- **result** — 이번 판과 best를 나란히 표시, NEW BEST = 이번 점수 > 저장 `bestScore` → [[scene]] §8.
-- **song-select** — 곡 목록에 chart별 `bestState`·`bestRank` 뱃지 → [[scene]] §5.
+- result: 이번 판과 best, NEW BEST 표시 → [[scene]] §8.
+- song-select: 현재 playable chart에 대응하는 bestState·bestRank badge → [[scene]] §5.
+- 현재 library chart와 연결할 수 없는 고아 기록은 표시하지 않는다.
 
 ---
 
 ## 6. 결정 완료 / 잔여
 
 확정:
-- [x] chart당 1개, 전 gaugeMode 통합 (cascade 포함)
-- [x] 필드 5종 (`bestScore`/`bestRank`/`bestState`/`maxCombo`/`playCount`)
-- [x] `bestState`는 점수와 독립 병합, `maxCombo` 독립 최대
-- [x] 무적격 판은 표시만 — 저장·playCount 없음
-- [x] 매체는 env 소관, 이 문서는 계약만
+- [x] playable chart당 1기록, gaugeMode 통합
+- [x] 5필드 스키마·독립 갱신
+- [x] no-record 판은 표시만
+- [x] init 제외
+- [x] chartId migration/rename 감지 폐기 `[번복]`
+- [x] 고아 기록 숨김·보존
 
-확정 (추가):
-- [x] 키 = `songId:chartId`, 구 기록 이관 없음, 고아 기록 숨김·보존
-- [x] chartId 마이그레이션 — 본문 4배열 완전 일치 기반 rename 감지, 재import 로더 수행, 복수 후보 시 이전 안 함 (§1)
-
-잔여:
-- (없음)
+잔여 `[보류]`:
+- [ ] 같은 identity에서 playable content가 변경될 때 기록 연결·분리
+- [ ] content fingerprint의 입력·hash·record key 적용
+- [ ] 과거 fingerprint 기록의 보존·재표시 UX

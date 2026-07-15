@@ -1,78 +1,163 @@
 # persistence — 영속성 단일 출처
 
-> 에디터 workspace(복구)·autosave·게임 라이브러리·열기/export의 계약을 정의한다.
-> **정본은 유저의 파일이다**([[cfx]]) — 로컬 영속은 복구·라이브러리·기록·설정만 담당한다.
-> 저장 설비 자체는 env 소관([[architecture]]) — 이 문서는 계약(스토어 구성·키·갱신 규칙)만 정한다. 권장 매체: IndexedDB(바이너리 blob 저장 — 아래 §2).
-> 파일 포맷은 [[cfx]], 기록 스키마는 [[records]], 설정 스키마는 [[settings]].
-> 출처: `file-manager.js`·`autosave.js`·`import-export.js` 실측. 태그 명시 없으면 `[보존]`.
+> editor workspace(복구)·autosave·game library·열기/export/패키징의 계약을 정의한다.
+> 정본은 유저의 chart JSON·asset 파일과 `.cfx`다([[cfx]]). 로컬 영속은 복구·library·records·settings만 담당한다.
+> 저장 설비는 env 소관([[architecture]]). 파일 포맷은 [[cfx]], 기록은 [[records]], 설정은 [[settings]].
 
 ---
 
 ## 1. 스토어 4분리 `[수정]`
 
-`workspace / library / records / settings` 네 스토어로 분리한다.
+`workspace / library / records / settings`.
 
-- 구성 `[번복]`: 이전 결정(songs/assets — 에디터 정본 저장소 + 공유 에셋)을 폐기한다. 정본이 파일로 이동해([[cfx]] §1) "저장소"가 필요 없어졌고, 남는 로컬 영속은 성격이 다른 넷뿐이다: 에디터 복구(workspace) / 게임의 import 곡(library) / 기록(records) / 설정(settings).
-- **[수정] 근거**(유지): 구 코드는 localStorage 한 접두사를 차트·설정·기록·autosave가 공유해 예약 이름 로직(`FM_RESERVED`, `score_*` 금지)이 필요했다. 스토어 분리로 이름 충돌이 원천 소멸한다. → [[rationale#스토어를 4분리한 이유]]
-- records·settings의 스키마는 각자 문서가 단일 출처([[records]], [[settings]]).
+- workspace: editor의 마지막 chart 작업 복구.
+- library: game-internal에서 import한 `.cfx` blob.
+- records/settings: 각 문서가 스키마 단일 출처.
+- 에디터 정본용 songs/assets store는 두지 않는다.
 
-## 2. workspace — 단일 슬롯 `[번복]`
+---
 
-에디터의 **마지막 작업 하나**만 담는 복구 슬롯. 곡별 다중 저장을 두지 않는다 — 정본이 둘(파일 vs 슬롯)이 되어 어긋남 관리가 생기는 것을 차단한다.
+## 2. workspace — 단일 chart 슬롯 `[번복]`
 
-- 내용: 편집 중인 chart 문서(자립 — 공통 필드 포함, [[cfx]] §2) + **music·jacket 바이너리 blob**.
-  - `[수정]` 바이너리 포함: 구 코드는 파일명 문자열만 저장해 재시작마다 오디오 수동 재로드가 필요했다. blob 보존으로 세션 이어가기 시 자동 복원. (구판이 우려한 직렬화 정지·QuotaExceeded는 data URL 인라인 + localStorage의 문제 — IndexedDB blob에는 해당 없음.)
-- 곡 전환 = 파일 열기(§5). workspace는 그때 새 작업으로 교체된다.
+마지막 작업 chart 하나만 저장한다.
+
+```text
+chart data
++ connected music blob + original file name (optional)
++ connected jacket blob + original file name (optional)
+```
+
+- chart가 metadata·timing·asset 참조를 독립 소유한다([[data-model]]).
+- 파일명과 blob을 함께 저장해 재시작 시 자동 복원한다.
+- `.cfx`를 열어도 사용자가 선택한 chart 하나와 그 chart의 asset만 복원한다.
+- 새 파일/다른 chart를 열면 workspace를 새 작업으로 교체한다.
+
+---
 
 ## 3. autosave
 
-- 마지막 편집(커맨드 dispatch, [[editor-commands]]) **30초** 후 workspace에 저장.
-- 에디터 이탈(editor → mode-select/title) 시 즉시 저장.
-- 실패(용량 등)는 인디케이터로 표시하고 throw하지 않는다.
-- 슬롯이 하나뿐이라 구판의 무명 슬롯(`__autosave__`) 문제는 성립 자체가 안 한다.
+- 마지막 command dispatch/undo/redo 30초 후 workspace 저장.
+- editor → mode-select/title 이탈 시 즉시 저장.
+- chart metadata·asset 재연결처럼 command 밖에서 바뀌는 editor 상태도 autosave를 schedule해야 한다.
+- 실패는 indicator로 표시하고 throw하지 않는다.
 
-## 4. 저장·export·파생 UX
+---
 
-| 키 | 동작 | 나가는 곳 |
+## 4. 저장·export·derive
+
+| 키 | 동작 | 결과 |
 |---|---|---|
-| **Ctrl+S** | workspace 즉시 저장 (안심 버튼) | 로컬 (다운로드 아님) |
-| **Ctrl+E** | chart `.json` export — `version` +1, 파일명 `_v{n}` ([[cfx]] §7) | 다운로드 |
-| **Ctrl+Shift+S** | **derive(파생)** `[수정]` — 현재 곡의 songId를 새 UUID로 재발급 | (상태 변경만) |
+| Ctrl+S | workspace 즉시 저장 | local |
+| Ctrl+E | 현재 chart JSON export, `version +1` | download |
+| Ctrl+Shift+S | derive: 새 `songId` UUID | 상태 변경 |
 
-- export는 **현재 메모리 상태 기준**(WYSIWYG — 저장을 강제하지 않는다).
-- derive = 리믹스 시작점. 새 UUID = 기록 단절이므로 confirm 후 실행. UUID 재발급의 유일한 경로다(구 duplicate 개명 — "복제 저장"은 저장소가 없어 무의미).
-- 이름 변경 = `metadata.title` 수정으로 갈음 — 파일명은 export 시 유도([[cfx]] §1).
+- export는 현재 메모리 상태 기준(WYSIWYG), workspace 선저장 불필요.
+- 연결 music/jacket의 원본 파일명을 `musicFile`/`jacketFile`에 기록한다.
+- music 없이도 작업 chart export 허용(`musicFile: null`).
+- asset 재지정 후 다음 export는 새 원본 파일명을 사용한다.
+- derive는 기록 단절을 뜻하므로 confirm 후 실행한다. UUID 재발급의 유일 경로다.
+- metadata.title 변경은 일반 chart 필드 편집이며 파일명은 export 시 파생한다.
 
-## 5. 진입·열기
+---
 
-- **start scene** `[신규]` (정식 scene, 진입 1회 — [[scene]]): **새 곡** / **파일 열기** / **이어서 편집**(workspace가 있을 때만 표시).
-  - 새 곡 = init(id 0) 생성 플로우([[cfx]] §5) — metadata 입력부터.
-  - 파일 열기 = chart `.json` 또는 `.cfx`. `.cfx`는 내부 chart 선택 + music·jacket 자동 로드. 단 저장은 chart export로 나간다([[cfx]] §1 — .cfx 직접 덮어쓰기 없음).
-- 이후 **Ctrl+O = OS 파일 픽커 직행**. 구판의 파일 매니저 overlay(저장 목록)는 목록의 데이터원이 사라져 폐지 `[번복]`.
-- 열기 후처리: 성공 = 로드 → 화면 동기화 → **히스토리 기준선 클리어**([[editor-commands]] §5) → 토스트. 실패(디코딩 등) = 토스트로 에러, music은 수동 재지정 허용([[cfx]] §3).
-- 디버그 덤프 폐지 `[번복]` — chart `.json`이 이미 텍스트라 역할을 흡수했다.
+## 5. editor 진입·열기
 
-## 6. 게임 라이브러리 — 에디터와 완전 분리
+start scene:
 
-- **game-public** 빌드: 번들된 큐레이트 .cfx 정적 목록만.
-- **game-internal** 빌드: 번들 + **library 스토어**(사용자가 import한 .cfx).
-- 저장 형태 = **.cfx blob 통째** `[신규]` (키 = songId). import 시 로더 검증([[cfx]] §8) 통과분만 등록, 파싱은 로드 시.
-  - 에셋 GC(sweep) 폐지 `[번복]` — 에셋이 blob 안에 있으므로 곡 삭제 = blob 삭제 한 방. 참조 관리 개념이 소멸한다.
-- **같은 songId 재import** `[번복]`: confirm 다이얼로그로 **chart별 version을 나란히 비교 표시**(예: `보유 Trace v2·Surge v2 / 가져옴 Trace v2·Surge v3`) 후 **덮어쓰기**. records 키(`songId:chartId`)가 유지되므로 기록은 이어진다. chartId가 이동된 chart(본문 동일·id만 다름)는 로더가 기록 키를 이전한다(rename 감지 `[신규]` → [[records]] §1). 구판의 복제(새 UUID) 선택지는 폐기 — 별개 곡을 원하면 에디터의 derive(§4)가 그 경로다.
-- **곡 삭제**: song-select에서 confirm 후 blob 삭제. **기록은 잔존**(재import 시 복원 — 고아 기록 규칙([[records]] §1)과 동일 논리).
-- song-select 기록 뱃지의 데이터는 [[records]].
+- 새 chart(init) 만들기;
+- chart JSON 열기;
+- `.cfx` 열기;
+- 이어서 편집(workspace가 있을 때만).
 
-## 7. 결정 완료 / 잔여
+`Ctrl+O`는 OS file picker.
+
+### chart JSON
+
+- chart 데이터를 연다.
+- asset은 workspace의 연결 또는 사용자가 선택한 파일로 해소한다.
+- music decode 실패에도 데이터는 열고 수동 재지정 허용.
+- jacket 실패는 placeholder + 재지정 허용.
+
+### `.cfx`
+
+1. package 전체 검증;
+2. init 포함 chart 목록 표시;
+3. chart 하나 선택;
+4. 그 chart + 참조 asset만 workspace 복원;
+5. 화면 동기화·history baseline clear·toast.
+
+`.cfx` 전체를 multi-chart workspace로 복원하지 않는다. `.cfx` 직접 덮어쓰기 없음.
+
+---
+
+## 6. `.cfx` 패키징 UX `[신규]`
+
+기본 입력은 user-selected chart JSON이다([[cfx]] §9).
+
+- 선택 chart를 `songId`별 그룹화.
+- `chartId`별 최고 version을 기본 추천.
+- equal-version duplicate는 사용자 해소 필요.
+- missing referenced asset만 추가 선택.
+- 다른 파일명 asset으로 참조를 바꾸지 않는다. 정확한 이름의 파일만 허용.
+- re-scan/rebuild 시 수동 구버전 선택을 버리고 최신을 다시 추천.
+- group별 독립 검증·생성.
+- unused asset 표시 후 제외.
+- output 기본 이름 충돌은 사용자가 수정.
+
+패키징은 비파괴다. 성공·취소·실패 모두 workspace/version/source file 불변이며 취소는 무변경 종료다.
+
+---
+
+## 7. game library — editor와 분리
+
+- game-public: bundled curated `.cfx`만.
+- game-internal: bundled + library store.
+- library value: `.cfx` blob 통째, key=`songId`.
+- import는 [[cfx]] 구조 검증 + playable music decode 검증을 통과해야 등록.
+- jacket decode 실패는 placeholder와 경고.
+
+### 같은 songId reimport
+
+confirm UI에서:
+
+- playable chart version 비교;
+- init/Representative 항목 별도 비교;
+- 추가·삭제·upgrade·downgrade를 표시한다.
+
+**구버전 reimport 정책은 보류한다.** 가져온 chart version이 보유 version보다 낮을 때 허용할지 거부할지는 persistence 후속 review에서 결정한다. 현재 단계에서는 자동 overwrite하지 않고 비교 결과를 사용자에게 표시한다.
+
+**records migration은 수행하지 않는다.** chartId rename 감지·본문 비교·record key 이동을 하지 않는다([[records]]).
+
+### 삭제
+
+song-select에서 confirm 후 `.cfx` blob 삭제. records 삭제 여부는 [[records]]의 고아 기록 정책을 따른다.
+
+---
+
+## 8. records 경계
+
+persistence와 `.cfx` loader는:
+
+- record를 이동하거나 rewrite하지 않음;
+- init을 records 대상으로 만들지 않음;
+- 수정 chart content의 기록 연결을 판단하지 않음.
+
+content fingerprint와 수정 chart 연결 정책은 [[records]] 후속 review로 보류한다.
+
+---
+
+## 9. 결정 완료 / 잔여
 
 확정:
-- [x] 스토어 4분리 유지, 구성 교체 `[번복]`: workspace/library/records/settings
-- [x] workspace = 단일 슬롯(마지막 작업), chart 문서 + music·jacket blob 포함
-- [x] autosave 30초·이탈 시 저장·실패 인디케이터
-- [x] Ctrl+S = workspace 저장 / Ctrl+E = export(v+1, WYSIWYG) / Ctrl+Shift+S = derive(새 UUID, confirm)
-- [x] start scene(새 곡/파일 열기/이어서 편집), Ctrl+O = OS 픽커, 파일 매니저 overlay 폐지 `[번복]`
-- [x] library = .cfx blob 통째(키 songId), GC sweep 폐지 `[번복]`
-- [x] 재import = version 비교 confirm 후 덮어쓰기(복제 선택지 폐기 `[번복]`), 삭제 = confirm·기록 잔존
-- [x] 디버그 덤프 폐지 `[번복]`
+- [x] workspace/library/records/settings 4분리
+- [x] workspace = 독립 chart 하나 + asset blob·원본 파일명
+- [x] autosave 30초·이탈 저장·실패 indicator
+- [x] Ctrl+S workspace / Ctrl+E chart export / Ctrl+Shift+S derive
+- [x] start scene·Ctrl+O·single-chart open
+- [x] user-selected `.cfx` packaging UX·비파괴 상태 전이
+- [x] library `.cfx` blob·version 비교 UI
+- [x] reimport records migration 폐기
 
-잔여:
-- (없음 — 스토어 내부 스키마·인덱스는 구현 자유)
+잔여 `[보류]`:
+- [ ] 구버전 `.cfx` reimport 허용/거부 정책
+- [ ] records의 content 변경 연결/fingerprint([[records]] 후속 review)

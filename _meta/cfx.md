@@ -1,8 +1,8 @@
 # cfx — chart 파일·.cfx 배포 포맷 단일 출처
 
-> 채보의 파일 형태를 정의한다. 두 층이다: **chart `.json`**(에디터 작업 단위, 자립 파일)과 **`.cfx`**(게임 배포 단위, 수동 조립 ZIP).
-> 내부 데이터의 스키마는 [[data-model]]이 단일 출처 — 이 문서는 파일 구성·식별자·조립/로드 규칙만 정한다.
-> 저장소·라이브러리는 [[persistence]], 기록 키는 [[records]].
+> 채보의 파일 형태를 정의한다. 두 층이다: **chart `.json`**(에디터 작업 단위)과 **`.cfx`**(같은 `songId` chart들의 게임 배포 ZIP).
+> 내부 데이터 스키마는 [[data-model]]이 단일 출처다. 이 문서는 파일 구성·식별자·패키징·로드 규칙만 정한다.
+> workspace/library는 [[persistence]], 기록은 [[records]].
 
 ---
 
@@ -10,107 +10,266 @@
 
 | 층 | 파일 | 단위 | 만드는 곳 |
 |---|---|---|---|
-| 작업 | `{title}_{musicBy}_{difficulty}[_{subtitle}]_v{n}.json` | chart 하나 | 에디터 export |
-| 배포 | `{title}_{musicBy}.cfx` (ZIP) | 곡 하나 | **수동 zip 조립** |
+| 작업 | `{title}_{musicBy}_{difficulty}[_{subtitle}]_v{n}.json` | 독립 chart 하나 | 에디터 export |
+| 배포 | `{representative.title}_{representative.musicBy}.cfx` | 같은 `songId`의 선택 chart 집합 | 패키징 화면 |
 
-- `[번복]` 이전 결정("단일 .cfx가 교환·저장을 겸함, 내부 `song.json`+`charts/`+content-hash `assets/`") 폐기. 에디터는 chart 낱개로 일하고, 완성된 난이도 파일을 모아 zip으로 묶은 것이 .cfx다. → [[rationale#cfx를 두 층으로 나눈 이유]]
-- 에디터의 export = 다운로드(파일 핸들 저장 없음). .cfx를 열어 수정해도 저장은 chart `.json` export로 나간다 — .cfx를 직접 덮어쓰지 않는다(재조립은 수동).
+- chart JSON은 metadata·timing·asset 파일명 참조·events를 스스로 소유한다.
+- `.cfx`는 선택된 chart JSON과 그 chart들이 참조하는 asset 파일을 평탄 ZIP으로 묶는다.
+- `.cfx`를 에디터에서 열어도 저장은 chart JSON export로 나간다. `.cfx`를 직접 덮어쓰지 않는다.
+- outer `.cfx` 파일명은 identity가 아니며 사용자가 자유롭게 수정할 수 있다.
 
-## 2. chart `.json` — 자립 파일 `[보존]`
+---
 
-chart 파일 하나에 그 채보의 전부가 들어간다(구 에디터의 단일 JSON 감각 계승, 스키마는 신규).
+## 2. chart `.json` — 독립 작업 문서 `[번복]`
 
-- **곡 공통 필드 사본 포함**: `songId`·`metadata(title·musicBy·offset·…)`·`tempos`·`timeSignatures`·`schemaVersion`을 모든 chart 파일이 갖는다(offset은 별도 최상위 필드가 아니라 metadata 내부 — [[data-model]] §2). 논리 소유는 여전히 song([[data-model]] — 에디터 안에선 한 곳에만 존재), 파일은 직렬화 사본이다.
-- chart 고유 필드: `chartId`·`difficulty`·`subtitle`·`level`·`chartBy`·`version`·notes/shapeEvents/laneEvents/textEvents.
-- 파일명은 편의 규약이고 **정본은 내부 필드다**(파일명을 바꿔도 정체성 불변).
+스키마는 [[data-model]] §1~§4.
 
-## 3. `.cfx` — 배포 ZIP `[신규]`
+- 파일명은 편의 규약이다. 내부 `songId + chartId`가 identity다.
+- 특정 revision은 `songId + chartId + version`으로 구별한다.
+- `musicFile`·`jacketFile`은 경로가 아닌 파일명만 저장한다.
+- music 없이 작업 chart를 export할 수 있다(`musicFile: null`). jacket은 항상 선택이다.
+- JSON 하나가 binary asset을 inline하지는 않는다. 실제 작업 단위는 JSON + 같은 작업 위치의 별도 asset 파일이다.
 
-내용물 (내부 폴더 없음, 평탄):
+---
 
-```
-*_music.<ext>   ← 오디오 (필수, 정확히 1개)
-*_jacket.<ext>  ← 자켓 (0~1개)
-*.json          ← chart 파일 × N (§2 그대로)
-```
+## 3. songId — 파생 그룹의 UUID `[번복]`
 
-- 에셋 식별은 **접미 규칙** `[번복]`: 확장자를 뗀 파일명이 `music` / `jacket`으로 끝나면 해당 에셋으로 인식한다(`music.ogg`도, 권장형 `{title}_{musicBy}_music.ogg`도 성립). content-hash는 폐기(dedup할 스토어가 없다).
-- **권장 명명**은 chart 파일과 같은 접두 `{title}_{musicBy}_`를 공유 — 작업 폴더에서 곡 단위로 정렬되고, 조립 시 rename이 필요 없다. 에셋 참조 필드는 두지 않는다(파일 존재 = 참조, [[data-model]] §2).
-- 확장자는 원본 유지, 오디오 포맷 화이트리스트 없음 — env의 디코딩에 위임, 실패는 에러 + 에디터에선 music 수동 재지정 허용. 자켓 인라인 금지는 유지.
-- 조립은 사람이 한다: 폴더에 최종 파일을 모아 압축, 확장자만 `.cfx`. 검증은 로더가 한다(§8).
-- .cfx 파일명에 버전 없음 — 최신 여부는 내부 chart들의 `version`이 말한다.
+` songId`는 서로 관련된 chart들을 그룹화하는 UUID다.
 
-## 4. songId — UUID `[보존]`
+- 별도 persisted `song` 객체는 없다.
+- 새 chart를 같은 곡 그룹에 추가하려면 기존 chart(init 포함)에서 파생하여 `songId`를 유지한다.
+- 새 곡/리믹스로 분리할 때만 derive가 새 UUID를 발급한다([[persistence]] §4).
+- 패키징 화면은 선택된 chart를 `songId`별로 나누고, 각 그룹을 별도 `.cfx`로 만든다.
 
-곡의 전역 식별자. 최초 생성 시 발급, 이후 불변. 모든 chart 파일에 사본으로 들어간다.
+---
 
-- 편집·리믹스·메타 수정에도 유지 — 기록 연속성. → [[rationale#song id를 UUID로 둔 이유]]
-- **주의(명세 필수 문구)**: 새 난이도를 "새 곡 생성"으로 각자 만들면 UUID가 서로 달라 조립이 거부된다(§8). 반드시 기존 chart 파일(init 포함)에서 **파생**해 만든다.
+## 4. chart identity
 
-## 5. chartId — 고정 슬롯 + 추가 채보 `[수정]`
+- chart identity: `songId + chartId`
+- revision identity: `songId + chartId + version`
+- 저장 `chartId`는 정수, 파일명·UI 표기는 3자리 패딩(`1` → `001`).
 
-song 안에서 유일한 정수. **저장은 정수, 파일명·UI 표기는 3자리 패딩**(`1` → `001`).
-
-| id | difficulty | 성격 |
+| chartId | difficulty | 규칙 |
 |---|---|---|
-| 0 | init | **에디터 전용 템플릿** — metadata만 입력된 백지 채보. 게임에 넣지 않으며, .cfx에 섞여 들어오면 로더가 조용히 스킵(§8) `[신규]` |
-| 1~4 | Trace / Drift / Surge / Flux **고정 대응** | 기본 채보(subtitle 없음). 구멍 허용(Trace+Surge만 있는 곡 OK), id 수정 불가 |
-| 5+ | 5종 중 선택(기본 Phase) | 추가 채보. id 수정 가능 |
+| 0 | init | 에디터 전용, non-playable, 그룹당 최대 1개 |
+| 1 | Trace | 고정 대응, 수정 불가 |
+| 2 | Drift | 고정 대응, 수정 불가 |
+| 3 | Surge | 고정 대응, 수정 불가 |
+| 4 | Flux | 고정 대응, 수정 불가 |
+| 5+ | Trace/Drift/Surge/Flux/Phase | 추가 chart, id 수정 가능 |
 
-- 기록 키는 `songId:chartId`([[records]]) — 정수 형태(`songId:1`). 고아 기록 숨김·보존 규칙 유지. chartId 이동(본문 불변)의 기록 이전은 재import 마이그레이션이 처리 → [[records]] §1.
-- 권장 워크플로: **init(id 0)을 먼저 만들어 저장 → 복사/파생으로 Trace·Drift·Surge 생성**. 에디터의 "새 난이도" 커맨드(현재 chart에서 공통 필드 상속 + 노트 백지)도 같은 일을 한다([[editor-commands]]).
+- 구멍을 허용한다.
+- 완성 `.cfx`에는 chartId별 선택 revision이 정확히 하나만 존재해야 한다.
+- loader는 중복 chartId 중 최신을 고르지 않는다. 최신 추천은 패키징 전 선택 화면의 책임이다.
 
-## 6. difficulty·subtitle `[신규]`
+---
 
-- `difficulty` = **6종 enum**: `init`(에디터 전용) / `Trace` / `Drift` / `Surge` / `Flux` / `Phase`. 자유 문자열 아님.
-- `subtitle` = 선택 문자열. 두 용도 — 같은 difficulty 간 구분(BMS 차분명 격) + 채보 용도의 간략 설명. 저장은 순수 문자열(`GIMMICK`). subtitle이 있으면 표시 레이어가 **항상 `[...]`로 감싸** 렌더한다(대괄호는 저장에 안 들어감).
-- 개념: subtitle 없는 채보 = 기본 채보(난이도당 하나), subtitle 있는 채보 = 기본이 채우지 못하는 부분을 채우는 추가 채보. Phase는 개념상 추가 채보라 subtitle 동반이 자연스럽지만 **강제 아님**.
-- 파일명 유일성은 `difficulty + subtitle` 조합이 담당(id는 파일명에 안 붙는다).
+## 5. difficulty·subtitle
 
-## 7. version / schemaVersion — 두 축 `[신규]`
+- enum: `init / Trace / Drift / Surge / Flux / Phase`.
+- `subtitle`: 선택 문자열. 저장 시 대괄호 없음, 표시 시 있으면 항상 `[...]`.
+- 같은 `songId` 그룹의 playable chart는 `difficulty + normalized subtitle` 조합이 유일해야 한다.
+- normalization: subtitle 없음과 빈 문자열은 동일, 앞뒤 공백 제거. 추가 case folding/Unicode normalization은 하지 않는다.
+- init은 이 유일성 검사에서 제외한다.
+- 이 조합은 사용자에게 보이는 chart 구분 키이며 identity나 파일명 유일성 자체가 아니다.
 
-| 필드 | 뜻 | 증가 |
-|---|---|---|
-| `version` | **내용의 판** (chart별 정수, 시작 1) | export할 때마다 +1. 파일명 `_v{n}` |
-| `schemaVersion` | **그릇의 규격** (JSON 필드 구성의 세대, 시작 1) | 스키마 변경 시에만, 명세가 올림 |
+---
 
-- `schemaVersion`은 파일마다 들어간다 — 마이그레이션 단위 = 파일 `[번복]` (구 결정 "패키지 단일" 폐기).
-- 파일명의 subtitle 자리: subtitle 있으면 `…_{difficulty}_{subtitle}_v{n}.json`, 없으면 `…_{difficulty}_v{n}.json`.
+## 6. init과 Representative Chart `[신규]`
 
-## 8. 로더 규칙 — .cfx 검증·해소 `[신규]`
+init(`chartId 0`)은:
 
-게임 로더는 .cfx를 열 때:
+- 새 chart 파생의 시작점;
+- 선택적으로 `.cfx`에 포함되는 editor chart;
+- gameplay와 records 대상이 아닌 non-playable chart다.
 
-**스킵**: `chartId 0`(init)은 조용히 건너뛴다(경고 없음 — 플레이에 무영향).
+Representative Chart 선택 순서:
 
-**거부** (로드 실패 + 에러 명시):
-- chart 파일 간 `songId` 불일치
-- `chartId` 중복 (init 제외 후 판정)
-- music 에셋(§3 접미 규칙) 부재
+1. 패키지에 포함된 선택 init;
+2. init이 없으면 가장 낮은 playable `chartId`;
+3. playable chart도 없으면 패키징 불가.
 
-**해소** (로드 계속 + 경고):
-- 곡 공통 필드(§2) 사본이 chart 간 불일치 → **최저 chartId 파일이 정본**, 나머지는 정본 값으로 통일 로드.
+Representative Chart는 다음 **표시 기본값만** 제공한다.
 
-## 9. 구 포맷 비호환 `[수정]`
+- 기본 `.cfx` 파일명의 title·musicBy;
+- chart 선택 전 song/library 목록의 title·musicBy·jacket·preview music;
+- import/reimport UI의 그룹 이름.
 
-구 conflux-editor의 v1~v3 단일 chart JSON은 **import하지 않는다** — 변환기를 탑재하지 않는다.
+playable chart를 선택한 뒤에는 그 chart의 metadata·jacket·music·timing을 사용한다. Representative Chart는 다른 chart의 정본이 아니며 값을 통일·덮어쓰기하지 않는다.
 
-- 간극(참고): channel→lane / artist→musicBy·charter→chartBy / lineEvents(비율 4개)→laneEvents(구분선별) / shape 내부 0~64→외부 -8~+8 / 자유 difficulty→enum / 타임스탬프 파일명→v{n}.
-- 기존 자작 차트는 외부에서(AI/수동) 신 규격으로 변환해 들여온다. → [[rationale#구 포맷 변환기를 탑재하지 않는 이유]]
+---
 
-## 10. 결정 완료 / 잔여
+## 7. asset 참조 `[번복]`
+
+```js
+musicFile: string | null
+jacketFile: string | null
+```
+
+- package-local **bare file name**만 허용한다.
+- `/`, `\\`, `..` 등 경로 성분을 포함하면 무효다.
+- 파일명 비교는 대소문자·Unicode 문자열까지 정확히 일치해야 한다.
+- 패키저는 chart JSON의 참조를 수정하거나 파일을 자동 rename하지 않는다.
+- 참조 파일이 없을 때 사용자는 **정확히 같은 이름**의 파일을 선택해야 한다. 다른 이름의 파일은 거부한다.
+- 여러 chart가 같은 파일명을 참조할 수 있다. 제공된 binary가 모두 동일하면 ZIP에는 한 파일만 넣는다.
+- 같은 파일명인데 내용이 다르면 해당 songId 그룹 패키징을 거부한다.
+- 같은 binary라도 파일명이 다르면 별개 파일로 유지한다. 일반 content dedup은 하지 않는다.
+
+---
+
+## 8. `.cfx` — 평탄 ZIP `[번복]`
+
+ZIP root 예시:
+
+```text
+Chart_A_Trace_v3.json
+Chart_A_Surge_v2.json
+trace_music.ogg
+trace_jacket.png
+surge_music.ogg
+```
+
+규칙:
+
+- 하위 폴더 없음.
+- 선택 chart JSON + 참조되는 asset만 포함.
+- ZIP root의 실제 파일명은 종류와 관계없이 전역 유일.
+- chart JSON 파일명도 전역 유일. 중복이면 거부.
+- 참조되지 않는 선택 asset은 “unused”로 표시하고 package에서 제외한다. 이것만으로 패키징을 막지 않는다.
+- `.cfx` 파일명에는 version을 붙이지 않는다. chart별 version이 최신성 비교를 담당한다.
+
+---
+
+## 9. 패키징 입력·후보 선택 `[신규]`
+
+기본 흐름은 **사용자 선택 중심**이다.
+
+1. 사용자가 chart JSON을 하나 이상 직접 선택한다.
+2. 유효한 chart를 `songId`별로 그룹화한다.
+3. 그룹 안에서 `chartId`별 최고 `version`을 기본 추천한다.
+4. 같은 `songId + chartId + version` 후보가 둘 이상이면 자동 선택하지 않고 충돌로 표시한다.
+5. 선택 chart의 `musicFile`·`jacketFile`을 확인한다.
+6. 찾지 못한 참조 asset만 사용자가 추가 선택한다.
+7. 최종 구성을 보여주고 그룹별 검증 후 생성한다.
+
+- 폴더 탐색은 같은 입력 목록을 미리 채우는 선택적 편의 기능일 뿐 package 의미의 source가 아니다.
+- 후보 목록을 다시 scan/rebuild하면 수동으로 고른 구버전을 유지하지 않고 다시 최고 version을 추천한다.
+- 서로 다른 `songId` 그룹은 독립 검증·생성한다. 한 그룹의 오류·취소가 다른 그룹을 rollback하지 않는다.
+
+---
+
+## 10. 패키징 검증
+
+하나의 그룹은 다음을 모두 만족해야 한다.
+
+- playable chart가 최소 1개;
+- Representative Chart 결정 가능;
+- 포함 playable chart 모두 `musicFile != null`;
+- Representative Chart도 `musicFile != null`;
+- 모든 non-null asset 참조가 정확한 파일명으로 해소됨;
+- 그룹의 모든 chart가 같은 `songId`;
+- chartId 중복 없음, init 최대 1개;
+- chartId 1~4와 difficulty 고정 대응 일치;
+- playable `difficulty + normalized subtitle` 중복 없음;
+- 지원 `schemaVersion`;
+- chart JSON 구조 유효;
+- chart JSON 파일명과 모든 ZIP root 실제 파일명 전역 유일;
+- 동일 이름으로 합쳐지는 asset binary가 동일;
+- 경로 성분 없음.
+
+`.cfx` 자체는 이미 충돌이 해소된 최종 배포물이다. loader는 부분 선택이나 revision 해소를 하지 않는다.
+
+---
+
+## 11. 패키징 상태 전이
+
+패키징은 비파괴 작업이다.
+
+성공·취소·실패 모두:
+
+- chart version 불변;
+- workspace 불변;
+- 원본 JSON·asset 불변;
+- 실패한 중간 출력은 완성 `.cfx`로 취급하지 않음.
+
+취소는 오류가 아닌 무변경 종료다. 임시 파일 처리 방식은 env 구현 자유지만 사용자에게 성공/취소/실패를 명확히 표시한다.
+
+여러 output의 기본 파일명이 충돌하면 자동으로 숫자·timestamp·songId를 붙이지 않는다. 사용자가 output 이름을 수정해야 한다.
+
+---
+
+## 12. `.cfx` loader
+
+### 12.1 구조 검증
+
+포함 chart 또는 구조 관계 하나라도 무효면 package 전체를 거부한다.
+
+- malformed JSON / unsupported schema;
+- duplicate chartId / duplicate visible combination;
+- 고정 chartId-difficulty 불일치;
+- missing referenced asset;
+- same-name different-content asset;
+- invalid path/reference;
+- Representative Chart 결정 불가.
+
+정상 chart만 부분 로드하지 않는다.
+
+### 12.2 decode 규칙
+
+**에디터에서 chart JSON 열기**
+- music decode 실패에도 chart 데이터는 열 수 있다. 오류 후 수동 재지정 허용.
+- jacket decode 실패는 placeholder + 재지정 허용.
+
+**패키징**
+- 파일 존재·이름·구조를 검증한다. 모든 환경의 decode 가능성을 보장하지 않는다.
+
+**game/library import·load**
+- 모든 playable music을 현재 환경에서 decode 검증한다.
+- 하나라도 실패하면 package 전체 거부.
+- jacket decode 실패는 경고 + placeholder로 계속.
+
+---
+
+## 13. `.cfx`를 에디터에서 열기
+
+1. package 전체 검증;
+2. init을 포함한 chart 목록 표시;
+3. 사용자가 chart 하나 선택;
+4. 선택 chart + 그 chart가 참조하는 music/jacket만 단일 workspace에 복원;
+5. editor history 기준선 clear;
+6. 다른 chart는 workspace에 펼치지 않음;
+7. 저장은 chart JSON export.
+
+---
+
+## 14. library·records 경계
+
+- `.cfx` packager/loader는 records를 이동·수정·마이그레이션하지 않는다.
+- chartId 변경에도 기록을 이전하지 않는다.
+- init은 records 대상이 아니다.
+- 수정 chart의 기존 기록 연결, fingerprint, record key evolution은 [[records]]의 후속 game/library review로 명시적 보류한다.
+
+---
+
+## 15. 구 포맷 비호환
+
+구 conflux-editor v1~v3 JSON은 import하지 않는다. 앱 내 변환기를 탑재하지 않는다. 외부 AI/수동 일회 변환으로 처리한다.
+
+---
+
+## 16. 결정 완료 / 잔여
 
 확정:
-- [x] 두 층: chart `.json`(작업, 자립) / `.cfx`(배포, 수동 zip) — 단일 통합 컨테이너 폐기 `[번복]`
-- [x] 곡 공통 필드는 chart마다 사본, 논리 소유는 song 유지. 불일치 = 최저 chartId 정본 + 경고
-- [x] songId UUID 불변 / chartId 정수 저장·3자리 표기 / 기록 키 `songId:chartId` 유지
-- [x] id 0 = init(에디터 전용, 로더 무언 스킵) / 1~4 = Trace·Drift·Surge·Flux 고정 슬롯 / 5+ = 추가 채보
-- [x] difficulty 6종 enum, subtitle = 순수 문자열(있으면 항상 `[...]` 렌더), 파일명 유일성 = difficulty+subtitle
-- [x] version(내용, export마다 +1) / schemaVersion(규격, 파일 단위) 두 축
-- [x] 에셋 접미 규칙(`*_music`/`*_jacket`, 권장 접두 `{title}_{musicBy}_`), content-hash 폐기 `[번복]`, 포맷 디코딩 위임
-- [x] 로더 검증: songId 불일치·chartId 중복·music 부재 = 거부
-- [x] .cfx 파일명 `{title}_{musicBy}.cfx`(버전 없음), 타임스탬프 폐기 `[번복]`
-- [x] 구 포맷 변환기 미탑재
+- [x] 독립 chart JSON / songId 파생 그룹 `[번복]`
+- [x] chart별 metadata·timing·asset 참조 `[번복]`
+- [x] init + Representative Chart 규칙
+- [x] 명시적 `musicFile`/`jacketFile`, 정확한 파일명 연결
+- [x] 평탄 ZIP·전역 파일명 유일·same-name asset 규칙
+- [x] 사용자 선택 중심 패키징·최신 revision 추천
+- [x] 그룹별 독립 생성·비파괴 상태 전이
+- [x] package 전체 구조 거부·decode 계층별 처리
+- [x] `.cfx` 편집 시 chart 하나만 workspace 복원
+- [x] records migration 미수행
 
 잔여:
-- (없음)
+- records의 수정 chart 연결/fingerprint 정책은 [[records]] 후속 review로 보류.
