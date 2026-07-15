@@ -311,7 +311,8 @@ appear는 실사용이 없고 mode는 tutorial 하나뿐인 dead axis였다. fad
 - music 누락은 편집·저장 허용·패키징만 차단, jacket 누락은 기본 암색 배경으로 전 과정 허용
 - 범용 jacket·미리듣기 기능은 이번 범위에서 미결정
 
-`.cfx` 내부 ZIP 폴더 구조(flat vs `charts/`+`assets/music`·`assets/jacket`)와 패키징 진입점(사용자 다중 선택 vs 작업 폴더 선택)의 관계는 이번 review에서 결정하지 않았다 — `DECISION_LOG.md` D-2026-016 참고.
+### 하위 폴더 구조와 폴더 우선 진입을 기각한 이유 (D-2026-016 해소)
+하위 폴더는 압축을 열어본 사람에게 시각적 정돈만 더할 뿐, chart의 asset 참조가 "경로 성분 없는 파일명만 허용"인 현행 규칙과 정면 충돌해 참조 의미론·loader 경로 규칙을 다시 쓰게 만든다. 충돌 방지는 전역 파일명 유일 검증이 이미 결정적으로 수행한다. 폴더 우선 진입은 무관 JSON·복수 songId·version 추론 문제를 되살리며, 그 편의는 prefill로 이미 확보돼 있다. 이 영역은 전부 `[번복]`/`[신규]`라 동작 보존 압력이 없고, 압축 내용물을 한 층에 두는 쪽이 사용자 직관과도 일치한다 — 단순한 쪽을 확정한다.
 
 이번 records/game-library Closure Review에서 다음 근거가 기존 fingerprint 보류 근거를 대체한다.
 

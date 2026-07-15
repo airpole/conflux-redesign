@@ -135,10 +135,10 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** D-2026-016 해소 (`.cfx` 내부 ZIP 구조 × 패키징 진입점)
-- **Discussion Scope:** flat vs 하위폴더 구조, 다중 파일 선택 vs 폴더 선택의 관계
-- **Change Scope:** `_meta/cfx.md`, `_meta/persistence.md`, `DECISION_LOG.md`, `_rationale/rationale.md`, `README.md`
-- **Exit:** D-2026-016이 Accepted 또는 명시적 유지 결정으로 전환
+- **Active unit:** `_plan/build-order.md` 작성 (M1~M6 재구현 순서·범위·gate)
+- **Discussion Scope:** milestone별 문서 매핑·완료 기준·미확정 수치 처리
+- **Change Scope:** `_plan/build-order.md`(신규), `README.md`
+- **Exit:** build-order가 Closure Review를 통과하고 재구현 진입 조건이 명문화됨
 
 ### Completed
 
@@ -154,13 +154,13 @@ records/game library Closure Review를 완료했다(D-2026-017·018). 기록은 
 
 scene 잔여를 확정했다(D-2026-020). song-credit fade 연출(`CREDIT_*`), settings graph = category별 4 scene, credits root 단일 scene(내용 placeholder), quick options host 소유 배치가 최신 main에 반영되어 있다. governance housekeeping으로 운영 가이드 역할명을 Design Steward로 통일하고 REVIEW_CHECKLIST 출력 템플릿의 Closure Gate 항목을 본문과 정합시켰다.
 
+D-2026-016을 해소했다(Accepted). `.cfx` 내부는 flat root + 전역 파일명 유일을 확정 유지하고, 패키징 진입점은 chart JSON 직접 다중 선택 하나로 확정했다(폴더 스캔은 prefill 편의). 하위 폴더 구조와 폴더 우선 진입은 기각했다. cfx.md 잔여 항목이 소거됐다.
+
 ### Deferred
 
-- `.cfx` 내부 ZIP 폴더 구조(flat vs 종류별 하위폴더)와 패키징 진입점(다중 파일 선택 vs 작업 폴더 선택)의 관계 — `DECISION_LOG.md` D-2026-016
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
 
 ### 다음 후보
 
-- D-2026-016 해소 (Current Focus)
+- `_plan/build-order.md` 작성 (Current Focus)
 - credits scene 표시 내용 채우기 (소형)
-- `_plan/build-order.md` — 재구현 직전

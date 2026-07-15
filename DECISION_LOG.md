@@ -176,12 +176,12 @@
 
 ### D-2026-016 — `.cfx` internal ZIP layout vs. packaging entry point
 
-- **Status:** Deferred
-- **Decision:** 이번 meta-review 지시문은 `.cfx` 내부에 `charts/`+`assets/music`·`assets/jacket` 하위 폴더 구조("권장"으로 표기하면서도 loader 경로는 고정 지정)와, 패키징을 "작업 폴더 하나 선택 후 자동 탐색"으로 시작하는 흐름을 제시한다. 이는 기존 flat ZIP·전역 파일명 유일 결정(D-2026-004)과 user-selected 다중 파일 선택을 기본으로 하는 결정(D-2026-005)과 직접 상충할 수 있어 이번 커밋에서는 해소하지 않았다. flat ZIP 구조와 다중 파일 선택 기본 흐름을 그대로 유지했다.
-- **Defined in:** `_meta/cfx.md` §8~§9 (잔여 항목으로 표시)
+- **Status:** Accepted
+- **Decision:** meta-review 지시문의 하위 폴더 구조(`charts/`+`assets/music`·`assets/jacket`)와 폴더 우선 진입("작업 폴더 선택 후 자동 탐색")을 모두 기각하고 현행을 확정한다. `.cfx` 내부는 flat root + 전역 파일명 유일(D-2026-004 유지), 패키징 진입점은 chart JSON 직접 다중 선택 하나이며 폴더 스캔은 선택 목록 prefill 편의 기능이다(D-2026-005 유지).
+- **Defined in:** `_meta/cfx.md` §8~§9
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** `.cfx` packaging structure, packaging entry UX
-- **Supersedes:** None (pending)
+- **Supersedes:** None (D-2026-004·005 확정 유지)
 - **Commit:** this commit
 
 ### D-2026-017 — Records follow chart identity; manual reset

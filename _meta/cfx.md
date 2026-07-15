@@ -161,7 +161,7 @@ surge_music.ogg
 - 후보 목록을 다시 scan/rebuild하면 수동으로 고른 구버전을 유지하지 않고 다시 최고 version을 추천한다.
 - 서로 다른 `songId` 그룹은 독립 검증·생성한다. 한 그룹의 오류·취소가 다른 그룹을 rollback하지 않는다.
 
-> 폴더 스캔을 패키징의 유일한 진입점으로 만들지, 직접 다중 파일 선택과 대등한 두 진입 경로로 유지할지는 아직 확정하지 않았다 — `DECISION_LOG.md` D-2026-016 참고.
+패키징 진입점은 직접 다중 파일 선택 하나다. 폴더 스캔은 진입 경로가 아니라 그 선택 목록을 미리 채우는 편의 기능으로 확정한다 — `DECISION_LOG.md` D-2026-016.
 
 ---
 
@@ -274,10 +274,11 @@ surge_music.ogg
 - [x] 평탄 ZIP·전역 파일명 유일·same-name asset 규칙
 - [x] `.cfx` 파일명 = `{init.title}_{init.musicBy}_v{init.version}.cfx` `[번복]`
 - [x] 사용자 선택 중심 패키징·최신 revision 추천, 폴더 스캔은 선택 목록 prefill
+- [x] 내부 구조 flat 유지·진입점 다중 선택 단일 확정 — 하위 폴더 구조·폴더 우선 진입 기각 (D-2026-016)
 - [x] 그룹별 독립 생성·비파괴 상태 전이
 - [x] package 전체 구조 거부·decode 계층별 처리
 - [x] `.cfx` 편집 시 chart 하나만 workspace 복원
 - [x] records migration 미수행
 
 잔여:
-- `.cfx` 내부 폴더 구조(flat 유지 vs `charts/`+`assets/music`·`assets/jacket` 분리)와 패키징 진입점(사용자 다중 선택 vs 작업 폴더 선택)을 둘 다로 유지할지 여부는 D-2026-004·D-2026-005와 상충 가능성이 있어 확정하지 않았다 — `DECISION_LOG.md` D-2026-016 참고.
+- (없음)
