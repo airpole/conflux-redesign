@@ -133,16 +133,18 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** `.cfx` Closure Review 반영 및 commit 검증
-- **Discussion Scope:** `_meta/cfx.md`
-- **Change Scope:** `core/data-model.md`, `core/glossary.md`, `core/timing.md`, `_meta/cfx.md`, `_meta/persistence.md`, `_meta/records.md`, `_meta/settings.md`, `editor/editor-commands.md`, `editor/editor-graph.md`, `scene/scene.md`, `_rationale/rationale.md`, `README.md`, `DECISION_LOG.md`
-- **Exit:** 문서 동기화·링크/용어 검증·main commit·최신 main 재검증
+- **Active unit:** 다음 설계 작업 선택
+- **Discussion Scope:** 미정
+- **Change Scope:** 미정
+- **Exit:** 다음 논리적 커밋 단위의 작업 계약 확정
 
 ### Completed
 
 naming, glossary, timing, judge, lane-events, shape, gauge, theme, constants, scene, settings, editor 3문서, architecture 및 받침 문서의 1차 명세 완료.
 
-`.cfx`는 Behavioral/Structural/Implementation Closure Review를 통과했다. 이번 변경에서 독립 chart 소유·Representative Chart·명시적 asset 참조·user-selected packager·비파괴 packaging·전체 package validation을 반영한다.
+`.cfx`는 Behavioral/Structural/Implementation Closure Review와 commit 검증을 통과했다. 독립 chart 소유·Representative Chart·명시적 asset 참조·user-selected packager·비파괴 packaging·전체 package validation이 최신 main에 반영되어 있다.
+
+프로젝트 운영 가이드와 Claude Code 구현 지침을 갱신했다. 설계 대화는 C → B → A 수렴 모델, 주제 분류, 범위 통제, 객관적 Closure Judgment를 따른다.
 
 ### Deferred
 
