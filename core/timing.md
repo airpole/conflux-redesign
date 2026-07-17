@@ -108,7 +108,7 @@ editor scroll lower clamp.
 
 ## 8. leadIn / offset
 
-- leadIn=3000ms, tick0 전 empty scroll. resume에는 요청 시 적용.
+- leadIn=3000ms, tick0 전 empty scroll. **플레이 시작 시에만** 적용 — pause Resume은 되감기 없는 정지 카운트다운 재개라 leadIn을 쓰지 않는다([[scene]] §9) `[수정]` (D-2026-022).
 - offset=`activeChart.metadata.offset`, active chart music start에만 적용 `[번복 반영]`.
 - offset은 tick↔ms chart note timing을 바꾸지 않고 audio position만 이동.
 - player device audioOffset setting과 별개.

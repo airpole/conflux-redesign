@@ -60,11 +60,13 @@ autoplay OR staticShape OR mid-start OR editorOrigin
 
 - autoplay: no-record.
 - staticShape: no-record.
-- mid-start: no-record.
+- mid-start: no-record. **정의 = 곡 처음이 아닌 지점에서 시작한 판**(editor test 중간 시작 등). pause→Resume은 시작이 아니라 같은 판의 계속이므로 이 게이트와 무관하다([[scene]] §9) `[수정]` (D-2026-022).
 - editorOrigin: no-record.
 - mirror: record 유지.
 - slowed editor playback도 gate에 넣지 않는다.
 - cmod는 폐기.
+
+quick options([[scene]] §5의 scrollSpeed·gaugeMode·mirror·staticShape·autoplay 5종)는 **이 settings 영속 객체의 같은 필드를 수정하는 빠른 진입점**이다 `[신규]` (D-2026-022). 별도 세션 한정 상태가 아니며, 바꾼 값은 settings 화면에서 바꾼 것과 동일하게 다시 바꿀 때까지 유지된다.
 
 ---
 

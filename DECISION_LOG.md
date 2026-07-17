@@ -224,6 +224,26 @@
 - **Supersedes:** None
 - **Commit:** this commit
 
+### D-2026-021 — Live web distribution & `.cfx` protection
+
+- **Status:** Deferred
+- **Decision:** game-public의 곡 공급을 라이브 웹 서비스(관리자 `.cfx` 업로드 → 접속 유저 즉시 플레이)로 확장할지, `.cfx` 보호 수준(억지력 암호화 vs 서버 세션 제공 vs 평문), 공개 서비스의 기록 저장 위치(브라우저 로컬 vs 서버, D-2026-019 연계)를 별도 사이클에서 결정한다. 그 전까지 곡 공급 계약은 bundled 모델이 기준이다. 1차 추천 방향은 억지력 암호화.
+- **Defined in:** `_meta/persistence.md` §12 (보류 각주)
+- **Rationale:** Not required (pending)
+- **Affects:** game-public 곡 공급, `.cfx` 포맷 보호 계층, records 저장 위치
+- **Supersedes:** None (pending)
+- **Commit:** this commit
+
+### D-2026-022 — Walkthrough resolutions: pause resume, no-record boundary, option persistence, gauge wording
+
+- **Status:** Accepted
+- **Decision:** (a) pause Resume을 정지 카운트다운 재개(되감기 없음)로 바꾸고 pause 사용 판의 기록을 유지한다. (b) no-record의 mid-start를 "곡 처음이 아닌 지점에서 시작한 판"으로 좁혀 명문화한다(Resume 무관). (c) quick options 5종은 settings 영속 객체의 같은 필드를 수정하는 진입점이며 세션 한정 상태가 아니다. (d) gauge 서술에서 "lock" 묶음말을 제거하고 `tier`를 gauge 구성 값으로 격상해 어휘를 통합한다(필드명·저장 스키마 불변).
+- **Defined in:** `scene/scene.md` §9, `_meta/settings.md` §2, `core/gauge.md` §1·§4, `core/judge.md` §6~§7
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** pause UX, no-record gate, quick options, gauge terminology
+- **Supersedes:** None
+- **Commit:** this commit
+
 ## Entry Template
 
 ```md

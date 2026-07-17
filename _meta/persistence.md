@@ -261,6 +261,7 @@ jacket이 없을 때:
 ## 12. game library — editor와 분리
 
 - game-public: bundled curated `.cfx`만.
+- 라이브 웹 서비스 배포(관리자 업로드 → 접속 유저 플레이)로의 확장, `.cfx` 보호(암호화), 서버 기반 기록은 D-2026-021로 보류한다 — 이 문서의 곡 공급 계약은 그 결정 전까지 bundled 모델이 기준이다.
 - game-internal: bundled + library store.
 - library value: `.cfx` blob 통째, key=`songId`.
 - import는 [[cfx]] 구조 검증 + playable music decode 검증을 통과해야 등록.

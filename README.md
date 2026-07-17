@@ -135,10 +135,10 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** `_plan/build-order.md` 작성 (M1~M6 재구현 순서·범위·gate)
-- **Discussion Scope:** milestone별 문서 매핑·완료 기준·미확정 수치 처리
-- **Change Scope:** `_plan/build-order.md`(신규), `README.md`
-- **Exit:** build-order가 Closure Review를 통과하고 재구현 진입 조건이 명문화됨
+- **Active unit:** 결정 역질의 축소판 (`[수정]`·`[신규]` 태그 항목의 의도 재확인) — 시나리오 워크스루는 완료
+- **Discussion Scope:** 태그 항목별 결정 재확인, 발견 시 소형 수정
+- **Change Scope:** 역질의 결과에 따라 결정 (기본은 무변경)
+- **Exit:** 역질의 완료 → `_plan/build-order.md` 작성으로 전환
 
 ### Completed
 
@@ -156,11 +156,16 @@ scene 잔여를 확정했다(D-2026-020). song-credit fade 연출(`CREDIT_*`), s
 
 D-2026-016을 해소했다(Accepted). `.cfx` 내부는 flat root + 전역 파일명 유일을 확정 유지하고, 패키징 진입점은 chart JSON 직접 다중 선택 하나로 확정했다(폴더 스캔은 prefill 편의). 하위 폴더 구조와 폴더 우선 진입은 기각했다. cfx.md 잔여 항목이 소거됐다.
 
+시나리오 워크스루 검증 패스를 완료했다(모순 0건, D-2026-022). pause Resume을 정지 카운트다운 재개(되감기 없음)로 바꾸고 기록을 유지한다. no-record의 mid-start는 "곡 처음이 아닌 지점에서 시작한 판"으로 좁혔다. quick options 5종은 settings 영속 필드의 진입점으로 명문화했다. gauge 서술에서 lock 묶음말을 제거하고 tier를 gauge 구성 값으로 격상했다. 공개 웹 배포·`.cfx` 보호·서버 기록은 D-2026-021로 보류했다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
+- 라이브 웹 배포·`.cfx` 보호(암호화)·공개 서비스 기록 위치 — `DECISION_LOG.md` D-2026-021 (M4 전 해소)
 
 ### 다음 후보
 
-- `_plan/build-order.md` 작성 (Current Focus)
+- 결정 역질의 축소판 (Current Focus)
+- `_plan/build-order.md` 작성 — 역질의 뒤
+- D-2026-021 사이클 (M4 전)
 - credits scene 표시 내용 채우기 (소형)

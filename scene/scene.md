@@ -168,7 +168,7 @@ song-select
 gameplay
   clear/fail/force-end → result
   Esc → pause overlay
-    Resume: 3s lead-in 후 재개
+    Resume: 정지 카운트다운 후 pause 지점부터 재개 — 시간 되감기 없음, 기록 유지 (D-2026-022)
     Retry: 처음부터
     Exit: song-select
 
@@ -178,6 +178,8 @@ result
 ```
 
 pause는 engine을 살리는 overlay다. result는 정식 scene이다.
+
+Resume은 **정지 카운트다운 재개**다 `[수정]` (D-2026-022): 화면·시간을 pause 지점에 고정한 채 카운트다운을 표시하고, 끝나면 정확히 그 지점부터 음악·판정이 흐른다. 되감기(lead-in) 없음. pause 사용은 no-record 게이트와 무관하다 — mid-start 정의는 [[settings]] §2.
 
 ### result 표시
 
@@ -218,7 +220,7 @@ CTX 상세 → [[architecture]].
 - [x] song-credit = selected chart credit
 - [x] gameplay host = selected active chart
 - [x] quick options 공유·no-record link
-- [x] pause overlay·result scene·3s lead-in
+- [x] pause overlay·result scene·정지 카운트다운 재개(기록 유지) `[수정]` (D-2026-022)
 - [x] build gate
 - [x] 기록 초기화 진입점 — song-select, `FEATURES.recordReset` internal 게이트 (D-2026-017)
 - [x] song-credit fade 연출 — 수치는 [[constants]] `CREDIT_*` (D-2026-020)

@@ -13,7 +13,7 @@ SYNC/PERFECT/GOOD/MISS는 `abs(diff_ms)` 한 축의 구간이다. wide도 다른
 과거 gaugeType×lockTarget×lockMode 3축은 사용자 선택 하나를 과도하게 분해했다. normal/hard/fc/ap/as/cascade 6종으로 평탄화하면 UI와 engine 분기가 일치한다. terminate는 gauge 0으로 수렴하고 cascade만 강등 규칙을 둔다.
 
 ### hold tail 특례를 폐기한 이유
-head/tail을 일반 judgment와 같은 SYNC/MISS 규칙으로 처리하면 display·count·lock·gauge가 한 의미를 공유한다. hard tail 수치는 일부 바뀌지만 예외 signal과 전용 delta가 사라진다.
+head/tail을 일반 judgment와 같은 SYNC/MISS 규칙으로 처리하면 display·count·terminate·gauge가 한 의미를 공유한다. hard tail 수치는 일부 바뀌지만 예외 signal과 전용 delta가 사라진다.
 
 ### tail release grace를 폐기한 이유
 GOOD window가 이미 성공 허용 범위이므로 추가 50ms grace는 중복이다. tail도 같은 window를 사용한다.
@@ -320,3 +320,9 @@ appear는 실사용이 없고 mode는 tutorial 하나뿐인 dead axis였다. fad
 - 기록 초기화의 internal 빌드 게이트
 - 다운그레이드 포함 reimport confirm 허용 (D-2026-018)
 - 서버 기반 기록 Deferred (D-2026-019)
+
+### pause를 카운트다운 재개로 바꾸고 기록을 유지한 이유 (D-2026-022)
+끊어치기의 이득은 두 겹이다 — 되감기(lead-in)가 주는 도움닫기 이득과, 노트 없는 틈에 쉬는 휴식 이득. 되감기를 없앤 카운트다운 재개는 전자를 완전히 제거하고, 후자는 통상 허용 범위라 판단해 기록을 유지한다. 즉시 재개가 아닌 카운트다운을 두는 이유는, 정당한 중단(전화·알림) 후 복귀 시 조작 불능 구간이 재개 직후 노트를 확정으로 흘려 "기록 유지" 취지를 스스로 깨기 때문이다. mid-start no-record는 "시작"으로 좁혀 pause와 분리했다 — 중간 시작은 판의 일부를 아예 치지 않는 것이고, pause는 전 구간을 치되 흐름만 끊는 것이라 성격이 다르다.
+
+### gauge 서술에서 lock 묶음말을 제거한 이유 (D-2026-022)
+gauge 문서에 gauge·lock·tier 세 어휘가 겹쳐 있었다. "lock"은 구 코드 lockTarget 유래의 묶음말일 뿐 옵션명도 저장값도 아니어서, `as`/`ap`/`fc` 열거로 대체해도 정의가 짧아지기만 한다. 남는 개념은 gauge(두 값)와 tier(현재 단계) 둘이며, tier를 gauge의 구성 값으로 격상해 한 우산 아래 서술한다. quick options의 영속을 명문화한 것은 "세션 한정 vs 영속" 미명시가 autoplay 잔존 같은 함정 해석을 낳을 수 있어서다 — settings와 같은 필드 하나만 두는 쪽이 단일 출처 원칙과도 맞다.
