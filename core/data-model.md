@@ -171,7 +171,7 @@ textEvent = {
 ```
 
 - 개행 허용.
-- 등장·퇴장 fade 각 300ms 고정 `[수정]`.
+- 등장·퇴장 fade 고정 — 값은 [[constants]] `TEXT_FADE_MS` 단일 출처 `[수정]`.
 - 구 `transition`·`mode` 필드는 폐기.
 - 스타일·배치는 [[theme]] §3, 편집은 [[editor-editing]] §1.
 

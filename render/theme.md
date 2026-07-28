@@ -166,7 +166,7 @@
 
 | 값 | 산출 |
 |---|---|
-| fade | 등장·퇴장 각 `300ms` (fade 고정 — transition 필드 폐기, [[data-model]] §8) |
+| fade | 등장·퇴장 = [[constants]] `TEXT_FADE_MS` (fade 고정 — transition 필드 폐기, [[data-model]] §8) |
 | left/middle/right | 화면 3분할 컬럼(패딩 `gw × 0.02`), 세로 중앙 `gy + gh × 0.5`, 컬럼 폭 초과 시 글자 축소 |
 | lane1~4 (구 `line:N`) | 해당 lane 위 삼각 인디케이터(펄스) + lane 하이라이트 + 텍스트 박스(판정선 위) |
 | 글자 | 3분할 `gw × 0.022` / lane `gw × 0.016` — bold sans-serif(§4), 색 `TEXT_COLOR`(§1) |

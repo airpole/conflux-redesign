@@ -71,6 +71,7 @@
 | `R` (그룹 유지 중) | 간격 유지 ↔ pinch 전환 | 간격 유지 = 가장 오른쪽 라인이 커서를 따르고 나머지 오프셋 유지 / pinch = 그룹을 클릭 위치 한 점에 배치. S ON이면 조합은 symmetry 쌍 지정(§3) — 규칙 단일 출처는 [[lane-events]] §5 |
 
 - 커맨드 3종(add/delete/mutate)은 [[editor-commands]] §6. 배치·수정 규칙은 [[lane-events]].
+- **상태 상시 표기 전제** `[신규]`: 키 조합이 그룹·symmetry 쌍(§3)·`R` 전환 상태 세 의미로 갈리므로, 툴바에 **현재 그룹 구성 / symmetry 쌍 / `R` 모드**를 상시 표시한다. 이 표기는 lane 서브모드 입력의 필수 조건이다.
 
 ### easing 선택 (shape·lane 공통)
 

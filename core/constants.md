@@ -75,3 +75,11 @@ start: `normal` 0 / `hard` 100. 둘 다 상한 100(`gaugeMax`).
 | `CREDIT_FADE_OUT_MS` | 500 |
 
 - 합 5000ms 고정 — song-credit scene 총 표시 시간([[scene]] §6). 입력·skip 없음이므로 로직 경계값이라 여기 둔다.
+
+## 6. textEvent fade (`TEXT_FADE_MS`) `[수정]`
+
+| 상수 | 값 |
+|---|---|
+| `TEXT_FADE_MS` | 300 |
+
+- 등장·퇴장 fade에 **같은 값**을 쓴다. 구 `transition`·`mode` 필드 폐기의 귀결로 고정값 하나에 수렴했다([[data-model]] §8). 표시 스타일·배치는 [[theme]] §3.

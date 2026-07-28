@@ -244,6 +244,16 @@
 - **Supersedes:** None
 - **Commit:** this commit
 
+### D-2026-023 — Counter-inquiry pass: editor interaction confirmations
+
+- **Status:** Accepted
+- **Decision:** 근거 미기록 `[수정]`·`[신규]` 10건을 역질의로 재확인해 전부 현행 유지로 확정한다. 부수 변경 3건만 발생: (a) lane 서브모드 키 조합 오버로드에 대한 **상태 상시 표기**를 입력 전제로 명문화, (b) mirror 축 0 고정·클립보드 규칙·mirror 필터 예외의 근거를 rationale에 기록, (c) textEvent fade 수치를 `TEXT_FADE_MS`로 constants에 이관하고 data-model·theme는 링크 참조로 전환.
+- **Defined in:** `editor/editor-editing.md` §2, `core/constants.md` §6, `core/data-model.md` §8, `render/theme.md` §3
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** editor interaction spec, constants single-source
+- **Supersedes:** None
+- **Commit:** this commit
+
 ## Entry Template
 
 ```md

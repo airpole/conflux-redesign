@@ -275,6 +275,15 @@ workspace chart는 즉시 변하므로 stable library content의 record와 연�
 ### chart structure edit를 undo 밖에 둔 이유
 한 session=한 chart이고 session replacement에서 history가 clear된다. cross-file structure undo stack을 만들지 않는다.
 
+### 붙여넣기를 스크롤 기준으로 두고 충돌을 조용히 스킵하는 이유
+스크롤로 위치를 잡고 `Ctrl+V`를 누르는 keyboard-centric flow에 기준점을 맞춘다. cursor 기준은 붙여넣기마다 포인터를 재조준하게 만든다. 충돌 시 whole rejection은 반복 구간 붙여넣기에서 한 개의 충돌이 전체를 막아 마찰이 크다 — skip은 남은 결과를 보고 이어서 고칠 수 있다.
+
+### mirror만 서브모드 필터의 예외로 둔 이유
+mirror의 전형적 사용은 "이 구간을 통째로 좌우 반전"이라 shape·lane 구분과 무관하다. 필터를 그대로 적용하면 shape만 뒤집히고 lane이 남은 어긋난 상태가 default 결과가 된다. 예외 하나의 비용이 두 번 실행하는 마찰보다 작다.
+
+### mirror axis를 0으로 고정한 이유
+editor mirror는 play mirror와 **같은 변환**이어야 결과를 예측할 수 있다([[judge]] §4 단일 출처). symmetry의 dynamic axis에 연동하면 두 mirror가 갈라진다. `Ctrl+F`를 flip-paste에서 회수한 것은 제자리 반전이 flip-paste보다 고빈도이고, paste 계열은 `Ctrl+V` 문맥에 묶어두는 정리이기도 하다.
+
 ### editor를 single-chart session으로 둔 이유
 workspace·open·저장이 한 chart 파일과 1:1이면 canonical relation이 명확하다. 새 chart는 같은 songId에서 시작값을 복사하되 이후 독립적으로 diverge한다 `[번복 반영]`.
 
@@ -283,7 +292,7 @@ workspace·open·저장이 한 chart 파일과 1:1이면 canonical relation이 �
 ## text event
 
 ### transition·mode를 폐기한 이유
-appear는 실사용이 없고 mode는 tutorial 하나뿐인 dead axis였다. fade 300ms 고정과 `content`·`position`만 유지한다.
+appear는 실사용이 없고 mode는 tutorial 하나뿐인 dead axis였다. fade 고정값([[constants]] `TEXT_FADE_MS`)과 `content`·`position`만 유지한다.
 
 ---
 
