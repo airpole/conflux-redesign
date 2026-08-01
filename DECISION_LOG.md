@@ -254,6 +254,16 @@
 - **Supersedes:** None
 - **Commit:** this commit
 
+### D-2026-024 — Key-demand judgment and global input capacity
+
+- **Status:** Accepted
+- **Decision:** Normal Hold를 lane별 익명 수요로 관리하고 WideHold를 Normal 수요 이후 남는 단일 key에 원자적으로 귀속·이양한다. head 후보는 earliest tick 후 same-tick Normal/Hold 우선으로 결정하며, Hold release grace 50ms, Hold head MISS 2단위 일괄 적용, crossing-Hold mid-start/Resume 복구, 전체 6키 global conflict 검사를 확정한다.
+- **Defined in:** `core/judge.md`, `core/data-model.md`, `core/constants.md`, `core/gauge.md`
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** judgment, runtime play state, gauge accounting, editor conflict validation, mid-start/pause Resume
+- **Supersedes:** None (replaces prior unlogged spec text)
+- **Commit:** this commit
+
 ## Entry Template
 
 ```md

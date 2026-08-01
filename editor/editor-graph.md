@@ -83,8 +83,8 @@ chart field edit는 즉시 적용·undo 밖([[editor-commands]] §7). 삭제는 
 
 - 같은 실제 play engine을 사용하고 host만 다르다.
 - idle: 16:9 frame, current position static preview, HUD, seek bar, conflict 표시, quick options.
-- test scene 즉시 재생: current position, lead-in 없음.
-- gameplay 진입: fullscreen, current position, 3초 lead-in.
+- **test scene 즉시 재생**: current position, lead-in 없음 — 키 상태를 미리 모을 countdown 구간이 없으므로 crossing Hold를 미리 눌러둘 수 없다.
+- **gameplay 진입**: fullscreen, current position, **3초 lead-in**. 이 lead-in 동안 lane 입력은 `keysHeld`만 갱신하고 head는 아직 판정하지 않는다 — anchor에서 judge가 crossing Hold를 Normal 우선·Wide 잔여로 재조정하고, anchor와 정확히 같은 시각에 시작하는 노트는 새 keydown을 요구한다. mid-start seeding·anchor 규칙 단일 출처는 [[judge]] §10.
 - M/F 구 shortcut은 quick options가 대체.
 - editor-origin play는 항상 no-record([[settings]] §2).
 - active chart가 자기 metadata·timing·music을 engine context에 제공한다.
@@ -99,6 +99,7 @@ chart field edit는 즉시 적용·undo 밖([[editor-commands]] §7). 삭제는 
 - [x] songId read-only in meta scene(derive 제거) `[번복]`
 - [x] ms-proportional vertical axis
 - [x] test/gameplay shared engine·editor-origin no-record
+- [x] gameplay 3초 lead-in의 crossing-Hold 재조정은 [[judge]] §10 단일 출처, test 즉시 재생은 lead-in 없어 crossing 불가 `[번복]` (D-2026-024)
 
 잔여:
 - [ ] viewMs 기본값·zoom 범위

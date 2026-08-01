@@ -34,15 +34,17 @@
 
 - 복사 = `{lane, relTick(선택 최소 tick 기준), duration, isWide}`. 붙여넣기 기준점 = 현재 스크롤 위치의 스냅 tick. 충돌(같은 lane+tick+isWide)은 조용히 스킵, 전부 충돌이면 토스트. 클립보드는 note/shape 별개(탭 로컬). 선택에 textEvents가 포함돼 있으면 **함께 복사·붙여넣기**된다 `[신규]`.
 
-### 겹침 표시 — overlap / conflict `[수정]`
+### 겹침 표시 — overlap / conflict / global conflict `[번복]`
 
-동시 입력 요구 수가 **그 대상의 키 수를 초과하면 conflict**, 키 수 이내의 겹침은 overlap으로 표시한다(검출 = domain, 표시 = render — [[judge]] §9와 동일 경계). 요구 수 계산에는 같은 tick의 노트뿐 아니라 **그 시점에 지속 중인 hold를 포함**한다 `[수정]` — lane 1·4에서 hold 중간의 같은 lane tap = conflict, lane 2·3의 hold 1 + tap 1 = overlap(2키 이내):
+동시 입력 요구 수가 **그 대상의 키 수를 초과하면 conflict**, 키 수 이내의 겹침은 overlap으로 표시한다(검출 = domain, 표시 = render — [[judge]] §11과 동일 경계). 요구 수 계산에는 같은 tick의 노트뿐 아니라 **그 시점에 지속 중인 hold를 포함**한다 `[수정]` — lane 1·4에서 hold 중간의 같은 lane tap = conflict, lane 2·3의 hold 1 + tap 1 = overlap(2키 이내):
 
 - lane 1·4 (키 1개): 2겹부터 conflict.
 - lane 2·3 (키 2개): 2겹 = overlap, 3겹부터 conflict.
 - wide: 동시 2겹부터 conflict.
-- 검출 알고리즘(sweep-line·동시 활성 집합)의 단일 출처는 [[data-model]] §5.1 — conflict는 그 순간의 동시 활성 집합 전체에 표시된다.
-- **conflict 해소 삭제** `[신규]`: conflict 집합을 대상으로 delete를 실행하면 **배치(추가)된 순서의 역순으로 capacity 초과분만** 삭제한다 — lane 2의 3겹 = 1개, 4겹 = 2개 삭제. 자동 삭제가 아니라 유저의 del 실행에만 반응한다. (notes 배열 순서 = 배치 순서 전제 → [[data-model]] §5.1. 근거 → [[rationale#overlap과 conflict 검출을 sweep-line n-way로 확장한 이유]].)
+- **global conflict** `[번복]`: 로컬 capacity를 모두 통과해도 그 순간 6개 물리 키 총수요(`D1+D2+D3+D4+W`)가 6을 넘으면 conflict다 — 예: lane 1(1)+lane 2(2)+lane 3(2)+lane 4(1)+wide(1) = 7. 전체 조건 → [[data-model]] §5.1.
+- global conflict는 그 tick/상태에서 수요에 기여하는 노트 전체를 포함하는 그룹이며, 겹치는 로컬 overlap 표시보다 **우선**한다.
+- 검출 알고리즘(sweep-line·동시 활성 집합·global 6키 검사)의 단일 출처는 [[data-model]] §5.1 — conflict는 그 순간의 동시 활성 집합 전체에 표시된다.
+- **conflict 해소 삭제** `[신규]`: conflict 집합을 대상으로 delete를 실행하면 **배치(추가)된 순서의 역순으로 capacity 초과분만** 삭제한다 — lane 2의 3겹 = 1개, 4겹 = 2개 삭제, global conflict는 초과분(`총수요 − 6`)만 삭제. 자동 삭제가 아니라 유저의 del 실행에만 반응한다. (notes 배열 순서 = 배치 순서 전제 → [[data-model]] §5.1. 근거 → [[rationale#overlap과 conflict 검출을 sweep-line n-way로 확장한 이유]], [[rationale#전체 6키 global conflict를 별도 스코프로 둔 이유]].)
 
 ## 2. shapes 씬 — 서브모드 shape / lane
 
@@ -91,7 +93,7 @@ ON이면 배치 시 대칭축 반대편에 자동 생성한다. **축 기본값 
 
 구 "flip-붙여넣기(Ctrl+F)"를 **선택물 제자리 mirror**로 바꾼다. 축은 **항상 중앙 0 고정**(symmetry의 동적 축과 별개).
 
-- 노트: lane `1↔4, 2↔3`(wide 제외) — 매핑 표는 [[judge]] §4 단일 출처(플레이 mirror와 동일).
+- 노트: lane `1↔4, 2↔3`(wide 제외) — 매핑 표는 [[judge]] §3 단일 출처(플레이 mirror와 동일).
 - shape: 위치 대칭 + **isBlue 반전**.
 - lane: 구분선 순서 유지, 위치만 대칭.
 - **shapes 씬에서 걸면 shape·lane 선택을 합쳐 한 번에** 건다.
@@ -141,7 +143,8 @@ ON이면 배치 시 대칭축 반대편에 자동 생성한다. **축 기본값 
 - [x] note 툴 Q/W/E/R/T = tap/hold/wideTap/wideHold/text, sel+del 콤보, 드래그·클립보드 [보존]
 - [x] quick-hold 실측 반영(300ms·savedLNDur 재사용·치환 규칙 — "시작 모드" 서술 정정)
 - [x] overlap/conflict 기준 = 요구 입력 수 vs 키 수, **지속 중 hold 포함** / 클립보드 textEvents 동반
-- [x] conflict 해소 삭제 = 배치 역순 초과분만 (검출 sweep-line·집합 표시는 data-model §5.1 단일 출처)
+- [x] global 6키 conflict(로컬 capacity 통과해도 총수요>6) 표시·우선순위, 해소 삭제는 초과분만 (검출 sweep-line·집합 표시는 data-model §5.1 단일 출처) `[번복]` (D-2026-024)
+- [x] conflict 해소 삭제 = 배치 역순 초과분만
 - [x] shapes 씬 서브모드(T 전환), shape 툴 Q/W/E/R = Blue/center/Red/pinch, lane 툴 Q/W/E = line1/2/3
 - [x] easing 1/2/3/4 = Arc/In/Out/Linear, V = 위치 스냅 순환
 - [x] symmetry(S): 동적 스냅샷 축 + 드래그(수동 축은 토글 off까지·자동 복귀 버튼), 단일 배치 툴만 적용, lane 쌍 = 키 조합, 오른쪽 기준 배치

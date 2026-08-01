@@ -16,8 +16,9 @@
 | PERFECT | ≤ 50 | |
 | GOOD | ≤ 100 | 이 밖은 MISS |
 | WIDE SYNC | ≤ 100 | wide 노트는 SYNC만, ±100 |
+| `HOLD_RELEASE_GRACE_MS` | 50 | hold tail release grace. 한때 폐기했다가 **복원** `[번복]` — 근거 → [[rationale#hold release grace를 50ms로 되돌린 이유]] |
 
-- LN 릴리즈 유예 `LN_RELEASE_GRACE_MS`(구 50)는 **폐기** `[수정]` — tail 분류 임계는 GOOD 창을 그대로 쓴다([[judge]] §6).
+- hold tail 분류 임계는 GOOD 창(100ms)이 아니라 `HOLD_RELEASE_GRACE_MS`(50) 단일 값이다([[judge]] §7). SYNC/PERFECT/GOOD/WIDE SYNC 판정창 자체는 이번 개편으로 바뀌지 않는다.
 - 판정 로직은 [[judge]], 여기는 값만.
 
 ## 2. 게이지 증감 (`GAUGE_DELTA`)
@@ -34,7 +35,8 @@ start: `normal` 0 / `hard` 100. 둘 다 상한 100(`gaugeMax`).
 
 - **normal**: 양수 delta만 `×a` 스케일. `a = GAUGE_NORMAL_TOTAL_GAIN / 총콤보`, **`GAUGE_NORMAL_TOTAL_GAIN = 150`** `[보존]`. 세션 시작 시 1회 계산. 콤보 수 = tap 1, hold 2(head+tail). 올-SYNC면 잠재 회복 +150%인데 100 상한이라 초과분 폐기 → 75% 클리어는 대략 SYNC의 절반 분량. **손실은 절대값**(차트 길이 무관, 후살 비용 일정).
 - **hard**: 전 항목 절대 퍼센트, 저게이지 자비 없음. MISS −5.0 → 20연속 MISS면 풀바 소진. 중간 릴리즈도 MISS와 동일 −5.0 `[수정 — 구 −2.5]`, tail 성공도 SYNC와 동일 +0.15 `[수정 — 구 +0.1]`.
-- 판정은 SYNC/PERFECT/GOOD/MISS **4종 단일 축** — hold tail도 **게이지 델타까지 완전 통합** `[수정]`: tail 성공 = SYNC 델타, 중간 릴리즈 = MISS 델타([[judge]] §6). 구 코드의 게이지 피드는 6종 kind였고 **hard에만** tail 특례(TAIL_OK +0.1 / TAIL_MISS −2.5)가 있었다 — normal은 구에서도 동일 값이라 실변경은 hard뿐. 근거 → [[rationale#hold tail의 게이지 특례를 폐기한 이유]].
+- 판정은 SYNC/PERFECT/GOOD/MISS **4종 단일 축** — hold tail도 **게이지 델타까지 완전 통합** `[수정]`: tail 성공 = SYNC 델타, tail MISS(head 성공 후) = MISS 델타 1회([[judge]] §7). 구 코드의 게이지 피드는 6종 kind였고 **hard에만** tail 특례(TAIL_OK +0.1 / TAIL_MISS −2.5)가 있었다 — normal은 구에서도 동일 값이라 실변경은 hard뿐. 근거 → [[rationale#hold tail의 게이지 특례를 폐기한 이유]].
+- **Hold head MISS는 MISS 델타를 즉시 2회 적용**한다(normal·hard 게이지 모두) `[번복]` — head 판정 단위 1개 + tail 판정 단위 1개가 함께 종결되기 때문이다. 이후 원래 tail 시각에 중복 delta를 적용하지 않는다. 판정 단위·회계 계약 → [[judge]] §8, [[gauge]] §5.
 - gaugeMode 정의·terminate·cascade는 [[gauge]]. 여기는 normal/hard 증감 값만.
 
 ## 3. rank 임계 (`RANK_TABLE`, 백만점제, 높음→낮음 첫 도달)

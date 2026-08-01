@@ -70,10 +70,14 @@
 | `applyJudgment` | `commitJudgment` | 판정 확정 → 상태 반영 | 보존 |
 | `applyTailSuccess` | `commitTailRelease` | hold tail 릴리즈 성공 → **SYNC로 처리** | 수정† |
 | `applyMidRelease` | `commitMidRelease` | hold 중간 릴리즈 → **MISS로 처리** | 수정† |
-| `seedPlayStateFromCurMs` | `seedPlayStateAt(nowMs)` | 중간 시작 시 과거 노트 SYNC 시드 | 보존 |
+| `seedPlayStateFromCurMs` | `seedPlayStateAt(nowMs)` | 중간 시작 시 과거 노트·crossing-Hold SYNC 시드 — pause Resume은 호출 안 함 | 수정‡ |
+| (신규) | `advanceJudgmentStateTo(nowMs)` | tail 자동완료·head 만료를 결정론적 시간 순서로 처리 | 신규 |
+| (신규) | `reconcileHeldCapacity(nowMs)` | Normal shortage 해소 → Wide owner 유지/이양/해소 | 신규 |
 | `feedFastSlow` | `recordFastSlow` | Fast/Slow 피드백 기록 | 보존 |
 
 † TAIL_OK/TAIL_MISS 판정 종류를 폐기하고 SYNC/MISS로 통합 — **게이지 델타 포함 완전 통합**([[constants]] §2 `[수정]`, hard tail 특례 폐기). 함수는 남되 별도 judgment kind를 만들지 않는다. ([[glossary]] 판정 종류 참조)
+
+‡ D-2026-024: crossing Hold는 Normal 우선·Wide 나머지로 anchor에서 재배정한다. 상세 → [[judge]] §10.
 
 ### 게이지 / 결과
 | 현재 | 새 이름 | 역할 | 태그 |
@@ -102,7 +106,7 @@
 | `hasUndo`/`hasRedo` | `canUndo` / `canRedo` | | 보존 |
 | `clearAllHistory` | `clearHistory` | | 보존 |
 | `AddNotes`,`DeleteNotes`,`MoveNotes`,`ReplaceNotes`,`SetNoteDuration` | 동일 유지 | 노트 커맨드들 (시그니처 → [[editor-commands]] §6) | 보존 |
-| `FlipNotes` | `MirrorNotes` | flip→mirror 재명명, 매핑은 [[judge]] §4 | 수정 |
+| `FlipNotes` | `MirrorNotes` | flip→mirror 재명명, 매핑은 [[judge]] §3 | 수정 |
 | `AddShapeEvents`,`DeleteShapeEvents`,`MutateShapeEvents`,`ApplyShapeOps` | 동일 유지 | shape 커맨드 | 보존 |
 | `FlipShapeEvents` | `MirrorShapeEvents` | flip→mirror 재명명 | 수정 |
 | `AddLineEvent` | `AddLaneEvents` (+`DeleteLaneEvents`/`MutateLaneEvents` 신설) | 시그니처 확정 → [[editor-commands]] §6 | 수정 |
@@ -131,7 +135,8 @@
 | `SPEED_MIN/MAX/STEP` | `SCROLL_SPEED_MIN/MAX/STEP` | scrollSpeed 명시 |
 | `GDIVS` | `GRID_DIVISORS` | 분음표 표기 재명명(V=4N, +6, ~256) → [[timing]] §6 |
 | (리터럴 `2000`) | `SCROLL_VIEW_MS` | game-render 내부 리터럴 → 명명 승격 ([[timing]] §3) |
-| `LEAD_IN_MS` | 유지 | `LN_RELEASE_GRACE_MS`는 폐기 `[수정]` — [[judge]] §6 |
+| `LEAD_IN_MS` | 유지 | mid-start 전용, pause Resume은 쓰지 않음 — [[judge]] §10 |
+| `LN_RELEASE_GRACE_MS` | `HOLD_RELEASE_GRACE_MS` (50) | 한때 폐기했다가 **복원** `[번복]` — tail release grace 단일 출처 [[judge]] §7 |
 
 ---
 
@@ -167,7 +172,8 @@
 | `PS.playCombo`/`playMaxCombo` | `playState.combo` / `playState.maxCombo` | |
 | `PS.playHitMap` | `playState.hits` | note→판정상태 |
 | `PS.playMissSet` | `playState.misses` | |
-| `PS.playHoldState` | `playState.holds` | key→지속중 hold 노트. 이양 규칙 → [[judge]] §6 |
+| `PS.playHoldState` | `playState.activeNormalHolds` / `playState.activeWideHold` / `playState.wideOwnerKey` | key 소유 hold 모델 폐기, lane 익명 수요 + Wide 단일 소유 `[번복]` — 모델 단일 출처 [[judge]] §5 |
+| (신규) | `playState.keyPressSerial` / `playState.nextPressSerial` | Wide owner 이양 판정용 keydown 순번 — [[judge]] §5·§6 |
 | `PS.playKeyHeld` | `playState.keysHeld` | 눌린 키 집합 |
 | `PS.lineMap` | `playState.laneMap` | 미러 매핑 |
 | `PS.fastCount`/`slowCount` | `playState.fastCount` / `playState.slowCount` | 세션 누적, result 표시 |
@@ -325,3 +331,4 @@ app-*     부트스트랩 / 빌드별 진입점 / config
 - [ ] 입력단계 지역변수(linePos 등) lane/targetPos 기준 정리 (재구현 시)
 - [x] gridDivisor 상세를 timing.md로 이관 (glossary는 링크만)
 - [x] core/timing.md 신설 — tick↔ms·스크롤 진행도·마디 세그먼트·gridDivisor. scrollYAt은 render, clock은 game으로 경계 확정. measure도 BPM과 같은 세그먼트 패턴으로 통일, sub 분할 gridDivisor와 통일(16 폐기)
+- [x] key-demand judgment 재설계(D-2026-024) — `PS.playHoldState` 폐기 → `activeNormalHolds`/`activeWideHold`/`wideOwnerKey`/`keyPressSerial`, `LN_RELEASE_GRACE_MS`→`HOLD_RELEASE_GRACE_MS`(50, 복원 `[번복]`), `advanceJudgmentStateTo`/`reconcileHeldCapacity` 신설 → [[judge]] §5~§9

@@ -43,7 +43,7 @@ drag 중 live mutate, drag-end에 old/new snapshot command 1개를 dispatch한�
 | 신 이름 | 구 이름 | 비고 |
 |---|---|---|
 | AddNotes / DeleteNotes / MoveNotes | 동일 | |
-| MirrorNotes | FlipNotes | mapping은 [[judge]] §4 |
+| MirrorNotes | FlipNotes | mapping은 [[judge]] §3 |
 | SetNoteDuration / ReplaceNotes | 동일 | |
 | AddTextEvents / DeleteTextEvents / EditTextEvent | 동일 | 필드는 [[data-model]] |
 | AddShapeEvents / DeleteShapeEvents / MutateShapeEvents | 동일 | |

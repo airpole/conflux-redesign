@@ -15,8 +15,26 @@ SYNC/PERFECT/GOOD/MISS는 `abs(diff_ms)` 한 축의 구간이다. wide도 다른
 ### hold tail 특례를 폐기한 이유
 head/tail을 일반 judgment와 같은 SYNC/MISS 규칙으로 처리하면 display·count·terminate·gauge가 한 의미를 공유한다. hard tail 수치는 일부 바뀌지만 예외 signal과 전용 delta가 사라진다.
 
-### tail release grace를 폐기한 이유
-GOOD window가 이미 성공 허용 범위이므로 추가 50ms grace는 중복이다. tail도 같은 window를 사용한다.
+### hold release grace를 50ms로 되돌린 이유 `[번복]`
+GOOD 창(100ms) 전체를 tail release grace로 재사용하면 손을 뗀 뒤에도 100ms 동안 키 점유가 유지된 것처럼 취급돼 lane 수요 계산이 실제 손 상태와 크게 어긋난다. 50ms는 사람이 자연스럽게 놓는 타이밍은 허용하면서 GOOD 창 전체를 승인하지는 않는다. 계속 누르고 있으면 자동 tail 완료가 처리하므로 grace를 넓힐 필요가 없다. D-2026-024에서 `LN_RELEASE_GRACE_MS` 폐기 결정을 번복하고 `HOLD_RELEASE_GRACE_MS`로 복원한다.
+
+### 후보 순서를 단일 결정론 규칙으로 둔 이유
+normal/wide를 별도 풀로 나눠 `bestNormal ?? bestWide`로 고르면 더 이른 wide가 더 늦은 normal에 밀려 버려지는 입력 잡아먹힘이 생긴다. earliest startTick을 최우선으로 하면 이 문제가 사라지고, 같은 tick에서만 normal이 wide를 이긴다. 오래된 미해결 노트를 미래의 노트가 가로채지 않는다는 원칙도 그대로 지켜진다.
+
+### Normal Hold를 lane 익명 수요로 둔 이유
+lane 2·3의 두 물리 키는 행동상 완전히 동등하다. Hold를 특정 키에 고정 배정하면 유효한 손가락 선택(짧은 hold는 왼쪽, 긴 hold는 오른쪽 등)을 거부하게 된다. lane 수요를 "몇 개가 활성인가 vs 몇 개가 눌려 있는가"로만 비교하면 개별 노트-키 소유 관계보다 단순하면서도 모든 조합을 허용한다.
+
+### WideHold를 단일 소유·원자적 이양으로 둔 이유
+교차 손가락 복구(다른 손가락이 우연히 이어받는 것)를 지원하려면 소유가 이양될 수 있어야 하지만, 동시에 두 키가 같은 WideHold를 소유하면 중복 판정·조기 MISS가 생긴다. Normal 수요를 먼저 만족시키고 남는 키만 Wide 후보로 삼으면 어느 쪽을 우선할지에 대한 모호함이 사라진다.
+
+### 전체 6키 global conflict를 별도 스코프로 둔 이유
+lane별·wide별 로컬 capacity 검사는 서로 disjoint한 풀만 본다. 그래서 1+2+2+1+1=7처럼 각 풀은 통과하지만 실제 손가락 6개로는 칠 수 없는 조합을 놓친다. lane 키 집합이 서로소이고 wide 수요가 최대 1이므로, 로컬 부등식 다섯 개에 총합 부등식 하나만 추가하면 현재 6키 설계에 대한 완전한 배정 가능성 검사가 된다.
+
+### Hold head MISS를 2단위로 확정한 이유
+Hold의 성공 조건은 head AND tail이다. head를 놓치면 tail은 애초에 성립할 수 없으므로 그 순간 두 단위 모두 실패로 확정하는 것이 논리적으로 맞다. 모든 score/게이지 시스템이 같은 두 단위를 관용 없이 적용해야 head-MISS 한 번이 결과에 미치는 영향이 시스템마다 다르게 계산되지 않는다. combo reset은 1회만 실행하지만(0을 두 번 만들어도 의미가 없으므로) 이것이 페널티를 줄이는 것은 아니다 — score/accuracy/게이지는 여전히 2단위를 모두 반영한다.
+
+### 영속 note ID를 도입하지 않은 이유
+판정에 필요한 속성(`startTick`·`lane`·`isWide`·`duration`)이 완전히 같은 노트는 플레이어 입장에서 행동상 구별할 수 없다. 결정론적 후보 순서만으로 어떤 물리 keydown이 어떤 인스턴스를 소비하는지 항상 답을 낼 수 있으므로, 안정적인 신원을 위한 별도 ID는 불필요한 개념 추가다.
 
 ---
 
@@ -282,7 +300,7 @@ workspace chart는 즉시 변하므로 stable library content의 record와 연�
 mirror의 전형적 사용은 "이 구간을 통째로 좌우 반전"이라 shape·lane 구분과 무관하다. 필터를 그대로 적용하면 shape만 뒤집히고 lane이 남은 어긋난 상태가 default 결과가 된다. 예외 하나의 비용이 두 번 실행하는 마찰보다 작다.
 
 ### mirror axis를 0으로 고정한 이유
-editor mirror는 play mirror와 **같은 변환**이어야 결과를 예측할 수 있다([[judge]] §4 단일 출처). symmetry의 dynamic axis에 연동하면 두 mirror가 갈라진다. `Ctrl+F`를 flip-paste에서 회수한 것은 제자리 반전이 flip-paste보다 고빈도이고, paste 계열은 `Ctrl+V` 문맥에 묶어두는 정리이기도 하다.
+editor mirror는 play mirror와 **같은 변환**이어야 결과를 예측할 수 있다([[judge]] §3 단일 출처). symmetry의 dynamic axis에 연동하면 두 mirror가 갈라진다. `Ctrl+F`를 flip-paste에서 회수한 것은 제자리 반전이 flip-paste보다 고빈도이고, paste 계열은 `Ctrl+V` 문맥에 묶어두는 정리이기도 하다.
 
 ### editor를 single-chart session으로 둔 이유
 workspace·open·저장이 한 chart 파일과 1:1이면 canonical relation이 명확하다. 새 chart는 같은 songId에서 시작값을 복사하되 이후 독립적으로 diverge한다 `[번복 반영]`.
@@ -335,3 +353,14 @@ appear는 실사용이 없고 mode는 tutorial 하나뿐인 dead axis였다. fad
 
 ### gauge 서술에서 lock 묶음말을 제거한 이유 (D-2026-022)
 gauge 문서에 gauge·lock·tier 세 어휘가 겹쳐 있었다. "lock"은 구 코드 lockTarget 유래의 묶음말일 뿐 옵션명도 저장값도 아니어서, `as`/`ap`/`fc` 열거로 대체해도 정의가 짧아지기만 한다. 남는 개념은 gauge(두 값)와 tier(현재 단계) 둘이며, tier를 gauge의 구성 값으로 격상해 한 우산 아래 서술한다. quick options의 영속을 명문화한 것은 "세션 한정 vs 영속" 미명시가 autoplay 잔존 같은 함정 해석을 낳을 수 있어서다 — settings와 같은 필드 하나만 두는 쪽이 단일 출처 원칙과도 맞다.
+
+이번 judgment system 재설계(D-2026-024)에서 다음 근거가 기존 key-owned Hold·tail release grace 폐기 근거를 대체한다.
+
+- 결정론적 후보 순서 단일화(normal/wide 분리 풀 폐기)
+- Normal Hold 익명 lane 수요
+- WideHold 단일 소유·원자적 이양(Normal 우선)
+- `HOLD_RELEASE_GRACE_MS = 50` 복원(구 GOOD 창 재사용 폐기)
+- Hold head MISS 2단위 즉시 확정
+- 전체 6키 global conflict 검사
+- 영속 note ID 미도입
+- mid-start crossing-Hold 시드·pause Resume 비-재시드 분리

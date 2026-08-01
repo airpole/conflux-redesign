@@ -88,6 +88,7 @@
 - judgment = `abs(diff)` 임계(SYNC 25 / PERFECT 50 / GOOD 100).
 - gaugeMode 6종 → state `AS/AP/FC/H/C/F/N`; rank는 독립.
 - terminate는 gauge 0, cascade는 강등·병렬 gauge 평가.
+- Hold 판정은 key-demand 모델(D-2026-024) `[번복]`: Normal Hold는 lane 익명 수요, WideHold는 Normal 수요 이후 남는 키에 원자적 단일 소유. release grace `HOLD_RELEASE_GRACE_MS=50`ms 복원, Hold head MISS는 2단위(score/게이지) 즉시 확정. 전체 6키 total demand가 로컬 capacity를 통과해도 초과하면 global conflict.
 
 ### shape / lane / grid
 
@@ -135,10 +136,10 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** 결정 역질의 축소판 (`[수정]`·`[신규]` 태그 항목의 의도 재확인) — 시나리오 워크스루는 완료
-- **Discussion Scope:** 태그 항목별 결정 재확인, 발견 시 소형 수정
-- **Change Scope:** 역질의 결과에 따라 결정 (기본은 무변경)
-- **Exit:** 역질의 완료 → `_plan/build-order.md` 작성으로 전환
+- **Active unit:** `_plan/build-order.md` 작성 (M1~M6 재구현 순서·범위·gate)
+- **Discussion Scope:** milestone별 문서 매핑·완료 기준·미확정 수치 처리
+- **Change Scope:** `_plan/build-order.md`(신규), `README.md`
+- **Exit:** build-order가 Closure Review를 통과하고 재구현 진입 조건이 명문화됨
 
 ### Completed
 
@@ -158,6 +159,10 @@ D-2026-016을 해소했다(Accepted). `.cfx` 내부는 flat root + 전역 파일
 
 시나리오 워크스루 검증 패스를 완료했다(모순 0건, D-2026-022). pause Resume을 정지 카운트다운 재개(되감기 없음)로 바꾸고 기록을 유지한다. no-record의 mid-start는 "곡 처음이 아닌 지점에서 시작한 판"으로 좁혔다. quick options 5종은 settings 영속 필드의 진입점으로 명문화했다. gauge 서술에서 lock 묶음말을 제거하고 tier를 gauge 구성 값으로 격상했다. 공개 웹 배포·`.cfx` 보호·서버 기록은 D-2026-021로 보류했다.
 
+결정 역질의 축소판을 완료했다(D-2026-023). 근거 미기록 `[수정]`·`[신규]` 10건을 재확인해 전부 현행 유지로 확정했고, lane 서브모드 상태 상시 표기·mirror 축 0 고정과 클립보드 규칙의 근거 기록·`TEXT_FADE_MS` constants 이관 3건만 부수 변경으로 반영했다.
+
+judgment system을 key-demand 모델로 재설계했다(D-2026-024). Normal Hold를 lane별 익명 수요로, WideHold를 Normal 수요 이후 남는 키에 원자적 단일 소유로 관리한다. Hold release grace를 `HOLD_RELEASE_GRACE_MS=50`ms로 복원했고(구 GOOD 창 재사용 폐기), Hold head MISS는 score·게이지 2단위를 즉시 확정한다. 후보 매칭은 normal/wide 분리 풀을 폐기하고 단일 결정론적 순서로 통합했다. 로컬 lane/wide capacity를 모두 통과해도 물리 키 총수요가 6을 넘으면 global conflict로 잡는다. mid-start crossing-Hold 시드와 pause Resume의 비-재시드 재조정을 분리해 정의했다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
@@ -165,7 +170,6 @@ D-2026-016을 해소했다(Accepted). `.cfx` 내부는 flat root + 전역 파일
 
 ### 다음 후보
 
-- 결정 역질의 축소판 (Current Focus)
-- `_plan/build-order.md` 작성 — 역질의 뒤
+- `_plan/build-order.md` 작성 (Current Focus)
 - D-2026-021 사이클 (M4 전)
 - credits scene 표시 내용 채우기 (소형)

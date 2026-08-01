@@ -37,7 +37,8 @@ runtime core에는 song group이 아니라 active chart를 넘긴다.
   - `flashTiming`: 순간 표시.
   - `fastCount/slowCount`: result 누적.
   - normal PERFECT/GOOD만 count; SYNC/MISS/wide/autoplay 제외.
-- hold tail: success=SYNC, early release=MISS.
+- hold tail: `HOLD_RELEASE_GRACE_MS`(50) 이내 release=SYNC, 그 밖=MISS. capacity가 tail까지 유지되면 자동 SYNC. → [[judge]] §7.
+- **judgment unit** — 게이지·score 회계의 기본 단위(D-2026-024). Tap 1단위, Hold는 head+tail 2단위. Hold head MISS는 두 단위를 즉시 함께 확정한다. → [[judge]] §8, [[gauge]] §5.
 
 ---
 
@@ -50,16 +51,20 @@ runtime core에는 song group이 아니라 active chart를 넘긴다.
 | isWide=false | Tap | Hold |
 | isWide=true | WideTap | WideHold |
 
+- **Normal note** — `isWide=false` 노트의 정식 용어. "lane note"라고 부르지 않는다.
 - **lane** 1~4 — note logical lane.
 - **key** 1~6 — physical input. `LANE_OF_KEY`로 lane mapping.
 - **duration** — note/shape/laneEvent 공통: 0=instant, >0=sustained/interpolated.
+- **Normal Hold demand** — lane에 활성 중인 Normal Hold 수. 특정 물리 키가 아니라 그 lane에 눌려 있는 키 전체가 익명으로 충족한다(D-2026-024). → [[judge]] §5.
+- **WideHold owner** — 활성 WideHold를 담당하는 물리 key 하나. Normal 수요를 만족시키고 남는 키 중에서만 배정되며 항상 0개 또는 1개다. → [[judge]] §5·§6.
 
-### overlap / conflict
+### overlap / conflict / global conflict
 
-notes에서 sweep-line으로 계산하는 derived map.
+notes와 활성 Hold 상태에서 sweep-line으로 계산하는 derived map.
 
-- overlap: capacity 이내, L2/L3 2중, playable, yellow.
-- conflict: capacity 초과, unplayable warning.
+- overlap: 로컬 capacity 이내, L2/L3 2중, playable, yellow.
+- conflict: 로컬 capacity 초과, unplayable warning.
+- **global conflict** — 로컬 capacity를 모두 통과해도 물리 키 총수요가 6을 넘는 상태(D-2026-024). 로컬 overlap 표시보다 우선한다.
 - judge는 모른다. render는 map을 소비한다.
 
 상세 [[data-model]] §5.1.

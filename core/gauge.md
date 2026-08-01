@@ -89,7 +89,23 @@ cascade는 [수정]이라 대조할 구 구현이 없다. 재구현 검증은 �
 
 ---
 
-## 5. 경계 — gauge가 다루지 않는 것
+## 5. judgment 단위와 게이지 회계 `[번복]`
+
+gauge는 [[judge]]의 **판정 단위** 하나마다 delta를 적용한다(D-2026-024). Hold 재설계로 판정 단위와 delta 적용 횟수가 분리됐으므로 여기서 회계 계약만 명시한다 — Hold 상태 기계 전체는 중복 정의하지 않는다.
+
+- Tap head MISS: MISS delta 1회.
+- **Hold head MISS: MISS delta 즉시 2회**(normal·hard 게이지 모두) — head 단위 + tail 단위가 함께 종결되기 때문이다. 이후 원래 tail 시각에 중복 delta를 적용하지 않는다.
+- Hold head 성공 + tail MISS: MISS delta 1회.
+- Hold head 성공 + tail SYNC: SYNC delta 1회(head는 delta 없음, tail 확정 시 1회).
+- combo reset 횟수는 게이지 delta 횟수와 무관하다 — combo는 몇 번 0이 되든 1회 리셋이지만 게이지는 여전히 2단위를 반영한다.
+
+Hold head MISS 1회는 MISS에 민감한 모든 티어(§2·§4의 `fc`/`ap`/`as`/`cascade`)를 깨뜨리기에 충분하다 — 그럼에도 게이지 회계는 별개로 **두 delta 모두** 적용한다(티어 판정과 게이지 수치 적용은 서로 다른 관심사).
+
+수치는 [[constants]] §2, 판정 단위·이벤트 처리 정의는 [[judge]] §7~§9.
+
+---
+
+## 6. 경계 — gauge가 다루지 않는 것
 
 - **증감 수치**: [[constants]] §2. 여기는 동작만.
 - **판정 종류 정의** (SYNC/PERFECT/GOOD/MISS): [[judge]]. 여기는 어느 판정이 terminate를 부르는지만.

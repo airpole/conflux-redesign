@@ -181,6 +181,8 @@ pause는 engine을 살리는 overlay다. result는 정식 scene이다.
 
 Resume은 **정지 카운트다운 재개**다 `[수정]` (D-2026-022): 화면·시간을 pause 지점에 고정한 채 카운트다운을 표시하고, 끝나면 정확히 그 지점부터 음악·판정이 흐른다. 되감기(lead-in) 없음. pause 사용은 no-record 게이트와 무관하다 — mid-start 정의는 [[settings]] §2.
 
+Resume은 mid-start 시드 루틴을 호출하지 않는다 `[번복]` (D-2026-024): pause는 기존 head/tail 결과와 활성 Hold를 그대로 보존하고, 카운트다운 중 눌린 lane 키만 모아 pause anchor에서 `reconcileHeldCapacity`를 실행한다. 과거 노트 재시드는 없다. 판정 모델 단일 출처는 [[judge]] §10.
+
 ### result 표시
 
 선택 chart의 title·musicBy·difficulty·subtitle·level / rank·state / score·accuracy / NEW BEST / judgment count / FAST·SLOW / max combo / best record / applied options.
@@ -227,6 +229,7 @@ CTX 상세 → [[architecture]].
 - [x] settings graph = play/visual/gauge/option 4 scene (D-2026-020)
 - [x] credits = root 소속 단일 scene, mode-select 진입 (D-2026-020)
 - [x] quick options 배치 = host 소유 — song-select overlay / test embedded panel (D-2026-020)
+- [x] pause Resume은 mid-start 시드를 호출하지 않음 — 보존된 활성 Hold를 pause anchor에서 재조정 (D-2026-024)
 
 잔여:
 - [ ] credits scene 표시 내용 (scene 골격은 확정, 내용은 후속 결정)

@@ -105,6 +105,7 @@ note = { startTick, duration, lane, isWide }
 - **isWide** — true면 아무 키로나, false면 자기 lane 키로만.
 - **duration** — 0이면 tap, >0이면 hold. ([[glossary]] duration 공통 규칙)
 - 4종 = `isWide` × `duration`: Tap / Hold / WideTap / WideHold.
+- 영속 note ID는 없다. 판정 매칭은 `startTick`·`lane`·`isWide`·`duration`이 완전히 같은 노트를 서로 교환 가능한 것으로 다룬다([[judge]] §1).
 
 ### 5.1 겹침 검출 — overlap / conflict (파생)
 
@@ -114,21 +115,41 @@ note = { startTick, duration, lane, isWide }
 
 **검출 = sweep-line** `[수정]`: 풀(lane 1~4 각각 + Wide)별로 시작/종료 이벤트를 정렬해 훑으며 동시 활성 수와 집합을 구한다. O(n log n).
 
-**capacity로 분기**:
+**로컬 capacity로 분기**:
 - lane 1·4 (1키): 2겹부터 conflict.
 - lane 2·3 (2키, `OVERLAP_LANES`): 2겹 = overlap, 3겹부터 conflict.
 - Wide 풀: 2겹부터 conflict.
 - conflict는 그 순간 동시 활성인 노트 집합 전체에 표시한다. 해소 삭제는 [[editor-editing]] §1.
 
+**global 6키 conflict** `[번복]`: 로컬 capacity를 모두 만족해도 물리 키 총수요가 6을 넘으면 구조적으로 칠 수 없다. 매 tick에서:
+
+```text
+D1 = lane 1 활성 Hold + 이 tick의 lane 1 head 수
+D2 = lane 2 활성 Hold + 이 tick의 lane 2 head 수
+D3 = lane 3 활성 Hold + 이 tick의 lane 3 head 수
+D4 = lane 4 활성 Hold + 이 tick의 lane 4 head 수
+W  = 활성 WideHold 수요 + 이 tick의 wide head 수
+
+D1<=1, D2<=2, D3<=2, D4<=1, W<=1
+D1+D2+D3+D4+W <= 6
+```
+
+마지막 부등식이 로컬 capacity를 모두 통과해도 발생하는 7-입력 문제(예: 1+2+2+1+1=7)를 잡는다. lane별 키 집합이 서로소이고 wide 수요가 최대 1이므로, 이 부등식들은 현재 6키 구성에서 **완전한 배정 가능성 검사**다([[judge]] §12).
+
+- 같은 tick에서는 **tail이 먼저 빠지고** 그다음 같은 tick의 head를 평가한다([[judge]] §7).
+- global conflict group은 그 tick/상태에서 수요에 기여한 노트 전체를 포함하며, 로컬 overlap 표시보다 **우선**한다.
+- global conflict 해소 삭제는 reverse-insertion으로 초과분(`총수요 − 6`)만 지운다 — 자동 삭제는 없다.
+- 판정창은 구조적으로 불가능한 동시 chord를 눈감아주지 않는다 — 검증은 note domain의 문제이지 judge 판정 로직의 문제가 아니다.
+
 **overlap 세부 분류**:
 - `merged` — 활성구간 동일. 한 장 표시, 다른 장 `hidden`.
 - `yellow` / `clipped` — 부분 겹침. 늦은/짧은 쪽 겹침부가 `yellow`, 흰 노트 몸통은 `clipped`.
 
-**conflict**:
-- 흰 채움 + 빨간 경고 테두리. merged/yellow 분류 없음.
+**conflict** (로컬·global 공통):
+- 흰 채움 + 빨간 경고 테두리. merged/yellow 분류 없음. global conflict가 로컬 overlap 표시를 덮는다.
 
 > **notes 배열 순서 = 배치 순서** `[신규]`: 직렬화에서도 보존한다. 시간순 접근은 정렬 캐시가 담당한다.
-> 검출(domain)과 표시(render)를 분리한다. judge는 overlap/conflict를 모른다.
+> 검출(domain)과 표시(render)를 분리한다. judge는 overlap/conflict를 모른다. conflict 저장 필드·note ID는 두지 않는다.
 
 ---
 
@@ -184,10 +205,14 @@ editorState = { scrollSpeed, ...selection/tool/viewport/history }
 playState   = {
   gauge: { hardPct, normalPct },
   tier,
-  gaugeMode, combo, maxCombo, hits, misses, holds,
-  keysHeld, laneMap, fastCount, slowCount, flashTiming, forceEnded, ...
+  gaugeMode, combo, maxCombo, hits, misses,
+  activeNormalHolds, activeWideHold, wideOwnerKey,
+  keysHeld, keyPressSerial, nextPressSerial,
+  laneMap, fastCount, slowCount, flashTiming, forceEnded, ...
 }
 ```
+
+- `activeNormalHolds`/`activeWideHold`/`wideOwnerKey`/`keyPressSerial`/`nextPressSerial`은 D-2026-024의 key-demand Hold 모델 상태다. 구 `holds`(key→note 소유 맵)를 대체한다 `[번복]` — 모델 단일 출처는 [[judge]] §5~§9, 이름 대응 [[naming]] §4.
 
 - core 함수에는 **활성 chart**를 인자로 넘긴다. core는 library의 songId 그룹이나 멀티 chart 목록을 모른다.
 - result(`score`/`accuracy`/`rank`/`state`/FAST·SLOW)는 `computeResult` 반환값이며 저장 chart 필드가 아니다.
@@ -211,6 +236,7 @@ playState   = {
 - [x] `musicFile`·`jacketFile` 필드와 nullability
 - [x] identity와 사용자 표시 구분
 - [x] note/shape/lane/text 구조 및 런타임 상태
+- [x] key-demand Hold 런타임 상태(`activeNormalHolds`/`activeWideHold`/`wideOwnerKey`/`keyPressSerial`), global 6키 conflict 검출(D-2026-024) `[번복]`
 
 잔여:
 - (없음 — records의 내용 변경 무판별·identity 유지는 [[records]] §1에서 확정, D-2026-017.)
