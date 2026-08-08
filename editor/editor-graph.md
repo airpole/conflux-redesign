@@ -103,3 +103,4 @@ chart field edit는 즉시 적용·undo 밖([[editor-commands]] §7). 삭제는 
 
 잔여:
 - [ ] viewMs 기본값·zoom 범위
+- [ ] editor timeline의 최소 표시 길이 — 곡이 짧아도 seek 축이 붕괴하지 않게 하는 하한. 플레이 종료 시각([[timing]] §9)과는 별개 값이다

@@ -125,6 +125,7 @@ Blue · 1 · 2 · 3 · Red
 - **gridDivisor** — note time grid의 note-value denominator, default 32.
 - **laneGridDivisor** — lane horizontal spatial grid, default 4.
 - **scrollSpeed** — visual density only.
+- **chartEndMs / musicEndMs / contentEndMs / songEndMs** — 곡 끝을 이루는 네 값. 정의는 [[timing]] §9.
 
 ---
 

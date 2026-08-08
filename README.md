@@ -166,6 +166,8 @@ judgment system을 key-demand 모델로 재설계했다(D-2026-024). Normal Hold
 
 song-select를 전면 재설계했다(D-2026-025~029). 목록을 category 탭 / groupBy folder / sortKey·sortDir 세 축으로 나누고, 항목 모델을 song row + chart slot으로 정의해 전용 문서 `scene/song-select.md`로 분리했다. slot은 level·difficulty·state 램프를 함께 표시하며, 타이핑 즉시 검색·정렬 변경 시 커서 유지·preview 지연 재생·`lastSelected` 복원을 확정했다. records는 `bestJudgments`·`bestState`·`maxCombo` 3필드로 바뀌어 score·rank·accuracy가 파생이 됐고, `playCount`는 제거했다. chartId 고정 슬롯을 `1~5`로 확장해 Phase를 정규 난이도로 편입했다. 화면 상태 전용 `viewState` store를 신설해 스토어를 5분리했다. 함께 스펙 공백 7건(preview 재생·탭 백그라운드 auto-pause·로딩 표시 임계·단축키 preventDefault·text input focus 격리·저장 실패 표시·빈 library 안내)을 확정했다.
 
+곡 종료 시각을 정의했다(D-2026-030). `songEndMs = max(chartEndMs, musicEndMs) + SONG_END_TAIL_MS(3000)`로 통일하고, 진행 표시 분모 `contentEndMs`를 분리해 CTX 필드명을 바꿨다. 원본의 4s/2s 비대칭 tail·offset 미보정·5000ms 하한 겸용을 정정했고, autoplay 판은 result 없이 song-select로 복귀한다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019

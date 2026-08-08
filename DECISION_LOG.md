@@ -316,6 +316,16 @@
 - **Supersedes:** None
 - **Commit:** `5e3d4de`
 
+### D-2026-030 — 곡 종료 시각 정의
+
+- **Status:** Accepted
+- **Decision:** 플레이 종료를 `songEndMs = max(chartEndMs, musicEndMs) + SONG_END_TAIL_MS(3000)`로 정의하고, 진행 표시 분모 `contentEndMs`와 분리한다. autoplay 판은 result 없이 song-select로 복귀한다.
+- **Defined in:** `core/timing.md` §9, `core/constants.md` §9, `scene/scene.md` §9
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** timing, constants, scene, architecture, editor-graph
+- **Supersedes:** None
+- **Commit:** `TBD`
+
 ```md
 ### D-YYYY-NNN — <Title>
 

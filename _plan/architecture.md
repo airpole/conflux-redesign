@@ -67,7 +67,7 @@ play 엔진(game 레이어)은 editor 안에서도, 독립 game scene에서도 *
   | CTX 필드 | 접근 | 뜻 |
   |---|---|---|
   | `sharedMs` | r/w | 현재 재생 위치(ms). **엔진이 쓰는 유일한 필드** |
-  | `totalMs` | r | 곡 전체 길이(ms) |
+  | `contentEndMs` | r | 곡 내용이 끝나는 chart time(ms). 진행 표시 분모. 정의 [[timing]] §9 `[수정]` |
   | `hitVol` | r | 히트음 볼륨 0..1 |
   | `pvSpd` | r | 스크롤 속도 ([[glossary]] scrollSpeed) |
   | `nThk` | r | 노트 두께 |
@@ -76,7 +76,7 @@ play 엔진(game 레이어)은 editor 안에서도, 독립 game scene에서도 *
 - **호스트 추가 주입**: `judgeLinePos`(판정선 위치, [[settings]])는 위 정본 seam에 **없다** — 엔진이 원래 만지던 필드가 아니라 두 호스트 빌더가 CTX에 얹어 보내는 값이다(fallback `8/9`, 없어도 엔진은 돈다). 엔진 필수 계약과 층이 달라 여기 별도로 둔다.
 
 - **editor 호스트**: `CTX`가 `editorState`를 **getter로 프록시**. `CTX.sharedMs` 쓰기 = 에디터 플레이헤드 이동(동작 그대로). 라이브 뷰라 스냅샷 아님.
-- **game 호스트**: `CTX`가 **자기 객체를 소유**. song-select가 곡 길이·플레이 옵션을 채워 만든다. 쓰기가 에디터로 새지 않는다.
+- **game 호스트**: `CTX`가 **자기 객체를 소유**. song-select가 `contentEndMs`·플레이 옵션을 채워 만든다. 쓰기가 에디터로 새지 않는다.
 - 호스트 주입은 play 진입 시 **1회**(`setPlayContext`). 엔진은 다음 프레임부터 새 객체를 읽는다. 엔진 코드는 안 바뀐다.
 
 > 이 seam이 "아래는 위를 모른다"의 구체형이다. game 레이어가 자기를 부른 게 editor인지 scene인지 모른 채 CTX만 본다. → [[scene]] §10.

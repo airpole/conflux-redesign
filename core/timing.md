@@ -115,7 +115,25 @@ editor scroll lower clamp.
 
 ---
 
-## 9. cache
+## 9. song end
+
+플레이가 끝나는 시각을 chart time으로 정의한다. 단위는 모두 ms.
+
+| 값 | 정의 |
+|---|---|
+| `chartEndMs` | 모든 event(note·shapeEvent·laneEvent·textEvent)의 `startTick + duration` 최대값을 tickToMs한 값. event가 없으면 0. `[수정]` |
+| `musicEndMs` | `musicDurationMs - offset`. music이 없으면 0. `[수정]` |
+| `contentEndMs` | `max(chartEndMs, musicEndMs)` |
+| `songEndMs` | `contentEndMs + SONG_END_TAIL_MS` `[수정]` |
+
+- 종료 판정은 `currentMs > songEndMs`다. 종료 후 전이는 [[scene]] §9.
+- 진행 표시의 분모는 `contentEndMs`다. CTX가 나르는 값도 이것이다 → [[architecture]] §3.
+- `SONG_END_TAIL_MS`는 [[constants]] §9.
+- 이 값들에 하한은 없다. editor timeline의 최소 표시 길이는 별개 값이며 [[editor-graph]] 소관이다.
+
+---
+
+## 10. cache
 
 - tempos 변경 → BPM segments invalidate.
 - timeSignatures 변경 → measure segments invalidate.
@@ -124,7 +142,7 @@ editor scroll lower clamp.
 
 ---
 
-## 10. 태그 요약
+## 11. 태그 요약
 
 | 항목 | 태그 |
 |---|---|
@@ -137,10 +155,14 @@ editor scroll lower clamp.
 | bpmAt·legacy cache wrapper 제거 | 수정 |
 | timing source=active independent chart | 번복 반영 |
 | offset=active chart-owned | 번복 반영 |
+| chartEndMs = 전 event 최대 종료(laneEvent 포함) | 수정 |
+| songEndMs tail 3000 단일화 | 수정 |
+| musicEndMs offset 보정 | 수정 |
+| 종료 조건에서 5000ms 하한 제거 | 수정 |
 | lane horizontal grid 분리 | 번복 |
 
 ---
 
-## 11. 미해결
+## 12. 미해결
 
 (없음)

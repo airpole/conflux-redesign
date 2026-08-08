@@ -416,3 +416,27 @@ Phase는 subtitle이 없을 때 Flux보다 어려운 최상위 난이도이고, 
 ## 탭 백그라운드 auto-pause (D-2026-029)
 
 브라우저가 백그라운드 탭의 오디오·타이머를 억제하면 음악은 멈추고 판정만 흘러 게이지가 전멸한다. pause가 이미 기록을 유지하도록 재설계돼 있어(D-2026-022) auto-pause의 비용이 없다. 창 포커스만 잃은 경우까지 걸면 듀얼 모니터 환경에서 과민하게 동작하므로 `visibilitychange`만 사용한다.
+
+---
+
+## 곡 종료 (D-2026-030)
+
+### 왜 tail을 3000ms 하나로 통일했나
+
+원본은 차트가 더 길면 마지막 이벤트 +4000ms, 음악이 더 길면 음악 끝 +2000ms에서 끝났다. 이 비대칭은 설계값이 아니라 `getChartEndMs()`의 tail(+2000)과 종료 루프의 tail(+2000)이 우연히 겹쳐 생긴 값이다. 어느 쪽이 길든 마지막 판정 뒤의 여운은 같아야 하므로 상수 하나로 접었다. leadIn(3000ms)과 같은 값이 되어 판의 앞뒤 여백도 대칭이 된다.
+
+### 왜 musicEndMs에서 offset을 빼나
+
+chart time 0은 audio position `offset`에 대응한다([[timing]] §8). 원본은 chart time인 재생 위치를 offset 보정 없는 raw audio duration과 비교해서, offset이 0이 아니면 종료 시각이 그만큼 어긋났다. 재설계는 두 값을 같은 축에 놓는다.
+
+### 왜 종료 조건에서 5000ms 하한을 뺐나
+
+원본 `totalMs`는 종료 판정 기준과 에디터 seek bar 분모를 겸했고, 5000ms 하한은 후자를 위한 값이었다 — 빈 차트에서 진행 축이 0으로 붕괴하는 걸 막는 용도다. 두 역할을 분리하면서 하한은 timeline 쪽에만 남겼다.
+
+### 왜 chartEndMs에 laneEvent를 포함했나
+
+원본 `getChartEndMs()`는 note·textEvent·shapeEvent만 훑고 `lineEvents`를 빼먹었다. 마지막 연출이 lane 변형이면 그만큼 잘린다. 세 종류를 훑는 규칙에 예외를 둘 이유가 없어 event 전 종류로 맞췄다.
+
+### 왜 autoplay는 result를 거치지 않나
+
+autoplay 판은 기록이 남지 않고([[settings]] §2) 점수·rank가 플레이어의 성취가 아니다. 원본도 autoplay 종료를 result 없이 정지로 처리했다. 결과 화면을 주면 no-record 표기를 덧붙여야 하고 "기록 아닌 결과"라는 층이 하나 늘어난다.

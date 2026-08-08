@@ -110,3 +110,13 @@ start: `normal` 0 / `hard` 100. 둘 다 상한 100(`gaugeMax`).
 | `LOADING_INDICATOR_DELAY_MS` | 300 |
 
 비동기 작업이 이 시간을 넘기면 로딩 표시를 낸다. 적용 지점은 각 scene 문서.
+
+---
+
+## 9. 곡 종료 `[수정]`
+
+| 상수 | 값 |
+|---|---|
+| `SONG_END_TAIL_MS` | 3000 |
+
+`contentEndMs` 이후 이 시간이 지나면 판이 끝난다. 정의는 [[timing]] §9.

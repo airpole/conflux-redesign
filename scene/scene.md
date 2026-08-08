@@ -156,7 +156,9 @@ song-select
   Enter: selected chart 확정
 
 gameplay
-  clear/fail/force-end → result
+  곡 끝(songEndMs 경과) → clear/fail 평가 → result
+  force-end(gauge 0 / lock 파기) → result
+  autoplay 판은 result 없이 → song-select
   Esc → pause overlay
     Resume: 정지 카운트다운 후 pause 지점부터 재개 — 시간 되감기 없음, 기록 유지 (D-2026-022)
     Retry: 처음부터
@@ -166,6 +168,10 @@ result
   Retry(F5): gameplay
   Back(Enter): song-select
 ```
+
+곡이 끝나는 시각 `songEndMs`의 정의는 [[timing]] §9다.
+
+autoplay로 돌린 판은 곡이 끝나면 result를 거치지 않고 song-select로 돌아간다 `[신규]`. editor test host에서는 편집 화면으로 복귀한다 `[보존]`.
 
 pause는 engine을 살리는 overlay다. result는 정식 scene이다.
 
@@ -219,6 +225,7 @@ CTX 상세 → [[architecture]].
 - [x] pause overlay·result scene·정지 카운트다운 재개(기록 유지) `[수정]` (D-2026-022)
 - [x] 탭 백그라운드 시 auto-pause, blur 제외 `[신규]`
 - [x] 로딩 표시 임계 `[신규]`
+- [x] 곡 종료 시각·autoplay 종료 전이 — 정의는 [[timing]] §9 (D-2026-030)
 - [x] build gate
 - [x] 기록 초기화 진입점 — song-select, `FEATURES.recordReset` internal 게이트 (D-2026-017)
 - [x] song-credit fade 연출 — 수치는 [[constants]] `CREDIT_*` (D-2026-020)
