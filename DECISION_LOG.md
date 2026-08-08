@@ -324,7 +324,7 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** timing, constants, scene, architecture, editor-graph
 - **Supersedes:** None
-- **Commit:** `TBD`
+- **Commit:** `f8a3caa`
 
 ```md
 ### D-YYYY-NNN — <Title>
