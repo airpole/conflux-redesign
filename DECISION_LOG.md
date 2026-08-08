@@ -364,7 +364,7 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** build-order, README, tools/golden, tests/golden
 - **Supersedes:** None
-- **Commit:** `TBD`
+- **Commit:** `070c9f6`
 
 ### D-2026-035 — 설계 대장과 골든의 역할
 
@@ -374,7 +374,7 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** build-order, tools/golden, tests/golden, README
 - **Supersedes:** None
-- **Commit:** `TBD`
+- **Commit:** `070c9f6`
 
 ```md
 ### D-YYYY-NNN — <Title>
