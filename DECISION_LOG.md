@@ -336,6 +336,16 @@
 - **Supersedes:** None
 - **Commit:** `6876890`
 
+### D-2026-032 — build-order 신설과 M3/M4 순서 반전
+
+- **Status:** Accepted
+- **Decision:** milestone 6단계 아래 step을 두는 2단 build-order를 신설한다. step 경계는 소프트하되 gate 경계는 하드다. 완료 기준은 관찰 가능한 동작 문장이고, 회귀는 core 골든 테스트 + milestone별 수동 대조 시나리오다. M3=persistence, M4=game graph로 순서를 뒤집고 D-2026-021을 M3 진입 조건으로 옮긴다.
+- **Defined in:** `_plan/build-order.md`
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** build-order, architecture, shape, README
+- **Supersedes:** None
+- **Commit:** `TBD`
+
 ```md
 ### D-YYYY-NNN — <Title>
 

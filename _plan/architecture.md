@@ -119,6 +119,6 @@ scene-manager(register/goScene/goBack/replace/lazy-mount)는 **메커니즘 하�
 
 잔여:
 - [x] editor 그래프의 구체 전환 규칙 → [[editor-graph]] 확정
-- [ ] `FEATURES` 플래그의 정확한 목록·기본값 (app 레이어 설계 시 — `editor`·`recordReset` 선등록)
-- [ ] env 내부 세분(audio/storage/canvas/input)을 파일로 어떻게 가를지
-- [ ] core 단위 테스트 하네스 형태 (Node import 경로)
+- [ ] `FEATURES` 플래그의 정확한 목록·기본값 (app 레이어 설계 시 — `editor`·`recordReset` 선등록) — M1 진입 gate([[build-order]] §2)
+- [ ] env 내부 세분(audio/storage/canvas/input)을 파일로 어떻게 가를지 — M1 진입 gate
+- [ ] core 단위 테스트 하네스 형태 (Node import 경로) — M1 진입 gate

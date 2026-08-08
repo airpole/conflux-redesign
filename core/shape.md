@@ -158,7 +158,8 @@ shape 탭에서 두 체인(Blue·Red)을 raw로 보여주고 직접 편집한다
 - [x] chain 평가 단일 출처를 §4로 확정 (이벤트 1종, easing null=anchor / 첫 anchor=init 호칭, lane은 이 절 참조)
 - [x] Step = 저장 안 되는 입력 라벨(=Linear+duration0). 데이터 easing은 3종+null 유지
 - [x] symmetry 축: 스냅 tick 시점 체인 평균 기본값 + 드래그 −8~+8 조절 ([번복]: 기본 0 고정 폐기)
+- [x] shape/lane 배치 툴·편집 인터랙션 → [[editor-editing]] §2 확정 (구 L/R/C/P = 현 Q/W/E/R)
 
 잔여:
 - [ ] render 폭 매핑·선 굵기 구체 수치 (render/playfield 추출 시)
-- [ ] L/R/C/P 입력 툴, normalize 등 편집 인터랙션 (편집 UI 설계 시)
+- [ ] normalize 등 원본 shape 보조 툴의 계승 여부 (M5 진입 전 원본 실측 — [[build-order]] §3)

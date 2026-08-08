@@ -69,6 +69,7 @@
 | 문서 | 내용 |
 |---|---|
 | [architecture](_plan/architecture.md) | 레이어·의존 방향·CTX seam·build gate |
+| [build-order](_plan/build-order.md) | 재구현 milestone·step·gate |
 | [EXTRACTED_FACTS](_extracted/EXTRACTED_FACTS.md) | 과거 구현 실측 |
 | [timing-verification](_extracted/timing-verification.md) | timing 대조 |
 | [rationale](_rationale/rationale.md) | 설계 근거 |
@@ -137,10 +138,10 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** `_plan/build-order.md` 작성 (M1~M6 재구현 순서·범위·gate)
-- **Discussion Scope:** milestone별 문서 매핑·완료 기준·미확정 수치 처리
-- **Change Scope:** `_plan/build-order.md`(신규), `README.md`
-- **Exit:** build-order가 Closure Review를 통과하고 재구현 진입 조건이 명문화됨
+- **Active unit:** M1 진입 gate 해소 — `FEATURES` 목록·기본값 / `env` 내부 세분 / core 테스트 하네스 형태
+- **Discussion Scope:** [[architecture]] §6 잔여 3건, M1 실측 세트 범위
+- **Change Scope:** `_plan/architecture.md`, `_extracted/EXTRACTED_FACTS.md`
+- **Exit:** M1 진입 gate가 모두 닫히고 구현 착수 가능
 
 ### Completed
 
@@ -170,14 +171,16 @@ song-select를 전면 재설계했다(D-2026-025~029). 목록을 category 탭 / 
 
 `updatedAt`을 신설하고 lane 매핑을 승격했다(D-2026-031). `updatedAt`은 chart 소유 ISO 8601 UTC 문자열로 생성 시각에 초기화되고 에디터 저장 성공 시에만 갱신되며, import·`.cfx` 패키징은 값을 계승한다. song-select `updated` 축의 row 대표값은 소속 chart의 최대값이다. `laneOf(key)` 매핑은 EXTRACTED_FACTS에서 `settings` §2 `DEFAULT_LANE_KEYS` 표로 올라가 key·binding·lane이 한 표에 모였다.
 
+`_plan/build-order.md`를 작성했다(D-2026-032). milestone 6단계 아래 step을 두는 2단 구조로, step 경계는 소프트하되 gate 경계는 넘지 않는다. 완료 기준은 관찰 가능한 동작 문장이고, 회귀는 core 골든 테스트 + milestone별 수동 대조 시나리오 두 층이다. **M3와 M4를 뒤집어** persistence를 game graph보다 앞에 뒀고(song-select가 처음부터 실제 library·records를 읽는다), 그 귀결로 D-2026-021이 M3 진입 조건이 됐다. 실측 잔여는 milestone별 measurement gate로 모았다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
-- 라이브 웹 배포·`.cfx` 보호(암호화)·공개 서비스 기록 위치 — `DECISION_LOG.md` D-2026-021 (M4 전 해소)
+- 라이브 웹 배포·`.cfx` 보호(암호화)·공개 서비스 기록 위치 — `DECISION_LOG.md` D-2026-021 (**M3 진입 전** 해소)
 
 ### 다음 후보
 
-- `_plan/build-order.md` 작성 (Current Focus)
-- UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — song-select 잔여의 수용처
-- D-2026-021 사이클 (M4 전)
-- credits scene 표시 내용 채우기 (소형)
+- M1 진입 gate 해소 (Current Focus)
+- D-2026-021 사이클 (M3 진입 전)
+- UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
+- credits scene 표시 내용 채우기 (소형, M4-2 전)
