@@ -344,7 +344,7 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** build-order, architecture, shape, README
 - **Supersedes:** None
-- **Commit:** `TBD`
+- **Commit:** `03a2a01`
 
 ```md
 ### D-YYYY-NNN — <Title>
