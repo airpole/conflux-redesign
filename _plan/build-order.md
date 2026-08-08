@@ -13,6 +13,18 @@
 - **gate** = 그 지점에 들어가기 전에 닫아야 하는 결정 또는 실측이다. 열린 gate가 있으면 그 step에 진입하지 않는다.
 - step 번호는 순서를 뜻하고 크기를 뜻하지 않는다.
 
+### 레포 배치
+
+구현 코드는 **이 명세 레포 안에** 산다 `[신규]`.
+
+```
+src/            구현
+tests/golden/   원본에서 뜬 기대값 (관측 자료)
+tools/golden/   기대값 추출 스크립트
+```
+
+명세를 고치고 그에 따라 코드를 고친 변경이 **한 커밋 안에서** 묶인다. 스펙↔구현 동기화(M6-4)가 두 레포 대조가 아니라 같은 트리 안의 문제가 된다.
+
 ---
 
 ## 1. 원본 대조 회귀
@@ -21,9 +33,30 @@
 
 ### core 골든 테스트
 
-- 원본 `conflux-editor`의 해당 함수에 같은 입력을 넣어 얻은 **기대값 표를 고정**하고 Vitest로 비교한다.
-- 기대값은 **기억이 아니라 원본 raw를 읽거나 실행해서** 만든다. 추정값을 표에 넣지 않는다.
-- M1 각 step의 완료 기준에 포함된다 — 골든 테스트는 별도 step이 아니라 모든 core step에 깔리는 조건이다.
+원본 `conflux-editor`의 해당 함수에 같은 입력을 넣어 얻은 **기대값 표를 고정**하고 Vitest로 비교한다. 이 표가 보는 것은 "스펙대로 동작하는가"가 아니라 **"원본과 같은 값을 내는가"**다 — 스펙으로 옮겨 적는 과정에서 생긴 오해까지 잡는다.
+
+M1 각 step의 완료 기준에 포함된다. 골든 테스트는 별도 step이 아니라 모든 core step에 깔리는 조건이다.
+
+**배치** `[신규]`
+
+```
+src/core/core-timing.ts
+src/core/core-timing.test.ts      테스트는 대상 옆 — 함께 고쳐진다
+tests/golden/timing.json          기대값은 별도 — 사람이 쓴 코드가 아니라 관측 자료다
+tools/golden/extract-timing.mjs   그 표를 만든 스크립트
+```
+
+Vitest `environment: 'node'`. core 테스트는 DOM 없이 돈다 — [[architecture]] §2가 노린 이득의 실제 검증이다.
+
+**기대값을 뜨는 방법** `[신규]`
+
+- `conflux-editor`의 모듈을 Node에서 직접 import해 실행한다(브라우저 전역은 최소 스텁). 정해진 입력 세트를 넣고 결과를 JSON으로 떨군다.
+- **재생성 가능한 것이 핵심이다.** 의심이 들 때 다시 돌려 확인할 수 있고, "기억으로 채우지 않는다"가 절차로 강제된다. 손으로 옮겨 적으면 그 순간이 오염 지점이 되고 재확인 비용도 매번 같다.
+- 스크립트를 `tools/golden/`에 남겨 어떤 입력으로 떴는지가 기록된다.
+
+**입력 세트** `[신규]`
+
+합성 chart로 만든다 — 다중 BPM, 다중 박자, 경계 tick, 음수 tick, Hold 중첩, 6키 포화를 각각 노린 작은 chart들. 실제 곡보다 경계 조건을 조준하기 쉽고 실패 시 원인이 좁다.
 
 ### 수동 대조 시나리오
 
@@ -37,7 +70,7 @@
 
 | 지점 | gate | 내용 |
 |---|---|---|
-| M1 진입 | 결정 | `FEATURES` 플래그 목록·기본값 / `env` 내부 세분(audio·storage·canvas·input) / core 테스트 하네스 형태 — [[architecture]] §6 잔여 |
+| ~~M1 진입~~ | 결정 | ~~`FEATURES` 목록·기본값 / `env` 내부 세분 / core 테스트 하네스~~ — **닫힘** (D-2026-033) |
 | M1 진입 | 실측 | §3 M1 항목 |
 | M2 진입 | 실측 | §3 M2 항목 |
 | M2-5 전 | 결정 | quick options overlay 내부 조작(이동·값 변경 키) |
@@ -85,7 +118,7 @@ gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한
 
 | step | 범위 | 완료 기준 |
 |---|---|---|
-| M1-1 | 프로젝트 골격 — Vite + TS + Vitest, [[architecture]] §1 7레이어 폴더, `FEATURES`, import 방향 린트 | 빈 테스트가 통과한다. `core`가 상위 레이어를 import하면 린트가 실패한다. |
+| M1-1 | 프로젝트 골격 — Vite + TS + Vitest, [[architecture]] §1 7레이어 폴더, `FEATURES` + 빌드 프로필 주입, import 방향 린트 | 빈 테스트가 `environment: 'node'`에서 통과한다. `core`가 상위 레이어를 import하면 린트가 실패한다. 프로필 미지정 빌드가 `public`으로 떨어진다. |
 | M1-2 | chart 타입·스키마 검증·[[constants]] 값·[[settings]] 기본값 객체·무효 chart 런타임 폴백 | 정상 chart는 검증을 통과하고, [[judge]] §12의 각 무효 입력이 정의된 폴백 값으로 떨어진다. |
 | M1-3 | [[timing]] — `tickToMs`/`msToTick`, measure 변환, `gridDivisor`, song end 4값 | 다중 BPM·다중 박자 chart에서 골든 표와 값이 일치한다. `songEndMs`가 §9 정의대로 나온다. |
 | M1-4 | [[judge]] 기본 — 결정론적 후보 순서, 판정창, lane 매칭, mirror, `commitJudgment` | 같은 입력 열에서 원본과 같은 judgment 열이 나온다. mirror ON에서 `1↔4, 2↔3`이 적용되고 wide는 무시된다. |
@@ -184,7 +217,7 @@ gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한
 | step | 범위 | 완료 기준 |
 |---|---|---|
 | M6-1 | 잔여 실측 수치 확정 | 각 spec 문서의 잔여 목록에 실측 미완 항목이 남아 있지 않다. |
-| M6-2 | `FEATURES` 정리 + public/internal 빌드 검증 | public 빌드에 editor scene과 `recordReset` 진입점이 존재하지 않는다. |
+| M6-2 | `FEATURES` 정리 + public/internal 빌드 검증 | public 빌드 **산출물에 editor 코드가 존재하지 않는다** — 경로 차단이 아니라 번들에서 제거됐음을 산출물 검사로 확인한다([[architecture]] §4). `recordReset` 진입점도 마찬가지다. |
 | M6-3 | 전 시나리오 회귀 패스 | M2~M5의 수동 대조 시나리오를 한 번에 다시 돌려 전부 통과한다. |
 | M6-4 | 스펙↔구현 동기화 | 구현 중 바뀐 결정이 spec과 `DECISION_LOG`에 반영돼 있다. |
 
@@ -200,6 +233,8 @@ gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한
 - [x] 회귀 = core 골든 테스트 + milestone별 수동 대조 시나리오
 - [x] 실측 gate를 milestone 진입 조건으로 명문화
 - [x] D-2026-021을 M3 진입 조건으로 배치
+- [x] 구현 코드는 명세 레포 안에 산다 `[신규]` (D-2026-033)
+- [x] 골든 테스트 배치·추출 절차·입력 세트 (D-2026-033)
 
 잔여:
 - [ ] 수동 대조 시나리오의 구체 목록 — 각 milestone 진입 시 작성

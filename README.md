@@ -138,10 +138,10 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M1 진입 gate 해소 — `FEATURES` 목록·기본값 / `env` 내부 세분 / core 테스트 하네스 형태
-- **Discussion Scope:** [[architecture]] §6 잔여 3건, M1 실측 세트 범위
-- **Change Scope:** `_plan/architecture.md`, `_extracted/EXTRACTED_FACTS.md`
-- **Exit:** M1 진입 gate가 모두 닫히고 구현 착수 가능
+- **Active unit:** M1 실측 gate — 골든 입력 세트 정의와 기대값 추출
+- **Discussion Scope:** 합성 chart 구성, 추출 스크립트가 다룰 원본 모듈 범위
+- **Change Scope:** `tools/golden/`, `tests/golden/`, `_extracted/EXTRACTED_FACTS.md`
+- **Exit:** 골든 표가 생성되고 M1-1 착수 가능
 
 ### Completed
 
@@ -173,6 +173,8 @@ song-select를 전면 재설계했다(D-2026-025~029). 목록을 category 탭 / 
 
 `_plan/build-order.md`를 작성했다(D-2026-032). milestone 6단계 아래 step을 두는 2단 구조로, step 경계는 소프트하되 gate 경계는 넘지 않는다. 완료 기준은 관찰 가능한 동작 문장이고, 회귀는 core 골든 테스트 + milestone별 수동 대조 시나리오 두 층이다. **M3와 M4를 뒤집어** persistence를 game graph보다 앞에 뒀고(song-select가 처음부터 실제 library·records를 읽는다), 그 귀결로 D-2026-021이 M3 진입 조건이 됐다. 실측 잔여는 milestone별 measurement gate로 모았다.
 
+M1 진입 결정 gate를 닫았다(D-2026-033). 구현 코드는 명세 레포 안에 산다 — 스펙과 그 구현이 한 커밋에 묶인다. `FEATURES`는 `editor`·`recordReset` 2개뿐이고 빌드 프로필 기본값은 **`public`**이며, public 빌드는 경로를 잠그는 게 아니라 **editor 코드를 번들에서 제거**한다(`[번복]` — 원본은 코드를 그대로 배포했다). env는 실패 모드를 기준으로 6파일로 갈랐고, 골든 테스트는 원본을 Node에서 실행하는 추출 스크립트로 재생성 가능하게 만든다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
@@ -180,7 +182,7 @@ song-select를 전면 재설계했다(D-2026-025~029). 목록을 category 탭 / 
 
 ### 다음 후보
 
-- M1 진입 gate 해소 (Current Focus)
+- M1 실측 gate — 골든 입력 세트 (Current Focus)
 - D-2026-021 사이클 (M3 진입 전)
 - UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
 - credits scene 표시 내용 채우기 (소형, M4-2 전)

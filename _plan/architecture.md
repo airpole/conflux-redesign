@@ -43,6 +43,23 @@ core ─→ env ─→ render ─→ edit / game ─→ scene ─→ app
 
 핵심 가름선은 **"브라우저 API를 직접 호출하느냐"**(→ env)와 **"매 프레임 그리느냐"**(→ render)다.
 
+### env 내부 세분 `[신규]`
+
+env는 파일 6개로 가른다. 가름의 기준은 **실패 모드**다 — 오디오 컨텍스트 suspended, 저장소 quota 초과, 사용자의 파일 선택 취소는 서로 다르게 실패하고 서로 다른 복구를 요구한다.
+
+| 파일 | 소관 |
+|---|---|
+| `env-audio` | AudioContext, decode, 재생·정지·position, 볼륨, 히트음 재생 |
+| `env-canvas` | canvas 획득, resize·DPR, fullscreen |
+| `env-time` | rAF loop, `performance.now`, `frameCap` |
+| `env-input` | keydown/keyup + timestamp, focus·visibility, `preventDefault` 정책 |
+| `env-storage` | store 영속과 쓰기 실패 신호 → [[persistence]] §1 |
+| `env-file` | 파일 열기·저장 창, blob 읽기·쓰기, ZIP 인코딩·디코딩 |
+
+- `env-time`은 `env-canvas`와 별개다. `frameCap`은 렌더 주기 정책이고 canvas는 표면 관리이며, engine loop는 canvas를 몰라도 time이 필요하다.
+- `env-file`은 `env-storage`와 별개다. 전자는 사용자 상호작용(취소 가능)이고 후자는 조용한 영속이다.
+- ZIP 인코딩·디코딩은 `env-file` 소관이다. 바이트 변환 자체는 순수하지만 `.cfx` 입출력 경로에서만 쓰이고 외부 라이브러리에 묶여 있어, core를 무의존으로 유지하는 쪽을 택했다.
+
 ---
 
 ## 2. core는 데이터를 인자로 받는다 (현재와의 차이)
@@ -87,9 +104,38 @@ play 엔진(game 레이어)은 editor 안에서도, 독립 game scene에서도 *
 
 edit와 game은 형제다. 빌드별로 한쪽만 켤 수 있다.
 
-- **게이트 = 플래그**(`FEATURES.editor`·`FEATURES.recordReset` 등). 코드를 빼는 게 아니라 **플래그만 여닫는다**. `recordReset`은 game-internal에서만 켜는 기록 초기화 노출 게이트다([[records]] §4).
-- scene **lazy mount**(→ [[scene]] §2·§8)와 맞물려, 꺼진 축의 scene은 `mount()`도 안 돌아 비용(DOM·메모리)을 안 낸다. game 전용 빌드는 editor scene을 한 번도 mount하지 않는다.
-- app 레이어가 어떤 게이트로 부팅할지 정한다.
+### 플래그
+
+| 플래그 | 소관 |
+|---|---|
+| `FEATURES.editor` | 에디터로 가는 모든 경로 — mode-select의 Editor 진입, title의 개발 단축키, editor scene 등록 |
+| `FEATURES.recordReset` | 기록 초기화 진입점 노출 → [[records]] §4 |
+
+- 목록은 이 둘뿐이다 `[신규]`. 플래그는 **스펙이 "이 빌드에선 보이지 않는다"고 말한 자리**에만 생긴다. 스펙이 요구하지 않는 플래그를 미리 만들면 켜지지 않는 분기가 코드에 남는다.
+- `START_SCENE`은 플래그가 아니라 부팅 scene을 정하는 상수다 `[보존]`. 정상값은 `title`이고, 개발 중 `editor`로 두면 진입 클릭을 건너뛴다. 기능을 여닫지 않으므로 `FEATURES`에 넣지 않는다.
+
+### 빌드 프로필
+
+```
+VITE_BUILD_PROFILE = 'public' | 'internal'
+
+public (기본):  editor = false, recordReset = false
+internal:       editor = true,  recordReset = true
+```
+
+기본값이 `public`이다 `[신규]`. **잊었을 때의 결과가 비대칭**이기 때문이다 — 개발 빌드를 잊으면 에디터가 안 떠서 즉시 알아차리고 다시 빌드하면 되지만, 공개 빌드를 잊으면 에디터가 나가고 되돌릴 수 없다.
+
+### 코드 제거 `[번복]`
+
+public 빌드는 경로만 막는 것이 아니라 **editor 코드를 번들에 넣지 않는다**. 원본은 플래그로 경로만 잠그고 코드는 그대로 배포했으나(구 `config.js`), 번들을 뜯으면 에디터 로직이 드러난다.
+
+- `VITE_BUILD_PROFILE`은 빌드 시 문자열로 치환된다. editor 진입이 그 상수에 걸린 조건 안에서만 동적 `import()`되면 public 빌드에서 해당 청크가 통째로 제거된다.
+- §5의 lazy mount가 이미 그 구조다. "다운로드를 미룬다"에서 "번들에 넣지 않는다"로 승급한다.
+- 검증은 빌드 산출물에서 한다 → [[build-order]] M6-2.
+
+### 읽는 위치
+
+`FEATURES`는 `app-*`가 소유하고, 읽는 곳은 **scene 등록과 진입점에 한정**한다 `[신규]`. `core`·`render`가 플래그를 읽으면 같은 함수가 빌드마다 다르게 동작해 골든 테스트가 무엇을 검증하는지 불분명해진다. 차단은 한 곳에서만 일어나야 어디를 막았는지 셀 수 있다.
 
 ---
 
@@ -114,11 +160,11 @@ scene-manager(register/goScene/goBack/replace/lazy-mount)는 **메커니즘 하�
 - [x] env vs render 가름선 = "브라우저 API 직접 호출" vs "매 프레임 그리기"
 - [x] core는 전역 D를 import하지 않고 활성 보면을 인자로 받는다 [수정] (동작 보존, 의존 재배선)
 - [x] CTX 호스트 seam [보존] (엔진 정본 5데이터+redrawIdle 훅, judgeLinePos는 호스트 추가 주입, editor 프록시 / game 소유)
-- [x] 빌드 게이트 = 플래그 + lazy mount
+- [x] 빌드 게이트 = 플래그 + lazy mount + public 빌드 코드 제거
 - [x] scene = game·editor 두 그래프를 담는 메커니즘, 형제 축
 
 잔여:
 - [x] editor 그래프의 구체 전환 규칙 → [[editor-graph]] 확정
-- [ ] `FEATURES` 플래그의 정확한 목록·기본값 (app 레이어 설계 시 — `editor`·`recordReset` 선등록) — M1 진입 gate([[build-order]] §2)
-- [ ] env 내부 세분(audio/storage/canvas/input)을 파일로 어떻게 가를지 — M1 진입 gate
-- [ ] core 단위 테스트 하네스 형태 (Node import 경로) — M1 진입 gate
+- [x] `FEATURES` = `editor`·`recordReset` 2개, 프로필 기본값 `public`, public 빌드는 코드 제거 `[번복]` (D-2026-033)
+- [x] env 내부 세분 6파일 — 가름 기준은 실패 모드 (D-2026-033)
+- [x] core 테스트 하네스·골든 절차 → [[build-order]] §1 (D-2026-033)

@@ -346,6 +346,16 @@
 - **Supersedes:** None
 - **Commit:** `03a2a01`
 
+### D-2026-033 — M1 진입 gate 해소
+
+- **Status:** Accepted
+- **Decision:** 구현 코드는 명세 레포 안(`src/`·`tests/golden/`·`tools/golden/`)에 둔다. `FEATURES`는 `editor`·`recordReset` 2개, 빌드 프로필 기본값은 `public`이며 public 빌드는 경로 차단이 아니라 **코드 제거**다(`[번복]`). `FEATURES`를 읽는 곳은 scene 등록·진입점에 한정한다. env는 실패 모드를 기준으로 6파일로 가른다. 골든 테스트는 소스 옆에 두고 기대값은 원본을 Node에서 실행하는 추출 스크립트로 재생성 가능하게 만들며, 입력은 합성 chart로 구성한다.
+- **Defined in:** `_plan/architecture.md` §1·§4, `_plan/build-order.md` §0·§1
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** architecture, build-order, README
+- **Supersedes:** None (구 `config.js`의 "코드는 배포하고 경로만 잠근다"를 `[번복]`)
+- **Commit:** `TBD`
+
 ```md
 ### D-YYYY-NNN — <Title>
 
