@@ -1,0 +1,642 @@
+{
+  "source": "conflux-editor",
+  "sourceFingerprint": {
+    "constants.js": "00f7e5d47454",
+    "state.js": "347e698b21c4",
+    "cache.js": "fed0448471a4",
+    "timing.js": "aadcadf768f2",
+    "shape.js": "5a47fa71cf91",
+    "play-state.js": "ad50bb6789ba",
+    "gauge.js": "597a62a3a6cd",
+    "play-judgment.js": "5ff739b127fd"
+  },
+  "extractedBy": "tools/golden/extract-shape.mjs",
+  "note": "원본에서 뜬 관측 자료. 손으로 고치지 않고 재생성한다.",
+  "tolerance": {
+    "integer": "exact",
+    "real": 1e-9
+  },
+  "fieldNames": "original (conflux-editor)",
+  "cases": [
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0,
+        "Linear"
+      ],
+      "expected": 0
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.1,
+        "Linear"
+      ],
+      "expected": 10
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.25,
+        "Linear"
+      ],
+      "expected": 25
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.5,
+        "Linear"
+      ],
+      "expected": 50
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.75,
+        "Linear"
+      ],
+      "expected": 75
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.9,
+        "Linear"
+      ],
+      "expected": 90
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        1,
+        "Linear"
+      ],
+      "expected": 100
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0,
+        "In"
+      ],
+      "expected": 0
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.1,
+        "In"
+      ],
+      "expected": 10
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.25,
+        "In"
+      ],
+      "expected": 25
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.5,
+        "In"
+      ],
+      "expected": 50
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.75,
+        "In"
+      ],
+      "expected": 75
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.9,
+        "In"
+      ],
+      "expected": 90
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        1,
+        "In"
+      ],
+      "expected": 100
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0,
+        "Out"
+      ],
+      "expected": 0
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.1,
+        "Out"
+      ],
+      "expected": 10
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.25,
+        "Out"
+      ],
+      "expected": 25
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.5,
+        "Out"
+      ],
+      "expected": 50
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.75,
+        "Out"
+      ],
+      "expected": 75
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.9,
+        "Out"
+      ],
+      "expected": 90
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        1,
+        "Out"
+      ],
+      "expected": 100
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0,
+        "InOut"
+      ],
+      "expected": 0
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.1,
+        "InOut"
+      ],
+      "expected": 10
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.25,
+        "InOut"
+      ],
+      "expected": 25
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.5,
+        "InOut"
+      ],
+      "expected": 50
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.75,
+        "InOut"
+      ],
+      "expected": 75
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        0.9,
+        "InOut"
+      ],
+      "expected": 90
+    },
+    {
+      "group": "ease",
+      "fn": "ease",
+      "args": [
+        0,
+        100,
+        1,
+        "InOut"
+      ],
+      "expected": 100
+    },
+    {
+      "group": "chain",
+      "fn": "getShape",
+      "args": [
+        -1920
+      ],
+      "expected": {
+        "left": 32,
+        "right": 40
+      }
+    },
+    {
+      "group": "chain",
+      "fn": "getLines",
+      "args": [
+        -1920
+      ],
+      "expected": [
+        25,
+        25,
+        25,
+        25
+      ]
+    },
+    {
+      "group": "chain",
+      "fn": "isStepTick",
+      "args": [
+        -1920
+      ],
+      "expected": false
+    },
+    {
+      "group": "chain",
+      "fn": "getShape",
+      "args": [
+        0
+      ],
+      "expected": {
+        "left": 32,
+        "right": null
+      }
+    },
+    {
+      "group": "chain",
+      "fn": "getLines",
+      "args": [
+        0
+      ],
+      "expected": [
+        25,
+        25,
+        25,
+        25
+      ]
+    },
+    {
+      "group": "chain",
+      "fn": "isStepTick",
+      "args": [
+        0
+      ],
+      "expected": false
+    },
+    {
+      "group": "chain",
+      "fn": "getShape",
+      "args": [
+        960
+      ],
+      "expected": {
+        "left": 32,
+        "right": null
+      }
+    },
+    {
+      "group": "chain",
+      "fn": "getLines",
+      "args": [
+        960
+      ],
+      "expected": [
+        25,
+        25,
+        25,
+        25
+      ]
+    },
+    {
+      "group": "chain",
+      "fn": "isStepTick",
+      "args": [
+        960
+      ],
+      "expected": false
+    },
+    {
+      "group": "chain",
+      "fn": "getShape",
+      "args": [
+        1920
+      ],
+      "expected": {
+        "left": 32
+      }
+    },
+    {
+      "group": "chain",
+      "fn": "getLines",
+      "args": [
+        1920
+      ],
+      "expected": [
+        25,
+        25,
+        25,
+        25
+      ]
+    },
+    {
+      "group": "chain",
+      "fn": "isStepTick",
+      "args": [
+        1920
+      ],
+      "expected": false
+    },
+    {
+      "group": "chain",
+      "fn": "getShape",
+      "args": [
+        3840
+      ],
+      "expected": {
+        "left": 32,
+        "right": null
+      }
+    },
+    {
+      "group": "chain",
+      "fn": "getLines",
+      "args": [
+        3840
+      ],
+      "expected": [
+        25,
+        25,
+        25,
+        25
+      ]
+    },
+    {
+      "group": "chain",
+      "fn": "isStepTick",
+      "args": [
+        3840
+      ],
+      "expected": false
+    },
+    {
+      "group": "chain",
+      "fn": "getShape",
+      "args": [
+        5760
+      ],
+      "expected": {
+        "left": 32,
+        "right": null
+      }
+    },
+    {
+      "group": "chain",
+      "fn": "getLines",
+      "args": [
+        5760
+      ],
+      "expected": [
+        25,
+        25,
+        25,
+        25
+      ]
+    },
+    {
+      "group": "chain",
+      "fn": "isStepTick",
+      "args": [
+        5760
+      ],
+      "expected": false
+    },
+    {
+      "group": "chain",
+      "fn": "getShape",
+      "args": [
+        7680
+      ],
+      "expected": {
+        "left": 32
+      }
+    },
+    {
+      "group": "chain",
+      "fn": "getLines",
+      "args": [
+        7680
+      ],
+      "expected": [
+        10,
+        20,
+        30,
+        40
+      ]
+    },
+    {
+      "group": "chain",
+      "fn": "isStepTick",
+      "args": [
+        7680
+      ],
+      "expected": false
+    },
+    {
+      "group": "chain",
+      "fn": "getShape",
+      "args": [
+        9600
+      ],
+      "expected": {
+        "left": 32
+      }
+    },
+    {
+      "group": "chain",
+      "fn": "getLines",
+      "args": [
+        9600
+      ],
+      "expected": [
+        10,
+        20,
+        30,
+        40
+      ]
+    },
+    {
+      "group": "chain",
+      "fn": "isStepTick",
+      "args": [
+        9600
+      ],
+      "expected": true
+    },
+    {
+      "group": "chain",
+      "fn": "getShape",
+      "args": [
+        11520
+      ],
+      "expected": {
+        "left": 32
+      }
+    },
+    {
+      "group": "chain",
+      "fn": "getLines",
+      "args": [
+        11520
+      ],
+      "expected": [
+        10,
+        20,
+        30,
+        40
+      ]
+    },
+    {
+      "group": "chain",
+      "fn": "isStepTick",
+      "args": [
+        11520
+      ],
+      "expected": false
+    },
+    {
+      "group": "chain",
+      "fn": "getShapeInit",
+      "args": [],
+      "expected": {
+        "left": 32,
+        "right": 40
+      }
+    },
+    {
+      "group": "chain",
+      "fn": "getLinesInit",
+      "args": [],
+      "expected": [
+        25,
+        25,
+        25,
+        25
+      ]
+    },
+    {
+      "group": "chain",
+      "fn": "sp2f",
+      "args": [
+        32
+      ],
+      "expected": 0.5
+    }
+  ]
+}

@@ -1,0 +1,1714 @@
+{
+  "source": "conflux-editor",
+  "sourceFingerprint": {
+    "constants.js": "00f7e5d47454",
+    "state.js": "347e698b21c4",
+    "cache.js": "fed0448471a4",
+    "timing.js": "aadcadf768f2",
+    "shape.js": "5a47fa71cf91",
+    "play-state.js": "ad50bb6789ba",
+    "gauge.js": "597a62a3a6cd",
+    "play-judgment.js": "5ff739b127fd"
+  },
+  "extractedBy": "tools/golden/extract-timing.mjs",
+  "note": "원본에서 뜬 관측 자료. 손으로 고치지 않고 재생성한다.",
+  "tolerance": {
+    "integer": "exact",
+    "real": 1e-9
+  },
+  "fieldNames": "original (conflux-editor)",
+  "cases": [
+    {
+      "fixture": "plain",
+      "fn": "t2ms",
+      "args": [
+        -1920
+      ],
+      "expected": -500.00000000000006
+    },
+    {
+      "fixture": "plain",
+      "fn": "t2ms",
+      "args": [
+        -1
+      ],
+      "expected": -0.2604166666666667
+    },
+    {
+      "fixture": "plain",
+      "fn": "t2ms",
+      "args": [
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "fixture": "plain",
+      "fn": "t2ms",
+      "args": [
+        1
+      ],
+      "expected": 0.2604166666666667
+    },
+    {
+      "fixture": "plain",
+      "fn": "t2ms",
+      "args": [
+        1920
+      ],
+      "expected": 500.00000000000006
+    },
+    {
+      "fixture": "plain",
+      "fn": "t2ms",
+      "args": [
+        7679
+      ],
+      "expected": 1999.7395833333335
+    },
+    {
+      "fixture": "plain",
+      "fn": "t2ms",
+      "args": [
+        7680
+      ],
+      "expected": 2000.0000000000002
+    },
+    {
+      "fixture": "plain",
+      "fn": "t2ms",
+      "args": [
+        7681
+      ],
+      "expected": 2000.2604166666667
+    },
+    {
+      "fixture": "plain",
+      "fn": "t2ms",
+      "args": [
+        15360
+      ],
+      "expected": 4000.0000000000005
+    },
+    {
+      "fixture": "plain",
+      "fn": "t2ms",
+      "args": [
+        23040
+      ],
+      "expected": 6000
+    },
+    {
+      "fixture": "plain",
+      "fn": "ms2t",
+      "args": [
+        -1000
+      ],
+      "expected": -3839.9999999999995
+    },
+    {
+      "fixture": "plain",
+      "fn": "ms2t",
+      "args": [
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "fixture": "plain",
+      "fn": "ms2t",
+      "args": [
+        1
+      ],
+      "expected": 3.84
+    },
+    {
+      "fixture": "plain",
+      "fn": "ms2t",
+      "args": [
+        500
+      ],
+      "expected": 1919.9999999999998
+    },
+    {
+      "fixture": "plain",
+      "fn": "ms2t",
+      "args": [
+        2000
+      ],
+      "expected": 7679.999999999999
+    },
+    {
+      "fixture": "plain",
+      "fn": "ms2t",
+      "args": [
+        4000
+      ],
+      "expected": 15359.999999999998
+    },
+    {
+      "fixture": "plain",
+      "fn": "ms2t",
+      "args": [
+        10000
+      ],
+      "expected": 38400
+    },
+    {
+      "fixture": "plain",
+      "fn": "getBPMAt",
+      "args": [
+        0
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "plain",
+      "fn": "getTimeSig",
+      "args": [
+        0
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "plain",
+      "fn": "tickToMeasure",
+      "args": [
+        0
+      ],
+      "expected": "1"
+    },
+    {
+      "fixture": "plain",
+      "fn": "getBPMAt",
+      "args": [
+        5760
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "plain",
+      "fn": "getTimeSig",
+      "args": [
+        5760
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "plain",
+      "fn": "tickToMeasure",
+      "args": [
+        5760
+      ],
+      "expected": "1.4"
+    },
+    {
+      "fixture": "plain",
+      "fn": "getBPMAt",
+      "args": [
+        7680
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "plain",
+      "fn": "getTimeSig",
+      "args": [
+        7680
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "plain",
+      "fn": "tickToMeasure",
+      "args": [
+        7680
+      ],
+      "expected": "2"
+    },
+    {
+      "fixture": "plain",
+      "fn": "getBPMAt",
+      "args": [
+        15360
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "plain",
+      "fn": "getTimeSig",
+      "args": [
+        15360
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "plain",
+      "fn": "tickToMeasure",
+      "args": [
+        15360
+      ],
+      "expected": "3"
+    },
+    {
+      "fixture": "plain",
+      "fn": "getBPMAt",
+      "args": [
+        38400
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "plain",
+      "fn": "getTimeSig",
+      "args": [
+        38400
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "plain",
+      "fn": "tickToMeasure",
+      "args": [
+        38400
+      ],
+      "expected": "6"
+    },
+    {
+      "fixture": "plain",
+      "fn": "getMinTick",
+      "args": [],
+      "expected": -7680
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "t2ms",
+      "args": [
+        -1920
+      ],
+      "expected": -500.00000000000006
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "t2ms",
+      "args": [
+        -1
+      ],
+      "expected": -0.2604166666666667
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "t2ms",
+      "args": [
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "t2ms",
+      "args": [
+        1
+      ],
+      "expected": 0.2604166666666667
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "t2ms",
+      "args": [
+        1920
+      ],
+      "expected": 500.00000000000006
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "t2ms",
+      "args": [
+        7679
+      ],
+      "expected": 1999.7395833333335
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "t2ms",
+      "args": [
+        7680
+      ],
+      "expected": 2000.0000000000002
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "t2ms",
+      "args": [
+        7681
+      ],
+      "expected": 2000.1736111111113
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "t2ms",
+      "args": [
+        15360
+      ],
+      "expected": 3333.3333333333335
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "t2ms",
+      "args": [
+        23040
+      ],
+      "expected": 7333.333333333334
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "ms2t",
+      "args": [
+        -1000
+      ],
+      "expected": -3839.9999999999995
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "ms2t",
+      "args": [
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "ms2t",
+      "args": [
+        1
+      ],
+      "expected": 3.84
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "ms2t",
+      "args": [
+        500
+      ],
+      "expected": 1919.9999999999998
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "ms2t",
+      "args": [
+        2000
+      ],
+      "expected": 7679.999999999999
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "ms2t",
+      "args": [
+        4000
+      ],
+      "expected": 16640
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "ms2t",
+      "args": [
+        10000
+      ],
+      "expected": 28160
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "getBPMAt",
+      "args": [
+        0
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "getTimeSig",
+      "args": [
+        0
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "tickToMeasure",
+      "args": [
+        0
+      ],
+      "expected": "1"
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "getBPMAt",
+      "args": [
+        5760
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "getTimeSig",
+      "args": [
+        5760
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "tickToMeasure",
+      "args": [
+        5760
+      ],
+      "expected": "1.4"
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "getBPMAt",
+      "args": [
+        7680
+      ],
+      "expected": 180
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "getTimeSig",
+      "args": [
+        7680
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "tickToMeasure",
+      "args": [
+        7680
+      ],
+      "expected": "2"
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "getBPMAt",
+      "args": [
+        15360
+      ],
+      "expected": 60
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "getTimeSig",
+      "args": [
+        15360
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "tickToMeasure",
+      "args": [
+        15360
+      ],
+      "expected": "3"
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "getBPMAt",
+      "args": [
+        38400
+      ],
+      "expected": 60
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "getTimeSig",
+      "args": [
+        38400
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "tickToMeasure",
+      "args": [
+        38400
+      ],
+      "expected": "6"
+    },
+    {
+      "fixture": "multiBpm",
+      "fn": "getMinTick",
+      "args": [],
+      "expected": -7680
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "t2ms",
+      "args": [
+        -1920
+      ],
+      "expected": -500.00000000000006
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "t2ms",
+      "args": [
+        -1
+      ],
+      "expected": -0.2604166666666667
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "t2ms",
+      "args": [
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "t2ms",
+      "args": [
+        1
+      ],
+      "expected": 0.2604166666666667
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "t2ms",
+      "args": [
+        1920
+      ],
+      "expected": 500.00000000000006
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "t2ms",
+      "args": [
+        7679
+      ],
+      "expected": 1999.7395833333335
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "t2ms",
+      "args": [
+        7680
+      ],
+      "expected": 2000.0000000000002
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "t2ms",
+      "args": [
+        7681
+      ],
+      "expected": 2000.2604166666667
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "t2ms",
+      "args": [
+        15360
+      ],
+      "expected": 4000.0000000000005
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "t2ms",
+      "args": [
+        23040
+      ],
+      "expected": 6000
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "ms2t",
+      "args": [
+        -1000
+      ],
+      "expected": -3839.9999999999995
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "ms2t",
+      "args": [
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "ms2t",
+      "args": [
+        1
+      ],
+      "expected": 3.84
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "ms2t",
+      "args": [
+        500
+      ],
+      "expected": 1919.9999999999998
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "ms2t",
+      "args": [
+        2000
+      ],
+      "expected": 7679.999999999999
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "ms2t",
+      "args": [
+        4000
+      ],
+      "expected": 15359.999999999998
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "ms2t",
+      "args": [
+        10000
+      ],
+      "expected": 38400
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "getBPMAt",
+      "args": [
+        0
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "getTimeSig",
+      "args": [
+        0
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "tickToMeasure",
+      "args": [
+        0
+      ],
+      "expected": "1"
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "getBPMAt",
+      "args": [
+        5760
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "getTimeSig",
+      "args": [
+        5760
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "tickToMeasure",
+      "args": [
+        5760
+      ],
+      "expected": "1.4"
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "getBPMAt",
+      "args": [
+        7680
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "getTimeSig",
+      "args": [
+        7680
+      ],
+      "expected": {
+        "tick": 7680,
+        "numerator": 3,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "tickToMeasure",
+      "args": [
+        7680
+      ],
+      "expected": "2"
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "getBPMAt",
+      "args": [
+        15360
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "getTimeSig",
+      "args": [
+        15360
+      ],
+      "expected": {
+        "tick": 13440,
+        "numerator": 7,
+        "denominator": 8
+      }
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "tickToMeasure",
+      "args": [
+        15360
+      ],
+      "expected": "3.3"
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "getBPMAt",
+      "args": [
+        38400
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "getTimeSig",
+      "args": [
+        38400
+      ],
+      "expected": {
+        "tick": 13440,
+        "numerator": 7,
+        "denominator": 8
+      }
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "tickToMeasure",
+      "args": [
+        38400
+      ],
+      "expected": "6.6"
+    },
+    {
+      "fixture": "multiTimeSig",
+      "fn": "getMinTick",
+      "args": [],
+      "expected": -7680
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "t2ms",
+      "args": [
+        -1920
+      ],
+      "expected": -500.00000000000006
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "t2ms",
+      "args": [
+        -1
+      ],
+      "expected": -0.2604166666666667
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "t2ms",
+      "args": [
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "t2ms",
+      "args": [
+        1
+      ],
+      "expected": 0.2604166666666667
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "t2ms",
+      "args": [
+        1920
+      ],
+      "expected": 500.00000000000006
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "t2ms",
+      "args": [
+        7679
+      ],
+      "expected": 1999.7395833333335
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "t2ms",
+      "args": [
+        7680
+      ],
+      "expected": 2000.0000000000002
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "t2ms",
+      "args": [
+        7681
+      ],
+      "expected": 2000.2604166666667
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "t2ms",
+      "args": [
+        15360
+      ],
+      "expected": 4000.0000000000005
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "t2ms",
+      "args": [
+        23040
+      ],
+      "expected": 6000
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "ms2t",
+      "args": [
+        -1000
+      ],
+      "expected": -3839.9999999999995
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "ms2t",
+      "args": [
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "ms2t",
+      "args": [
+        1
+      ],
+      "expected": 3.84
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "ms2t",
+      "args": [
+        500
+      ],
+      "expected": 1919.9999999999998
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "ms2t",
+      "args": [
+        2000
+      ],
+      "expected": 7679.999999999999
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "ms2t",
+      "args": [
+        4000
+      ],
+      "expected": 15359.999999999998
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "ms2t",
+      "args": [
+        10000
+      ],
+      "expected": 38400
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "getBPMAt",
+      "args": [
+        0
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "getTimeSig",
+      "args": [
+        0
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "tickToMeasure",
+      "args": [
+        0
+      ],
+      "expected": "1"
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "getBPMAt",
+      "args": [
+        5760
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "getTimeSig",
+      "args": [
+        5760
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "tickToMeasure",
+      "args": [
+        5760
+      ],
+      "expected": "1.4"
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "getBPMAt",
+      "args": [
+        7680
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "getTimeSig",
+      "args": [
+        7680
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "tickToMeasure",
+      "args": [
+        7680
+      ],
+      "expected": "2"
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "getBPMAt",
+      "args": [
+        15360
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "getTimeSig",
+      "args": [
+        15360
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "tickToMeasure",
+      "args": [
+        15360
+      ],
+      "expected": "3"
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "getBPMAt",
+      "args": [
+        38400
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "getTimeSig",
+      "args": [
+        38400
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "tickToMeasure",
+      "args": [
+        38400
+      ],
+      "expected": "6"
+    },
+    {
+      "fixture": "negativeTick",
+      "fn": "getMinTick",
+      "args": [],
+      "expected": -7680
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "t2ms",
+      "args": [
+        -1920
+      ],
+      "expected": -500.00000000000006
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "t2ms",
+      "args": [
+        -1
+      ],
+      "expected": -0.2604166666666667
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "t2ms",
+      "args": [
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "t2ms",
+      "args": [
+        1
+      ],
+      "expected": 0.2604166666666667
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "t2ms",
+      "args": [
+        1920
+      ],
+      "expected": 500.00000000000006
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "t2ms",
+      "args": [
+        7679
+      ],
+      "expected": 1999.7395833333335
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "t2ms",
+      "args": [
+        7680
+      ],
+      "expected": 2000.0000000000002
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "t2ms",
+      "args": [
+        7681
+      ],
+      "expected": 2000.2604166666667
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "t2ms",
+      "args": [
+        15360
+      ],
+      "expected": 4000.0000000000005
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "t2ms",
+      "args": [
+        23040
+      ],
+      "expected": 6000
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "ms2t",
+      "args": [
+        -1000
+      ],
+      "expected": -3839.9999999999995
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "ms2t",
+      "args": [
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "ms2t",
+      "args": [
+        1
+      ],
+      "expected": 3.84
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "ms2t",
+      "args": [
+        500
+      ],
+      "expected": 1919.9999999999998
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "ms2t",
+      "args": [
+        2000
+      ],
+      "expected": 7679.999999999999
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "ms2t",
+      "args": [
+        4000
+      ],
+      "expected": 15359.999999999998
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "ms2t",
+      "args": [
+        10000
+      ],
+      "expected": 38400
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "getBPMAt",
+      "args": [
+        0
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "getTimeSig",
+      "args": [
+        0
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "tickToMeasure",
+      "args": [
+        0
+      ],
+      "expected": "1"
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "getBPMAt",
+      "args": [
+        5760
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "getTimeSig",
+      "args": [
+        5760
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "tickToMeasure",
+      "args": [
+        5760
+      ],
+      "expected": "1.4"
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "getBPMAt",
+      "args": [
+        7680
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "getTimeSig",
+      "args": [
+        7680
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "tickToMeasure",
+      "args": [
+        7680
+      ],
+      "expected": "2"
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "getBPMAt",
+      "args": [
+        15360
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "getTimeSig",
+      "args": [
+        15360
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "tickToMeasure",
+      "args": [
+        15360
+      ],
+      "expected": "3"
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "getBPMAt",
+      "args": [
+        38400
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "getTimeSig",
+      "args": [
+        38400
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "tickToMeasure",
+      "args": [
+        38400
+      ],
+      "expected": "6"
+    },
+    {
+      "fixture": "holdOverlap",
+      "fn": "getMinTick",
+      "args": [],
+      "expected": -7680
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "t2ms",
+      "args": [
+        -1920
+      ],
+      "expected": -500.00000000000006
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "t2ms",
+      "args": [
+        -1
+      ],
+      "expected": -0.2604166666666667
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "t2ms",
+      "args": [
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "t2ms",
+      "args": [
+        1
+      ],
+      "expected": 0.2604166666666667
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "t2ms",
+      "args": [
+        1920
+      ],
+      "expected": 500.00000000000006
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "t2ms",
+      "args": [
+        7679
+      ],
+      "expected": 1999.7395833333335
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "t2ms",
+      "args": [
+        7680
+      ],
+      "expected": 2000.0000000000002
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "t2ms",
+      "args": [
+        7681
+      ],
+      "expected": 2000.2604166666667
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "t2ms",
+      "args": [
+        15360
+      ],
+      "expected": 4000.0000000000005
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "t2ms",
+      "args": [
+        23040
+      ],
+      "expected": 6000
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "ms2t",
+      "args": [
+        -1000
+      ],
+      "expected": -3839.9999999999995
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "ms2t",
+      "args": [
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "ms2t",
+      "args": [
+        1
+      ],
+      "expected": 3.84
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "ms2t",
+      "args": [
+        500
+      ],
+      "expected": 1919.9999999999998
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "ms2t",
+      "args": [
+        2000
+      ],
+      "expected": 7679.999999999999
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "ms2t",
+      "args": [
+        4000
+      ],
+      "expected": 15359.999999999998
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "ms2t",
+      "args": [
+        10000
+      ],
+      "expected": 38400
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "getBPMAt",
+      "args": [
+        0
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "getTimeSig",
+      "args": [
+        0
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "tickToMeasure",
+      "args": [
+        0
+      ],
+      "expected": "1"
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "getBPMAt",
+      "args": [
+        5760
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "getTimeSig",
+      "args": [
+        5760
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "tickToMeasure",
+      "args": [
+        5760
+      ],
+      "expected": "1.4"
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "getBPMAt",
+      "args": [
+        7680
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "getTimeSig",
+      "args": [
+        7680
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "tickToMeasure",
+      "args": [
+        7680
+      ],
+      "expected": "2"
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "getBPMAt",
+      "args": [
+        15360
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "getTimeSig",
+      "args": [
+        15360
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "tickToMeasure",
+      "args": [
+        15360
+      ],
+      "expected": "3"
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "getBPMAt",
+      "args": [
+        38400
+      ],
+      "expected": 120
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "getTimeSig",
+      "args": [
+        38400
+      ],
+      "expected": {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "tickToMeasure",
+      "args": [
+        38400
+      ],
+      "expected": "6"
+    },
+    {
+      "fixture": "sixKeySaturation",
+      "fn": "getMinTick",
+      "args": [],
+      "expected": -7680
+    }
+  ]
+}

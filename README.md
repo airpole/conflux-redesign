@@ -138,10 +138,10 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M1 실측 gate — 골든 입력 세트 정의와 기대값 추출
-- **Discussion Scope:** 합성 chart 구성, 추출 스크립트가 다룰 원본 모듈 범위
-- **Change Scope:** `tools/golden/`, `tests/golden/`, `_extracted/EXTRACTED_FACTS.md`
-- **Exit:** 골든 표가 생성되고 M1-1 착수 가능
+- **Active unit:** M1-1 프로젝트 골격 — Vite + TS + Vitest, 7레이어 폴더, `FEATURES` 프로필 주입, import 방향 린트
+- **Discussion Scope:** 첫 구현 커밋. 골든 표를 읽는 테스트 배선까지.
+- **Change Scope:** `src/`, `package.json`, `vite.config.ts`, `vitest.config.ts`, 린트 설정
+- **Exit:** 빈 테스트가 `environment: 'node'`에서 통과하고, `core`가 상위 레이어를 import하면 린트가 실패한다
 
 ### Completed
 
@@ -175,6 +175,10 @@ song-select를 전면 재설계했다(D-2026-025~029). 목록을 category 탭 / 
 
 M1 진입 결정 gate를 닫았다(D-2026-033). 구현 코드는 명세 레포 안에 산다 — 스펙과 그 구현이 한 커밋에 묶인다. `FEATURES`는 `editor`·`recordReset` 2개뿐이고 빌드 프로필 기본값은 **`public`**이며, public 빌드는 경로를 잠그는 게 아니라 **editor 코드를 번들에서 제거**한다(`[번복]` — 원본은 코드를 그대로 배포했다). env는 실패 모드를 기준으로 6파일로 갈랐고, 골든 테스트는 원본을 Node에서 실행하는 추출 스크립트로 재생성 가능하게 만든다.
 
+M1 실측 gate를 닫았다(D-2026-034). 원본 core 모듈 4종이 Node에서 그대로 돈다 — 스텁은 `audio.js` 하나뿐이다. 합성 chart 6종으로 골든 표 4개(총 2,986건)를 뽑았고, 추출 스크립트가 `tools/golden/`에 남아 언제든 재생성된다. 표는 원본 명칭을 쓰고 재설계 명칭 매핑은 테스트 쪽이 갖는다. 원본 함수는 필드명이 어긋나도 예외 대신 `null`을 조용히 돌려주므로, 기대값이 전부 비면 추출이 실패로 종료한다.
+
+설계 대장을 세웠다(D-2026-035). 골든 표는 판정자가 아니라 **관측자**다 — 재구현은 원본을 따라가는 게 아니라 더 나은 설계로 다시 짓는 것이므로 어긋나는 자리가 정상적으로 생긴다. 의도한 차이는 `tests/golden/DIVERGENCES.md`에 등재하고 **대장에 없는 차이만 실패**한다. 대장은 어긋남뿐 아니라 `미커버`·`없음`도 담는다 — 골든도 안 걸고 대장에도 없으면 아무 검증 없이 통과하므로, 검증 공백이 어긋남보다 위험하다. 스펙 전체를 전수 대조해 M1 범위 27건(어긋남 5·미커버 17·대응물 없음 5)을 등재했고, M2 이후 영역은 대조 표가 없어 milestone별 수동 대조 시나리오 작성 시점에 절을 늘린다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
@@ -182,7 +186,7 @@ M1 진입 결정 gate를 닫았다(D-2026-033). 구현 코드는 명세 레포 �
 
 ### 다음 후보
 
-- M1 실측 gate — 골든 입력 세트 (Current Focus)
+- M1-1 프로젝트 골격 (Current Focus)
 - D-2026-021 사이클 (M3 진입 전)
 - UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
 - credits scene 표시 내용 채우기 (소형, M4-2 전)

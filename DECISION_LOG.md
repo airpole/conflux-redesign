@@ -356,6 +356,26 @@
 - **Supersedes:** None (구 `config.js`의 "코드는 배포하고 경로만 잠근다"를 `[번복]`)
 - **Commit:** `7ce477e`
 
+### D-2026-034 — 골든 하네스와 M1 실측 gate
+
+- **Status:** Accepted
+- **Decision:** 원본 core 모듈은 `audio.js` 하나만 스텁으로 대체하고 나머지는 원본 그대로 Node에서 실행한다. 골든 비교의 허용 오차는 정수형 완전 일치·실수형 상대 오차 `1e-9`. 표는 원본 명칭으로 기록하고 재설계 명칭 매핑은 테스트가 갖는다. 추출 스크립트는 표가 비거나 기대값이 전부 `null`이면 실패로 종료한다. 입력은 합성 chart 6종(다중 BPM·다중 박자·경계 tick·음수 tick·Hold 중첩·6키 포화).
+- **Defined in:** `tools/golden/README.md`, `_plan/build-order.md` §1
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** build-order, README, tools/golden, tests/golden
+- **Supersedes:** None
+- **Commit:** `TBD`
+
+### D-2026-035 — 설계 대장과 골든의 역할
+
+- **Status:** Accepted
+- **Decision:** 골든 표를 판정자가 아닌 관측자로 둔다. 의도한 차이는 설계 대장(`tests/golden/DIVERGENCES.md`)에 등재하고, **대장에 없는 차이는 실패**시킨다. 대장은 어긋남뿐 아니라 `미커버`(원본에 대응물이 있으나 골든 미추출)·`없음`(원본에 대응물 자체가 없음)도 담아 검증 공백을 드러낸다. 등재는 한 줄 + 근거 링크로 가볍게 두고 큰 결정만 `DECISION_LOG`로 승격한다. judge 표는 후보 경합이 일어나는 fixture 2종만 어긋남으로 빼고 나머지는 `[보존]` 검증에 계속 쓴다. 대장의 행 단위 범위는 골든 표가 존재하는 core/M1이며, M2 이후는 수동 대조 시나리오 작성 시점에 확장한다.
+- **Defined in:** `tests/golden/DIVERGENCES.md`, `_plan/build-order.md` §1
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** build-order, tools/golden, tests/golden, README
+- **Supersedes:** None
+- **Commit:** `TBD`
+
 ```md
 ### D-YYYY-NNN — <Title>
 
