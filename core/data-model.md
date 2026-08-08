@@ -238,7 +238,49 @@ playState   = {
 
 ---
 
-## 11. 결정 완료 / 잔여
+## 11. 검증 `[신규]`
+
+검증은 **두 층**이며 층마다 실패의 뜻과 복구 경로가 다르다.
+
+### structural — 이 파일이 chart인가
+
+필수 필드의 존재·타입과 `schemaVersion`을 본다. 실패하면 chart로 취급하지 않고
+**로드를 거부**한다. 열 수 없는 파일이지 고칠 파일이 아니다.
+
+- 대상: §1 최상위 필드 전부, §2 metadata 필드 전부, `musicFile`·`jacketFile`의
+  `string | null`, §3·§5~§8 컬렉션이 배열인지.
+- `schemaVersion`이 현재 판과 다르면 거부한다. 상·하위 판을 가리지 않는다 —
+  마이그레이션 체계는 실제로 판을 올릴 때 설계하며, 지금 필요한 것은 **거부
+  지점이 있다**는 것뿐이다.
+- 통과 여부는 boolean 하나가 아니라 자리별 오류 목록으로 보고한다.
+
+### domain — 값이 말이 되는가
+
+값의 범위·논리를 본다. **거부하지 않고 보고만 한다.**
+
+- 대상 예: `lane`이 1~4 밖, `duration` 음수, `tempos`·`timeSignatures`가 빔,
+  `bpm` 0 이하, `difficulty`가 목록 밖, `version` 1 미만, `updatedAt`이 ISO 8601로
+  읽히지 않음, shape `targetPos`가 -8~+8 밖, `lineNum`이 1~3 밖, textEvent
+  `position`이 목록 밖.
+- **`laneEvent.targetPos`는 검사하지 않는다.** 저장 데이터는 무구속이고 구속은
+  gameplay 투영이 맡는다(§7, [[lane-events]]). 역전·초과가 정상 값이다.
+- 겹침(overlap/conflict)은 여기 없다 — §5.1의 파생 속성이며 별도로 계산한다.
+- 첫 문제에서 멈추지 않고 전부 모아 보고한다.
+
+거부하지 않는 이유: **편집 중 chart는 항상 잠깐 domain-invalid하다.** 노트를 놓다
+보면 conflict가 생긴다. 여기서 거부하면 에디터를 못 쓴다. 실행·기록 여부는
+호출측 정책(§5.1, [[editor-editing]] §1)이 정하고, 끝내 우회되면 [[judge]] §12
+런타임 폴백이 받는다.
+
+### 두 함수 모두 chart를 건드리지 않는다
+
+결측 필드를 기본값으로 채워 돌려주지 않는다. "검증했다"와 "고쳤다"가 한 호출에
+섞이면 무엇이 원본 데이터고 무엇이 채운 값인지 구별이 사라진다. 정규화가
+필요하면 호출측이 별도 함수로 명시적으로 한다.
+
+---
+
+## 12. 결정 완료 / 잔여
 
 확정:
 - [x] canonical 저장 단위 = 독립 chart `[번복]`
@@ -248,6 +290,7 @@ playState   = {
 - [x] identity와 사용자 표시 구분
 - [x] note/shape/lane/text 구조 및 런타임 상태
 - [x] `updatedAt` = chart 소유 ISO 8601 문자열, 저장 성공 시에만 갱신 `[신규]` (D-2026-031)
+- [x] 검증 2층(structural 거부 / domain 보고), 무mutate, `schemaVersion` 불일치 거부 §11 `[신규]` (D-2026-036)
 - [x] key-demand Hold 런타임 상태(`activeNormalHolds`/`activeWideHold`/`wideOwnerKey`/`keyPressSerial`), global 6키 conflict 검출(D-2026-024) `[번복]`
 
 잔여:

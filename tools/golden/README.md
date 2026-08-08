@@ -62,6 +62,7 @@ CONFLUX_EDITOR_DIR=/path/to/conflux-editor node tools/golden/extract-all.mjs
 | `fixtures.mjs` | 합성 chart 세트 — 다중 BPM·다중 박자·경계 tick·음수 tick·Hold 중첩·6키 포화 |
 | `harness.mjs` | 원본 적재, 스텁 주입, 지문 기록, 빈 표 방어 |
 | `extract-*.mjs` | 영역별 추출 |
+| `extract-constants.mjs` | 튜닝 수치·`DEFAULT_SETTINGS` — 함수 결과가 아니라 **선언된 값 자체**를 뜬다. 이 값들이 나머지 표를 만든 입력이므로 손으로 옮기지 않는다 |
 | `extract-all.mjs` | 전체 재생성 |
 | `../../tests/golden/DIVERGENCES.md` | 설계 대장 — 원본에서 벗어난 자리 전부 |
 

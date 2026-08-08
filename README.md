@@ -138,10 +138,10 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M1-1 프로젝트 골격 — Vite + TS + Vitest, 7레이어 폴더, `FEATURES` 프로필 주입, import 방향 린트
-- **Discussion Scope:** 첫 구현 커밋. 골든 표를 읽는 테스트 배선까지.
-- **Change Scope:** `src/`, `package.json`, `vite.config.ts`, `vitest.config.ts`, 린트 설정
-- **Exit:** 빈 테스트가 `environment: 'node'`에서 통과하고, `core`가 상위 레이어를 import하면 린트가 실패한다
+- **Active unit:** M1-3 timing — `tickToMs`/`msToTick`, measure 변환, `gridDivisor`, 곡 끝 4값
+- **Discussion Scope:** 시간축 계산 전부. 골든 timing 198건과 미커버 TM-1~4·TM-6.
+- **Change Scope:** `src/core/core-timing.ts`와 그 테스트, `core/timing.md` 잔여
+- **Exit:** 다중 BPM·다중 박자 chart에서 골든 표와 값이 일치하고 `songEndMs`가 [[timing]] §9 정의대로 나온다
 
 ### Completed
 
@@ -179,6 +179,10 @@ M1 실측 gate를 닫았다(D-2026-034). 원본 core 모듈 4종이 Node에서 �
 
 설계 대장을 세웠다(D-2026-035). 골든 표는 판정자가 아니라 **관측자**다 — 재구현은 원본을 따라가는 게 아니라 더 나은 설계로 다시 짓는 것이므로 어긋나는 자리가 정상적으로 생긴다. 의도한 차이는 `tests/golden/DIVERGENCES.md`에 등재하고 **대장에 없는 차이만 실패**한다. 대장은 어긋남뿐 아니라 `미커버`·`없음`도 담는다 — 골든도 안 걸고 대장에도 없으면 아무 검증 없이 통과하므로, 검증 공백이 어긋남보다 위험하다. 스펙 전체를 전수 대조해 M1 범위 27건(어긋남 5·미커버 17·대응물 없음 5)을 등재했고, M2 이후 영역은 대조 표가 없어 milestone별 수동 대조 시나리오 작성 시점에 절을 늘린다.
 
+프로젝트 골격을 세웠다(M1-1). 7레이어 폴더와 레이어별 README, import 방향 린트(형제 축 `edit↔game` 포함), 파일명 접두사 검사, 빌드 프로필 주입이 선다. `VITE_BUILD_PROFILE`이 빌드 시 문자열로 치환돼 `FEATURES`가 상수로 접히며, 프로필 미지정 빌드는 `public`으로 떨어진다. 골든 표 로더와 설계 대장 파서를 배선해 "대장에 없는 차이는 실패"가 기계 규칙이 됐다.
+
+chart 검증과 settings 기본값을 확정했다(D-2026-036). 검증은 두 층이다 — structural(필수 필드·타입·`schemaVersion`)은 로드를 거부하고, domain(값 범위·논리)은 거부하지 않고 보고한다. **편집 중 chart는 항상 잠깐 domain-invalid하므로** 한 층으로 묶어 거부하면 에디터를 못 쓴다. 두 함수 모두 chart를 mutate하지 않는다. settings 기본값 19필드를 원본에서 실측해 `settings` §4 표로 승격했고, 병합은 알 수 없는 키를 버리고 허용 밖 값을 필드 단위로 기본값으로 되돌린다(클램프 아님 — 되돌림은 보고 가능하고 클램프는 조용하다). `volMusic`(0.7 → 1.0)과 키 배치의 거처만 원본과 다르다. `constants`·`DEFAULT_SETTINGS`를 골든 표로 뽑아 구현과 대조한다 — 이 값들이 나머지 표를 만든 입력이라 틀리면 표 전체가 무의미해진다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
@@ -186,7 +190,7 @@ M1 실측 gate를 닫았다(D-2026-034). 원본 core 모듈 4종이 Node에서 �
 
 ### 다음 후보
 
-- M1-1 프로젝트 골격 (Current Focus)
+- M1-3 timing (Current Focus)
 - D-2026-021 사이클 (M3 진입 전)
 - UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
 - credits scene 표시 내용 채우기 (소형, M4-2 전)

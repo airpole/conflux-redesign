@@ -8,7 +8,7 @@
  * 별도 JSON을 두지 않는 이유: 두 곳이 어긋나기 때문이다. 파서는 얕게 둔다 —
  * 표 행에서 ID·관계·근거만 뽑고, 산문은 사람이 읽는다.
  *
- * 대장에는 표가 두 종류 있다. **등재 표**(§1~§5, 6열)와 **미커버 롤업**(§6, 3열)이며
+ * 대장에는 표가 두 종류 있다. **등재 표**(§1~§6, 6열)와 **미커버 롤업**(§7, 3열)이며
  * 둘 다 첫 열이 `ID`다. 그래서 파서는 열 개수가 아니라 **헤더 전체**로 표를 가른다.
  */
 import { readFileSync } from 'node:fs';
@@ -77,7 +77,7 @@ function expandIds(cell: string): string[] {
 
 interface Ledger {
   readonly entries: readonly DivergenceEntry[];
-  /** §6 롤업 — 미커버 ID → 담당 step. */
+  /** §7 롤업 — 미커버 ID → 담당 step. */
   readonly rollup: ReadonlyMap<string, string>;
 }
 
@@ -141,7 +141,7 @@ function ledger(): Ledger {
   return cached;
 }
 
-/** 대장의 등재 항목 전부(§1~§5). */
+/** 대장의 등재 항목 전부(§1~§6). */
 export function loadLedger(): readonly DivergenceEntry[] {
   return ledger().entries;
 }
@@ -185,7 +185,7 @@ export function uncoveredIds(): readonly string[] {
     .map((entry) => entry.id);
 }
 
-/** §6 롤업이 배정한 담당 step. 배정이 없으면 `undefined`. */
+/** §7 롤업이 배정한 담당 step. 배정이 없으면 `undefined`. */
 export function assignedStep(id: string): string | undefined {
   return ledger().rollup.get(id);
 }

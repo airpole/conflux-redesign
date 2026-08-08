@@ -376,6 +376,16 @@
 - **Supersedes:** None
 - **Commit:** `070c9f6`
 
+### D-2026-036 — chart 검증 2층과 settings 기본값
+
+- **Status:** Accepted
+- **Decision:** chart 검증을 두 층으로 가른다 — structural(필수 필드·타입·`schemaVersion`)은 **로드를 거부**하고, domain(값 범위·논리)은 거부하지 않고 **보고**한다. 두 함수 모두 chart를 mutate하지 않는다. `schemaVersion`이 현재 판과 다르면 상·하위를 가리지 않고 거부하며 마이그레이션 체계는 실제로 판을 올릴 때 설계한다. settings 기본값 19필드를 원본에서 실측해 `settings` §4 표로 승격했고, 병합은 **알 수 없는 키를 버리고 허용 밖 값은 필드 단위로 기본값으로 되돌린다**(클램프 아님). `volMusic`만 `[수정]`(0.7 → 1.0)이고 나머지는 `[보존]`이다. `constants`·`DEFAULT_SETTINGS`를 골든 표 `constants.json`으로 뽑아 구현과 대조한다.
+- **Defined in:** `core/data-model.md` §11, `_meta/settings.md` §4, `_plan/build-order.md` §3
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** data-model, settings, build-order, tests/golden, tools/golden, src/core, README
+- **Supersedes:** None
+- **Commit:** `<pending>`
+
 ```md
 ### D-YYYY-NNN — <Title>
 

@@ -39,7 +39,7 @@ tools/golden/   기대값 추출 스크립트
 
 의도한 차이는 **설계 대장**(`tests/golden/DIVERGENCES.md`)에 등재한다. **대장에 없는 차이는 실패다** `[신규]`. 등재는 한 줄과 근거 링크면 되고, 설계 방향을 바꾸는 큰 결정만 `DECISION_LOG`로 승격한다 — 개선할 때마다 결정 사이클을 돌려야 한다면 그 마찰이 개선 자체를 억누른다.
 
-대장은 어긋남만 담지 않는다. **`미커버`**(원본에 대응물이 있으나 골든이 뽑지 않음)와 **`없음`**(원본에 대응물 자체가 없음)도 등재한다. 골든도 안 걸고 대장에도 없으면 아무 검증 없이 통과하므로, **검증 공백은 어긋남보다 위험하다.** 대장 §5가 그 목록이며 각 항목에 담당 step이 붙는다.
+대장은 어긋남만 담지 않는다. **`미커버`**(원본에 대응물이 있으나 골든이 뽑지 않음)와 **`없음`**(원본에 대응물 자체가 없음)도 등재한다. 골든도 안 걸고 대장에도 없으면 아무 검증 없이 통과하므로, **검증 공백은 어긋남보다 위험하다.** 대장 §7이 그 목록이며 각 항목에 담당 step이 붙는다.
 
 M1 각 step의 완료 기준에 포함된다. 골든 테스트는 별도 step이 아니라 모든 core step에 깔리는 조건이다.
 
@@ -86,7 +86,7 @@ Vitest `environment: 'node'`. core 테스트는 DOM 없이 돈다 — [[architec
 | M4 진입 | 결정 | **ui-design 전체** — song-select·settings·title·credits 레이아웃 |
 | M4-3 전 | 결정 | 목록 옵션 overlay 진입 키 · `sortDir` 단축 전환 키 · 가속 스크롤 수치(초기 지연·반복 간격·가속 곡선) |
 | M4-3 전 | 결정 | song row 대표값 출처(title·jacket) · 정보 패널 BPM 표기 방식 · 곡 길이 표시 |
-| M4-6 전 | 결정 | `frameCap`·volume 기본값·범위 · key rebinding UI |
+| M4-6 전 | 결정 | key rebinding UI · volume 슬라이더 조작 단위 — 기본값·범위는 `[보존]`으로 확정됨([[settings]] §4) |
 | M4-2 전 | 결정 | credits scene 표시 내용 |
 | M5 진입 | 실측 | §3 M5 항목 |
 
@@ -101,6 +101,7 @@ gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한
 ### M1 진입 전
 
 - 골든 테스트 입력·기대값 세트: `tickToMs`/`msToTick`, measure 변환, 판정 산출, 게이지 증감 누적, shape chain 보간.
+- `constants` 튜닝 수치와 `DEFAULT_SETTINGS` 기본값 전수 — 원본 `constants.js`·`settings.js`. [[settings]] §4가 값의 단일 출처이고, 골든 표 `constants.json`이 대조를 맡는다 (D-2026-036에서 해소).
 
 ### M2 진입 전
 

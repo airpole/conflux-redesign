@@ -1,0 +1,260 @@
+{
+  "source": "conflux-editor",
+  "sourceFingerprint": {
+    "constants.js": "00f7e5d47454",
+    "state.js": "347e698b21c4",
+    "cache.js": "fed0448471a4",
+    "timing.js": "aadcadf768f2",
+    "shape.js": "5a47fa71cf91",
+    "play-state.js": "ad50bb6789ba",
+    "gauge.js": "597a62a3a6cd",
+    "play-judgment.js": "5ff739b127fd",
+    "settings.js": "774909ad6b59"
+  },
+  "extractedBy": "tools/golden/extract-constants.mjs",
+  "note": "원본에서 뜬 관측 자료. 손으로 고치지 않고 재생성한다.",
+  "tolerance": {
+    "integer": "exact",
+    "real": 1e-9
+  },
+  "fieldNames": "original (conflux-editor) — hiSpeed/bgBrightness/gauge/DEFAULT_KEYS, 재설계는 scrollSpeed/jacketBrightness/gaugeMode/DEFAULT_LANE_KEYS",
+  "cases": [
+    {
+      "name": "TPB",
+      "module": "constants.js",
+      "expected": 1920
+    },
+    {
+      "name": "GDIVS",
+      "module": "constants.js",
+      "expected": [
+        1,
+        2,
+        3,
+        4,
+        6,
+        8,
+        12,
+        16,
+        24,
+        32,
+        48,
+        64
+      ]
+    },
+    {
+      "name": "LEAD_IN_MS",
+      "module": "constants.js",
+      "expected": 3000
+    },
+    {
+      "name": "PLAY_RESUME_LEAD_MS",
+      "module": "constants.js",
+      "expected": 3000
+    },
+    {
+      "name": "JUDGE_SYNC",
+      "module": "constants.js",
+      "expected": 25
+    },
+    {
+      "name": "JUDGE_PERFECT",
+      "module": "constants.js",
+      "expected": 50
+    },
+    {
+      "name": "JUDGE_GOOD",
+      "module": "constants.js",
+      "expected": 100
+    },
+    {
+      "name": "JUDGE_WIDE_SYNC",
+      "module": "constants.js",
+      "expected": 100
+    },
+    {
+      "name": "LN_RELEASE_GRACE_MS",
+      "module": "constants.js",
+      "expected": 50
+    },
+    {
+      "name": "GAUGE_START",
+      "module": "constants.js",
+      "expected": {
+        "normal": 0,
+        "hard": 100
+      }
+    },
+    {
+      "name": "NORMAL_CLEAR_PCT",
+      "module": "constants.js",
+      "expected": 75
+    },
+    {
+      "name": "GAUGE_NORMAL_TOTAL_GAIN",
+      "module": "constants.js",
+      "expected": 150
+    },
+    {
+      "name": "GAUGE_DELTA",
+      "module": "constants.js",
+      "expected": {
+        "normal": {
+          "SYNC": 1,
+          "PERFECT": 1,
+          "GOOD": 0.5,
+          "TAIL_OK": 1,
+          "MISS": -2,
+          "TAIL_MISS": -2
+        },
+        "hard": {
+          "SYNC": 0.15,
+          "PERFECT": 0.15,
+          "GOOD": 0,
+          "TAIL_OK": 0.1,
+          "MISS": -5,
+          "TAIL_MISS": -2.5
+        }
+      }
+    },
+    {
+      "name": "LOCK_TIERS",
+      "module": "constants.js",
+      "expected": [
+        "as",
+        "ap",
+        "fc"
+      ]
+    },
+    {
+      "name": "RANK_TABLE",
+      "module": "constants.js",
+      "expected": [
+        [
+          "U",
+          1000000
+        ],
+        [
+          "S+",
+          995000
+        ],
+        [
+          "S",
+          985000
+        ],
+        [
+          "A+",
+          970000
+        ],
+        [
+          "A",
+          950000
+        ],
+        [
+          "B",
+          900000
+        ],
+        [
+          "C",
+          800000
+        ],
+        [
+          "D",
+          700000
+        ],
+        [
+          "E",
+          500000
+        ],
+        [
+          "F",
+          0
+        ]
+      ]
+    },
+    {
+      "name": "DEFAULT_KEYS",
+      "module": "constants.js",
+      "expected": {
+        "1": "KeyE",
+        "2": "KeyR",
+        "3": "Space",
+        "4": "ArrowDown",
+        "5": "Backslash",
+        "6": "Numpad7"
+      }
+    },
+    {
+      "name": "KEY2LINE",
+      "module": "constants.js",
+      "expected": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 2,
+        "5": 3,
+        "6": 4
+      }
+    },
+    {
+      "name": "OVERLAP_CHANNELS",
+      "module": "constants.js",
+      "expected": [
+        2,
+        3
+      ]
+    },
+    {
+      "name": "DEFAULT_ACTION_KEYS",
+      "module": "constants.js",
+      "expected": {
+        "speedDown": "F1",
+        "speedUp": "F2",
+        "restart": "F5"
+      }
+    },
+    {
+      "name": "SPEED_MIN",
+      "module": "constants.js",
+      "expected": 1
+    },
+    {
+      "name": "SPEED_MAX",
+      "module": "constants.js",
+      "expected": 10
+    },
+    {
+      "name": "SPEED_STEP",
+      "module": "constants.js",
+      "expected": 0.1
+    },
+    {
+      "name": "DEFAULT_SETTINGS",
+      "module": "settings.js",
+      "expected": {
+        "hiSpeed": 3,
+        "audioOffset": 0,
+        "visualOffset": 0,
+        "volMaster": 1,
+        "volMusic": 0.7,
+        "volEffect": 1,
+        "noteSkin": "bar",
+        "laneOpacity": 1,
+        "bgBrightness": 100,
+        "sudden": 0,
+        "hitEffect": true,
+        "frameCap": 0,
+        "noteThickness": 15,
+        "judgeLinePos": 0.8888888888888888,
+        "showCombo": true,
+        "showJudgment": true,
+        "showFastSlow": true,
+        "gauge": "normal",
+        "mirror": false,
+        "cmod": false,
+        "autoplay": false,
+        "staticShape": false
+      }
+    }
+  ]
+}

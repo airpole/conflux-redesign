@@ -123,6 +123,7 @@ GA-4는 원본에 병렬 평가 모델이 없어 대조할 값이 없다. `gauge
 | DM-2 | metadata·timing·asset 소유 | 전역에 흩어짐 | 전부 chart 소유 | 미커버 | `data-model` §2·§3 |
 | DM-3 | overlap 검출 | 순회 기반 | sweep-line, 풀별 동시 활성 집합, O(n log n) | 미커버 | `data-model` §5.1 |
 | DM-4 | lane 데이터 구속 | 저장 시점에 구속 | 데이터 무구속(`targetPos` 실수, 역전·초과 허용), 구속은 gameplay 투영이 담당 | 미커버 | `lane-events` |
+| DM-5 | 검증 | 층 구분 없음 — 잘못된 값은 런타임까지 그대로 감 | structural(거부) / domain(보고) 2층, 무mutate, `schemaVersion` 불일치 거부 | 미커버 | `data-model` §11 |
 
 ---
 
@@ -169,7 +170,26 @@ key5 → ch1 wide      key6 → ch4 normal
 
 ---
 
-## 6. 미커버 항목 — 스펙 테스트가 있어야 하는 자리
+## 6. settings
+
+골든 표 `constants.json`이 원본 `settings.js`의 `DEFAULT_SETTINGS`를 통째로 담는다.
+기본값은 대부분 `[보존]`이고 어긋나는 자리는 하나뿐이다. 병합 규칙은 원본에
+대응 코드가 있으나 골든이 동작으로 뽑지 않았다.
+
+| ID | 자리 | 원본 | 재설계 | 관계 | 근거 |
+|---|---|---|---|---|---|
+| ST-1 | `volMusic` 기본값 | `0.7` | `1.0` — 음악은 감쇠 없이 출발하고 크기는 master로 잡는다 | **어긋남** | `settings` §4 |
+| ST-2 | 알 수 없는 키 | `{...DEFAULT, ...saved}` — 그대로 남는다 | 버린다. 폐기된 설정이 저장본에 살아남지 않는다 | 미커버 | `settings` §4 |
+| ST-3 | 허용 밖 값 | 검사 없이 통과 | 필드 단위로 기본값 복귀, 객체 전체는 유지 | 미커버 | `settings` §4 |
+| ST-4 | `cmod` | 기본값에 있음 | 폐기 — 기본값에 없다 | **어긋남** | `settings` §2 |
+| ST-5 | 키 배치의 거처 | `PS`(런타임 상태) — settings 객체 밖 | settings 영속 필드 `keyBindings`. rebinding이 영속하고 병합 검사를 받는다 | 미커버 | `settings` §4 |
+
+`sudden`의 허용 범위 `0~90`은 대장에 오르지 않는다 — 원본 값을 그대로 명문화한
+것이라 차이가 아니다. 스펙에 없던 것을 채운 것은 **누락 보완**이지 어긋남이 아니다.
+
+---
+
+## 7. 미커버 항목 — 스펙 테스트가 있어야 하는 자리
 
 위 표에서 `미커버`로 표시된 것을 모은다. **여기가 재설계의 실체다** — 원본에
 대조할 것이 없거나 골든이 닿지 않아, 오직 스펙만이 옳고 그름을 말한다.
@@ -178,6 +198,9 @@ key5 → ch1 wide      key6 → ch4 normal
 |---|---|---|
 | DM-1·DM-2 | chart가 canonical 저장 단위, metadata·timing·asset 소유 | M1-2 |
 | DM-4 | lane 데이터 무구속 | M1-2 |
+| DM-5 | 검증 2층 (structural 거부 / domain 보고) | M1-2 |
+| ST-2·ST-3 | settings 병합 — 알 수 없는 키 폐기, 필드 단위 되돌림 | M1-2 |
+| ST-5 | 키 배치가 settings 영속 필드 | M1-2 |
 | TM-1~4 | 곡 끝 4값 (`chartEndMs`·`musicEndMs`·`contentEndMs`·`songEndMs`) | M1-3 |
 | TM-6 | `gridDivisor`와 `laneGridDivisor` 분리 | M1-3 |
 | JD-8 | visualOffset = 입력 타임스탬프 보정 | M1-4 |
@@ -193,12 +216,12 @@ key5 → ch1 wide      key6 → ch4 normal
 | DM-3 | sweep-line overlap/conflict 검출 | M1-8 |
 | SH-4 | symmetry 축 동적 스냅샷 | M5-4 |
 
-**16행이다.** M1의 9개 step 중 7개가 스펙 테스트를 요구한다 — 골든만으로 통과할
+**20행이다.** M1의 9개 step 중 7개가 스펙 테스트를 요구한다 — 골든만으로 통과할
 수 있는 step은 거의 없다.
 
 ---
 
-## 7. M2 이후
+## 8. M2 이후
 
 `render`·`scene`·`persistence`·`.cfx`·`editor` 영역의 차이는 여기 행으로 담지
 않는다(§0 범위). 대조할 골든 표가 없고, 원본에 대응물이 없거나 브라우저 앱
@@ -224,7 +247,7 @@ key5 → ch1 wide      key6 → ch4 normal
 
 ---
 
-## 8. 유지
+## 9. 유지
 
 - 새 차이가 나면 여기에 한 줄 추가한다. 등재 없이는 테스트가 통과하지 않는다.
 - 골든 표를 재생성해도 이 문서는 자동으로 갱신되지 않는다 — 원본이 바뀌어

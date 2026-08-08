@@ -8,7 +8,7 @@ import {
   uncoveredIds,
 } from './divergences.js';
 
-const TABLES = ['timing', 'judge', 'gauge', 'shape'] as const;
+const TABLES = ['constants', 'timing', 'judge', 'gauge', 'shape'] as const;
 
 describe('골든 표 로더', () => {
   it.each(TABLES)('%s 표를 읽고 케이스가 비어 있지 않다', (name) => {
@@ -77,8 +77,8 @@ describe('설계 대장', () => {
 
   it('모든 미커버 항목에 담당 step이 배정돼 있다', () => {
     // 골든도 안 걸고 담당도 없으면 아무 검증 없이 통과한다.
-    // 검증 공백은 어긋남보다 위험하므로, 배정 누락을 §6 롤업과 대조해 잡는다.
+    // 검증 공백은 어긋남보다 위험하므로, 배정 누락을 §7 롤업과 대조해 잡는다.
     const orphans = uncoveredIds().filter((id) => assignedStep(id) === undefined);
-    expect(orphans, '§6 롤업에 담당 step이 없는 미커버 항목').toEqual([]);
+    expect(orphans, '§7 롤업에 담당 step이 없는 미커버 항목').toEqual([]);
   });
 });

@@ -10,7 +10,7 @@
 
 settings는 사람의 환경·취향이다. 같은 chart를 누가 치든 달라지는 값이라 chart나 songId group에 묶지 않는다.
 
-- 저장: local persistent object 하나, default 위 saved value merge.
+- 저장: local persistent object 하나, default 위 saved value merge(§4).
 - 적용: engine이 읽는 자리에 injection. settings module은 engine을 import하지 않는다.
 - 경계: chart 제작자가 정하는 metadata·timing·events는 [[data-model]], player 환경은 settings.
 
@@ -54,7 +54,7 @@ settings는 사람의 환경·취향이다. 같은 chart를 누가 치든 달라
 - `noteSkin`: bar|circle.
 - `laneOpacity`: 0~1.
 - `judgeLinePos`: default 8/9, raise-only. gauge/combo/bottom chart-info strip 함께 이동.
-- `sudden`: top opaque cover.
+- `sudden`: top opaque cover. 범위 0~90(%) `[보존]`.
 - `jacketBrightness`: global player preference. chart metadata field가 아니다.
 - `hitEffect / showCombo / showJudgment / showFastSlow`.
 - `frameCap`: 0/30/60.
@@ -94,7 +94,52 @@ player settings와 별도로 editor에서만 쓰는 persistent aid. `.cfx`에 �
 
 ---
 
-## 4. 결정 완료 / 잔여
+## 4. 기본값과 병합 (`DEFAULT_SETTINGS`) `[신규]`
+
+기본값의 단일 출처는 이 표다. 별도 태그가 없으면 `[보존]`이며 원본 `settings.js`
+`DEFAULT_SETTINGS` 실측이다(D-2026-036).
+
+| 필드 | 기본값 | 허용 | 태그 |
+|---|---|---|---|
+| `scrollSpeed` | `3.0` | `SCROLL_SPEED_*` 범위 | 보존 |
+| `audioOffset` | `0` | 유한 실수 (ms) | 보존 |
+| `visualOffset` | `0` | 유한 실수 (ms) | 보존 |
+| `volMaster` | `1.0` | 0~1 | 보존 |
+| `volMusic` | `1.0` | 0~1 | **수정** — 구 `0.7`. 음악은 감쇠 없이 출발하고 크기는 master로 잡는다 |
+| `volEffect` | `1.0` | 0~1 | 보존 |
+| `keyBindings` | `DEFAULT_LANE_KEYS`의 binding 열 | 6키 전부 빈 문자열 아님 | **신규** — 배치 자체는 보존이나 거처가 런타임 상태에서 영속 settings로 옮겼다. rebinding이 영속하려면 여기 있어야 한다 |
+| `noteSkin` | `'bar'` | `bar`\|`circle` | 보존 |
+| `laneOpacity` | `1.0` | 0~1 | 보존 |
+| `jacketBrightness` | `100` | 0~100 | 보존 |
+| `sudden` | `0` | 0~90 (%) | 보존 |
+| `hitEffect` | `true` | boolean | 보존 |
+| `frameCap` | `0` | 0\|30\|60 (0 = uncapped) | 보존 |
+| `noteThickness` | `15` | 양수 | 보존 |
+| `judgeLinePos` | `8/9` | `0 < v ≤ 8/9` (raise-only) | 보존 |
+| `showCombo` / `showJudgment` / `showFastSlow` | `true` | boolean | 보존 |
+| `gaugeMode` | `'normal'` | [[gauge]] 6종 | 보존 |
+| `mirror` / `autoplay` / `staticShape` | `false` | boolean | 보존 |
+| `measureLabelOffset` | `0` | 정수 | 보존 |
+
+- `judgeLinePos`의 기본값은 동시에 **가장 낮은 허용 위치**다. 올리기만 된다.
+- `cmod`는 폐기했으므로 기본값에 없다.
+- 모든 필드에 허용 판정이 하나씩 있어야 한다 — 판정 없는 필드는 검증 공백이다.
+
+### 병합 `[수정]`
+
+저장본은 기본값 **위에** 얹는다. 저장본이 무엇이든(파싱 실패, 배열, 문자열)
+온전한 settings 하나가 나온다.
+
+- **알 수 없는 키는 버린다.** 기본값에 있는 키만 취한다. 원본은 저장본을 그대로
+  펼쳐 폐기된 설정이 조용히 살아남았다 — 폐기가 폐기이려면 실제로 사라져야 한다.
+- **허용 밖 값은 필드 단위로 기본값으로 되돌린다.** settings 객체 전체를 버리지
+  않는다. 클램프하지도 않는다 — 되돌림은 사용자에게 보고할 수 있지만 조용한
+  클램프는 값이 왜 달라졌는지 설명할 자리가 없다.
+- 버린 키와 되돌린 필드는 **보고**한다. 표시 여부는 호출측이 정한다.
+
+---
+
+## 5. 결정 완료 / 잔여
 
 확정:
 - [x] settings = local persistent object
@@ -107,7 +152,7 @@ player settings와 별도로 editor에서만 쓰는 persistent aid. `.cfx`에 �
 - [x] no-record gate single source
 - [x] `laneOf(key)` 매핑을 DEFAULT_LANE_KEYS 표로 승격 — judge는 링크 (D-2026-031)
 - [x] settings graph = category별 4 scene — 정의는 [[scene]] §3 (D-2026-020)
+- [x] 기본값 표와 병합 규칙 — 알 수 없는 키 폐기·필드 단위 되돌림 §4 (D-2026-036)
 
 잔여:
-- [ ] key rebinding UI
-- [ ] frameCap·volume 구체 default/range
+- [ ] key rebinding UI · volume 슬라이더 조작 단위

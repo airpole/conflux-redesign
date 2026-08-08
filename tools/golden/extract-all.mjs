@@ -4,7 +4,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const scripts = ['extract-timing.mjs', 'extract-gauge.mjs', 'extract-shape.mjs', 'extract-judge.mjs'];
+const scripts = [
+  'extract-constants.mjs',
+  'extract-timing.mjs',
+  'extract-gauge.mjs',
+  'extract-shape.mjs',
+  'extract-judge.mjs',
+];
 
 let failed = 0;
 for (const s of scripts) {
