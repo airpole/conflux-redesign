@@ -354,7 +354,7 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** architecture, build-order, README
 - **Supersedes:** None (구 `config.js`의 "코드는 배포하고 경로만 잠근다"를 `[번복]`)
-- **Commit:** `TBD`
+- **Commit:** `7ce477e`
 
 ```md
 ### D-YYYY-NNN — <Title>
