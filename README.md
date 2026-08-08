@@ -168,6 +168,8 @@ song-select를 전면 재설계했다(D-2026-025~029). 목록을 category 탭 / 
 
 곡 종료 시각을 정의했다(D-2026-030). `songEndMs = max(chartEndMs, musicEndMs) + SONG_END_TAIL_MS(3000)`로 통일하고, 진행 표시 분모 `contentEndMs`를 분리해 CTX 필드명을 바꿨다. 원본의 4s/2s 비대칭 tail·offset 미보정·5000ms 하한 겸용을 정정했고, autoplay 판은 result 없이 song-select로 복귀한다.
 
+`updatedAt`을 신설하고 lane 매핑을 승격했다(D-2026-031). `updatedAt`은 chart 소유 ISO 8601 UTC 문자열로 생성 시각에 초기화되고 에디터 저장 성공 시에만 갱신되며, import·`.cfx` 패키징은 값을 계승한다. song-select `updated` 축의 row 대표값은 소속 chart의 최대값이다. `laneOf(key)` 매핑은 EXTRACTED_FACTS에서 `settings` §2 `DEFAULT_LANE_KEYS` 표로 올라가 key·binding·lane이 한 표에 모였다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019

@@ -26,9 +26,23 @@ settings는 사람의 환경·취향이다. 같은 chart를 누가 치든 달라
 - `volMaster / volMusic / volEffect`.
 - key mapping도 PLAY 소속.
 
+`DEFAULT_LANE_KEYS` — 물리 6키와 lane 매핑 `[보존]`:
+
+| key | default binding | lane |
+|---|---|---|
+| `key1` | KeyE | 1 |
+| `key2` | KeyR | 2 |
+| `key3` | Space | 3 |
+| `key4` | ArrowDown | 2 |
+| `key5` | Backslash | 3 |
+| `key6` | Numpad7 | 4 |
+
+- 이 표가 `laneOf(key)`의 단일 출처다([[judge]] §3).
+- lane 2·3은 키 두 개를 받는다. lane별 동시 입력 capacity는 [[data-model]] §5.1.
+- 바인딩은 rebinding으로 바뀌지만 **key → lane 매핑은 고정**이다.
+
 | 묶음 | mapping | tag |
 |---|---|---|
-| DEFAULT_LANE_KEYS | key1 KeyE · key2 KeyR · key3 Space · key4 ArrowDown · key5 Backslash · key6 Numpad7 | 보존 |
 | DEFAULT_ACTION_KEYS | speedDown F1 · speedUp F2 · restart F5 | 보존 |
 | session priority | Esc > action key > lane input | 보존 |
 | pause | Esc toggle | key 보존, behavior 수정 |
@@ -91,6 +105,7 @@ player settings와 별도로 editor에서만 쓰는 persistent aid. `.cfx`에 �
 - [x] cmod 폐기, sudden 유지
 - [x] measureLabelOffset editor setting
 - [x] no-record gate single source
+- [x] `laneOf(key)` 매핑을 DEFAULT_LANE_KEYS 표로 승격 — judge는 링크 (D-2026-031)
 - [x] settings graph = category별 4 scene — 정의는 [[scene]] §3 (D-2026-020)
 
 잔여:

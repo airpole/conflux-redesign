@@ -60,7 +60,7 @@ workspace·library·records·settings·viewState의 쓰기 실패를 조용히 �
 - 저장 창에서 위치, 파일명, version을 확인·수정할 수 있다.
 - 선택 version은 현재 열린 version보다 커야 한다.
 - 과거 version에서 다시 시작해도 더 큰 version을 직접 지정할 수 있다(예: v3을 열어 v6으로 저장).
-- 파일 저장에 성공한 경우에만 메모리의 version을 확정한다.
+- 파일 저장에 성공한 경우에만 메모리의 version을 확정한다. 같은 순간에 `updatedAt`도 갱신한다([[data-model]] §4).
 - 취소 또는 실패 시 version을 변경하지 않는다.
 - 내용 변경이 없어도 명시적으로 저장하면 새 version을 만든다.
 - chart 파일에는 작업 계보 메모나 revision note를 추가하지 않는다.

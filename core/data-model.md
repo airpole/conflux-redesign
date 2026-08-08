@@ -26,6 +26,7 @@ chart = {
   level,
   chartBy,
   version,
+  updatedAt,
 
   notes,
   shapeEvents,
@@ -89,12 +90,17 @@ chartId,       // songId 그룹 안의 식별 정수
  subtitle,     // 차분명·용도 설명 (선택 문자열)
  level,        // 난이도 수치
  chartBy,      // 채보 제작자. "Chart by"는 표시 레이어가 붙임
- version       // 내용의 판. 저장 시 사용자가 현재보다 큰 값으로 확정 ([[persistence]] §4)
+ version,      // 내용의 판. 저장 시 사용자가 현재보다 큰 값으로 확정 ([[persistence]] §4)
+ updatedAt     // 마지막 저장 시각
 ```
 
 - identity = `songId + chartId`. 특정 revision = `songId + chartId + version`.
 - `chartId 0`은 init, `1~5`는 Trace/Drift/Surge/Flux/Phase 고정 슬롯, `6+`는 추가 chart다 `[번복]`. 상세 → [[cfx]] §4.
-- `updatedAt`은 저장할 때마다 갱신하며 song-select의 `updated` 묶음 축이 사용한다([[song-select]] §4).
+- `updatedAt`은 **ISO 8601 UTC 문자열**이다(`2026-08-08T05:10:00Z`) `[신규]`. 사전순 비교가 곧 시간순이다.
+  - chart 생성 시각으로 초기화한다.
+  - **에디터 파일 저장이 성공한 순간에만** 갱신한다([[persistence]] §4). 취소·실패 시 바뀌지 않는다.
+  - import·`.cfx` 패키징·library 등록은 값을 다시 쓰지 않고 저장된 값을 계승한다([[cfx]] §2).
+  - song-select의 `updated` 묶음 축이 소비한다([[song-select]] §4).
 - `difficulty + normalized subtitle`은 같은 song에서 playable chart를 사람이 구별하는 키다. identity나 파일명 유일성 자체는 아니다.
 - `subtitle`은 저장 시 대괄호를 포함하지 않는다. 표시 레이어가 존재할 때 항상 `[...]`로 감싼다.
 
@@ -241,6 +247,7 @@ playState   = {
 - [x] `musicFile`·`jacketFile` 필드와 nullability
 - [x] identity와 사용자 표시 구분
 - [x] note/shape/lane/text 구조 및 런타임 상태
+- [x] `updatedAt` = chart 소유 ISO 8601 문자열, 저장 성공 시에만 갱신 `[신규]` (D-2026-031)
 - [x] key-demand Hold 런타임 상태(`activeNormalHolds`/`activeWideHold`/`wideOwnerKey`/`keyPressSerial`), global 6키 conflict 검출(D-2026-024) `[번복]`
 
 잔여:

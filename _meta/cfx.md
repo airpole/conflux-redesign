@@ -28,6 +28,7 @@
 - 특정 revision은 `songId + chartId + version`으로 구별한다.
 - `musicFile`·`jacketFile`은 경로가 아닌 파일명만 저장한다.
 - music 없이 작업 chart를 저장할 수 있다(`musicFile: null`, [[persistence]] §10). jacket은 항상 선택이다.
+- `updatedAt`은 패키징·loader·library 등록이 다시 쓰지 않는다. 정의는 [[data-model]] §4.
 - JSON 하나가 binary asset을 inline하지는 않는다. 실제 작업 단위는 JSON + 같은 작업 위치의 별도 asset 파일이다.
 
 ---

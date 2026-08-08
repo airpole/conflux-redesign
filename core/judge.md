@@ -51,6 +51,8 @@ earliest startTick
 
 ## 3. lane 매칭·미러 (후보에서 제외되는 노트)
 
+입력 key를 lane으로 바꾸는 `laneOf(key)`의 단일 출처는 [[settings]] §2의 `DEFAULT_LANE_KEYS` 표다. judge는 그 매핑을 읽기만 한다.
+
 탐색에서 다음은 건너뛴다:
 
 - 이미 hit 했거나 이미 miss 처리된 노트.

@@ -91,6 +91,8 @@ chart 분기 축에서는 같은 song이 여러 folder에 나뉘어 반복 등�
 | `state` | AS/AP/FC/H/C/F/N |
 | `rank` | RANK_TABLE의 각 등급 |
 
+`updated` 축에서 row의 대표 시각은 그 song에 속한 chart `updatedAt`의 **최대값**이다 `[신규]`. 필드 정의는 [[data-model]] §4.
+
 ### 동작
 
 - folder는 접힘 단위다.

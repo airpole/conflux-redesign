@@ -440,3 +440,23 @@ chart time 0은 audio position `offset`에 대응한다([[timing]] §8). 원본�
 ### 왜 autoplay는 result를 거치지 않나
 
 autoplay 판은 기록이 남지 않고([[settings]] §2) 점수·rank가 플레이어의 성취가 아니다. 원본도 autoplay 종료를 result 없이 정지로 처리했다. 결과 화면을 주면 no-record 표기를 덧붙여야 하고 "기록 아닌 결과"라는 층이 하나 늘어난다.
+
+---
+
+## updatedAt과 lane 매핑 승격 (D-2026-031)
+
+### 왜 updatedAt을 chart JSON 필드로 두었나
+
+후보는 두 개였다 — chart 안의 필드냐, library 항목의 메타냐. library 메타에 두면 값이 import 시각이 되어 사실상 `addedAt`과 같아지고, "최근 작업한 곡"이라는 `updated` 축의 의미가 "최근 받은 곡"으로 뒤바뀐다. chart가 자기 metadata·timing·asset을 모두 소유하는 구조([[data-model]] §1)와도 맞고, `.cfx`에 자연히 실려 배포본에서도 제작 시점이 보존된다.
+
+### 왜 ISO 8601 문자열인가
+
+epoch 정수보다 사람이 파일을 열어 읽을 수 있고, 사전순 비교가 그대로 시간순이라 정렬에 파싱이 필요 없다. chart JSON은 사용자가 직접 다루는 정본 파일이므로 가독성 쪽에 무게를 뒀다.
+
+### 왜 import·패키징이 값을 덮지 않나
+
+덮으면 배포된 `.cfx`를 받은 시점이 전부 같은 값이 되어 축이 무너진다. `updatedAt`은 **제작자가 마지막으로 저장한 시각**이지 수령자의 시각이 아니다. 같은 이유로 갱신 시점을 "저장 성공"에 묶었다 — 저장 창을 취소하거나 실패한 판은 내용이 바뀌지 않았으므로 시각도 바뀌지 않는다.
+
+### 왜 lane 매핑을 settings로 승격했나
+
+`laneOf(key)`는 judge 전체가 전제하는데 실제 값은 `_extracted/EXTRACTED_FACTS.md` §1에만 있었다 — 실측 자료가 스펙 역할을 겸하는 상태였다. 값 자체는 실측 확정이라 결정할 것이 없고 자리만 문제였다. 키 바인딩 표가 이미 settings에 있으므로 같은 표에 lane 열을 붙이면 "어떤 키가 어느 lane인가"를 한 곳에서 읽는다. judge는 링크만 갖는다.

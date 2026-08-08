@@ -326,6 +326,16 @@
 - **Supersedes:** None
 - **Commit:** `f8a3caa`
 
+### D-2026-031 — updatedAt 신설과 lane 매핑 승격
+
+- **Status:** Accepted
+- **Decision:** `updatedAt`을 chart JSON 필드(ISO 8601 UTC)로 신설해 생성 시각으로 초기화하고 에디터 저장 성공 시에만 갱신하며, import·패키징은 값을 계승한다. `laneOf(key)` 매핑을 EXTRACTED_FACTS에서 `settings` §2 `DEFAULT_LANE_KEYS` 표로 승격한다.
+- **Defined in:** `core/data-model.md` §1·§4, `_meta/settings.md` §2
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** data-model, settings, judge, cfx, persistence, song-select, glossary
+- **Supersedes:** None
+- **Commit:** `TBD`
+
 ```md
 ### D-YYYY-NNN — <Title>
 

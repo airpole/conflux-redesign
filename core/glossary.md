@@ -23,6 +23,7 @@
 - **difficulty** — Trace/Drift/Surge/Flux/Phase/init 명칭.
 - **level** — 난이도 숫자.
 - **metadata·tempos·timeSignatures·offset·musicFile·jacketFile** — 모두 chart-owned.
+- **updatedAt** — chart의 마지막 저장 시각(ISO 8601 UTC). 정의는 [[data-model]] §4.
 
 runtime core에는 song group이 아니라 active chart를 넘긴다.
 
@@ -32,6 +33,7 @@ runtime core에는 song group이 아니라 active chart를 넘긴다.
 
 - **judgment** — `abs(diff_ms)` threshold 결과: SYNC/PERFECT/GOOD/MISS.
 - **window** — `WINDOW_*_MS` threshold.
+- **laneOf(key)** — 물리 key를 lane으로 바꾸는 고정 매핑. 표는 [[settings]] §2.
 - **judgeLine** — hit 기준선. raise하면 아래 HUD도 함께 이동.
 - **FAST/SLOW** — judgment 종류가 아니라 diff 부호.
   - `flashTiming`: 순간 표시.
