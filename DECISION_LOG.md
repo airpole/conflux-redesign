@@ -384,7 +384,7 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** data-model, settings, build-order, tests/golden, tools/golden, src/core, README
 - **Supersedes:** None
-- **Commit:** `<pending>`
+- **Commit:** `14b8397`
 
 ```md
 ### D-YYYY-NNN — <Title>
