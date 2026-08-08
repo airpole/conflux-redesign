@@ -334,7 +334,7 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** data-model, settings, judge, cfx, persistence, song-select, glossary
 - **Supersedes:** None
-- **Commit:** `TBD`
+- **Commit:** `6876890`
 
 ```md
 ### D-YYYY-NNN — <Title>
