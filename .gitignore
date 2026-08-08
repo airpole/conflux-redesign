@@ -4,3 +4,8 @@ Thumbs.db
 # Obsidian (선택 — 볼트로 쓸 경우 .obsidian 설정은 개인적)
 .obsidian/workspace*
 .trash/
+# build
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
