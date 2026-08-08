@@ -274,7 +274,7 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** scene, records, persistence, data-model, cfx, constants
 - **Supersedes:** None
-- **Commit:** `<sha>`
+- **Commit:** `5e3d4de`
 
 ### D-2026-026 — records 스키마를 판정 분포 기반으로 전환
 
@@ -284,7 +284,7 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** records, song-select, result
 - **Supersedes:** None
-- **Commit:** `<sha>`
+- **Commit:** `5e3d4de`
 
 ### D-2026-027 — chartId 5 = Phase 고정 슬롯
 
@@ -294,7 +294,7 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** cfx, data-model, song-select
 - **Supersedes:** None
-- **Commit:** `<sha>`
+- **Commit:** `5e3d4de`
 
 ### D-2026-028 — viewState store 신설
 
@@ -304,7 +304,7 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** persistence, song-select, settings
 - **Supersedes:** None
-- **Commit:** `<sha>`
+- **Commit:** `5e3d4de`
 
 ### D-2026-029 — 스펙 공백 7건 일괄 확정
 
@@ -314,7 +314,7 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** scene, editor, persistence, constants, data-model
 - **Supersedes:** None
-- **Commit:** `<sha>`
+- **Commit:** `5e3d4de`
 
 ```md
 ### D-YYYY-NNN — <Title>
@@ -325,7 +325,7 @@
 - **Rationale:** `path/to/rationale.md` | Not required
 - **Affects:** 주요 영역
 - **Supersedes:** D-YYYY-NNN | None
-- **Commit:** `<sha>`
+- **Commit:** `5e3d4de`
 ```
 
 ## Maintenance
