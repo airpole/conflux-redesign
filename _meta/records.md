@@ -31,15 +31,15 @@
 
 ```js
 record = {
-  bestScore,
-  bestRank,
+  bestJudgments: { sync, perfect, good, miss },  // 최고 점수 판의 판정 분포
   bestState,
   maxCombo,
-  playCount,
 }
 ```
 
-- `bestRank`는 최고 점수 판의 rank.
+- `score`·`accuracy`·`rank`는 `bestJudgments`에서 파생한다. 공식 단일 출처는 [[constants]] §3 `[번복]`.
+- 총 노트 수는 `bestJudgments`의 합이다. 저장 당시 기준으로 자기완결이다.
+- `playCount`는 저장하지 않는다 `[번복]`.
 - FAST/SLOW는 그 판 result 표시값이며 저장하지 않는다.
 
 ---
@@ -50,13 +50,11 @@ record = {
 
 | 필드 | 규칙 |
 |---|---|
-| bestScore | `max(이번, 저장)` |
-| bestRank | 이번 점수가 최고면 이번 rank, 아니면 유지 |
+| bestJudgments | 이번 판의 파생 score가 저장된 파생 score보다 크면 이번 판 분포로 교체 |
 | bestState | `AS > AP > FC > H > C > F > N` 우선순위 병합 |
 | maxCombo | 독립 `max` |
-| playCount | +1 |
 
-bestState·maxCombo는 bestScore와 독립적으로 갱신한다.
+bestState·maxCombo는 bestJudgments와 독립적으로 갱신한다. 좋은 값만 모으는 것이 목적이므로 세 필드가 같은 판에서 나온 값일 필요는 없다.
 
 ---
 
@@ -64,7 +62,7 @@ bestState·maxCombo는 bestScore와 독립적으로 갱신한다.
 
 유저가 chart 단위로 record를 삭제할 수 있다.
 
-- 대상: 선택한 playable chart의 record 1개(§2의 5필드 전체). 삭제 후 해당 chart는 `N`(Not played)으로 돌아간다.
+- 대상: 선택한 playable chart의 record 1개(§2의 3필드 전체). 삭제 후 해당 chart는 `N`(Not played)으로 돌아간다.
 - confirm 필수. 실행 취소는 없다.
 - 진입점: song-select의 선택 chart([[scene]] §5).
 - 노출: `FEATURES.recordReset` — game-internal 빌드에서만 노출한다([[architecture]] §4). game-public 빌드에는 UI가 없다.
@@ -80,14 +78,14 @@ bestState·maxCombo는 bestScore와 독립적으로 갱신한다.
 no-record = autoplay OR staticShape OR 중간시작 OR editorOrigin
 ```
 
-무적격 판은 result만 표시하고 record 저장·playCount 증가를 하지 않는다.
+무적격 판은 result만 표시하고 record를 저장하지 않는다.
 
 ---
 
 ## 6. 소비처
 
 - result: 이번 판과 best, NEW BEST 표시 → [[scene]] §9.
-- song-select: 현재 playable chart에 대응하는 bestState·bestRank badge → [[scene]] §5.
+- song-select: slot의 state 램프와 정보 패널의 2×2 기록 표시 → [[song-select]] §3·§9.
 - 현재 library chart와 연결할 수 없는 고아 기록은 표시하지 않는다.
 
 ---
@@ -96,7 +94,7 @@ no-record = autoplay OR staticShape OR 중간시작 OR editorOrigin
 
 확정:
 - [x] playable chart당 1기록, gaugeMode 통합
-- [x] 5필드 스키마·독립 갱신
+- [x] 3필드 스키마·독립 갱신 — score·rank·accuracy는 파생 `[번복]`
 - [x] no-record 판은 표시만
 - [x] init 제외
 - [x] chartId migration/rename 감지 폐기 `[번복]`

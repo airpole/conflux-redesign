@@ -32,14 +32,14 @@
 
 ---
 
-## 3. songId — 파생 그룹의 UUID `[번복]`
+## 3. songId — song의 UUID `[번복]`
 
-` songId`는 서로 관련된 chart들을 그룹화하는 UUID다.
+`songId`는 하나의 **song**을 식별하는 UUID다. song은 같은 `songId`를 공유하는 chart 전체를 가리키며, 별도 이름을 쓰지 않는다.
 
 - 별도 persisted `song` 객체는 없다.
-- 새 chart를 같은 곡 그룹에 추가하려면 기존 chart(init 포함)에서 새 난이도를 파생해 `songId`를 유지한다([[persistence]] §8).
-- 새 곡/리믹스로 분리할 때는 새 song 생성이 새 UUID를 발급한다([[persistence]] §7). derive·duplicate-as-new-song 경로는 없다.
-- 패키징 화면은 선택된 chart를 `songId`별로 나누고, 각 그룹을 별도 `.cfx`로 만든다.
+- 새 chart를 같은 song에 추가하려면 기존 chart(init 포함)에서 새 난이도를 파생해 `songId`를 유지한다([[persistence]] §8).
+- 새 song/리믹스로 분리할 때는 새 song 생성이 새 UUID를 발급한다([[persistence]] §7). derive·duplicate-as-new-song 경로는 없다.
+- 패키징 화면은 선택된 chart를 `songId`별로 나누고, 각 song을 별도 `.cfx`로 만든다.
 
 ---
 
@@ -51,13 +51,15 @@
 
 | chartId | difficulty | 규칙 |
 |---|---|---|
-| 0 | init | 에디터 전용, non-playable, 그룹당 최대 1개 |
+| 0 | init | 에디터 전용, non-playable, song당 최대 1개 |
 | 1 | Trace | 고정 대응, 수정 불가 |
 | 2 | Drift | 고정 대응, 수정 불가 |
 | 3 | Surge | 고정 대응, 수정 불가 |
 | 4 | Flux | 고정 대응, 수정 불가 |
-| 5+ | Trace/Drift/Surge/Flux/Phase | 추가 chart, id 수정 가능 |
+| 5 | Phase | 고정 대응, 수정 불가 `[번복]` |
+| 6+ | Trace/Drift/Surge/Flux/Phase | 추가 chart, id 수정 가능 |
 
+- `chartId 1~5`는 subtitle이 없는 정규 chart의 자리다. subtitle이 있는 chart는 `6+`에 둔다.
 - 구멍을 허용한다.
 - 완성 `.cfx`에는 chartId별 선택 revision이 정확히 하나만 존재해야 한다.
 - loader는 중복 chartId 중 최신을 고르지 않는다. 최신 추천은 패키징 전 선택 화면의 책임이다.
@@ -68,7 +70,7 @@
 
 - enum: `init / Trace / Drift / Surge / Flux / Phase`.
 - `subtitle`: 선택 문자열. 저장 시 대괄호 없음, 표시 시 있으면 항상 `[...]`.
-- 같은 `songId` 그룹의 playable chart는 `difficulty + normalized subtitle` 조합이 유일해야 한다.
+- 같은 song의 playable chart는 `difficulty + normalized subtitle` 조합이 유일해야 한다.
 - normalization: subtitle 없음과 빈 문자열은 동일, 앞뒤 공백 제거. 추가 case folding/Unicode normalization은 하지 않는다.
 - init은 이 유일성 검사에서 제외한다.
 - 이 조합은 사용자에게 보이는 chart 구분 키이며 identity나 파일명 유일성 자체가 아니다.
@@ -83,7 +85,7 @@ init(`chartId 0`)은:
 - `.cfx`에 **필수로 포함**되는 editor chart;
 - gameplay와 records 대상이 아닌 non-playable chart다.
 
-선택한 `songId` 그룹에 init이 없으면 패키징을 차단한다. init은 그룹당 `.cfx`의 고정 Representative Chart다.
+선택한 `songId` 그룹에 init이 없으면 패키징을 차단한다. init은 song당 `.cfx`의 고정 Representative Chart다.
 
 Representative Chart는 다음 **표시 기본값만** 제공한다.
 
@@ -176,7 +178,7 @@ surge_music.ogg
 - 모든 non-null asset 참조가 정확한 파일명으로 해소됨;
 - 그룹의 모든 chart가 같은 `songId`;
 - chartId 중복 없음;
-- chartId 1~4와 difficulty 고정 대응 일치;
+- chartId 1~5와 difficulty 고정 대응 일치;
 - playable `difficulty + normalized subtitle` 중복 없음;
 - 지원 `schemaVersion`;
 - chart JSON 구조 유효;

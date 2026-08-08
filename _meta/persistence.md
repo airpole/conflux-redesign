@@ -6,14 +6,30 @@
 
 ---
 
-## 1. 스토어 4분리 `[수정]`
+## 1. 스토어 5분리 `[수정]`
 
-`workspace / library / records / settings`.
+`workspace / library / records / settings / viewState`.
 
 - workspace: 아직 파일로 저장하지 않은 dirty 편집 작업의 비정상 종료 복구용 단일 슬롯.
-- library: game-internal에서 import한 `.cfx` blob.
+- library: game-internal에서 import한 `.cfx` blob. 항목마다 `addedAt`을 기록한다 `[신규]`.
 - records/settings: 각 문서가 스키마 단일 출처.
+- viewState: UI가 마지막 화면 상태를 기억하기 위한 store `[신규]`. 스키마 단일 출처는 각 scene 문서([[song-select]] §12).
 - 에디터 정본용 songs/assets store는 두지 않는다.
+
+### settings와 viewState의 구분
+
+| | settings | viewState |
+|---|---|---|
+| 성격 | 유저가 설정 화면에서 조작하는 옵션 | UI가 마지막 상태를 기억할 뿐인 화면 상태 |
+| 설정 화면 노출 | 있음 | 없음 |
+| 초기화 대상 | 예 | 아니오 |
+| 게임 규칙 영향 | 있을 수 있음(no-record 등) | 없음 |
+
+화면 상태를 settings 필드로 만들지 않는다.
+
+### 쓰기 실패 `[신규]`
+
+workspace·library·records·settings·viewState의 쓰기 실패를 조용히 삼키지 않는다. 실패하면 지속 표시로 알리고 다음 변경 시 재시도한다. 편집을 차단하지는 않는다.
 
 ---
 

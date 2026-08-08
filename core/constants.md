@@ -85,3 +85,28 @@ start: `normal` 0 / `hard` 100. 둘 다 상한 100(`gaugeMax`).
 | `TEXT_FADE_MS` | 300 |
 
 - 등장·퇴장 fade에 **같은 값**을 쓴다. 구 `transition`·`mode` 필드 폐기의 귀결로 고정값 하나에 수렴했다([[data-model]] §8). 표시 스타일·배치는 [[theme]] §3.
+
+---
+
+## 7. song-select `[신규]`
+
+| 상수 | 값 |
+|---|---|
+| `SLOTS_PER_ROW` | 5 |
+| `PREVIEW_DELAY_MS` | 400 |
+| `PREVIEW_LOOP_MS` | 15000 |
+| `PREVIEW_FADE_OUT_MS` | 5000 |
+
+- 정의·동작은 [[song-select]] §3·§10.
+- `PREVIEW_DELAY_MS`는 커서가 멈춘 뒤 preview 재생을 시작하기까지의 대기다.
+- fade in은 없다. `PREVIEW_FADE_OUT_MS`는 루프 구간의 마지막 구간에 적용한다.
+
+---
+
+## 8. 로딩 표시 `[신규]`
+
+| 상수 | 값 |
+|---|---|
+| `LOADING_INDICATOR_DELAY_MS` | 300 |
+
+비동기 작업이 이 시간을 넘기면 로딩 표시를 낸다. 적용 지점은 각 scene 문서.

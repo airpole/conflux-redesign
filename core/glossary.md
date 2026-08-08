@@ -100,12 +100,15 @@ Blue · 1 · 2 · 3 · Red
 - gauge/gaugeMode/state/cascade/terminate → [[gauge]].
 - combo — GOOD 이상 연속, MISS reset.
 - rank — score 등급, state와 독립.
-- record — playable chart best(`bestScore/bestRank/bestState/maxCombo/playCount`).
+- record — playable chart best(`bestJudgments/bestState/maxCombo`). score·rank·accuracy는 파생.
 - init은 record 대상이 아니다.
 
 ### identity
 
-- **chartId** — songId group 내 정수. 0=init, 1~4 fixed slots, 5+=additional.
+- **chartId** — song 내 정수. 0=init, 1~5 fixed slots, 6+=additional.
+- **song** — 같은 `songId`를 공유하는 chart 전체.
+- **slot** — song-select에서 한 row가 나열하는 chart 자리.
+- **folder** — song-select의 `groupBy`가 만든 접힘 단위.
 - **version** — chart revision. 저장 시 사용자가 현재보다 큰 값으로 확정 → [[persistence]] §4.
 - **schemaVersion** — format generation.
 - **subtitle** — chart variation label. 표시 시 `[...]`; identity 자체가 아님.

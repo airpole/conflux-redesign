@@ -2,7 +2,7 @@
 
 > 한 번에 한 scene만 보인다. scene 위에 잠깐 덮는 층은 overlay다.
 > 공용 root(title·mode-select) 아래 game/editor/settings 세 mode graph가 형제로 갈린다.
-> 짝 문서: [[glossary]], [[architecture]], [[settings]], [[data-model]], [[cfx]].
+> 짝 문서: [[glossary]], [[architecture]], [[settings]], [[data-model]], [[cfx]], [[song-select]].
 
 ---
 
@@ -86,23 +86,13 @@ mode 추가의 단일 확장점이다.
 
 ---
 
-## 5. song-select — group + chart 선택 `[번복 반영]`
+## 5. song-select
 
-library의 `.cfx` 하나를 derived song group으로 표시하고 그 안의 playable chart를 선택한다.
+library의 playable chart를 탐색·선택한다. 화면 구성·목록 모델·정렬·검색·커서 이동·기록 표시·preview 규칙의 단일 출처는 [[song-select]]다.
 
-### 표시·preview
-
-- chart 선택 전: Representative Chart의 title·musicBy·jacket·preview music.
-- playable chart 선택 후: 선택 chart의 metadata·jacket·music·timing.
-- chart 변경 시 preview music을 해당 chart music으로 전환한다.
-- init은 playable 목록에 표시하지 않는다.
-- chart별 `bestState`·`bestRank` badge는 [[records]].
-
-### 입력
-
-- chart 선택 확정 + Enter → song-credit → gameplay.
-- Space → quick options overlay.
-- 기록 초기화: 선택 playable chart의 record 삭제 진입점. `FEATURES.recordReset`(game-internal)에서만 노출 — 규칙 단일 출처는 [[records]] §4.
+- 진입: mode-select의 game.
+- 나가기: chart 선택 확정 + `Enter` → song-credit.
+- overlay: `Space` → quick options.
 
 ### quick options
 
@@ -181,6 +171,10 @@ pause는 engine을 살리는 overlay다. result는 정식 scene이다.
 
 Resume은 **정지 카운트다운 재개**다 `[수정]` (D-2026-022): 화면·시간을 pause 지점에 고정한 채 카운트다운을 표시하고, 끝나면 정확히 그 지점부터 음악·판정이 흐른다. 되감기(lead-in) 없음. pause 사용은 no-record 게이트와 무관하다 — mid-start 정의는 [[settings]] §2.
 
+탭이 백그라운드로 전환되면(`visibilitychange` hidden) gameplay는 자동으로 pause overlay를 연다 `[신규]`. Resume 규칙은 위와 같다. 창 포커스만 잃은 경우(blur)에는 pause하지 않는다.
+
+`.cfx` decode·음원 로드 등 비동기 작업이 [[constants]] `LOADING_INDICATOR_DELAY_MS`를 넘기면 로딩 표시를 낸다 `[신규]`.
+
 Resume은 mid-start 시드 루틴을 호출하지 않는다 `[번복]` (D-2026-024): pause는 기존 head/tail 결과와 활성 Hold를 그대로 보존하고, 카운트다운 중 눌린 lane 키만 모아 pause anchor에서 `reconcileHeldCapacity`를 실행한다. 과거 노트 재시드는 없다. 판정 모델 단일 출처는 [[judge]] §10.
 
 ### result 표시
@@ -223,6 +217,8 @@ CTX 상세 → [[architecture]].
 - [x] gameplay host = selected active chart
 - [x] quick options 공유·no-record link
 - [x] pause overlay·result scene·정지 카운트다운 재개(기록 유지) `[수정]` (D-2026-022)
+- [x] 탭 백그라운드 시 auto-pause, blur 제외 `[신규]`
+- [x] 로딩 표시 임계 `[신규]`
 - [x] build gate
 - [x] 기록 초기화 진입점 — song-select, `FEATURES.recordReset` internal 게이트 (D-2026-017)
 - [x] song-credit fade 연출 — 수치는 [[constants]] `CREDIT_*` (D-2026-020)

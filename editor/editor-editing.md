@@ -123,7 +123,16 @@ ON이면 배치 시 대칭축 반대편에 자동 생성한다. **축 기본값 
 | `A` | autoplay 토글 (idle) |
 | `F1` / `F2` / `F5` | 액션 키 — idle에서도 동작 `[보존]` |
 
-## 6. Ctrl 계열
+## 6. 브라우저·입력 격리 `[신규]`
+
+- 이 문서에 정의된 모든 단축키는 브라우저 기본 동작을 차단한다(`preventDefault`).
+- **text input에 focus가 있는 동안 §1~§7의 단축키를 모두 비활성화한다.** 문자·숫자·`Delete`·`Space`는 전부 텍스트 입력으로만 동작한다.
+  - 예외는 `Ctrl+S`·`Ctrl+Z`·`Esc` 셋뿐이다.
+  - `Esc`는 취소 계단의 최상단으로 **input focus 해제**를 먼저 수행한다.
+
+---
+
+## 7. Ctrl 계열
 
 | 키 | 동작 | 태그 |
 |---|---|---|
@@ -137,9 +146,11 @@ ON이면 배치 시 대칭축 반대편에 자동 생성한다. **축 기본값 
 
 - 에디터 키는 **고정(리바인딩 불가)** — settings 표에 편입하지 않는다(KEY-4a). 게임 키만 [[settings]] §2.
 
-## 7. 결정 완료 / 잔여
+## 8. 결정 완료 / 잔여
 
 확정:
+- [x] 단축키 preventDefault 일괄 적용 `[신규]`
+- [x] text input focus 중 단축키 격리 — `Ctrl+S`·`Ctrl+Z`·`Esc`만 예외 `[신규]`
 - [x] note 툴 Q/W/E/R/T = tap/hold/wideTap/wideHold/text, sel+del 콤보, 드래그·클립보드 [보존]
 - [x] quick-hold 실측 반영(300ms·savedLNDur 재사용·치환 규칙 — "시작 모드" 서술 정정)
 - [x] overlap/conflict 기준 = 요구 입력 수 vs 키 수, **지속 중 hold 포함** / 클립보드 textEvents 동반

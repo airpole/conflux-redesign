@@ -49,6 +49,8 @@ metadata = {
   musicBy,      // 작곡 크레딧. "Music by"는 표시 레이어가 붙임
   jacketBy,     // 자켓 제작 크레딧. "Jacket by"는 표시 레이어가 붙임
   offset,       // 이 chart의 오디오 싱크 보정 ms (양수=음악 당김)
+  category,     // 최상위 분류. 자유 문자열, 빈 값 허용 [신규]
+  previewStartMs, // song-select preview 시작 지점 ms. 기본 0 [신규]
 }
 ```
 
@@ -56,6 +58,8 @@ metadata = {
 - `chartBy`·`difficulty`·`subtitle`·`level`은 chart 직속 필드다(§4).
 - `jacketBrightness`는 전역 플레이어 설정([[settings]])이고 chart 데이터가 아니다.
 - `measureLabelOffset`은 에디터 설정([[settings]])이며 chart 데이터가 아니다.
+- `category`는 song-select의 최상위 탭을 파생하는 값이다([[song-select]] §2). enum이 아니며 빈 값은 `Uncategorized`로 모인다.
+- `previewStartMs`는 song-select preview의 시작 지점이다. 루프·fade 규칙은 [[song-select]] §10, 수치는 [[constants]].
 - 곡 부제용 metadata `subtitle`은 없다. `subtitle`은 chart 구분 필드 하나만 사용한다.
 
 ---
@@ -89,8 +93,9 @@ chartId,       // songId 그룹 안의 식별 정수
 ```
 
 - identity = `songId + chartId`. 특정 revision = `songId + chartId + version`.
-- `chartId 0`은 init, `1~4`는 Trace/Drift/Surge/Flux 고정 슬롯, `5+`는 추가 chart다. 상세 → [[cfx]] §5.
-- `difficulty + normalized subtitle`은 같은 `songId` 그룹에서 playable chart를 사람이 구별하는 키다. identity나 파일명 유일성 자체는 아니다.
+- `chartId 0`은 init, `1~5`는 Trace/Drift/Surge/Flux/Phase 고정 슬롯, `6+`는 추가 chart다 `[번복]`. 상세 → [[cfx]] §4.
+- `updatedAt`은 저장할 때마다 갱신하며 song-select의 `updated` 묶음 축이 사용한다([[song-select]] §4).
+- `difficulty + normalized subtitle`은 같은 song에서 playable chart를 사람이 구별하는 키다. identity나 파일명 유일성 자체는 아니다.
 - `subtitle`은 저장 시 대괄호를 포함하지 않는다. 표시 레이어가 존재할 때 항상 `[...]`로 감싼다.
 
 ---

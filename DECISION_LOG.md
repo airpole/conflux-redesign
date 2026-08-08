@@ -266,6 +266,56 @@
 
 ## Entry Template
 
+### D-2026-025 — song-select 3축 목록 모델
+
+- **Status:** Accepted
+- **Decision:** song-select를 category 탭 / groupBy folder / sortKey·sortDir 세 축으로 재설계하고, 목록 항목을 song row + chart slot 모델로 정의한다. `scene.md §5`는 전용 문서로 분리한다.
+- **Defined in:** `scene/song-select.md`
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** scene, records, persistence, data-model, cfx, constants
+- **Supersedes:** None
+- **Commit:** `<sha>`
+
+### D-2026-026 — records 스키마를 판정 분포 기반으로 전환
+
+- **Status:** Accepted
+- **Decision:** record를 `bestJudgments`·`bestState`·`maxCombo` 3필드로 바꾸고 score·rank·accuracy는 파생으로 돌린다. `playCount`는 제거한다.
+- **Defined in:** `_meta/records.md`
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** records, song-select, result
+- **Supersedes:** None
+- **Commit:** `<sha>`
+
+### D-2026-027 — chartId 5 = Phase 고정 슬롯
+
+- **Status:** Accepted
+- **Decision:** 고정 대응 슬롯을 `1~4`에서 `1~5`로 확장해 Phase를 정규 난이도로 편입하고, subtitle이 있는 추가 chart는 `6+`에 둔다.
+- **Defined in:** `_meta/cfx.md` §4
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** cfx, data-model, song-select
+- **Supersedes:** None
+- **Commit:** `<sha>`
+
+### D-2026-028 — viewState store 신설
+
+- **Status:** Accepted
+- **Decision:** 화면 상태를 settings에 섞지 않고 `viewState` store로 분리해 스토어를 5분리한다. 쓰기 실패는 조용히 삼키지 않는다.
+- **Defined in:** `_meta/persistence.md` §1
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** persistence, song-select, settings
+- **Supersedes:** None
+- **Commit:** `<sha>`
+
+### D-2026-029 — 스펙 공백 7건 일괄 확정
+
+- **Status:** Accepted
+- **Decision:** song-select 목록 UX·preview 재생·탭 백그라운드 auto-pause·로딩 표시 임계·단축키 preventDefault·text input focus 격리·저장 실패 표시를 확정한다.
+- **Defined in:** `scene/song-select.md`, `scene/scene.md`, `editor/editor-editing.md`, `_meta/persistence.md`, `core/constants.md`
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** scene, editor, persistence, constants, data-model
+- **Supersedes:** None
+- **Commit:** `<sha>`
+
 ```md
 ### D-YYYY-NNN — <Title>
 
