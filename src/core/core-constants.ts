@@ -15,8 +15,21 @@
 /** tick per beat. → `core/timing.md` */
 export const TICKS_PER_BEAT = 1920;
 
-/** 선택 가능한 분음표 분모. → `core/timing.md` §6 */
-export const GRID_DIVISORS = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64] as const;
+/**
+ * 선택 가능한 분음표 분모. 값 `V`는 온음표의 분모이므로 **클수록 촘촘하다**
+ * (한 칸 = `7680/V` tick). → `core/timing.md` §6
+ *
+ * 원본 `GDIVS`의 상단을 `96·128·192·256`으로 늘렸다 `[수정]` (설계 대장 TM-8).
+ * 넷 다 `7680/V`가 정수로 떨어져(80·60·40·30) 반올림 오차가 생기지 않는다.
+ */
+export const GRID_DIVISORS = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256] as const;
+
+/**
+ * 분박 격자 기본값 `[수정]` (원본 `ES.nGD = 2`). 8분음표 격자다 —
+ * 원본의 1/2 격자는 실사용에서 거의 항상 바꾸게 되고, 표기 해상도가
+ * 이 값을 타므로(`core/timing.md` §5) 지나치게 성기면 마디 표기가 뭉갠다.
+ */
+export const GRID_DIVISOR_DEFAULT = 8;
 
 /** 곡 시작 전 카운트다운. */
 export const LEAD_IN_MS = 3000;
@@ -72,6 +85,9 @@ export const RANK_TABLE = [
 ] as const satisfies readonly (readonly [string, number])[];
 
 // ── 5. 스크롤 속도 범위 ──────────────────────────────────────
+
+/** 판정선까지 한 화면이 담는 시간. `visMs = SCROLL_VIEW_MS / scrollSpeed`. */
+export const SCROLL_VIEW_MS = 2000;
 
 export const SCROLL_SPEED_MIN = 1.0;
 export const SCROLL_SPEED_MAX = 10.0;

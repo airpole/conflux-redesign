@@ -138,10 +138,10 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M1-3 timing — `tickToMs`/`msToTick`, measure 변환, `gridDivisor`, 곡 끝 4값
-- **Discussion Scope:** 시간축 계산 전부. 골든 timing 198건과 미커버 TM-1~4·TM-6.
-- **Change Scope:** `src/core/core-timing.ts`와 그 테스트, `core/timing.md` 잔여
-- **Exit:** 다중 BPM·다중 박자 chart에서 골든 표와 값이 일치하고 `songEndMs`가 [[timing]] §9 정의대로 나온다
+- **Active unit:** M1-4 judge 기본 — 결정론적 후보 순서, 판정창, lane 매칭, mirror, `commitJudgment`
+- **Discussion Scope:** 판정 후보 선택과 커밋. 골든 judge 표와 미커버 JD-3·JD-4·JD-8.
+- **Change Scope:** `src/core/core-judge.ts`와 그 테스트, `core/judge.md` 잔여
+- **Exit:** 같은 입력 열에서 원본과 같은 judgment 열이 나오고, mirror ON에서 `1↔4, 2↔3`이 적용되며 wide는 무시된다
 
 ### Completed
 
@@ -182,6 +182,8 @@ M1 실측 gate를 닫았다(D-2026-034). 원본 core 모듈 4종이 Node에서 �
 프로젝트 골격을 세웠다(M1-1). 7레이어 폴더와 레이어별 README, import 방향 린트(형제 축 `edit↔game` 포함), 파일명 접두사 검사, 빌드 프로필 주입이 선다. `VITE_BUILD_PROFILE`이 빌드 시 문자열로 치환돼 `FEATURES`가 상수로 접히며, 프로필 미지정 빌드는 `public`으로 떨어진다. 골든 표 로더와 설계 대장 파서를 배선해 "대장에 없는 차이는 실패"가 기계 규칙이 됐다.
 
 chart 검증과 settings 기본값을 확정했다(D-2026-036). 검증은 두 층이다 — structural(필수 필드·타입·`schemaVersion`)은 로드를 거부하고, domain(값 범위·논리)은 거부하지 않고 보고한다. **편집 중 chart는 항상 잠깐 domain-invalid하므로** 한 층으로 묶어 거부하면 에디터를 못 쓴다. 두 함수 모두 chart를 mutate하지 않는다. settings 기본값 19필드를 원본에서 실측해 `settings` §4 표로 승격했고, 병합은 알 수 없는 키를 버리고 허용 밖 값을 필드 단위로 기본값으로 되돌린다(클램프 아님 — 되돌림은 보고 가능하고 클램프는 조용하다). `volMusic`(0.7 → 1.0)과 키 배치의 거처만 원본과 다르다. `constants`·`DEFAULT_SETTINGS`를 골든 표로 뽑아 구현과 대조한다 — 이 값들이 나머지 표를 만든 입력이라 틀리면 표 전체가 무의미해진다.
+
+timing을 구현했다(M1-3, D-2026-037). 캐시와 invalidation이 사라졌다 — `buildTimeline(chart)`가 만든 파생 객체를 전 함수가 인자로 받으므로 "chart가 바뀌면 다시 만든다"가 규칙이 아니라 **호출 구조 그 자체**가 됐다. `bpmAt`을 만들지 않으면서도 골든 60건을 세그먼트 조회로 채점해 검증 공백을 막았다. `gridDivisor`는 상단을 `256`까지 늘리고 기본을 **8**로 올렸으며(원본 2), `sub` 표기가 이 격자를 탄다. 대조 과정에서 원본의 왕복 붕괴 하나를 찾았다 — `measureToTick("0")`이 마디 1로 떨어져 pre-roll 표기가 되돌아오지 못했다(TM-10). 골든이 `measureToTick`을 뽑지 않아 여태 드러나지 않았다.
 
 ### Deferred
 

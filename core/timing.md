@@ -33,9 +33,9 @@ msPerTick = 60000 / (bpm × TPB)
 
 - tickToMs=`seg.ms+(tick-seg.startTick)*seg.msPerTick`.
 - msToTick=역산.
-- empty tempos fallback=120bpm at tick0.
+- empty tempos fallback=120bpm at tick0. chart는 mutate하지 않는다.
 - round-trip identity.
-- unused bpmAt은 만들지 않는다.
+- unused bpmAt은 만들지 않는다. bpm·박자 값은 segment 조회(`tempoSegmentAt`·`measureSegmentAt`)에서 나온다.
 
 ---
 
@@ -44,8 +44,9 @@ msPerTick = 60000 / (bpm × TPB)
 ```text
 scrollProgressAt(tick, nowMs) = (tickToMs(tick)-nowMs)/visMs
 visMs = SCROLL_VIEW_MS/scrollSpeed
-SCROLL_VIEW_MS = 2000
 ```
+
+`SCROLL_VIEW_MS` 값은 [[constants]] §4.
 
 - 0=judge line, positive=future, negative=past.
 - px mapping은 render 소관.
@@ -64,8 +65,9 @@ tpm = tpbUnit*numerator
 - empty timeSignatures fallback=4/4 at tick0.
 - `tickToMeasure(tick,labelOffset)` → measure.beat.sub.
 - `measureToTick(str,labelOffset)` inverse.
-- measureLabelOffset은 editor setting을 caller가 인자로 주입; game은 0.
-- getGridLines는 tick 목록을 반환하고 px를 모른다.
+- `measureLabelOffset`(editor setting)과 `gridDivisor`(session editorState)는 **caller가 인자로 주입**한다. core는 둘 다 스스로 알 수 없다. game은 labelOffset 0.
+- `gridLines`는 **px를 모르는 grid line 기술자** 목록을 반환한다: `{tick, isMeasure, measureNum, beatInMeasure, isPreRoll}`. `isPreRoll`(tick<0, 위치)과 `measureNum`(표시값)은 분리한다 — labelOffset이 붙으면 표시값으로 위치를 판별할 수 없다.
+- grid line 간격은 **박 단위**다. 분박 선을 그릴지는 render의 밀도 판단이다.
 - timeSignatures는 **현재 chart의 measure boundary**만 결정하며 subdivision과 독립이다.
 
 ---
@@ -77,15 +79,16 @@ cellTick = TPB*4/gridDivisor
 sub = round(subTick/cellTick)
 ```
 
-fixed 16 subdivision을 폐기하고 active gridDivisor와 표기·snap을 통일한다.
+fixed 16 subdivision을 폐기하고 active gridDivisor와 표기·snap을 통일한다 `[수정]`.
+격자에 떨어지지 않는 tick은 반올림해 근사 표기한다.
 
 ---
 
 ## 6. gridDivisor
 
-note placement time grid. 값 V는 note-value denominator, default 32.
+note placement time grid. 값 V는 note-value denominator이므로 **V가 클수록 촘촘하다**(한 칸 = `7680/V` tick). default 8 `[수정 — 구 2]`.
 
-- dropdown=`[4,6,8,12,16,24,32,48,64,96,128,192,256]`.
+- dropdown=`[1,2,3,4,6,8,12,16,24,32,48,64,96,128,192,256]` `[수정]` — 원본 상단(64)에 `96·128·192·256` 추가. 넷 다 `7680/V`가 정수(80·60·40·30)라 반올림 오차가 없다.
 - 특수 V는 typed integer.
 - `round(7680/V*k)`로 integer tick snap.
 - timeSignature와 독립.
@@ -135,10 +138,11 @@ editor scroll lower clamp.
 
 ## 10. cache
 
-- tempos 변경 → BPM segments invalidate.
-- timeSignatures 변경 → measure segments invalidate.
-- source는 active chart. chart session 교체 시 두 cache 모두 새 source로 재구성.
-- legacy manual invalidation wrapper는 dependency declaration으로 대체.
+캐시와 invalidation을 두지 않는다 `[수정]`. `buildTimeline(chart)`가 BPM·measure segment를 함께 담은 파생 객체를 만들고, 이후 함수는 전부 그것을 인자로 받는다.
+
+- chart가 바뀌면 `buildTimeline`을 다시 부른다 — "chart session 교체 시 재구성"이 규칙이 아니라 호출 구조 그 자체다.
+- 두 segment는 항상 짝으로 쓰이므로 한 객체에 담는다.
+- 전 함수 순수. 인자를 mutate하지 않는다.
 
 ---
 
@@ -160,6 +164,9 @@ editor scroll lower clamp.
 | musicEndMs offset 보정 | 수정 |
 | 종료 조건에서 5000ms 하한 제거 | 수정 |
 | lane horizontal grid 분리 | 번복 |
+| gridDivisor 목록 상단 확장·기본 8 | 수정 |
+| cache → buildTimeline 파생 객체 | 수정 |
+| measureToTick 마디 0 왕복 복구 | 수정 |
 
 ---
 

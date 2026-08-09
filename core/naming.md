@@ -45,10 +45,12 @@
 | `t2y` 내부 클로저 (분리) | `scrollProgressAt(tick, nowMs)` | 단위 없는 스크롤 진행도 `(tickToMs−nowMs)/visMs`. core | 신규 |
 | `t2y` 내부 클로저 (분리) | `scrollYAt(...)` → **render층** | 진행도를 화면 Y로. 캔버스 레이아웃 의존이라 core 아님 | 보존 |
 | `tickToMeasure` / `measureToTick` | 동일 | 틱 ⇄ measure.beat.sub 표기 (마디 세그먼트) | 보존 |
-| `getGridLines(st, et)` | 동일 | 범위 내 마디·박선 tick 목록. core (px는 render) | 보존 |
-| `getMinTick()` | 동일 | 렌더 가능 최소 tick (1마디 pre-roll) | 보존 |
-| `getBPMAt(tick)` | (제거) | 死코드(호출처 없음). 필요 시 세그먼트로 재추가 | 수정 |
-| `compBPM()` / `invalidateTSCache()` | (제거) | 수동 캐시 무효화 → 의존성 선언으로 대체 | 수정 |
+| `getGridLines(st, et)` | `gridLines(st, et)` | 범위 내 마디·박선 기술자 목록. core (px는 render) | 보존 |
+| `getMinTick()` | `minTick()` | 렌더 가능 최소 tick (1마디 pre-roll) | 보존 |
+| `getBPMAt(tick)` | (제거) | 死코드(호출처 없음). bpm 값은 `tempoSegmentAt`에서 나온다 | 수정 |
+| `getTimeSig(tick)` | `measureSegmentAt(tick)` | 그 tick의 박자 세그먼트 | 보존 |
+| `defineCache(...)` / `compBPM()` / `invalidateTSCache()` | `buildTimeline(chart)` | 캐시·수동 무효화 폐기 → chart에서 뜬 파생 객체를 인자로 전달 | 수정 |
+| (신규) | `songEndOf(...)` | 곡 종료 4값 → [[timing]] §9 | 신규 |
 
 ### Shape / 지오메트리
 | 현재 | 새 이름 | 역할 | 태그 |

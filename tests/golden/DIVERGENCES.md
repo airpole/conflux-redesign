@@ -44,8 +44,13 @@ M2 이후 영역(render·scene·persistence·`.cfx`·editor)의 차이는 각 �
 
 ## 1. timing
 
-골든 198건은 전부 `[보존]` 영역이다(`t2ms`·`ms2t`·`getBPMAt`·`getTimeSig`·
-`tickToMeasure`·`getMinTick`). 어긋나는 케이스가 없다.
+골든 198건 중 값이 어긋나는 케이스는 없다. 다만 `getBPMAt` 30건과 `getTimeSig`
+30건은 **대응 함수가 없다** — `timing` §2가 unused `bpmAt`을 만들지 않기 때문이다.
+이 60건은 세그먼트 조회(`tempoSegmentAt`·`measureSegmentAt`)로 채점한다. 값이 나오는
+자리가 이미 있으므로 공개 API를 늘리지 않고도 검증이 유지된다(D-2026-037).
+
+`tickToMeasure` 30건은 인자가 전부 박 정렬이라 `sub`가 0이다 — TM-7의 차이를
+골든이 짚지 못한다. `getGridLines`는 골든이 아예 뽑지 않았다(TM-9).
 
 | ID | 자리 | 원본 | 재설계 | 관계 | 근거 |
 |---|---|---|---|---|---|
@@ -55,6 +60,10 @@ M2 이후 영역(render·scene·persistence·`.cfx`·editor)의 차이는 각 �
 | TM-4 | 5000ms 하한 | `totalMs`가 종료 판정과 seek 분모를 겸함 | 종료에서 제거, timeline 소관 | 미커버 | D-2026-030 |
 | TM-5 | leadIn | 시작·Resume 구분 없음 | Resume은 leadIn 미적용 (되감기 없는 카운트다운 재개) | 미커버 | D-2026-022 |
 | TM-6 | grid 분리 | note grid와 lane 수평 스냅이 같은 축 | `gridDivisor`와 `laneGridDivisor` 분리, 공유하지 않음 | 미커버 | `timing` §6 |
+| TM-7 | `sub` 분할 | 박 하나를 **고정 16분할** (`round(subTick/(tpbUnit/16))`) | 온음표를 `gridDivisor` 등분 — 표기와 snap이 같은 격자 | 미커버 | D-2026-037 |
+| TM-8 | `gridDivisor` 목록·기본 | `GDIVS` 상단 64, 기본 `ES.nGD = 2` | 상단 `96·128·192·256` 추가, 기본 8 | **어긋남** | D-2026-037 |
+| TM-10 | `measureToTick` 마디 0 | 빈 값 폴백이 `0`까지 먹어 `"0"`이 마디 1로 떨어진다 — 왕복이 깨진다 | 마디 0을 그대로 읽는다. 빈 문자열만 1로 폴백 | 미커버 | D-2026-037 |
+| TM-9 | `getGridLines` | `{tick, isMeasure, measureNum, beatInMeasure, isPreRoll}` | 같은 기술자 유지(px 없음). 골든이 뽑지 않아 스펙만이 판정 | 미커버 | D-2026-037 |
 
 **TM-1~4는 원본에 대응 함수가 있다**(`getChartEndMs`·`updateTotalMs`). 골든이
 뽑지 않았을 뿐이다. 지금은 스펙 테스트로 검증하되, 의심이 들면 추출 대상에
@@ -203,6 +212,9 @@ key5 → ch1 wide      key6 → ch4 normal
 | ST-5 | 키 배치가 settings 영속 필드 | M1-2 |
 | TM-1~4 | 곡 끝 4값 (`chartEndMs`·`musicEndMs`·`contentEndMs`·`songEndMs`) | M1-3 |
 | TM-6 | `gridDivisor`와 `laneGridDivisor` 분리 | M1-3 |
+| TM-7 | `sub` 분할이 `gridDivisor`를 탄다 | M1-3 |
+| TM-9 | grid line 기술자 (px 없음, 박 단위 간격) | M1-3 |
+| TM-10 | `measureToTick` 마디 0 왕복 | M1-3 |
 | JD-8 | visualOffset = 입력 타임스탬프 보정 | M1-4 |
 | JD-3·JD-4 | judge 관심사 분리 (이펙트·overlap 검출이 judge 밖) | M1-4 |
 | GA-2·GA-5 | Hold head MISS 2단위, 판정 단위 회계 통일 | M1-5 |
@@ -216,7 +228,7 @@ key5 → ch1 wide      key6 → ch4 normal
 | DM-3 | sweep-line overlap/conflict 검출 | M1-8 |
 | SH-4 | symmetry 축 동적 스냅샷 | M5-4 |
 
-**20행이다.** M1의 9개 step 중 7개가 스펙 테스트를 요구한다 — 골든만으로 통과할
+**24행이다.** M1의 9개 step 중 7개가 스펙 테스트를 요구한다 — 골든만으로 통과할
 수 있는 step은 거의 없다.
 
 ---

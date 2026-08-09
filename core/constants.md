@@ -62,11 +62,13 @@ start: `normal` 0 / `hard` 100. 둘 다 상한 100(`gaugeMax`).
 
 | 상수 | 값 |
 |---|---|
+| `SCROLL_VIEW_MS` | 2000 |
 | `SCROLL_SPEED_MIN` | 1.0 |
 | `SCROLL_SPEED_MAX` | 10.0 |
 | `SCROLL_SPEED_STEP` | 0.1 |
 
-- `[보존]` (구 `SPEED_MIN/MAX/STEP`). scrollSpeed의 현재값은 취향([[settings]])이지만, 허용 범위·스텝은 `visMs = SCROLL_VIEW_MS / scrollSpeed`([[timing]] §3) 로직의 경계 조건이라 여기 둔다 — 머리말 분류 기준. 정의·절대분리는 [[glossary]].
+- `SCROLL_VIEW_MS`는 판정선까지 한 화면이 담는 시간이다 — `visMs = SCROLL_VIEW_MS / scrollSpeed`([[timing]] §3).
+- 나머지는 `[보존]` (구 `SPEED_MIN/MAX/STEP`). scrollSpeed의 현재값은 취향([[settings]])이지만, 허용 범위·스텝은 `visMs = SCROLL_VIEW_MS / scrollSpeed`([[timing]] §3) 로직의 경계 조건이라 여기 둔다 — 머리말 분류 기준. 정의·절대분리는 [[glossary]].
 
 ## 5. song-credit 연출 (`CREDIT_*`) `[신규]`
 

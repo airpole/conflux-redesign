@@ -124,7 +124,7 @@ Blue · 1 · 2 · 3 · Red
 - **leadIn** — start 전 empty scroll interval.
 - **offset** — active chart music sync adjustment; chart-owned.
 - **scroll** — ms-linear; BPM은 spacing만 변경.
-- **gridDivisor** — note time grid의 note-value denominator, default 32.
+- **gridDivisor** — note time grid의 note-value denominator, default 8. 클수록 촘촘하다.
 - **laneGridDivisor** — lane horizontal spatial grid, default 4.
 - **scrollSpeed** — visual density only.
 - **chartEndMs / musicEndMs / contentEndMs / songEndMs** — 곡 끝을 이루는 네 값. 정의는 [[timing]] §9.

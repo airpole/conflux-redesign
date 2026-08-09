@@ -386,6 +386,16 @@
 - **Supersedes:** None
 - **Commit:** `14b8397`
 
+### D-2026-037 — timing API 형태와 격자 축
+
+- **Status:** Accepted
+- **Decision:** 캐시와 invalidation을 폐기하고 `buildTimeline(chart)`가 만든 파생 객체를 전 함수가 인자로 받는다 — chart가 바뀌면 다시 만든다. `bpmAt`은 만들지 않되 골든 60건(`getBPMAt`·`getTimeSig`)은 **세그먼트 조회로 채점**해 검증 공백을 남기지 않는다. `gridDivisor` 목록 상단에 `96·128·192·256`을 추가하고(전부 `7680/V` 정수) 기본값을 **8**로 올렸다 `[수정 — 구 2]`. `sub` 분할은 `gridDivisor` 격자를 쓰고 격자 밖 tick은 반올림 근사한다. `labelOffset`·`gridDivisor`는 caller 주입이며, `gridLines`는 px를 모르는 기술자 목록을 **박 단위**로 반환한다. `songEndOf`가 4값을 한 객체로 돌려준다. 원본에서 `measureToTick("0")`이 마디 1로 떨어지던 왕복 붕괴를 바로잡았다.
+- **Defined in:** `core/timing.md` §2·§4·§5·§6·§10, `core/constants.md` §4
+- **Rationale:** Not required
+- **Affects:** timing, constants, glossary, tests/golden, src/core, README
+- **Supersedes:** None
+- **Commit:** `<pending>`
+
 ```md
 ### D-YYYY-NNN — <Title>
 

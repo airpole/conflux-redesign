@@ -29,7 +29,6 @@ function original(name: string): unknown {
 /** 재설계 이름 → 원본 이름. 값이 그대로 보존된 것만 여기 온다. */
 const PRESERVED: ReadonlyArray<readonly [unknown, string]> = [
   [C.TICKS_PER_BEAT, 'TPB'],
-  [C.GRID_DIVISORS, 'GDIVS'],
   [C.LEAD_IN_MS, 'LEAD_IN_MS'],
   [C.RESUME_LEAD_MS, 'PLAY_RESUME_LEAD_MS'],
   [C.JUDGE_SYNC_MS, 'JUDGE_SYNC'],
@@ -129,6 +128,15 @@ describe('settings 기본값', () => {
     expectDivergence('ST-1');
     expect(origin['volMusic']).toBe(0.7);
     expect(DEFAULT_SETTINGS.volMusic).toBe(1.0);
+  });
+
+  it('gridDivisor 목록의 상단을 늘렸다', () => {
+    expectDivergence('TM-8');
+    const origin = original('GDIVS') as number[];
+
+    // 원본 목록은 통째로 앞부분에 살아 있다 — 늘린 것이지 바꾼 것이 아니다.
+    expect(C.GRID_DIVISORS.slice(0, origin.length)).toEqual(origin);
+    expect(C.GRID_DIVISORS.slice(origin.length)).toEqual([96, 128, 192, 256]);
   });
 
   it('폐기한 cmod가 기본값에 없다', () => {
