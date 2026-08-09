@@ -394,7 +394,7 @@
 - **Rationale:** Not required
 - **Affects:** timing, constants, glossary, tests/golden, src/core, README
 - **Supersedes:** None
-- **Commit:** `<pending>`
+- **Commit:** `73743dd`
 
 ```md
 ### D-YYYY-NNN — <Title>
