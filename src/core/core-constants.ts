@@ -39,11 +39,11 @@ export const RESUME_LEAD_MS = 3000;
 
 // ── 2. 판정창 (ms, |diff| 기준) → `core/judge.md` §2 ─────────
 
-export const JUDGE_SYNC_MS = 25;
-export const JUDGE_PERFECT_MS = 50;
-export const JUDGE_GOOD_MS = 100;
+export const WINDOW_SYNC_MS = 25;
+export const WINDOW_PERFECT_MS = 50;
+export const WINDOW_GOOD_MS = 100;
 /** wide 노트는 SYNC만, ±100. */
-export const JUDGE_WIDE_SYNC_MS = 100;
+export const WINDOW_WIDE_SYNC_MS = 100;
 
 /** hold tail release grace. GOOD 창과 별개의 단일 값이다. → `core/judge.md` §7 */
 export const HOLD_RELEASE_GRACE_MS = 50;

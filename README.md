@@ -138,10 +138,10 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M1-4 judge 기본 — 결정론적 후보 순서, 판정창, lane 매칭, mirror, `commitJudgment`
-- **Discussion Scope:** 판정 후보 선택과 커밋. 골든 judge 표와 미커버 JD-3·JD-4·JD-8.
-- **Change Scope:** `src/core/core-judge.ts`와 그 테스트, `core/judge.md` 잔여
-- **Exit:** 같은 입력 열에서 원본과 같은 judgment 열이 나오고, mirror ON에서 `1↔4, 2↔3`이 적용되며 wide는 무시된다
+- **Active unit:** M1-5 judge Hold 소유 — Normal 익명 수요, Wide 단일 소유·이양, tail release grace, head MISS 2단위
+- **Discussion Scope:** 활성 Hold 모델과 `reconcileHeldCapacity`. 미커버 JD-2·JD-6과 GA-2·GA-5.
+- **Change Scope:** `src/core/core-judge.ts`와 그 테스트, `core/judge.md` §5~§8 잔여
+- **Exit:** 동시 Hold 시나리오에서 소유가 원자적으로 이양된다. grace 50ms 안 release는 SYNC, 밖은 MISS. head MISS가 score·게이지 2단위를 즉시 확정한다
 
 ### Completed
 
@@ -185,6 +185,10 @@ chart 검증과 settings 기본값을 확정했다(D-2026-036). 검증은 두 �
 
 timing을 구현했다(M1-3, D-2026-037). 캐시와 invalidation이 사라졌다 — `buildTimeline(chart)`가 만든 파생 객체를 전 함수가 인자로 받으므로 "chart가 바뀌면 다시 만든다"가 규칙이 아니라 **호출 구조 그 자체**가 됐다. `bpmAt`을 만들지 않으면서도 골든 60건을 세그먼트 조회로 채점해 검증 공백을 막았다. `gridDivisor`는 상단을 `256`까지 늘리고 기본을 **8**로 올렸으며(원본 2), `sub` 표기가 이 격자를 탄다. 대조 과정에서 원본의 왕복 붕괴 하나를 찾았다 — `measureToTick("0")`이 마디 1로 떨어져 pre-roll 표기가 되돌아오지 못했다(TM-10). 골든이 `measureToTick`을 뽑지 않아 여태 드러나지 않았다.
 
+judge 기본을 구현했다(M1-4, D-2026-038). `commitJudgment`은 게이지도 render도 호출하지 않고 `JudgmentEvent[]`를 반환만 하므로, 게이지가 붙는 M1-7이 judge를 열지 않는다. `visualOffset`은 진입 경계에서 한 번만 걸려 내부 함수가 인자로 받지 않는다 — "keydown만 보정하는 구현은 오류"라는 §1의 경고가 규율이 아니라 **표현 불가능한 상태**가 됐다.
+
+두 가지가 이 과정에서 드러났다. 첫째, **구현이 `naming` §3을 이탈해 있었다** — M1-2가 대응표를 대조하지 않고 원본 이름을 그대로 써서 `WINDOW_*_MS`가 `JUDGE_*_MS`로, `DEFAULT_LANE_KEYS`가 `LANE_KEYS`로 살아 있었고 그 이탈이 M1-3을 지나 여기까지 왔다. 이름은 동작이 아니라 골든이 잡지 못하고 설계 대장도 담지 않는다 — 하마터면 명세를 구현에 맞춰 고치는 것으로 봉인될 뻔했다. 구현을 명세 쪽으로 바로잡고, `naming` §3을 파싱해 구현과 대조하는 **가드 테스트**를 신설해 이 부류를 기계 규칙으로 만들었다. 둘째, **JD-1이 어긋남이 아니다** — 골든 2,700건이 전부 새 규칙에서도 원본과 같은 노트를 고른다. 구·신 규칙이 갈리려면 같은 창 안에서 wide가 lane-매칭 normal보다 일러야 하는데, 여섯 fixture의 유일한 wide가 그 fixture의 가장 늦은 노트다. D-2026-024가 `[번복]`한 후보 순서 전체가 골든 밖에 있어 스펙 테스트가 유일한 판정자가 됐다(대장 `어긋남` → `미커버`).
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
@@ -192,7 +196,7 @@ timing을 구현했다(M1-3, D-2026-037). 캐시와 invalidation이 사라졌다
 
 ### 다음 후보
 
-- M1-3 timing (Current Focus)
+- M1-5 judge Hold 소유 (Current Focus)
 - D-2026-021 사이클 (M3 진입 전)
 - UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
 - credits scene 표시 내용 채우기 (소형, M4-2 전)

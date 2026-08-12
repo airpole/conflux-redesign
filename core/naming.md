@@ -124,7 +124,7 @@
 | 현재 | 새 이름 | 비고 |
 |---|---|---|
 | `CHL` | (폐기) | channel=lane 통일로 변환표 불필요 |
-| `KEY2LINE` | `LANE_OF_KEY` | key(1~6)→lane(1~4) |
+| `KEY2LINE` | `DEFAULT_LANE_KEYS`에 흡수 | key→lane 매핑이 별도 상수가 아니라 `DEFAULT_LANE_KEYS` 표의 한 열이 됐다 (D-2026-031). 단일 출처 [[settings]] §2 |
 | `OVERLAP_CHANNELS` | `OVERLAP_LANES` | overlap 가능 lane(2,3) |
 | `JUDGE_SYNC/PERFECT/GOOD` | `WINDOW_SYNC_MS` / `WINDOW_PERFECT_MS` / `WINDOW_GOOD_MS` | 단위 박기 |
 | `JUDGE_WIDE_SYNC` | `WINDOW_WIDE_SYNC_MS` | wide는 SYNC/MISS만 |

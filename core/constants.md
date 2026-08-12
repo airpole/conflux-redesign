@@ -10,13 +10,15 @@
 
 ## 1. 판정창 (ms, |diff| 기준)
 
-| 판정 | 창 | 비고 |
-|---|---|---|
-| SYNC | ≤ 25 | |
-| PERFECT | ≤ 50 | |
-| GOOD | ≤ 100 | 이 밖은 MISS |
-| WIDE SYNC | ≤ 100 | wide 노트는 SYNC만, ±100 |
-| `HOLD_RELEASE_GRACE_MS` | 50 | hold tail release grace. 한때 폐기했다가 **복원** `[번복]` — 근거 → [[rationale#hold release grace를 50ms로 되돌린 이유]] |
+| 판정 | 이름 | 창 | 비고 |
+|---|---|---|---|
+| SYNC | `WINDOW_SYNC_MS` | 25 | |
+| PERFECT | `WINDOW_PERFECT_MS` | 50 | |
+| GOOD | `WINDOW_GOOD_MS` | 100 | 이 밖은 MISS |
+| WIDE SYNC | `WINDOW_WIDE_SYNC_MS` | 100 | wide 노트는 SYNC만, ±100 |
+| — | `HOLD_RELEASE_GRACE_MS` | 50 | hold tail release grace. 한때 폐기했다가 **복원** `[번복]` — 근거 → [[rationale#hold release grace를 50ms로 되돌린 이유]] |
+
+이름은 [[naming]] §3이 정하고 **값은 여기가 단일 출처**다. [[judge]] §2는 이 이름을 참조만 한다.
 
 - hold tail 분류 임계는 GOOD 창(100ms)이 아니라 `HOLD_RELEASE_GRACE_MS`(50) 단일 값이다([[judge]] §7). SYNC/PERFECT/GOOD/WIDE SYNC 판정창 자체는 이번 개편으로 바뀌지 않는다.
 - 판정 로직은 [[judge]], 여기는 값만.

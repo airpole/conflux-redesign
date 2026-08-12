@@ -33,7 +33,7 @@ export type LaneKeyId = (typeof LANE_KEY_IDS)[number];
  * 바인딩은 rebinding으로 바뀌지만 **key → lane 매핑은 고정**이다. 이 표가
  * `laneOf(key)`의 단일 출처다(`_meta/settings.md` §2).
  */
-export const LANE_KEYS = {
+export const DEFAULT_LANE_KEYS = {
   key1: { binding: 'KeyE', lane: 1 },
   key2: { binding: 'KeyR', lane: 2 },
   key3: { binding: 'Space', lane: 3 },
@@ -97,12 +97,12 @@ export const DEFAULT_SETTINGS: Settings = {
   volMusic: 1.0,
   volEffect: 1.0,
   keyBindings: {
-    key1: LANE_KEYS.key1.binding,
-    key2: LANE_KEYS.key2.binding,
-    key3: LANE_KEYS.key3.binding,
-    key4: LANE_KEYS.key4.binding,
-    key5: LANE_KEYS.key5.binding,
-    key6: LANE_KEYS.key6.binding,
+    key1: DEFAULT_LANE_KEYS.key1.binding,
+    key2: DEFAULT_LANE_KEYS.key2.binding,
+    key3: DEFAULT_LANE_KEYS.key3.binding,
+    key4: DEFAULT_LANE_KEYS.key4.binding,
+    key5: DEFAULT_LANE_KEYS.key5.binding,
+    key6: DEFAULT_LANE_KEYS.key6.binding,
   },
 
   noteSkin: 'bar',
@@ -237,5 +237,5 @@ export function mergeSettings(saved: unknown): MergedSettings {
 
 /** `key → lane` 매핑. 바인딩이 바뀌어도 이 매핑은 고정이다. */
 export function laneOf(key: LaneKeyId): 1 | 2 | 3 | 4 {
-  return LANE_KEYS[key].lane;
+  return DEFAULT_LANE_KEYS[key].lane;
 }

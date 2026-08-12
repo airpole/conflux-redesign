@@ -396,6 +396,16 @@
 - **Supersedes:** None
 - **Commit:** `73743dd`
 
+### D-2026-038 — judge 기본 구현 형태, 명칭 대응표 가드, JD-1 재분류
+
+- **Status:** Accepted
+- **Decision:** `commitJudgment`은 게이지·render를 호출하지 않고 `JudgmentEvent[]`를 **반환만** 한다 — M1-7 게이지는 judge를 열지 않는다. 노트 정체성은 chart·timeline에서만 나오는 불변 파생 표의 **인덱스**이고 진행 상태는 `JudgeState`의 나란한 배열에 산다. `visualOffset`은 `toJudgeMs`로 **진입 경계에서 한 번만** 걸려 내부 함수가 인자로 받지 않으므로, keydown만 보정하는 오류가 표현 불가능해졌다 `[번복]`. mirror는 표에 굽지 않고 후보 필터 시점에 읽는다. M1-4의 만료는 Tap 1단위까지이며 Hold head 2단위는 M1-5다. **구현이 `naming` §3을 이탈한 두 자리를 명세 쪽으로 바로잡았다** — `JUDGE_*_MS` → `WINDOW_*_MS`, `LANE_KEYS` → `DEFAULT_LANE_KEYS`. 이름은 골든도 설계 대장도 잡지 못하므로 `naming` §3을 파싱해 구현과 대조하는 가드 테스트를 신설했다. **JD-1을 `어긋남`에서 `미커버`로 재분류했다** — 골든 2,700건 중 어긋나는 케이스가 0건이다.
+- **Defined in:** `core/judge.md` §1·§2, `core/constants.md` §1, `core/naming.md` §3, `tests/golden/DIVERGENCES.md` §5·§7
+- **Rationale:** Not required
+- **Affects:** judge, constants, naming, settings, tests/golden, src/core, README
+- **Supersedes:** None
+- **Commit:** `TBD`
+
 ```md
 ### D-YYYY-NNN — <Title>
 

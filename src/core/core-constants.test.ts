@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { loadGolden } from '../../tests/support/golden.js';
 import { expectDivergence } from '../../tests/support/divergences.js';
 import * as C from './core-constants.js';
-import { DEFAULT_SETTINGS, LANE_KEYS, DEFAULT_ACTION_KEYS } from './core-settings.js';
+import { DEFAULT_SETTINGS, DEFAULT_LANE_KEYS, DEFAULT_ACTION_KEYS } from './core-settings.js';
 
 interface ConstantCase {
   readonly name: string;
@@ -31,10 +31,10 @@ const PRESERVED: ReadonlyArray<readonly [unknown, string]> = [
   [C.TICKS_PER_BEAT, 'TPB'],
   [C.LEAD_IN_MS, 'LEAD_IN_MS'],
   [C.RESUME_LEAD_MS, 'PLAY_RESUME_LEAD_MS'],
-  [C.JUDGE_SYNC_MS, 'JUDGE_SYNC'],
-  [C.JUDGE_PERFECT_MS, 'JUDGE_PERFECT'],
-  [C.JUDGE_GOOD_MS, 'JUDGE_GOOD'],
-  [C.JUDGE_WIDE_SYNC_MS, 'JUDGE_WIDE_SYNC'],
+  [C.WINDOW_SYNC_MS, 'JUDGE_SYNC'],
+  [C.WINDOW_PERFECT_MS, 'JUDGE_PERFECT'],
+  [C.WINDOW_GOOD_MS, 'JUDGE_GOOD'],
+  [C.WINDOW_WIDE_SYNC_MS, 'JUDGE_WIDE_SYNC'],
   [C.HOLD_RELEASE_GRACE_MS, 'LN_RELEASE_GRACE_MS'],
   [C.GAUGE_START, 'GAUGE_START'],
   [C.NORMAL_CLEAR_PCT, 'NORMAL_CLEAR_PCT'],
@@ -62,8 +62,8 @@ describe('constants — 원본 보존', () => {
       ['key1', 'key2', 'key3', 'key4', 'key5', 'key6'] as const
     ).entries()) {
       const slot = String(index + 1);
-      expect(LANE_KEYS[id].binding).toBe(keys[slot]);
-      expect(LANE_KEYS[id].lane).toBe(lanes[slot]);
+      expect(DEFAULT_LANE_KEYS[id].binding).toBe(keys[slot]);
+      expect(DEFAULT_LANE_KEYS[id].lane).toBe(lanes[slot]);
     }
   });
 

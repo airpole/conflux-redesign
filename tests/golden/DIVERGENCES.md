@@ -40,6 +40,14 @@ M2 이후 영역(render·scene·persistence·`.cfx`·editor)의 차이는 각 �
 `미커버`가 이 표에서 가장 중요한 표기다. 골든도 안 걸고 대장에도 없으면
 아무 검증 없이 통과한다 — 검증 공백은 어긋남보다 위험하다.
 
+### 이 대장이 담지 않는 것 — 이름
+
+대장은 **동작**의 차이를 담는다. 구현이 [[naming]] §3의 이름을 벗어난 것은 동작
+차이가 아니라 명세 위반이므로 여기 오르지 않고, 골든도 잡지 못한다. M1-4에서
+그런 이탈 두 건(`WINDOW_*_MS`·`DEFAULT_LANE_KEYS`)이 M1-2부터 살아 있던 것이
+드러났다 — 그 부류는 `src/core/core-naming.test.ts`가 `naming` §3을 파싱해
+대조한다(D-2026-038).
+
 ---
 
 ## 1. timing
@@ -143,7 +151,7 @@ GA-4는 원본에 병렬 평가 모델이 없어 대조할 값이 없다. `gauge
 
 | ID | 자리 | 원본 | 재설계 | 관계 | 근거 |
 |---|---|---|---|---|---|
-| JD-1 | 후보 선택 | normal·wide **분리 풀**, 각 풀에서 earliest-tick | 단일 풀 — earliest-tick → same-tick normal 우선 → hold 우선 → 이른 tail 우선 | **어긋남** | D-2026-024 |
+| JD-1 | 후보 선택 | normal·wide **분리 풀**, 각 풀에서 earliest-tick | 단일 풀 — earliest-tick → same-tick normal 우선 → hold 우선 → 이른 tail 우선 | 미커버 | D-2026-024 |
 | JD-2 | Hold 소유 | key-owned (`holds` 맵) | key-demand — Normal 익명 수요, Wide 단일 소유·원자적 이양 | 미커버 | D-2026-024 |
 | JD-3 | hit 이펙트 | `commitJudgment`가 `above/below`를 계산해 실어보냄 | judge는 싣지 않음, render 소관 | 없음 | `judge` §4 |
 | JD-4 | overlap/conflict | judge 안 | domain 파생 속성(`noteOverlapMap`) | 없음 | `judge` §11 |
@@ -152,30 +160,31 @@ GA-4는 원본에 병렬 평가 모델이 없어 대조할 값이 없다. `gauge
 | JD-7 | 중간 시작·Resume | crossing Hold 처리 미정의 | mid-start crossing-Hold 시드·anchor 규칙, Resume은 비-재시드 | 미커버 | `judge` §10 |
 | JD-8 | visualOffset | 렌더 시점 보정 | 입력 타임스탬프 보정으로 배선 | 미커버 | `judge` §1 |
 
-### JD-1의 범위 — 표를 어떻게 가르나
+### JD-1을 골든이 목격하지 못한다
 
-**후보 경합이 일어나는 케이스만** 어긋남으로 뺀다. 경합 = 같은 판정창 안에
-후보가 둘 이상 있고, 그중 normal과 wide가 섞인 경우다.
+처음 이 항목은 `어긋남`으로 등재됐고 `holdOverlap`·`sixKeySaturation` 두 fixture가
+갈린다고 적혀 있었다. **실측하니 어긋나는 케이스가 0건이다** — 2,700건이 전부
+새 규칙에서도 원본과 같은 노트를 고른다(M1-4).
 
-해당 fixture는 `holdOverlap`·`sixKeySaturation` 둘뿐이다. 나머지 4개
-fixture(`plain`·`multiBpm`·`multiTimeSig`·`negativeTick`)는 후보가 하나뿐이라
-규칙이 바뀌어도 결과가 같다 — **판정창 경계·lane 매칭·mirror 검증에 그대로 쓴다.**
+구·신 규칙이 갈리는 조건은 하나뿐이다: **같은 판정창 안에서 wide가 lane-매칭
+normal보다 이른 tick에 있을 때.** 구 규칙은 분리 풀에서 `bestNormal ?? bestWide`로
+normal을 집고, 새 규칙은 earliest-tick으로 wide를 집는다. 그런데 여섯 fixture를
+통틀어 wide는 `holdOverlap` tick 1920의 **하나뿐이고, 그것이 그 fixture의 가장 늦은
+노트다** — 뒤에 오는 normal이 없다.
 
-구 규칙의 실제 동작은 `holdOverlap` tick 1920(wide ch1 + normal ch4 공존)에서
-드러난다:
+같은 tick에서는 두 규칙이 일치한다. 구 규칙의 normal 우선과 새 규칙의 `same-tick
+normal 우선`이 같은 답을 내기 때문이다. `holdOverlap` tick 1920에서 key 1·3·5가
+wide를 집는 것도 분리 풀의 귀결이 아니라 **lane 불일치**의 귀결이다 — 그 tick의
+normal은 lane 2와 lane 4뿐이라 lane 1·3 키의 후보가 되지 못한다. 새 규칙에서도
+같은 답이 나온다.
 
-```
-key1 → ch1 wide      key2 → ch2 normal
-key3 → ch1 wide      key4 → ch2 normal
-key5 → ch1 wide      key6 → ch4 normal
-```
+따라서 D-2026-024가 `[번복]`한 후보 순서 규칙 전체가 **골든 검증 밖**에 있다.
+`core-judge.test.ts`의 §1 스펙 테스트가 유일한 판정자다 — 이른 wide 대 늦은
+normal, same-tick normal 우선, hold 우선, 이른 tail 우선을 각각 건다.
 
-키 3·5가 wide를 집는 것이 분리 풀의 귀결이다. 새 규칙에서는 same-tick normal이
-우선하므로 이 자리의 답이 달라진다.
-
-> 골든 표에 `noteChannel`·`noteIsWide`를 남기는 이유가 이것이다. 한때 표 크기를
-> 줄이려고 뺐다가 되살렸다 — 두 노트의 `startTick`이 같아서, 이 두 필드가 없으면
-> "어느 쪽을 골랐는가"가 표에서 사라지고 JD-1의 검증 지점이 통째로 증발한다.
+> 골든 표에 `noteChannel`·`noteIsWide`를 남기는 결정 자체는 유효하다. 지금은
+> 목격하지 못하지만, 원본 fixture에 늦은 normal이 추가되는 순간 이 두 필드가
+> 없으면 "어느 쪽을 골랐는가"가 표에서 사라진다.
 
 ---
 
@@ -216,6 +225,7 @@ key5 → ch1 wide      key6 → ch4 normal
 | TM-9 | grid line 기술자 (px 없음, 박 단위 간격) | M1-3 |
 | TM-10 | `measureToTick` 마디 0 왕복 | M1-3 |
 | JD-8 | visualOffset = 입력 타임스탬프 보정 | M1-4 |
+| JD-1 | 후보 순서 단일 풀 (골든이 갈리는 케이스 0건) | M1-4 |
 | JD-3·JD-4 | judge 관심사 분리 (이펙트·overlap 검출이 judge 밖) | M1-4 |
 | GA-2·GA-5 | Hold head MISS 2단위, 판정 단위 회계 통일 | M1-5 |
 | JD-2 | key-demand Hold 모델 | M1-5 |
@@ -228,7 +238,7 @@ key5 → ch1 wide      key6 → ch4 normal
 | DM-3 | sweep-line overlap/conflict 검출 | M1-8 |
 | SH-4 | symmetry 축 동적 스냅샷 | M5-4 |
 
-**24행이다.** M1의 9개 step 중 7개가 스펙 테스트를 요구한다 — 골든만으로 통과할
+**25행이다.** M1의 9개 step 중 7개가 스펙 테스트를 요구한다 — 골든만으로 통과할
 수 있는 step은 거의 없다.
 
 ---

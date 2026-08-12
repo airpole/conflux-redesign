@@ -29,13 +29,17 @@ earliest startTick
 - 길이가 다른 같은 lane hold 둘도 **어느 손가락으로 짧은/긴 쪽을 놓아도** 성립한다.
 - 판정에 필요한 속성이 완전히 같은 중복 노트는 서로 교환 가능하다 — **영속 note ID는 필요 없다.**
 
-`visualOffset`은 플레이어 판정 시각 보정([[settings]] PLAY). keydown과 keyup/tail 분류가 **같은 보정 시계**를 쓴다 `[보존]` — keydown만 보정하는 구현은 오류다.
+`visualOffset`은 플레이어 판정 시각 보정([[settings]] PLAY). 보정은 **judge 진입 경계에서 한 번만** 걸린다 `[번복]` — 바깥이 주는 raw 시각을 `toJudgeMs(rawMs, visualOffset)`로 바꾸고, 그 뒤 judge 내부의 모든 `nowMs`는 이미 보정된 값이다. 내부 함수는 `visualOffset`을 인자로 받지 않는다.
+
+그래서 keydown과 keyup/tail 분류가 **같은 보정 시계**를 쓴다는 요구가 규율이 아니라 **호출 구조**가 된다 — 보정이 두 번 걸리거나 한쪽만 걸릴 자리가 없다. keydown만 보정하는 구현은 오류이며, 이 배선에서는 그것이 표현 불가능하다.
 
 ---
 
 ## 2. 판정창 (window)
 
-`diff = curMs − tickToMs(note.startTick) − visualOffset` (부호 있음), `abs = |diff|`
+`diff = nowMs − tickToMs(note.startTick)` (부호 있음), `abs = |diff|`
+
+`nowMs`는 §1의 경계에서 이미 `visualOffset` 보정을 마친 시각이다 — 이 수식에서 다시 빼지 않는다.
 
 | | 후보 자격 | judgment |
 |---|---|---|
