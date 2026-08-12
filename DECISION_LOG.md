@@ -404,7 +404,7 @@
 - **Rationale:** Not required
 - **Affects:** judge, constants, naming, settings, tests/golden, src/core, README
 - **Supersedes:** None
-- **Commit:** `TBD`
+- **Commit:** `8d5100d`
 
 ```md
 ### D-YYYY-NNN — <Title>
