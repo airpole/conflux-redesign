@@ -425,7 +425,7 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** judge, naming, build-order, tests/golden, src/core, README
 - **Supersedes:** None (D-2026-024가 정한 `judge` §10 시드 절차를 §6 재조정으로 접음)
-- **Commit:** this commit
+- **Commit:** `6c5e67e`
 
 
 ```md
