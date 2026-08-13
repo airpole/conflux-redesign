@@ -406,6 +406,16 @@
 - **Supersedes:** None
 - **Commit:** `8d5100d`
 
+### D-2026-039 — Hold 소유 구현, tail release 임계 정정, `naming` §4 가드
+
+- **Status:** Accepted
+- **Decision:** Normal Hold를 lane 익명 수요로, WideHold를 자격 있는 키 중 최근 press serial로 원자 이양하는 단일 소유로 구현했다. `reconcileHeldCapacity`가 Normal shortage를 먼저 해소하고 Wide 배정을 정하며, §6 불변식은 `heldCapacityViolations`가 문장으로 확인한다. **tail release 임계를 원본 실측대로 정정했다** `[보존]` — 원본은 `tailMs − JUDGE_GOOD − LN_RELEASE_GRACE_MS`(150ms)를 썼고 `HOLD_RELEASE_GRACE_MS`(50)는 GOOD 창 위의 추가분이다. D-2026-024가 상수 파일만 읽어 50으로 적은 것을 정정하고, 두 상수의 합에 `HOLD_RELEASE_WINDOW_MS` 이름을 준다. Hold head MISS는 `units: 2` 이벤트 하나로 즉시 확정하고 combo는 1회만 리셋한다. tail은 `tailMs`에 자동 완료되며 사건 시각이 호출 시점이 아니라 `tailMs`다. `judged` 이벤트에 `part`(`tap`/`head`/`tail`)를 실어 표시 규칙(tail 성공은 무표시)을 render가 재현할 수 있게 한다. **누적 카운터를 judge에서 제거했다** — `hits`를 `naming` §4의 뜻(note별 판정 상태)으로 되돌리고 `misses`·`fastCount`·`slowCount`는 `JudgmentEvent`를 받는 쪽이 센다. 프레임 진행 진입점 `judgeAdvance`를 신설해 세 진입점이 모두 `visualOffset` 경계를 지난다. 명칭 가드 테스트를 `naming` §4 상태 필드까지 넓혔다.
+- **Defined in:** `core/judge.md` §4·§5·§7·§9·§13, `core/constants.md` §1, `core/naming.md` §3·§4, `_extracted/EXTRACTED_FACTS.md` §8.1, `tests/golden/DIVERGENCES.md` §5·§7
+- **Rationale:** `_rationale/rationale.md#hold-release-임계를-원본과-같은-150ms로-되돌린-이유`
+- **Affects:** judge, constants, naming, rationale, EXTRACTED_FACTS, tests/golden, src/core, README
+- **Supersedes:** None (D-2026-024의 tail 임계 수치를 정정)
+- **Commit:** `TBD`
+
 ```md
 ### D-YYYY-NNN — <Title>
 

@@ -74,7 +74,7 @@ earliest startTick
 1. judgment 종류 계산 (§2). wide면 무조건 SYNC. (tail은 §7·§8.)
 2. Tap이면 즉시 완결. Hold head면 활성 Hold로 등록(§5)만 하고 tail은 미확정 상태로 둔다.
 3. `combo++`, `maxCombo` 갱신.
-4. judgment를 큐에 push (표시용).
+4. judgment를 판정 단위 표시(`part` = `tap`/`head`/`tail`)와 함께 내보낸다. 회계는 `part`가 아니라 단위 수(§8)를 쓰고, `part`는 **표시 규칙**의 입력이다 — 원본에서 tail 성공은 화면에 아무것도 띄우지 않고 중간 릴리즈만 MISS를 띄웠다([[EXTRACTED_FACTS]] §8.1). judge는 그 규칙을 알지 않고 어느 단위인지만 싣는다.
 5. **게이지 반영**: `applyGaugeChange(judgment)`가 terminate를 유발하면 `forceEnded` 플래그만 세운다. 실제 강제 종료는 play loop가 단일 지점에서 수행 — 모든 판정 경로가 한 곳으로 모이게.
 6. **Fast/Slow**: normal head만, SYNC·MISS·wide·autoplay 제외하고 `feedFastSlow(diff, ...)` 호출. `[보존]` (diff<0 FAST / >0 SLOW. 두 층위 — 순간 깜빡 `flashTiming` + 누적 `fastCount`/`slowCount`. 정의·층위·result 표시는 단일 출처 → [[glossary]] `FAST`/`SLOW`.)
 7. hit 이펙트 push (위치·색). **above/below(overlap 시각 분리)는 싣지 않는다** — render 소관. `[수정]`
@@ -112,6 +112,8 @@ heldCount(lane)    = lane에 속한 keysHeld 개수
 - 같은 lane에 길이가 다른 hold 둘이 있을 때 어느 손가락이 먼저 놓여도(짧은 쪽 tail) 성립.
 
 lane 1·4는 키가 하나뿐이라 `normalDemand`가 항상 0 또는 1이다.
+
+수요가 걸리는 lane은 §3의 **매칭 lane**이다 — 미러가 켜져 있으면 `laneMap[note.lane]`의 키가 그 Hold를 지탱한다. 노트를 친 손가락과 그 노트를 유지하는 손가락이 다를 수 없기 때문이다.
 
 ### Normal shortage
 
@@ -160,17 +162,17 @@ WideHold는 owner가 0개 또는 1개, 둘 이상 불가
 
 ---
 
-## 7. Hold tail 처리·release grace `[번복]`
+## 7. Hold tail 처리·release grace `[보존]`
 
-단일 로직 상수:
+분류 임계 폭:
 
 ```text
-HOLD_RELEASE_GRACE_MS = 50   // [[constants]] §1 단일 출처
+HOLD_RELEASE_WINDOW_MS = WINDOW_GOOD_MS + HOLD_RELEASE_GRACE_MS = 150
 ```
 
-구 재설계가 tail 분류 임계로 재사용했던 **GOOD 창 100ms 전체**(`LN_RELEASE_GRACE_MS` 폐기) 결정은 이번에 **번복**한다. 근거 → [[rationale#hold release grace를 50ms로 되돌린 이유]].
+값의 단일 출처는 [[constants]] §1이다. `HOLD_RELEASE_GRACE_MS`(50)는 관용 폭 **전체가 아니라** GOOD 창 위에 얹는 추가분이며, 원본도 두 값을 합해 썼다(`play-input.js` 실측 → [[EXTRACTED_FACTS]] §8.1). D-2026-024가 임계를 50으로 적은 것은 상수 파일만 읽고 사용처를 읽지 않은 오독이었고, D-2026-039에서 원본과 같은 150으로 정정한다. 근거 → [[rationale#hold release 임계를 원본과 같은 150ms로 되돌린 이유]].
 
-- `nowMs >= tailMs − HOLD_RELEASE_GRACE_MS`에 release: **tail SYNC**.
+- `nowMs >= tailMs − HOLD_RELEASE_WINDOW_MS`에 release: **tail SYNC**.
 - 그보다 이르면: **tail MISS**.
 - 필요한 held capacity가 `tailMs`까지 유지되면 tail은 `tailMs`에 **자동으로 SYNC 확정**된다.
 - 자동 tail 완료는 그 Hold를 활성 수요에서 제거한다.
@@ -239,6 +241,10 @@ combo 리셋은 1회만 실행한다 — 0을 두 번 만들어도 의미가 늘
 ### `reconcileHeldCapacity(nowMs)`
 
 §6과 동일. 매 keydown/keyup 뒤 호출한다.
+
+### 진입 경계
+
+play loop의 프레임 진행·keydown·keyup 셋만이 judge의 진입점이며, **셋 다 raw 시각과 `visualOffset`을 받는다**(§1). 보정을 지나지 않은 시각이 judge 안으로 들어올 자리가 없다.
 
 ### keydown
 
@@ -329,7 +335,7 @@ conflict가 있는 chart를 실행·기록할 수 있는지는 기존 conflict/p
 확정:
 - [x] 후보 순서 단일화 — normal/wide 분리 풀 폐기, earliest-tick → same-tick normal 우선 → hold 우선 → 이른 tail 우선 `[번복]`
 - [x] Normal Hold = lane 익명 수요, WideHold = 단일 소유·원자적 이양(Normal 우선) `[번복]`
-- [x] `HOLD_RELEASE_GRACE_MS = 50` 복원, tail 자동완료·`[head,tail)`·같은 tick 순서(tail 먼저) `[번복]`
+- [x] tail release 임계 = `HOLD_RELEASE_WINDOW_MS`(GOOD 창 + grace = 150) — 원본 실측과 같다 `[보존]`(D-2026-039). tail 자동완료·`[head,tail)`·같은 tick 순서(tail 먼저)는 `[번복]`
 - [x] Hold head MISS = 2단위 즉시 확정(score/accuracy/게이지 2회, combo reset 1회) `[번복]`
 - [x] `advanceJudgmentStateTo`/`reconcileHeldCapacity` 공용 연산, keydown/keyup 처리 순서 `[신규]`
 - [x] mid-start crossing-Hold 시드·anchor 규칙, pause Resume 비-재시드 `[번복]`

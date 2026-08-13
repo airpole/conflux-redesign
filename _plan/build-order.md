@@ -129,7 +129,7 @@ gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한
 | M1-2 | chart 타입·스키마 검증·[[constants]] 값·[[settings]] 기본값 객체·무효 chart 런타임 폴백 | 정상 chart는 검증을 통과하고, [[judge]] §12의 각 무효 입력이 정의된 폴백 값으로 떨어진다. |
 | M1-3 | [[timing]] — `tickToMs`/`msToTick`, measure 변환, `gridDivisor`, song end 4값 | 다중 BPM·다중 박자 chart에서 골든 표와 값이 일치한다. `songEndMs`가 §9 정의대로 나온다. |
 | M1-4 | [[judge]] 기본 — 결정론적 후보 순서, 판정창, lane 매칭, mirror, `commitJudgment` | 같은 입력 열에서 원본과 같은 judgment 열이 나온다. mirror ON에서 `1↔4, 2↔3`이 적용되고 wide는 무시된다. |
-| M1-5 | [[judge]] Hold 소유 — Normal 익명 수요, Wide 단일 소유·이양, tail release grace, head MISS 2단위 | 동시 Hold 시나리오에서 소유가 원자적으로 이양된다. grace 50ms 안 release는 SYNC, 밖은 MISS. head MISS가 score·게이지 2단위를 즉시 확정한다. |
+| M1-5 | [[judge]] Hold 소유 — Normal 익명 수요, Wide 단일 소유·이양, tail release 임계, head MISS 2단위 | 동시 Hold 시나리오에서 소유가 원자적으로 이양된다. `HOLD_RELEASE_WINDOW_MS`(150) 안 release는 SYNC, 밖은 MISS. head MISS가 score·게이지 2단위를 즉시 확정한다. |
 | M1-6 | [[judge]] reconciliation — 수요 재조정, mid-start 시드, Resume 재조정, global 6키 conflict | crossing Hold가 mid-start 시드로 복원된다. Resume이 재시드 없이 pause anchor에서 재조정한다. 로컬 capacity를 통과한 7-입력이 global conflict로 잡힌다. |
 | M1-7 | [[gauge]] — 6모드, terminate, cascade 병렬 평가, state·rank 산출 | [[gauge]] §4 검증 시나리오 6종이 명시된 state를 낸다. rank가 gauge와 독립으로 나온다. |
 | M1-8 | overlap/conflict sweep-line 검출 — [[data-model]] §5.1 | lane 1·4는 2겹, lane 2·3은 3겹, Wide는 2겹부터 conflict로 잡힌다. conflict가 동시 활성 집합 전체에 표시된다. |

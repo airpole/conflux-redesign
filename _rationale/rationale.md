@@ -15,8 +15,12 @@ SYNC/PERFECT/GOOD/MISS는 `abs(diff_ms)` 한 축의 구간이다. wide도 다른
 ### hold tail 특례를 폐기한 이유
 head/tail을 일반 judgment와 같은 SYNC/MISS 규칙으로 처리하면 display·count·terminate·gauge가 한 의미를 공유한다. hard tail 수치는 일부 바뀌지만 예외 signal과 전용 delta가 사라진다.
 
-### hold release grace를 50ms로 되돌린 이유 `[번복]`
-GOOD 창(100ms) 전체를 tail release grace로 재사용하면 손을 뗀 뒤에도 100ms 동안 키 점유가 유지된 것처럼 취급돼 lane 수요 계산이 실제 손 상태와 크게 어긋난다. 50ms는 사람이 자연스럽게 놓는 타이밍은 허용하면서 GOOD 창 전체를 승인하지는 않는다. 계속 누르고 있으면 자동 tail 완료가 처리하므로 grace를 넓힐 필요가 없다. D-2026-024에서 `LN_RELEASE_GRACE_MS` 폐기 결정을 번복하고 `HOLD_RELEASE_GRACE_MS`로 복원한다.
+### hold release 임계를 원본과 같은 150ms로 되돌린 이유 `[번복]`
+D-2026-024는 이 임계를 `HOLD_RELEASE_GRACE_MS`(50) 하나로 적으면서 "원본 값 복원"이라고 했지만, 원본을 잘못 읽은 것이었다. 원본은 `tailMs − JUDGE_GOOD − LN_RELEASE_GRACE_MS`, 즉 **150ms**를 임계로 썼고 `LN_RELEASE_GRACE_MS`는 GOOD 창 위에 얹는 추가분이었다(`play-input.js` `handlePlayKeyUp` 실측). `constants.js`만 읽고 사용처를 읽지 않아 관용 폭이 원본의 1/3로 좁아진 채 남아 있었다 — 대장에도 없어 골든이 영원히 드러내지 못하는 자리였다.
+
+당시 근거였던 "grace를 넓히면 손을 뗀 뒤에도 키 점유가 유지된 것처럼 취급돼 lane 수요 계산이 어긋난다"도 key-demand 모델에서는 성립하지 않는다. keyup 즉시 `keysHeld`에서 키가 빠지고 shortage 해소도 그 자리에서 끝나므로, grace는 **점유 기간이 아니라 그 tail을 SYNC로 볼지 MISS로 볼지만 정하는 분류 임계**다. 관용 폭을 넓혀도 수요 계산은 어긋나지 않는다.
+
+behavior-preserving rewrite의 기본값은 보존이고 이 좁힘은 의도된 개선이 아니라 오독의 산물이므로, 원본과 같은 150ms로 되돌린다. 두 상수의 값과 의미는 그대로 두고(골든 대조도 그 둘이 맡는다) 합에만 `HOLD_RELEASE_WINDOW_MS`라는 이름을 준다 — 새 튜닝 수치를 만들지 않으면서 "관용 폭이 얼마인가"가 한 이름으로 읽힌다.
 
 ### 후보 순서를 단일 결정론 규칙으로 둔 이유
 normal/wide를 별도 풀로 나눠 `bestNormal ?? bestWide`로 고르면 더 이른 wide가 더 늦은 normal에 밀려 버려지는 입력 잡아먹힘이 생긴다. earliest startTick을 최우선으로 하면 이 문제가 사라지고, 같은 tick에서만 normal이 wide를 이긴다. 오래된 미해결 노트를 미래의 노트가 가로채지 않는다는 원칙도 그대로 지켜진다.
@@ -359,7 +363,7 @@ gauge 문서에 gauge·lock·tier 세 어휘가 겹쳐 있었다. "lock"은 구 
 - 결정론적 후보 순서 단일화(normal/wide 분리 풀 폐기)
 - Normal Hold 익명 lane 수요
 - WideHold 단일 소유·원자적 이양(Normal 우선)
-- `HOLD_RELEASE_GRACE_MS = 50` 복원(구 GOOD 창 재사용 폐기)
+- tail release 임계 = GOOD 창 + `HOLD_RELEASE_GRACE_MS` (150, 원본과 같음 — D-2026-039에서 정정)
 - Hold head MISS 2단위 즉시 확정
 - 전체 6키 global conflict 검사
 - 영속 note ID 미도입

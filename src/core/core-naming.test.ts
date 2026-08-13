@@ -28,8 +28,21 @@ const PENDING: Readonly<Record<string, string>> = {
   GAUGE_MODE_TABLE: 'M1-7',
 };
 
+/** §4의 상태 필드 중 아직 짓지 않은 것. 같은 규칙 — 지으면 여기서 지운다. */
+const PENDING_FIELDS: Readonly<Record<string, string>> = {
+  gauge: 'M1-7',
+  tier: 'M1-7',
+  fastCount: 'M2',
+  slowCount: 'M2',
+  flashTiming: 'M2',
+  laneGridDivisor: 'M5',
+};
+
 const SECTION_HEADING = '## 3. 상수 / 테이블 대응표';
+const FIELD_SECTION_HEADING = '## 4. 상태 객체 / 필드 대응표';
 const IDENTIFIER = /`([A-Z][A-Z0-9_]{2,})`/g;
+/** §4는 `playState.foo`·`editorState.foo` 형태로 필드를 적는다. */
+const FIELD_IDENTIFIER = /`(?:playState|editorState)\.([A-Za-z][A-Za-z0-9]*)`/g;
 
 /** `naming.md` §3의 "새 이름" 열에서 재설계가 쓰기로 한 상수 이름을 뽑는다. */
 function declaredNames(): string[] {
@@ -64,6 +77,41 @@ function declaredNames(): string[] {
   return [...names].sort();
 }
 
+/**
+ * `naming.md` §4의 "새 이름" 열에서 런타임 상태 필드 이름을 뽑는다.
+ *
+ * M1-4가 §3 이탈 두 건을 드러냈을 때 §4는 아직 기계 대조가 없었고, 그 사이 구현이
+ * `hits`·`misses`를 §4와 **다른 뜻**으로 쓰고 있었다(누적 개수 vs note별 상태).
+ * M1-5가 §4의 Hold 필드 여섯 개를 한꺼번에 지으므로 여기서 같은 가드를 건다(D-2026-039).
+ */
+function declaredFields(): string[] {
+  const text = readFileSync(NAMING_PATH, 'utf8');
+  const start = text.indexOf(FIELD_SECTION_HEADING);
+  expect(start, `${FIELD_SECTION_HEADING}을 찾지 못했다 — 파서가 서식과 어긋났다`).toBeGreaterThan(
+    -1,
+  );
+
+  const body = text.slice(start).split('\n## ')[0]!;
+  const fields = new Set<string>();
+
+  for (const line of body.split('\n')) {
+    if (!line.trimStart().startsWith('|')) continue;
+    const cells = line
+      .replace(/^\s*\|/, '')
+      .replace(/\|\s*$/, '')
+      .split('|')
+      .map((cell) => cell.trim());
+    if (cells.length < 2) continue;
+
+    const renamed = cells[1] ?? '';
+    // 폐기·흡수·폐지된 자리는 이름이 남지 않는다.
+    if (/폐기|흡수|폐지/.test(renamed)) continue;
+
+    for (const match of renamed.matchAll(FIELD_IDENTIFIER)) fields.add(match[1]!);
+  }
+  return [...fields].sort();
+}
+
 /** `src/` 전체의 소스 텍스트. 레이어를 가리지 않고 이름의 존재만 본다. */
 function sourceText(): string {
   const chunks: string[] = [];
@@ -92,6 +140,14 @@ function defines(source: string, name: string): boolean {
 /** 폐기된 이름은 정의든 언급이든 남아 있으면 안 된다. */
 function mentions(source: string, name: string): boolean {
   return new RegExp(`\\b${name}\\b`).test(source);
+}
+
+/**
+ * 필드는 **선언**을 찾는다 — 타입 멤버든 객체 리터럴 키든 `name:` 꼴이어야 한다.
+ * 산문·주석의 단순 언급으로 통과하면 다른 이름으로 지어놓고 검사를 빠져나간다.
+ */
+function declaresField(source: string, name: string): boolean {
+  return new RegExp(`(^|[^.\\w])${name}\\??\\s*:`, 'm').test(source);
 }
 
 describe('명칭 대응표 (naming §3) ↔ 구현', () => {
@@ -128,5 +184,43 @@ describe('명칭 대응표 (naming §3) ↔ 구현', () => {
     const alive = discarded.filter((name) => mentions(source, name));
 
     expect(alive).toEqual([]);
+  });
+});
+
+describe('상태 필드 대응표 (naming §4) ↔ 구현', () => {
+  const fields = declaredFields();
+  const source = sourceText();
+
+  it('표에서 필드 이름을 읽어낸다 — 파서가 서식과 어긋나면 조용히 통과하지 않는다', () => {
+    expect(fields.length).toBeGreaterThan(10);
+    expect(fields).toContain('activeNormalHolds');
+    expect(fields).toContain('hits');
+  });
+
+  it('표가 정한 필드 이름을 구현이 그대로 쓴다', () => {
+    const missing = fields.filter(
+      (name) => !(name in PENDING_FIELDS) && !declaresField(source, name),
+    );
+
+    expect(
+      missing,
+      `naming §4가 정한 런타임 상태 필드가 구현에 없다. 구현을 표에 맞추거나, ` +
+        `이름을 바꾸기로 했다면 naming §4를 먼저 고친다 — 명세가 source of truth다.`,
+    ).toEqual([]);
+  });
+
+  it('PENDING_FIELDS 목록이 낡지 않았다', () => {
+    const built = Object.keys(PENDING_FIELDS).filter((name) => declaresField(source, name));
+
+    expect(
+      built,
+      `PENDING_FIELDS에 있는 이름이 구현에 나타났다. 해당 step이 끝났다면 목록에서 지운다.`,
+    ).toEqual([]);
+  });
+
+  it('폐기된 원본 상태 이름이 구현에 남아 있지 않다', () => {
+    const discarded = ['playHoldState', 'playHitMap', 'playMissSet', 'playKeyHeld', 'lineMap'];
+
+    expect(discarded.filter((name) => mentions(source, name))).toEqual([]);
   });
 });

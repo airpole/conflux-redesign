@@ -138,7 +138,8 @@
 | `GDIVS` | `GRID_DIVISORS` | 분음표 표기 재명명(V=4N, +6, ~256) → [[timing]] §6 |
 | (리터럴 `2000`) | `SCROLL_VIEW_MS` | game-render 내부 리터럴 → 명명 승격 ([[timing]] §3) |
 | `LEAD_IN_MS` | 유지 | mid-start 전용, pause Resume은 쓰지 않음 — [[judge]] §10 |
-| `LN_RELEASE_GRACE_MS` | `HOLD_RELEASE_GRACE_MS` (50) | 한때 폐기했다가 **복원** `[번복]` — tail release grace 단일 출처 [[judge]] §7 |
+| `LN_RELEASE_GRACE_MS` | `HOLD_RELEASE_GRACE_MS` (50) | 한때 폐기했다가 **복원** `[번복]`. 원본에서도 관용 폭 전체가 아니라 GOOD 창 위의 **추가분**이었다 |
+| (원본은 인라인 합성식) | `HOLD_RELEASE_WINDOW_MS` | tail release 분류 임계 폭 = `WINDOW_GOOD_MS + HOLD_RELEASE_GRACE_MS` (150). 두 상수의 합에 준 이름이다 — 단일 출처 [[judge]] §7 (D-2026-039) |
 
 ---
 
@@ -172,13 +173,13 @@
 | `PS.gaugeType` + `lockTarget`/`lockMode` | `playState.gaugeMode` | normal / hard / fc / ap / as / cascade (단일 축, [[gauge]]) |
 | (신규) | `playState.tier` | 현재 생존 단계: as / ap / fc / hard / normal |
 | `PS.playCombo`/`playMaxCombo` | `playState.combo` / `playState.maxCombo` | |
-| `PS.playHitMap` | `playState.hits` | note→판정상태 |
-| `PS.playMissSet` | `playState.misses` | |
+| `PS.playHitMap` | `playState.hits` | note→판정상태(`pending`/`hit`/`missed`) 배열 |
+| `PS.playMissSet` | `hits`에 흡수 | 상태 배열 하나가 겸한다 — 같은 사실을 두 곳에 두지 않는다 (D-2026-039) |
 | `PS.playHoldState` | `playState.activeNormalHolds` / `playState.activeWideHold` / `playState.wideOwnerKey` | key 소유 hold 모델 폐기, lane 익명 수요 + Wide 단일 소유 `[번복]` — 모델 단일 출처 [[judge]] §5 |
 | (신규) | `playState.keyPressSerial` / `playState.nextPressSerial` | Wide owner 이양 판정용 keydown 순번 — [[judge]] §5·§6 |
 | `PS.playKeyHeld` | `playState.keysHeld` | 눌린 키 집합 |
 | `PS.lineMap` | `playState.laneMap` | 미러 매핑 |
-| `PS.fastCount`/`slowCount` | `playState.fastCount` / `playState.slowCount` | 세션 누적, result 표시 |
+| `PS.fastCount`/`slowCount` | `playState.fastCount` / `playState.slowCount` | 세션 누적, result 표시. 누적은 judge 밖 — `JudgmentEvent`를 받는 쪽이 센다 (D-2026-039) |
 | `PS.flashTiming` | `playState.flashTiming` | 'FAST'/'SLOW'/null 순간표시 (기록 안 됨) |
 | (구 재설계안의 `playState.state`) | `result.state` | `computeResult` 산출물. playState에 저장하지 않음 `[번복]` |
 

@@ -193,7 +193,30 @@ gaugeValue   = clamp(0, 100, gaugeValue + delta)
 |---|---|---|
 | `LEAD_IN_MS` | 3000 | (GitHub 최신; 스냅샷은 2000) |
 | `PLAY_RESUME_LEAD_MS` | 3000 | 중간 시작(Space) 시 선행 빈 스크롤 |
-| `LN_RELEASE_GRACE_MS` | 50 | LN 테일 릴리즈 유예 |
+| `LN_RELEASE_GRACE_MS` | 50 | LN 테일 릴리즈 유예 — **GOOD 창 위에 얹는 추가분**이지 관용 폭 전체가 아니다 (§8.1) |
+
+---
+
+### 8.1 LN tail 처리 — `play-input.js` `handlePlayKeyUp` 실측
+
+```js
+// play-input.js — keyup 경로
+const tailMs = t2ms(note.startTick + note.duration);
+if (curMs < tailMs - JUDGE_GOOD - LN_RELEASE_GRACE_MS) applyMidRelease(note, curMs);
+else                                                    applyTailSuccess(note, curMs);
+```
+
+| 항목 | 실측 |
+|---|---|
+| tail 성공 임계 | `tailMs − JUDGE_GOOD(100) − LN_RELEASE_GRACE_MS(50)` = **`tailMs − 150ms`** |
+| tail 자동완료 | **autoplay에서만** (`play.js` 루프). 수동 플레이는 keyup 전까지 tail이 미확정으로 남는다 |
+| tail 성공 표시 | `applyTailSuccess` — `playCombo++`만 하고 판정 큐에 **아무것도 넣지 않는다**(화면에 텍스트 없음) |
+| 중간 릴리즈 표시 | `applyMidRelease` — `playCombo = 0`, 큐에 `MISS` push |
+| head MISS 회계 | `play.js` `checkPlayMisses` — 게이지 MISS **1회**. 주석: tail 손실은 점수에 이미 반영돼 이중 차감은 과벌이라고 적혀 있다 |
+| hold 소유 | `PS.playHoldState[key] = note` (키 소유). keydown/keyup 양쪽에서 빈 키로 **상속(복사)**해 크로스 바인딩을 자가 치유한다 |
+
+→ **의미**: 관용 폭 전체는 150ms다. `constants.js`만 읽으면 50으로 보이지만 사용처가 GOOD 창과 합산한다.
+D-2026-024가 이 사용처를 읽지 않아 재설계 임계가 50으로 적혀 있었고, D-2026-039에서 150으로 정정했다.
 
 ---
 

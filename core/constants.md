@@ -16,11 +16,13 @@
 | PERFECT | `WINDOW_PERFECT_MS` | 50 | |
 | GOOD | `WINDOW_GOOD_MS` | 100 | 이 밖은 MISS |
 | WIDE SYNC | `WINDOW_WIDE_SYNC_MS` | 100 | wide 노트는 SYNC만, ±100 |
-| — | `HOLD_RELEASE_GRACE_MS` | 50 | hold tail release grace. 한때 폐기했다가 **복원** `[번복]` — 근거 → [[rationale#hold release grace를 50ms로 되돌린 이유]] |
+| — | `HOLD_RELEASE_GRACE_MS` | 50 | hold tail release grace. GOOD 창 **위에 얹는 추가분**이다 |
+| — | `HOLD_RELEASE_WINDOW_MS` | 150 | tail release 분류 임계 폭 = `WINDOW_GOOD_MS + HOLD_RELEASE_GRACE_MS`. 두 상수의 합에 준 이름이지 새 튜닝 수치가 아니다 |
 
 이름은 [[naming]] §3이 정하고 **값은 여기가 단일 출처**다. [[judge]] §2는 이 이름을 참조만 한다.
 
-- hold tail 분류 임계는 GOOD 창(100ms)이 아니라 `HOLD_RELEASE_GRACE_MS`(50) 단일 값이다([[judge]] §7). SYNC/PERFECT/GOOD/WIDE SYNC 판정창 자체는 이번 개편으로 바뀌지 않는다.
+- hold tail 분류 임계는 `HOLD_RELEASE_WINDOW_MS`(150)이며 **원본과 같다** `[보존]`([[judge]] §7). 원본은 `tailMs − JUDGE_GOOD − LN_RELEASE_GRACE_MS`로 합성해 썼고(`play-input.js` 실측 → [[EXTRACTED_FACTS]] §8.1), D-2026-024가 상수 파일만 읽어 50으로 적었던 것을 D-2026-039에서 정정했다. 근거 → [[rationale#hold release 임계를 원본과 같은 150ms로 되돌린 이유]].
+- SYNC/PERFECT/GOOD/WIDE SYNC 판정창 자체는 이번 개편으로 바뀌지 않는다.
 - 판정 로직은 [[judge]], 여기는 값만.
 
 ## 2. 게이지 증감 (`GAUGE_DELTA`)

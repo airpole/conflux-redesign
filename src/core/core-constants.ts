@@ -45,8 +45,21 @@ export const WINDOW_GOOD_MS = 100;
 /** wide 노트는 SYNC만, ±100. */
 export const WINDOW_WIDE_SYNC_MS = 100;
 
-/** hold tail release grace. GOOD 창과 별개의 단일 값이다. → `core/judge.md` §7 */
+/** hold tail release grace. GOOD 창 **위에 얹는 추가분**이다. → `core/judge.md` §7 */
 export const HOLD_RELEASE_GRACE_MS = 50;
+
+/**
+ * hold tail release 분류 임계 폭. 이 폭 안에서 손을 떼면 tail SYNC, 그보다 이르면 tail MISS다.
+ *
+ * 원본은 이 임계를 `tailMs − JUDGE_GOOD − LN_RELEASE_GRACE_MS`로 **합성해** 썼다
+ * (`play-input.js` `handlePlayKeyUp`) — `LN_RELEASE_GRACE_MS`(50)는 관용 폭 전체가
+ * 아니라 GOOD 창 위의 추가분이었다. 상수 파일만 읽고 사용처를 읽지 않아 D-2026-024가
+ * 이 값을 50으로 적었고, 관용 폭이 원본의 1/3로 좁아져 있었다(D-2026-039에서 정정).
+ *
+ * 두 상수의 **합에 이름을 준 것**이지 새 튜닝 수치가 아니다 — 값의 단일 출처는 여전히
+ * 위 두 줄이고 골든 대조도 그 둘이 맡는다.
+ */
+export const HOLD_RELEASE_WINDOW_MS = WINDOW_GOOD_MS + HOLD_RELEASE_GRACE_MS;
 
 // ── 3. 게이지 → `core/gauge.md` ──────────────────────────────
 

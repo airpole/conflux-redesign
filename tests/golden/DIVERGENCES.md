@@ -156,7 +156,7 @@ GA-4는 원본에 병렬 평가 모델이 없어 대조할 값이 없다. `gauge
 | JD-3 | hit 이펙트 | `commitJudgment`가 `above/below`를 계산해 실어보냄 | judge는 싣지 않음, render 소관 | 없음 | `judge` §4 |
 | JD-4 | overlap/conflict | judge 안 | domain 파생 속성(`noteOverlapMap`) | 없음 | `judge` §11 |
 | JD-5 | global 6키 conflict | 없음 | 매 tick 물리 키 총수요 검사 | 없음 | D-2026-024 |
-| JD-6 | Hold tail 처리 | tail 판정이 head와 별개 축 | tail 자동완료, `[head, tail)` 반개구간, 같은 tick이면 tail 먼저 | 미커버 | `judge` §7 |
+| JD-6 | Hold tail 처리 | tail 자동완료는 **autoplay에서만**, 수동은 keyup 전까지 미확정 | 항상 `tailMs`에 자동완료, `[head, tail)` 반개구간, 같은 tick이면 tail 먼저 | 미커버 | `judge` §7 |
 | JD-7 | 중간 시작·Resume | crossing Hold 처리 미정의 | mid-start crossing-Hold 시드·anchor 규칙, Resume은 비-재시드 | 미커버 | `judge` §10 |
 | JD-8 | visualOffset | 렌더 시점 보정 | 입력 타임스탬프 보정으로 배선 | 미커버 | `judge` §1 |
 
@@ -185,6 +185,21 @@ normal, same-tick normal 우선, hold 우선, 이른 tail 우선을 각각 건�
 > 골든 표에 `noteChannel`·`noteIsWide`를 남기는 결정 자체는 유효하다. 지금은
 > 목격하지 못하지만, 원본 fixture에 늦은 normal이 추가되는 순간 이 두 필드가
 > 없으면 "어느 쪽을 골랐는가"가 표에서 사라진다.
+
+---
+
+### tail release 임계는 어긋남이 아니다 — 오독이었다 (D-2026-039)
+
+M1-5에서 원본 keyup 경로를 처음 직접 읽었다. `play-input.js`가 쓰는 임계는
+`tailMs − JUDGE_GOOD − LN_RELEASE_GRACE_MS` = **150ms**이고,
+`LN_RELEASE_GRACE_MS`(50)는 관용 폭 전체가 아니라 GOOD 창 위의 추가분이었다
+([[EXTRACTED_FACTS]] §8.1).
+
+D-2026-024가 상수 파일만 읽고 임계를 50으로 적어, 관용 폭이 원본의 1/3로 좁아진 채
+스펙에 남아 있었다. **이 자리는 대장에 오르지 않는다** — 원본과 같은 150으로 정정했으므로
+어긋남이 아니다. 여기 적는 이유는 골든이 keyup 경로를 뽑지 않아 이런 좁힘이 자동으로는
+영원히 드러나지 않기 때문이다. `core-judge.test.ts`가 임계 = `WINDOW_GOOD_MS +
+HOLD_RELEASE_GRACE_MS`를 직접 건다.
 
 ---
 
@@ -227,9 +242,9 @@ normal, same-tick normal 우선, hold 우선, 이른 tail 우선을 각각 건�
 | JD-8 | visualOffset = 입력 타임스탬프 보정 | M1-4 |
 | JD-1 | 후보 순서 단일 풀 (골든이 갈리는 케이스 0건) | M1-4 |
 | JD-3·JD-4 | judge 관심사 분리 (이펙트·overlap 검출이 judge 밖) | M1-4 |
-| GA-2·GA-5 | Hold head MISS 2단위, 판정 단위 회계 통일 | M1-5 |
-| JD-2 | key-demand Hold 모델 | M1-5 |
-| JD-6 | tail 자동완료·반개구간·같은 tick 순서 | M1-5 |
+| GA-2·GA-5 | Hold head MISS 2단위, 판정 단위 회계 통일 (`core-judge.test.ts` §8) | M1-5 |
+| JD-2 | key-demand Hold 모델 (`core-judge.test.ts` §5·§6) | M1-5 |
+| JD-6 | tail 자동완료·반개구간·같은 tick 순서 (`core-judge.test.ts` §7) | M1-5 |
 | TM-5 | Resume leadIn 미적용 | M1-6 |
 | JD-7 | mid-start 시드·anchor, Resume 비-재시드 | M1-6 |
 | JD-5 | global 6키 conflict | M1-6 |

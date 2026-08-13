@@ -138,10 +138,10 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M1-5 judge Hold 소유 — Normal 익명 수요, Wide 단일 소유·이양, tail release grace, head MISS 2단위
-- **Discussion Scope:** 활성 Hold 모델과 `reconcileHeldCapacity`. 미커버 JD-2·JD-6과 GA-2·GA-5.
-- **Change Scope:** `src/core/core-judge.ts`와 그 테스트, `core/judge.md` §5~§8 잔여
-- **Exit:** 동시 Hold 시나리오에서 소유가 원자적으로 이양된다. grace 50ms 안 release는 SYNC, 밖은 MISS. head MISS가 score·게이지 2단위를 즉시 확정한다
+- **Active unit:** M1-6 judge reconciliation — mid-start crossing-Hold 시드, pause Resume 재조정, global 6키 conflict
+- **Discussion Scope:** [[judge]] §10과 [[data-model]] §5.1의 global 검사. 미커버 JD-7·JD-5와 TM-5.
+- **Change Scope:** `src/core/core-judge.ts`와 그 테스트, overlap 검출이 붙는 자리
+- **Exit:** crossing Hold가 mid-start 시드로 복원된다. Resume이 재시드 없이 pause anchor에서 재조정한다. 로컬 capacity를 통과한 7-입력이 global conflict로 잡힌다
 
 ### Completed
 
@@ -189,6 +189,13 @@ judge 기본을 구현했다(M1-4, D-2026-038). `commitJudgment`은 게이지도
 
 두 가지가 이 과정에서 드러났다. 첫째, **구현이 `naming` §3을 이탈해 있었다** — M1-2가 대응표를 대조하지 않고 원본 이름을 그대로 써서 `WINDOW_*_MS`가 `JUDGE_*_MS`로, `DEFAULT_LANE_KEYS`가 `LANE_KEYS`로 살아 있었고 그 이탈이 M1-3을 지나 여기까지 왔다. 이름은 동작이 아니라 골든이 잡지 못하고 설계 대장도 담지 않는다 — 하마터면 명세를 구현에 맞춰 고치는 것으로 봉인될 뻔했다. 구현을 명세 쪽으로 바로잡고, `naming` §3을 파싱해 구현과 대조하는 **가드 테스트**를 신설해 이 부류를 기계 규칙으로 만들었다. 둘째, **JD-1이 어긋남이 아니다** — 골든 2,700건이 전부 새 규칙에서도 원본과 같은 노트를 고른다. 구·신 규칙이 갈리려면 같은 창 안에서 wide가 lane-매칭 normal보다 일러야 하는데, 여섯 fixture의 유일한 wide가 그 fixture의 가장 늦은 노트다. D-2026-024가 `[번복]`한 후보 순서 전체가 골든 밖에 있어 스펙 테스트가 유일한 판정자가 됐다(대장 `어긋남` → `미커버`).
 
+Hold 소유를 구현했다(M1-5, D-2026-039). Normal Hold는 lane의 익명 수요가 되고 WideHold는 자격 있는 키 중 가장 최근에 누른 키로 원자적으로 이양된다 — 구 모델이 keydown/keyup마다 hold를 빈 키로 복사하던 크로스 바인딩 로직이 `reconcileHeldCapacity` 한 함수로 접혔다. §6 불변식은 상태 복사 대신 `heldCapacityViolations`가 문장으로 확인한다.
+
+**원본을 다시 읽어 tail release 임계를 정정했다.** 이번에 처음 keyup 경로(`play-input.js`)를 직접 읽었는데, 원본의 임계는 `tailMs − JUDGE_GOOD − LN_RELEASE_GRACE_MS` = **150ms**였다 — `LN_RELEASE_GRACE_MS`(50)는 관용 폭 전체가 아니라 GOOD 창 위의 추가분이다. D-2026-024가 상수 파일만 읽고 사용처를 읽지 않아 관용 폭이 원본의 1/3로 좁아진 채 스펙에 남아 있었고, 골든이 keyup 경로를 뽑지 않아 자동으로는 드러나지 않는 자리였다. 두 상수의 합에 `HOLD_RELEASE_WINDOW_MS`라는 이름만 주고 값은 원본과 같게 되돌렸다 `[보존]`. 당시 근거였던 "grace를 넓히면 lane 수요 계산이 손 상태와 어긋난다"도 key-demand 모델에서는 성립하지 않는다 — keyup 즉시 키가 빠지므로 grace는 점유 기간이 아니라 분류 임계일 뿐이다.
+
+같은 부류가 하나 더 나왔다. **구현이 `naming` §4를 다른 뜻으로 쓰고 있었다** — §4의 `hits`(note별 판정 상태)를 누적 개수 이름으로 쓰고 있었고, M1-4의 가드는 §3(상수)만 봐서 잡지 못했다. `hits`를 표의 뜻으로 되돌리고 누적 카운터는 judge에서 **제거**했다 — score·accuracy·게이지가 같은 단위를 쓴다는 계약(GA-5)의 실체는 `JudgmentEvent.units`이므로, judge가 합계를 따로 들면 두 수가 어긋날 자리가 생긴다. 가드 테스트를 §4 상태 필드까지 넓혔다.
+
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
@@ -196,7 +203,7 @@ judge 기본을 구현했다(M1-4, D-2026-038). `commitJudgment`은 게이지도
 
 ### 다음 후보
 
-- M1-5 judge Hold 소유 (Current Focus)
+- M1-6 judge reconciliation (Current Focus)
 - D-2026-021 사이클 (M3 진입 전)
 - UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
 - credits scene 표시 내용 채우기 (소형, M4-2 전)

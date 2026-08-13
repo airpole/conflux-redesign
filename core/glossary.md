@@ -39,7 +39,7 @@ runtime core에는 song group이 아니라 active chart를 넘긴다.
   - `flashTiming`: 순간 표시.
   - `fastCount/slowCount`: result 누적.
   - normal PERFECT/GOOD만 count; SYNC/MISS/wide/autoplay 제외.
-- hold tail: `HOLD_RELEASE_GRACE_MS`(50) 이내 release=SYNC, 그 밖=MISS. capacity가 tail까지 유지되면 자동 SYNC. → [[judge]] §7.
+- hold tail: `HOLD_RELEASE_WINDOW_MS`(150 = GOOD 창 + grace) 이내 release=SYNC, 그 밖=MISS. capacity가 tail까지 유지되면 자동 SYNC. → [[judge]] §7.
 - **judgment unit** — 게이지·score 회계의 기본 단위(D-2026-024). Tap 1단위, Hold는 head+tail 2단위. Hold head MISS는 두 단위를 즉시 함께 확정한다. → [[judge]] §8, [[gauge]] §5.
 
 ---
