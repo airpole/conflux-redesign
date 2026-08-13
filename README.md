@@ -90,7 +90,7 @@
 - judgment = `abs(diff)` 임계(SYNC 25 / PERFECT 50 / GOOD 100).
 - gaugeMode 6종 → state `AS/AP/FC/H/C/F/N`; rank는 독립.
 - terminate는 gauge 0, cascade는 강등·병렬 gauge 평가.
-- Hold 판정은 key-demand 모델(D-2026-024) `[번복]`: Normal Hold는 lane 익명 수요, WideHold는 Normal 수요 이후 남는 키에 원자적 단일 소유. release grace `HOLD_RELEASE_GRACE_MS=50`ms 복원, Hold head MISS는 2단위(score/게이지) 즉시 확정. 전체 6키 total demand가 로컬 capacity를 통과해도 초과하면 global conflict.
+- Hold 판정은 key-demand 모델(D-2026-024) `[번복]`: Normal Hold는 lane 익명 수요, WideHold는 Normal 수요 이후 남는 키에 원자적 단일 소유. tail release 임계는 `HOLD_RELEASE_WINDOW_MS`(GOOD 창 + grace = 150ms)로 원본과 같다 `[보존]`(D-2026-039), Hold head MISS는 2단위(score/게이지) 즉시 확정. 전체 6키 total demand가 로컬 capacity를 통과해도 초과하면 global conflict.
 
 ### shape / lane / grid
 
@@ -163,7 +163,7 @@ D-2026-016을 해소했다(Accepted). `.cfx` 내부는 flat root + 전역 파일
 
 결정 역질의 축소판을 완료했다(D-2026-023). 근거 미기록 `[수정]`·`[신규]` 10건을 재확인해 전부 현행 유지로 확정했고, lane 서브모드 상태 상시 표기·mirror 축 0 고정과 클립보드 규칙의 근거 기록·`TEXT_FADE_MS` constants 이관 3건만 부수 변경으로 반영했다.
 
-judgment system을 key-demand 모델로 재설계했다(D-2026-024). Normal Hold를 lane별 익명 수요로, WideHold를 Normal 수요 이후 남는 키에 원자적 단일 소유로 관리한다. Hold release grace를 `HOLD_RELEASE_GRACE_MS=50`ms로 복원했고(구 GOOD 창 재사용 폐기), Hold head MISS는 score·게이지 2단위를 즉시 확정한다. 후보 매칭은 normal/wide 분리 풀을 폐기하고 단일 결정론적 순서로 통합했다. 로컬 lane/wide capacity를 모두 통과해도 물리 키 총수요가 6을 넘으면 global conflict로 잡는다. mid-start crossing-Hold 시드와 pause Resume의 비-재시드 재조정을 분리해 정의했다.
+judgment system을 key-demand 모델로 재설계했다(D-2026-024). Normal Hold를 lane별 익명 수요로, WideHold를 Normal 수요 이후 남는 키에 원자적 단일 소유로 관리한다. Hold release 임계를 `HOLD_RELEASE_GRACE_MS=50`ms로 적었고(→ **이 수치는 원본 오독이었다. D-2026-039에서 원본 실측대로 150ms로 정정**), Hold head MISS는 score·게이지 2단위를 즉시 확정한다. 후보 매칭은 normal/wide 분리 풀을 폐기하고 단일 결정론적 순서로 통합했다. 로컬 lane/wide capacity를 모두 통과해도 물리 키 총수요가 6을 넘으면 global conflict로 잡는다. mid-start crossing-Hold 시드와 pause Resume의 비-재시드 재조정을 분리해 정의했다.
 
 song-select를 전면 재설계했다(D-2026-025~029). 목록을 category 탭 / groupBy folder / sortKey·sortDir 세 축으로 나누고, 항목 모델을 song row + chart slot으로 정의해 전용 문서 `scene/song-select.md`로 분리했다. slot은 level·difficulty·state 램프를 함께 표시하며, 타이핑 즉시 검색·정렬 변경 시 커서 유지·preview 지연 재생·`lastSelected` 복원을 확정했다. records는 `bestJudgments`·`bestState`·`maxCombo` 3필드로 바뀌어 score·rank·accuracy가 파생이 됐고, `playCount`는 제거했다. chartId 고정 슬롯을 `1~5`로 확장해 Phase를 정규 난이도로 편입했다. 화면 상태 전용 `viewState` store를 신설해 스토어를 5분리했다. 함께 스펙 공백 7건(preview 재생·탭 백그라운드 auto-pause·로딩 표시 임계·단축키 preventDefault·text input focus 격리·저장 실패 표시·빈 library 안내)을 확정했다.
 

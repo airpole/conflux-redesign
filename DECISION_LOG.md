@@ -261,6 +261,7 @@
 - **Defined in:** `core/judge.md`, `core/data-model.md`, `core/constants.md`, `core/gauge.md`
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** judgment, runtime play state, gauge accounting, editor conflict validation, mid-start/pause Resume
+- **Amended:** tail release 임계 수치는 원본 오독이었다 — D-2026-039에서 `HOLD_RELEASE_WINDOW_MS`(GOOD 창 + grace = 150ms)로 정정했다. 나머지 결정은 유효하다.
 - **Supersedes:** None (replaces prior unlogged spec text)
 - **Commit:** this commit
 
