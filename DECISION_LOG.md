@@ -414,7 +414,7 @@
 - **Rationale:** `_rationale/rationale.md#hold-release-임계를-원본과-같은-150ms로-되돌린-이유`
 - **Affects:** judge, constants, naming, rationale, EXTRACTED_FACTS, tests/golden, src/core, README
 - **Supersedes:** None (D-2026-024의 tail 임계 수치를 정정)
-- **Commit:** `TBD`
+- **Commit:** `12c1afd`
 
 ```md
 ### D-YYYY-NNN — <Title>
