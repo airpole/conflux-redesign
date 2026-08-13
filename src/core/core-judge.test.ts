@@ -41,6 +41,9 @@ import {
   laneMapOf,
   normalDemand,
   reconcileHeldCapacity,
+  registerKeyDown,
+  registerKeyUp,
+  seedPlayStateAt,
   selectCandidate,
   toJudgeMs,
   type CandidateContext,
@@ -1083,5 +1086,281 @@ describe('무효 chart 런타임 폴백 (§12)', () => {
     const events = judged(judgeAdvance(s.state, s.context, at + WINDOW_GOOD_MS + 1, 0));
     expect(events).toEqual([expect.objectContaining({ judgment: 'MISS', units: 2 })]);
     expectInvariants(s);
+  });
+});
+
+// ── §9 카운트다운 등록 ──────────────────────────────────────
+
+describe('카운트다운 등록 진입점 (§9)', () => {
+  it('시각을 받지 않고 키 상태만 갱신한다 — 판정도 재조정도 없다', () => {
+    const s = scene([{ startTick: 0, lane: 2 }]);
+
+    registerKeyDown(s.state, 'key2');
+
+    expect(s.state.keysHeld.has('key2')).toBe(true);
+    expect(s.state.keyPressSerial.get('key2')).toBe(0);
+    expect(s.state.hits).toEqual(['pending']);
+    // 시간이 흐르지 않았다 — 진행 시각이 그대로다.
+    expect(s.state.nowMs).toBe(Number.NEGATIVE_INFINITY);
+  });
+
+  it('카운트다운 중 keyup이 tail을 자동 완료시키지 않는다 — 시각이 없으니 시간이 흐를 수 없다', () => {
+    const s = scene([{ startTick: 0, duration: T, lane: 2 }]);
+    judgeKeyDown(s.state, s.context, 'key2', s.msOf(0), 0);
+    expect(normalDemand(s.state, 2)).toBe(1);
+
+    // pause 상태. tail(500ms)을 한참 지난 실시간이 흘러도 이 경로는 시각을 모른다.
+    registerKeyUp(s.state, 'key2');
+    registerKeyDown(s.state, 'key4');
+
+    expect(s.state.hits).toEqual(['hit']);
+    expect(normalDemand(s.state, 2)).toBe(1);
+    expect(s.state.keysHeld).toEqual(new Set(['key4']));
+  });
+
+  it('반복 keydown은 press serial을 새로 매기지 않는다', () => {
+    const s = scene([{ startTick: 0, lane: 2 }]);
+
+    registerKeyDown(s.state, 'key2');
+    registerKeyDown(s.state, 'key4');
+    registerKeyDown(s.state, 'key2');
+
+    expect(s.state.keyPressSerial.get('key2')).toBe(0);
+    expect(s.state.keyPressSerial.get('key4')).toBe(1);
+    expect(s.state.nextPressSerial).toBe(2);
+  });
+
+  it('등록 keyup이 wide 소유 참조를 비운다', () => {
+    const s = scene([{ startTick: 0, duration: T * 4, lane: 1, isWide: true }]);
+    judgeKeyDown(s.state, s.context, 'key1', s.msOf(0), 0);
+    expect(s.state.wideOwnerKey).toBe('key1');
+
+    registerKeyUp(s.state, 'key1');
+
+    expect(s.state.wideOwnerKey).toBeNull();
+    // 활성 WideHold 자체는 남는다 — 해소는 anchor의 재조정 몫이다(§10).
+    expect(s.state.activeWideHold).toBe(0);
+  });
+
+  it('판정 경로가 같은 등록을 쓴다 — press serial이 한 열로 이어진다', () => {
+    const s = scene([{ startTick: 0, lane: 2 }]);
+
+    registerKeyDown(s.state, 'key1');
+    judgeKeyDown(s.state, s.context, 'key2', s.msOf(0), 0);
+
+    expect(s.state.keyPressSerial.get('key1')).toBe(0);
+    expect(s.state.keyPressSerial.get('key2')).toBe(1);
+  });
+});
+
+// ── §10 중간 시작 ───────────────────────────────────────────
+
+describe('중간 시작 시드 (§10, JD-7)', () => {
+  it('대장에 미커버로 등재돼 있다', () => {
+    expect(ledgerEntry('JD-7').relation).toBe('미커버');
+  });
+
+  it('anchor 이전 노트를 SYNC로 시드하고 combo를 쌓는다 — AP/FC 유효성이 보존된다', () => {
+    const s = scene([
+      { startTick: 0, lane: 1 },
+      { startTick: T, lane: 2 },
+      { startTick: T * 4, lane: 3 },
+    ]);
+
+    const events = judged(seedPlayStateAt(s.state, s.context, s.msOf(T * 2)));
+
+    expect(events).toEqual([
+      expect.objectContaining({ judgment: 'SYNC', part: 'tap', noteIndex: 0, diff: 0, units: 1 }),
+      expect.objectContaining({ judgment: 'SYNC', part: 'tap', noteIndex: 1, diff: 0, units: 1 }),
+    ]);
+    expect(s.state.hits).toEqual(['hit', 'hit', 'pending']);
+    expect(s.state.combo).toBe(2);
+  });
+
+  it('시드는 FAST/SLOW를 만들지 않는다 — diff가 0이다', () => {
+    const s = scene([{ startTick: 0, lane: 2 }]);
+
+    const events = seedPlayStateAt(s.state, s.context, s.msOf(T));
+
+    expect(events.filter((e) => e.kind === 'fastSlow')).toEqual([]);
+  });
+
+  it('anchor에서 시작하는 노트는 시드되지 않고 새 keydown이 필요하다', () => {
+    const s = scene([{ startTick: T, lane: 2 }]);
+    const anchor = s.msOf(T);
+
+    seedPlayStateAt(s.state, s.context, anchor);
+    expect(s.state.hits).toEqual(['pending']);
+
+    // 이미 눌려 있던 키로도 맞지 않는다 — 판정은 keydown에서만 일어난다.
+    expect(judged(judgeAdvance(s.state, s.context, anchor, 0))).toEqual([]);
+    expect(judged(judgeKeyDown(s.state, s.context, 'key2', anchor, 0))).toEqual([
+      expect.objectContaining({ judgment: 'SYNC', noteIndex: 0 }),
+    ]);
+  });
+
+  it('anchor에서 끝나는 Hold는 두 단위 모두 과거로 시드된다', () => {
+    const s = scene([{ startTick: 0, duration: T, lane: 2 }]);
+
+    const events = judged(seedPlayStateAt(s.state, s.context, s.msOf(T)));
+
+    expect(events.map((e) => e.part)).toEqual(['head', 'tail']);
+    expect(events.every((e) => e.judgment === 'SYNC')).toBe(true);
+    expect(normalDemand(s.state, 2)).toBe(0);
+    expect(s.state.combo).toBe(2);
+  });
+
+  it('crossing Hold는 head만 시드되고 잡고 있는 키로 활성 수요에 남는다', () => {
+    const s = scene([{ startTick: 0, duration: T * 4, lane: 2 }]);
+    const anchor = s.msOf(T);
+
+    registerKeyDown(s.state, 'key2');
+    const events = judged(seedPlayStateAt(s.state, s.context, anchor));
+
+    expect(events).toEqual([expect.objectContaining({ part: 'head', judgment: 'SYNC' })]);
+    expect(normalDemand(s.state, 2)).toBe(1);
+    expectInvariants(s);
+
+    // 남은 tail은 평소대로 자동 완료된다.
+    expect(judged(judgeAdvance(s.state, s.context, s.msOf(T * 4), 0))).toEqual([
+      expect.objectContaining({ part: 'tail', judgment: 'SYNC' }),
+    ]);
+  });
+
+  it('crossing Normal이 Wide보다 먼저 배정된다 — 시드 전용 배정 규칙이 없다(§6)', () => {
+    const s = scene([
+      { startTick: 0, duration: T * 4, lane: 2 },
+      { startTick: 0, duration: T * 4, lane: 1, isWide: true },
+    ]);
+
+    registerKeyDown(s.state, 'key2');
+    registerKeyDown(s.state, 'key1');
+    seedPlayStateAt(s.state, s.context, s.msOf(T));
+
+    expect(normalDemand(s.state, 2)).toBe(1);
+    expect(s.state.activeWideHold).toBe(1);
+    // key2는 Normal 수요에 묶여 있으므로 Wide는 key1이 가져간다.
+    expect(s.state.wideOwnerKey).toBe('key1');
+    expectInvariants(s);
+  });
+
+  it('유지할 키가 없는 crossing Hold의 tail은 §7 임계로 분류된다 — 멀면 MISS', () => {
+    const s = scene([{ startTick: 0, duration: T, lane: 2 }]);
+    const anchor = s.msOf(T) - HOLD_RELEASE_WINDOW_MS - 1;
+
+    const events = judged(seedPlayStateAt(s.state, s.context, anchor));
+
+    expect(events).toEqual([
+      expect.objectContaining({ part: 'head', judgment: 'SYNC' }),
+      expect.objectContaining({ part: 'tail', judgment: 'MISS' }),
+    ]);
+    expect(s.state.combo).toBe(0);
+  });
+
+  it('같은 임계 안쪽이면 잡고 있지 않아도 tail SYNC다 — tail 분류 규칙은 §7 하나뿐이다', () => {
+    const s = scene([{ startTick: 0, duration: T, lane: 2 }]);
+    const anchor = s.msOf(T) - HOLD_RELEASE_WINDOW_MS;
+
+    const events = judged(seedPlayStateAt(s.state, s.context, anchor));
+
+    expect(events).toEqual([
+      expect.objectContaining({ part: 'head', judgment: 'SYNC' }),
+      expect.objectContaining({ part: 'tail', judgment: 'SYNC' }),
+    ]);
+  });
+
+  it('시드가 판정 회계를 그대로 탄다 — 단위 합이 노트 단위와 같다', () => {
+    const s = scene([
+      { startTick: 0, lane: 1 },
+      { startTick: 0, duration: T, lane: 2 },
+    ]);
+
+    const events = judged(seedPlayStateAt(s.state, s.context, s.msOf(T * 2)));
+
+    // tap 1 + head 1 + tail 1 = 3단위.
+    expect(events.reduce((sum, e) => sum + e.units, 0)).toBe(3);
+  });
+
+  it('시드 뒤 진행 시각이 anchor다 — 이후 판정이 anchor에서 이어진다', () => {
+    const s = scene([{ startTick: T * 4, lane: 2 }]);
+    const anchor = s.msOf(T);
+
+    seedPlayStateAt(s.state, s.context, anchor);
+
+    expect(s.state.nowMs).toBe(anchor);
+  });
+
+  it('판정이 진행된 state로 부르면 던진다 — Resume 오배선이 조용히 통과하지 않는다', () => {
+    const s = scene([{ startTick: 0, lane: 2 }]);
+    judgeKeyDown(s.state, s.context, 'key2', s.msOf(0), 0);
+
+    expect(() => seedPlayStateAt(s.state, s.context, s.msOf(T))).toThrow(/판정이 이미 진행된/);
+  });
+
+  it('카운트다운 등록만 있는 state는 시드할 수 있다 — keysHeld는 사전조건이 아니다', () => {
+    const s = scene([{ startTick: 0, lane: 2 }]);
+    registerKeyDown(s.state, 'key2');
+
+    expect(() => seedPlayStateAt(s.state, s.context, s.msOf(T))).not.toThrow();
+  });
+});
+
+// ── §10 pause Resume ────────────────────────────────────────
+
+describe('pause Resume — 비-재시드 재조정 (§10, JD-7)', () => {
+  it('보존된 판정과 활성 Hold를 그대로 두고 anchor에서 재조정만 한다', () => {
+    const s = scene([
+      { startTick: 0, lane: 1 },
+      { startTick: 0, duration: T * 4, lane: 2 },
+    ]);
+    judgeKeyDown(s.state, s.context, 'key1', s.msOf(0), 0);
+    judgeKeyDown(s.state, s.context, 'key2', s.msOf(0), 0);
+
+    const anchor = s.msOf(T);
+    judgeAdvance(s.state, s.context, anchor, 0);
+    const before = [...s.state.hits];
+    const comboBefore = s.state.combo;
+
+    // Resume 카운트다운 — 키를 바꿔 잡는다. 시간은 흐르지 않는다.
+    registerKeyUp(s.state, 'key2');
+    registerKeyDown(s.state, 'key4');
+
+    const events = reconcileHeldCapacity(s.state, s.context, anchor);
+
+    expect(events).toEqual([]);
+    expect(s.state.hits).toEqual(before);
+    expect(s.state.combo).toBe(comboBefore);
+    expect(normalDemand(s.state, 2)).toBe(1);
+    expectInvariants(s);
+  });
+
+  it('Resume에서 놓아버린 Hold는 anchor에서 §7 임계로 해소된다', () => {
+    const s = scene([{ startTick: 0, duration: T * 4, lane: 2 }]);
+    judgeKeyDown(s.state, s.context, 'key2', s.msOf(0), 0);
+
+    const anchor = s.msOf(T);
+    judgeAdvance(s.state, s.context, anchor, 0);
+    registerKeyUp(s.state, 'key2');
+
+    const events = judged(reconcileHeldCapacity(s.state, s.context, anchor));
+
+    expect(events).toEqual([expect.objectContaining({ part: 'tail', judgment: 'MISS' })]);
+    expect(s.state.hits).toEqual(['hit']);
+  });
+
+  it('Resume이 과거 노트를 다시 시드하지 않는다 — 미스는 미스로 남는다', () => {
+    const s = scene([
+      { startTick: 0, lane: 1 },
+      { startTick: T * 4, lane: 2 },
+    ]);
+
+    const anchor = s.msOf(T);
+    judgeAdvance(s.state, s.context, anchor, 0);
+    expect(s.state.hits).toEqual(['missed', 'pending']);
+
+    reconcileHeldCapacity(s.state, s.context, anchor);
+
+    expect(s.state.hits).toEqual(['missed', 'pending']);
+    expect(s.state.combo).toBe(0);
   });
 });

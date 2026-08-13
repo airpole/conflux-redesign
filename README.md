@@ -138,10 +138,10 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M1-6 judge reconciliation — mid-start crossing-Hold 시드, pause Resume 재조정, global 6키 conflict
-- **Discussion Scope:** [[judge]] §10과 [[data-model]] §5.1의 global 검사. 미커버 JD-7·JD-5와 TM-5.
-- **Change Scope:** `src/core/core-judge.ts`와 그 테스트, overlap 검출이 붙는 자리
-- **Exit:** crossing Hold가 mid-start 시드로 복원된다. Resume이 재시드 없이 pause anchor에서 재조정한다. 로컬 capacity를 통과한 7-입력이 global conflict로 잡힌다
+- **Active unit:** M1-7 [[gauge]] — 6모드, terminate, cascade 병렬 평가, state·rank 산출
+- **Discussion Scope:** [[gauge]] 전체와 [[constants]] §2 게이지 델타. 미커버 GA-3·GA-4.
+- **Change Scope:** `src/core/core-gauge.ts`(신설)와 그 테스트, 골든 표 `gauge.json`
+- **Exit:** [[gauge]] §4 검증 시나리오 6종이 명시된 state를 낸다. rank가 gauge와 독립으로 나온다
 
 ### Completed
 
@@ -196,6 +196,12 @@ Hold 소유를 구현했다(M1-5, D-2026-039). Normal Hold는 lane의 익명 수
 같은 부류가 하나 더 나왔다. **구현이 `naming` §4를 다른 뜻으로 쓰고 있었다** — §4의 `hits`(note별 판정 상태)를 누적 개수 이름으로 쓰고 있었고, M1-4의 가드는 §3(상수)만 봐서 잡지 못했다. `hits`를 표의 뜻으로 되돌리고 누적 카운터는 judge에서 **제거**했다 — score·accuracy·게이지가 같은 단위를 쓴다는 계약(GA-5)의 실체는 `JudgmentEvent.units`이므로, judge가 합계를 따로 들면 두 수가 어긋날 자리가 생긴다. 가드 테스트를 §4 상태 필드까지 넓혔다.
 
 
+중간 시작과 Resume을 갈랐다(M1-6, D-2026-040). 카운트다운은 **시각을 인자로 받지 않는** 등록 진입점 `registerKeyDown`/`registerKeyUp`이 맡는다 — pause 중 keyup이 tail을 자동 완료시키는 배선이 만들어질 수 없다. 시간이 흐르지 않는다는 사실이 규율이 아니라 시그니처에 있다.
+
+`seedPlayStateAt`은 과거 노트를 SYNC로 놓고 crossing Hold를 활성 수요로 연 뒤 **나머지를 `reconcileHeldCapacity`에 넘긴다** — `judge` §10이 갖고 있던 시드 전용 배정 3단계가 §6과 문장까지 같은 말이어서 지웠다. 그 대가로 tail 분류 규칙이 §7 하나만 남고, anchor로부터 150ms 안쪽인 crossing Hold는 잡고 있지 않아도 tail SYNC가 된다 — 같은 사건에 두 개의 분류 규칙을 두는 것보다 낫다고 판단했다. 시드 판정은 다른 판정과 같은 이벤트 열로 나가므로 게이지·score가 별도 시드 경로를 갖지 않는다. Resume이 실수로 시드를 부르면 **조용히 이상해지는 대신 즉시 터진다**.
+
+**설계 대장의 배정 두 건을 옮겼다.** global 6키 conflict(JD-5)는 M1-6 → **M1-8**이다 — `data-model` §5.1의 global 부등식은 별도 패스가 아니라 로컬 검출과 같은 sweep 위의 합산이고, `judge` §11이 검출을 judge 밖으로 못박고 있어 judge step에 둘 자리가 없었다. TM-5(Resume leadIn 미적용)는 M1-6 → **M2-5**다 — core에는 상수 하나뿐이라 M1에서는 확인할 대상이 없었다. 배정만 있고 검증이 없는 행은 공백을 덮어 가린다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
@@ -203,7 +209,8 @@ Hold 소유를 구현했다(M1-5, D-2026-039). Normal Hold는 lane의 익명 수
 
 ### 다음 후보
 
-- M1-6 judge reconciliation (Current Focus)
+- M1-7 [[gauge]] (Current Focus)
+- M1-8 overlap/conflict 검출 — 로컬 sweep-line + global 6키(JD-5 이관분)
 - D-2026-021 사이클 (M3 진입 전)
 - UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
 - credits scene 표시 내용 채우기 (소형, M4-2 전)

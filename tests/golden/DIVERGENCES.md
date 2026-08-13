@@ -245,16 +245,22 @@ HOLD_RELEASE_GRACE_MS`를 직접 건다.
 | GA-2·GA-5 | Hold head MISS 2단위, 판정 단위 회계 통일 (`core-judge.test.ts` §8) | M1-5 |
 | JD-2 | key-demand Hold 모델 (`core-judge.test.ts` §5·§6) | M1-5 |
 | JD-6 | tail 자동완료·반개구간·같은 tick 순서 (`core-judge.test.ts` §7) | M1-5 |
-| TM-5 | Resume leadIn 미적용 | M1-6 |
-| JD-7 | mid-start 시드·anchor, Resume 비-재시드 | M1-6 |
-| JD-5 | global 6키 conflict | M1-6 |
+| JD-7 | mid-start 시드·anchor, Resume 비-재시드 (`core-judge.test.ts` §9·§10) | M1-6 |
 | GA-3 | state `P→F` 흡수와 best 순위 | M1-7 |
 | GA-4 | cascade 병렬 평가 (`gauge` §4 시나리오 6종) | M1-7 |
-| DM-3 | sweep-line overlap/conflict 검출 | M1-8 |
+| DM-3 | sweep-line overlap/conflict 검출 (로컬 capacity) | M1-8 |
+| JD-5 | global 6키 conflict (같은 sweep) | M1-8 |
+| TM-5 | Resume leadIn 미적용 | M2-5 |
 | SH-4 | symmetry 축 동적 스냅샷 | M5-4 |
 
-**25행이다.** M1의 9개 step 중 7개가 스펙 테스트를 요구한다 — 골든만으로 통과할
+**23행이다**(ID로는 30건). M1의 9개 step 중 7개가 스펙 테스트를 요구한다 — 골든만으로 통과할
 수 있는 step은 거의 없다.
+
+JD-5(global 6키)는 원래 M1-6에 있었으나 M1-8로 옮겼다(D-2026-040). global 부등식은
+별도 패스가 아니라 DM-3과 **같은 sweep 위에서** tick별 수요를 합산한 것이고, 검출은
+judge 밖(`data-model` §5.1)이라 judge step에 둘 자리가 없었다. TM-5(Resume leadIn
+미적용)는 core에 확인할 대상이 없어 — `leadIn`은 상수 하나이고 "Resume에 적용하지
+않는다"는 play loop의 성질이다 — 배선이 서는 M2-5로 옮겼다.
 
 ---
 

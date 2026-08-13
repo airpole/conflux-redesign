@@ -75,11 +75,14 @@
 | `seedPlayStateFromCurMs` | `seedPlayStateAt(nowMs)` | 중간 시작 시 과거 노트·crossing-Hold SYNC 시드 — pause Resume은 호출 안 함 | 수정‡ |
 | (신규) | `advanceJudgmentStateTo(nowMs)` | tail 자동완료·head 만료를 결정론적 시간 순서로 처리 | 신규 |
 | (신규) | `reconcileHeldCapacity(nowMs)` | Normal shortage 해소 → Wide owner 유지/이양/해소 | 신규 |
+| (신규) | `registerKeyDown(key)` / `registerKeyUp(key)` | 카운트다운 중 키 상태만 갱신 — **시각을 받지 않는다** | 신규§ |
 | `feedFastSlow` | `recordFastSlow` | Fast/Slow 피드백 기록 | 보존 |
 
 † TAIL_OK/TAIL_MISS 판정 종류를 폐기하고 SYNC/MISS로 통합 — **게이지 델타 포함 완전 통합**([[constants]] §2 `[수정]`, hard tail 특례 폐기). 함수는 남되 별도 judgment kind를 만들지 않는다. ([[glossary]] 판정 종류 참조)
 
 ‡ D-2026-024: crossing Hold는 Normal 우선·Wide 나머지로 anchor에서 재배정한다. 상세 → [[judge]] §10.
+
+§ D-2026-040: 중간 시작·Resume 카운트다운은 chart 시간이 흐르지 않는 구간이라 판정 진입점과 갈린다. 시각을 인자로 받지 않는 것이 그 사실의 표현이다. 상세 → [[judge]] §9.
 
 ### 게이지 / 결과
 | 현재 | 새 이름 | 역할 | 태그 |

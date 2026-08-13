@@ -659,6 +659,36 @@ function advanceJudgmentStateTo(
   return events;
 }
 
+// ── 카운트다운 등록 (§9) ────────────────────────────────────
+
+/**
+ * 카운트다운 중 keydown 하나를 등록한다(§9).
+ *
+ * **시각을 인자로 받지 않는다.** 중간 시작·pause Resume의 카운트다운은 chart 시간이
+ * 흐르지 않는 구간이고, 그 사실이 시그니처에 있으므로 이 경로로 들어온 입력이 tail을
+ * 자동 완료시키거나 head를 만료시킬 자리가 없다. 판정도 재조정도 하지 않는다 —
+ * 재조정은 anchor에서 한 번 일어난다(§10).
+ *
+ * 이미 눌려 있는 키의 반복 keydown은 무시한다(§5).
+ */
+export function registerKeyDown(state: JudgeState, key: LaneKeyId): void {
+  if (state.keysHeld.has(key)) return;
+
+  state.keysHeld.add(key);
+  state.keyPressSerial.set(key, state.nextPressSerial);
+  state.nextPressSerial += 1;
+}
+
+/**
+ * 카운트다운 중 keyup 하나를 등록한다(§9). `registerKeyDown`과 같은 이유로 시각을
+ * 받지 않는다.
+ */
+export function registerKeyUp(state: JudgeState, key: LaneKeyId): void {
+  state.keysHeld.delete(key);
+  state.keyPressSerial.delete(key);
+  if (state.wideOwnerKey === key) state.wideOwnerKey = null;
+}
+
 // ── 입력 경로 (§9) ──────────────────────────────────────────
 
 /**
@@ -693,9 +723,7 @@ export function judgeKeyDown(
   const nowMs = toJudgeMs(rawMs, visualOffset);
   const events = advanceJudgmentStateTo(state, context, nowMs);
 
-  state.keysHeld.add(key);
-  state.keyPressSerial.set(key, state.nextPressSerial);
-  state.nextPressSerial += 1;
+  registerKeyDown(state, key);
 
   const entry = selectCandidate(state, context, key, nowMs);
   if (entry) events.push(...commitJudgment(state, context, entry, nowMs));
@@ -717,10 +745,77 @@ export function judgeKeyUp(
   const nowMs = toJudgeMs(rawMs, visualOffset);
   const events = advanceJudgmentStateTo(state, context, nowMs);
 
-  state.keysHeld.delete(key);
-  state.keyPressSerial.delete(key);
-  if (state.wideOwnerKey === key) state.wideOwnerKey = null;
+  registerKeyUp(state, key);
 
   events.push(...reconcileHeldCapacity(state, context, nowMs));
+  return events;
+}
+
+// ── 중간 시작 (§10) ─────────────────────────────────────────
+
+/**
+ * `seedPlayStateAt`이 받을 수 없는 state를 문장으로 설명한다. 빈 배열이 정상이다.
+ *
+ * 시드는 **판정이 시작되기 전에만** 유효하다 — pause된 판을 시드하면 과거 노트가
+ * 두 번 계상되고 활성 Hold가 중복된다. `keysHeld`는 카운트다운 등록으로 이미 차
+ * 있을 수 있으므로 검사 대상이 아니다.
+ */
+function seedPreconditionViolations(state: JudgeState): string[] {
+  const violations: string[] = [];
+
+  if (state.hits.some((status) => status !== 'pending')) {
+    violations.push('이미 확정된 판정이 있다');
+  }
+  if (LANES.some((lane) => state.activeNormalHolds[lane].length > 0)) {
+    violations.push('활성 Normal Hold가 있다');
+  }
+  if (state.activeWideHold !== null) violations.push('활성 WideHold가 있다');
+  if (state.combo !== 0) violations.push('combo가 0이 아니다');
+
+  return violations;
+}
+
+/**
+ * 중간 시작 시드(§10). 0이 아닌 위치에서 판을 **시작**할 때 anchor에서 한 번 부른다.
+ *
+ * `startMs < anchorMs`인 노트를 SYNC로 시드하고, `tailMs <= anchorMs`면 tail까지 닫는다.
+ * anchor를 가로지르는 Hold(`startMs < anchorMs < tailMs`)는 head만 시드하고 활성 수요로
+ * 남긴 뒤, **배정과 해소는 `reconcileHeldCapacity`가 그대로 맡는다** — 시드 전용 배정
+ * 규칙도, 시드 전용 tail 분류도 두지 않는다(§6·§7과 같은 말이기 때문이다).
+ *
+ * 시드 판정은 다른 판정과 같은 이벤트 열로 나가므로 게이지·score·combo가 별도 시드
+ * 경로 없이 같은 회계를 받는다(§11). `diff`가 0이라 FAST/SLOW는 뜨지 않는다.
+ *
+ * pause Resume은 이 함수를 **부르지 않는다** — 보존된 활성 Hold에 대해
+ * `reconcileHeldCapacity(anchorMs)`만 실행한다(§10). 잘못된 배선이 조용히 통과하지
+ * 않도록 사전조건을 지키지 않는 state는 여기서 던진다.
+ */
+export function seedPlayStateAt(
+  state: JudgeState,
+  context: CandidateContext,
+  anchorMs: number,
+): JudgmentEvent[] {
+  const violations = seedPreconditionViolations(state);
+  if (violations.length > 0) {
+    throw new Error(`seedPlayStateAt: 판정이 이미 진행된 state다 — ${violations.join(', ')}`);
+  }
+
+  const events: JudgmentEvent[] = [];
+
+  // `ordered`는 startMs 오름차순이다(§1의 후보 순서). 시드는 전부 SYNC라 순서가 누적을
+  // 바꾸지 않지만, 결정론적 이벤트 열을 위해 이 순서를 그대로 쓴다.
+  for (const entry of context.notes.ordered) {
+    if (entry.startMs >= anchorMs) continue;
+
+    // `entry.startMs`를 넘겨 `diff = 0`을 만든다 — 시드는 판정 오차가 없다.
+    events.push(...commitJudgment(state, context, entry, entry.startMs));
+
+    if (entry.note.duration > 0 && entry.tailMs <= anchorMs) {
+      events.push(...closeTail(state, context, entry.index, entry.tailMs, 'SYNC'));
+    }
+  }
+
+  events.push(...reconcileHeldCapacity(state, context, anchorMs));
+  state.nowMs = anchorMs;
   return events;
 }

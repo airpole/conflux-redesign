@@ -244,7 +244,20 @@ combo 리셋은 1회만 실행한다 — 0을 두 번 만들어도 의미가 늘
 
 ### 진입 경계
 
-play loop의 프레임 진행·keydown·keyup 셋만이 judge의 진입점이며, **셋 다 raw 시각과 `visualOffset`을 받는다**(§1). 보정을 지나지 않은 시각이 judge 안으로 들어올 자리가 없다.
+play loop의 프레임 진행·keydown·keyup 셋만이 **판정하는** 진입점이며, **셋 다 raw 시각과 `visualOffset`을 받는다**(§1). 보정을 지나지 않은 시각이 judge 안으로 들어올 자리가 없다.
+
+### 카운트다운 등록 — 시간을 받지 않는 진입점 `[신규]`
+
+중간 시작과 pause Resume의 카운트다운 동안에는 chart 시간이 흐르지 않는데 키는 눌리고 떼진다(§10). 이 구간은 전용 진입점 한 쌍이 맡는다:
+
+```text
+registerKeyDown(key)   keysHeld·keyPressSerial만 갱신
+registerKeyUp(key)     keysHeld에서 제거, wideOwnerKey 참조 정리
+```
+
+**둘 다 시각을 인자로 받지 않는다.** 시간이 흐르지 않는다는 사실이 시그니처에 있으므로, 카운트다운 중 keyup이 tail을 자동 완료시키거나 head를 만료시킬 자리가 없다. 판정도 재조정도 하지 않는다 — 재조정은 anchor에서 한 번 일어난다(§10).
+
+`judgeKeyDown`·`judgeKeyUp`은 자기 순서의 등록 단계에서 이 둘을 그대로 쓴다 — 같은 사실을 두 벌로 두지 않는다.
 
 ### keydown
 
@@ -274,27 +287,25 @@ blur·stuck-key 복구는 합성 release를 같은 keyup 경로로 흘려보낸�
 
 ### 중간 시작(mid-start)
 
-0이 아닌 위치에서 플레이를 **시작**할 때(editor test 등), 3초 lead-in/countdown 동안:
+0이 아닌 위치에서 플레이를 **시작**할 때(editor test 등), 3초 lead-in/countdown 동안 lane 키는 §9의 `registerKeyDown`/`registerKeyUp`으로만 들어온다 — chart 시간이 흐르지 않으므로 head는 판정되지 않는다.
 
-- lane keydown/up이 `keysHeld`·press serial을 갱신한다;
-- chart head는 아직 판정하지 않는다.
+anchor 시각에 `seedPlayStateAt(anchorMs)`가 다음을 한다:
 
-anchor 시각에:
+1. `startMs < anchorMs`인 노트를 SYNC로 시드한다. Hold는 head가 SYNC이고, `tailMs <= anchorMs`면 tail도 같이 SYNC로 닫힌다.
+2. `startMs < anchorMs < tailMs`인 Hold(crossing Hold)는 head만 시드하고 활성 Hold 수요(§5)에 추가한다.
+3. `reconcileHeldCapacity(anchorMs)`를 실행한다 — 눌려 있는 키로 Normal 수요를 먼저 해소하고, 남는 eligible 키로 crossing WideHold를 배정하며, 유지될 수 없는 crossing Hold의 tail은 §7의 임계로 분류된다. **시드 전용 규칙을 따로 두지 않는다**(§6과 같은 말이다).
 
-1. anchor 이전에 완전히 끝난 노트는 SYNC로 시드한다.
-2. `headMs < anchorMs < tailMs`인 Hold는 head만 SYNC로 시드하고 활성 Hold 수요(§5)에 추가한다.
-3. 현재 눌려 있는 매칭 lane 키로 Normal crossing-Hold 수요를 먼저 해소한다.
-4. 남은 eligible held 키로 crossing WideHold를 배정한다(Normal이 먼저).
-5. anchor에서 유지될 수 없는 crossing Hold는 tail MISS 1개를 받는다.
-6. `headMs == anchorMs`인 노트는 미리 시드되지 않고 이미 눌려 있던 키로도 맞지 않는다 — 그 판정창 안에서 **새 keydown**이 필요하다.
+`startMs == anchorMs`인 노트는 시드되지 않고 이미 눌려 있던 키로도 맞지 않는다 — 그 판정창 안에서 **새 keydown**이 필요하다. anchor에서 끝나는 Hold는 두 단위 모두 과거로 시드되고, anchor에서 시작하는 Hold는 어느 단위도 시드되지 않는다.
 
-anchor에서 끝나는 Hold는 두 단위 모두 과거로 시드된다. anchor에서 시작하는 Hold는 어느 단위도 시드되지 않는다. AP/FC 유효성은 보존된다(과거 노트를 안 친 것으로 두면 FC가 깨지므로).
+시드된 판정은 다른 판정과 **같은 `JudgmentEvent` 열로 나간다** — 게이지·score·combo가 별도 시드 경로 없이 같은 회계를 받는다(§11). 시드의 `diff`는 0이라 FAST/SLOW는 뜨지 않는다. AP/FC 유효성은 보존된다(과거 노트를 안 친 것으로 두면 FC가 깨지므로).
+
+`seedPlayStateAt`은 **판정이 시작되기 전에만** 유효하다 — 확정된 판정이나 활성 Hold가 이미 있는 state로 부르면 실패한다. Resume이 실수로 시드를 부르는 배선이 조용히 통과하지 않는다.
 
 ### Pause Resume
 
-pause는 기존 head/tail 결과와 활성 Hold 컬렉션을 **그대로 보존**한다 — 중간 시작 시드 루틴을 호출하지 않는다.
+pause는 기존 head/tail 결과와 활성 Hold 컬렉션을 **그대로 보존**한다 — `seedPlayStateAt`을 호출하지 않는다.
 
-Resume 카운트다운 동안 lane 키 상태를 chart 시간 진행 없이 수집할 수 있다. 바뀌지 않은 pause anchor에서:
+Resume 카운트다운 동안 lane 키 상태는 §9의 등록 진입점으로 들어온다 — chart 시간은 진행하지 않는다. 바뀌지 않은 pause anchor에서:
 
 ```text
 reconcileHeldCapacity(anchorMs)
@@ -338,7 +349,8 @@ conflict가 있는 chart를 실행·기록할 수 있는지는 기존 conflict/p
 - [x] tail release 임계 = `HOLD_RELEASE_WINDOW_MS`(GOOD 창 + grace = 150) — 원본 실측과 같다 `[보존]`(D-2026-039). tail 자동완료·`[head,tail)`·같은 tick 순서(tail 먼저)는 `[번복]`
 - [x] Hold head MISS = 2단위 즉시 확정(score/accuracy/게이지 2회, combo reset 1회) `[번복]`
 - [x] `advanceJudgmentStateTo`/`reconcileHeldCapacity` 공용 연산, keydown/keyup 처리 순서 `[신규]`
-- [x] mid-start crossing-Hold 시드·anchor 규칙, pause Resume 비-재시드 `[번복]`
+- [x] 카운트다운 등록 진입점 `registerKeyDown`/`registerKeyUp` — 시각을 받지 않는다 `[신규]`
+- [x] mid-start crossing-Hold 시드·anchor 규칙, pause Resume 비-재시드 `[번복]`. 시드의 배정·해소는 §6 재조정이 그대로 맡고 tail 분류는 §7 하나뿐이다 — 시드 전용 규칙은 없다
 - [x] 전체 6키 global conflict는 domain 소관(§11) — 검출=domain, 표시=render
 - [x] 미러 laneMap 매핑 규칙 — §3 (`1↔4, 2↔3`, wide 제외) `[보존]`
 - [x] autoplay 히트음 — AudioContext에 **lookahead 150ms** 사전 스케줄(이진 탐색으로 창 내 노트만 순회), autoJudge는 silent로 판정만 반영(이중 재생 방지). 오케스트레이션 귀속은 game `[보존]`

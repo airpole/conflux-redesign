@@ -417,6 +417,17 @@
 - **Supersedes:** None (D-2026-024의 tail 임계 수치를 정정)
 - **Commit:** `12c1afd`
 
+### D-2026-040 — 중간 시작 시드, 카운트다운 등록 진입점, global conflict 재배치
+
+- **Status:** Accepted
+- **Decision:** 중간 시작·pause Resume의 카운트다운은 **시각을 인자로 받지 않는** 등록 진입점 `registerKeyDown`/`registerKeyUp`이 맡는다 `[신규]` — 시간이 흐르지 않는다는 사실이 시그니처에 있으므로 카운트다운 중 keyup이 tail을 자동 완료시킬 자리가 없다. 판정 경로도 자기 등록 단계에서 이 둘을 그대로 쓴다. `seedPlayStateAt(anchorMs)`는 `startMs < anchorMs`인 노트를 SYNC로 시드하고(`tailMs <= anchorMs`면 tail까지) crossing Hold는 head만 시드한 뒤, **배정·해소를 `reconcileHeldCapacity`에 그대로 넘긴다** — `judge` §10의 시드 전용 배정 3단계를 삭제했다(§6과 같은 말이었다). 그 귀결로 tail 분류 규칙은 §7 하나만 남고, anchor에서 `HOLD_RELEASE_WINDOW_MS` 안쪽인 crossing Hold는 잡고 있지 않아도 tail SYNC가 된다. 시드 판정은 다른 판정과 **같은 `JudgmentEvent` 열**로 나가 게이지·score·combo가 별도 시드 경로를 갖지 않는다. `seedPlayStateAt`은 확정된 판정·활성 Hold가 있는 state에서 **던진다** — Resume 오배선이 조용히 통과하지 않는다. **global 6키 conflict(JD-5)를 M1-6에서 M1-8로 옮겼다** — `data-model` §5.1의 global 부등식은 별도 패스가 아니라 로컬 검출(DM-3)과 같은 sweep 위의 합산이고, 검출은 judge 밖이라 judge step에 둘 자리가 없었다. TM-5(Resume leadIn 미적용)는 core에 확인할 대상이 없어 M2-5로 옮겼다.
+- **Defined in:** `core/judge.md` §9·§10·§13, `core/naming.md` §2, `_plan/build-order.md` §4, `tests/golden/DIVERGENCES.md` §7
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** judge, naming, build-order, tests/golden, src/core, README
+- **Supersedes:** None (D-2026-024가 정한 `judge` §10 시드 절차를 §6 재조정으로 접음)
+- **Commit:** this commit
+
+
 ```md
 ### D-YYYY-NNN — <Title>
 
