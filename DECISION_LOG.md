@@ -449,7 +449,7 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** data-model, naming, tests/golden, tools/golden, src/core, README
 - **Supersedes:** None (`data-model` §5.1의 활성구간 표기와 대장 DM-3 문구를 대체)
-- **Commit:** TBD
+- **Commit:** `532554d`
 
 
 ```md
