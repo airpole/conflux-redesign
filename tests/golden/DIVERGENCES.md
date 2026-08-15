@@ -130,18 +130,35 @@ score·accuracy·rank 산출(GA-7)은 셋 다 `[보존]`이면서도 골든이 �
 |---|---|---|---|---|---|
 | SH-1 | 좌표계 | 내부 0~64 저장 + `posToExt = 내부/4−8` 표시 변환 + `sp2f = 내부/64` render 변환 | 외부단위 -8~+8 단일 (저장=표시=입력) | **어긋남** | `shape` §3 |
 | SH-2 | init fallback | 비대칭 (Blue 0 / Red +2) | 대칭 (-2 / +2) | **어긋남** | `shape` §4 |
-| SH-3 | easing 종류 | `Linear` / `In` / `Out` / `InOut` 4종 | `Linear` / `In-Sine` / `Out-Sine` 3종 + `null`=anchor | **어긋남** | `shape` §2 |
+| SH-3 | 모르는 easing | 조용히 `Linear`로 떨어뜨리고 끝 | 같은 값으로 흘리되 domain 검증이 **보고**한다 | 미커버 | `shape` §5 |
 | SH-4 | symmetry 축 기본값 | (한때 "기본 0 고정"으로 바꾸려다 `[번복]`) 동적 중심 | 스냅 tick 시점의 체인 평균 + 드래그 −8~+8 | 미커버 | `shape` §6 |
+| SH-5 | `Arc` 곡선 | `ease()`에 네 번째 가지가 있다 (`sin(tπ)` — 올라갔다 제자리로) | 없다. `Arc`는 저장되지 않는 입력 호칭이고 저장값은 3종 + `null`뿐이다 | 없음 | `shape` §5 |
+| SH-6 | anchor가 여럿일 때 | 배열에 **먼저 적힌** anchor가 시작값이 된다 | **가장 이른 tick**의 anchor가 시작값이 된다 | **어긋남** | `shape` §4 |
 
 ### 범위
 
-- **SH-1**: `getShape`·`getLines`·`sp2f` 골든 값이 전부 구 좌표계 단위다.
-  값 자체가 아니라 **단위가 다르다** — 재구현 값에 `내부 = (외부+8)×4`를 적용하면
-  일치해야 한다. 변환이 성립하는지를 보는 것이 이 항목의 검증이다.
-- **SH-2**: `getShapeInit` 1건.
-- **SH-3**: `ease` 골든 28건 중 `InOut` 7건은 **대응물 없음**으로 떨어진다.
-  `In`/`Out` 14건은 이름만 바뀌었으므로(`In-Sine`/`Out-Sine`) 매핑 후 값이
-  일치해야 한다. `Linear` 7건은 `[보존]`.
+- **SH-1**: `getShape`·`sp2f` 골든 값이 전부 구 좌표계 단위다. 값 자체가 아니라
+  **단위가 다르다** — 재구현 값에 `내부 = (외부+8)×4`를 적용하면 일치해야 한다.
+  변환이 성립하는지를 보는 것이 이 항목의 검증이다.
+- **SH-2**: `noAnchor` fixture의 `getShapeInit`·`getShape` 5건.
+- **SH-3**: 골든은 `Nonsense` 3건으로 **값이 Linear로 떨어지는 것까지만** 잰다.
+  보고가 나오는지는 원본에 대응물이 없어 `core-validate.test.ts`가 판정한다.
+- **SH-5**: `ease` 골든 `Arc` 7건은 대조 상대가 없다. 저장 경로(`shape-input.js`)가
+  L/R·C·P 세 갈래 전부에서 `resolveArcEasing`을 거치므로 실제 차트에 `Arc`가
+  남지 않는다는 것이 실측이다 — 재설계는 그 사실을 타입으로 굳혔다.
+- **SH-6**: `anchorOrder` fixture 2건.
+
+### SH-3이 "easing 종류"가 아니게 된 이유
+
+이 행은 원래 `원본 Linear/In/Out/InOut 4종 → 재설계 3종`으로 적혀 있었고 관계도
+**어긋남**이었다. 원본을 직접 읽어 보니 그런 이름은 없다 — 원본 `ease()`의 가지는
+`Linear`/`In-Sine`/`Out-Sine`/`Arc`이고, 재설계가 저장하는 세 이름은 **원본과
+글자까지 같다**(D-2026-043).
+
+`In`/`Out`/`InOut`은 골든 추출기가 넘기던 인자였고, 원본은 목록에 없는 이름을
+예외 없이 Linear로 떨어뜨리므로 28건이 전부 같은 값으로 나왔다. 대장이 그 인자
+목록을 원본의 명세로 읽은 것이다. 표를 다시 뽑아 세 곡선이 실제로 갈리는 것을
+확인했고(`ease` 21건 일치), 남은 차이인 폴백 보고를 이 ID가 잇는다.
 
 ---
 
@@ -159,6 +176,7 @@ DM-1·DM-2·DM-4·DM-5는 골든 표가 없는 영역이지만 **core 계산이�
 | DM-4 | lane 데이터 구속 | 저장 시점에 구속 | 데이터 무구속(`targetPos` 실수, 역전·초과 허용), 구속은 gameplay 투영이 담당 | 미커버 | `lane-events` |
 | DM-5 | 검증 | 층 구분 없음 — 잘못된 값은 런타임까지 그대로 감 | structural(거부) / domain(보고) 2층, 무mutate, `schemaVersion` 불일치 거부 | 미커버 | `data-model` §11 |
 | DM-6 | conflict와 overlap이 겨룰 때 | 겨루는 자리가 없다 — lane 2·3은 overlap만, lane 1·4·Wide는 conflict만 낸다 | conflict가 세부 분류를 덮는다. group에 든 노트는 `hidden`이어도 conflict로 보인다 | 없음 | `data-model` §5.1 |
+| LE-1 | 구분선 데이터 모델 | `lineEvents` — 구분선 넷의 폭을 한 덩어리로 든다(`lines: [25,25,25,25]`). 편집 UI·렌더·게임 적용이 모두 미구현이고 실데이터도 균등 init 1개뿐이었다 | `laneEvents` — 구분선 1·2·3이 각각 독립 체인이고 shape와 같은 알고리즘을 탄다 | 없음 | `lane-events` §2·§6 |
 
 ### DM-3은 알고리즘 차이가 아니다
 
@@ -175,6 +193,17 @@ DM-1·DM-2·DM-4·DM-5는 골든 표가 없는 영역이지만 **core 계산이�
 계산 방식(pairwise → sweep) 자체는 2겹 결과가 같으므로 대장 행이 아니라
 `data-model` §5.1의 `[수정]` 태그가 담는다 — 관계 세 표기 중 어디에도 들어가지
 않는 자리다.
+
+### LE-1이 `없음`인 이유
+
+`lineEvents`와 `laneEvents`는 이름만 다른 같은 것이 아니다. 원본은 구분선 넷의
+**폭**을 한 배열로 들었고 재설계는 구분선 셋의 **위치**를 각각의 체인으로 든다 —
+개수도, 무엇을 재는지도, 몇 덩어리인지도 다르다. 골든 `getLines` 값을 재설계
+값으로 옮기는 변환이 성립하지 않으므로 대조 상대가 없다.
+
+이 자리가 `없음`인 것은 `lane-events` 문서 전체가 `[신규]`인 것과 같은 사실이다.
+M1-9에서 `shape.json`을 다시 뽑을 때 `getLines`·`getLinesInit` 11건을 표에서 뺐다 —
+대조할 수 없는 값을 표에 두면 "확인했다"는 착각만 남는다(D-2026-043).
 
 DM-6이 `없음`인 것도 같은 조사에서 나왔다. 원본은 풀마다 낼 수 있는 표시 종류가
 갈려 있어(lane 2·3 = overlap 계열, lane 1·4·Wide = `invalid`) **두 종류가 한 노트를
@@ -293,9 +322,10 @@ HOLD_RELEASE_GRACE_MS`를 직접 건다.
 | DM-6 | conflict가 세부 분류를 덮는 우선순위 (`core-overlap.test.ts` §5) | M1-8 |
 | JD-5 | global 6키 conflict (같은 검사 지점, `core-overlap.test.ts` §4) | M1-8 |
 | TM-5 | Resume leadIn 미적용 | M2-5 |
+| SH-3 | 모르는 easing 폴백 보고 (`core-validate.test.ts`) | M1-9 |
 | SH-4 | symmetry 축 동적 스냅샷 | M5-4 |
 
-**26행이다**(ID로는 34건). M1의 9개 step 중 8개가 스펙 테스트를 요구한다 — 골든만으로 통과할
+**27행이다**(ID로는 35건). M1의 9개 step 중 8개가 스펙 테스트를 요구한다 — 골든만으로 통과할
 수 있는 step은 거의 없다.
 
 DM-3은 M1-8에서 `overlap.json`이 생기며 `미커버` → `어긋남`이 됐다. 위 표에 남는 이유는

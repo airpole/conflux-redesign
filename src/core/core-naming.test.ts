@@ -26,6 +26,41 @@ const SRC_DIR = fileURLToPath(new URL('../', import.meta.url));
  */
 const PENDING: Readonly<Record<string, string>> = {};
 
+/**
+ * §2의 함수 중 아직 짓지 않은 것과 담당 step. 같은 규칙 — 지으면 여기서 지운다.
+ *
+ * §2는 M1 밖 이름을 많이 담는다. render층·editor 커맨드가 그것인데, 목록이 길다는
+ * 사실 자체가 정보다 — 이 이름들이 언제 서는지가 한자리에 보인다.
+ */
+const PENDING_FUNCTIONS: Readonly<Record<string, string>> = {
+  // render (M2)
+  scrollYAt: 'M2-2',
+  noteColor: 'M2-2',
+  noteHeadColorAt: 'M2-2',
+  noteSkin: 'M2-2',
+  setNoteSkin: 'M2-2',
+  drawNoteHead: 'M2-2',
+  buildFieldSamplePoints: 'M2-2',
+  shapePosToField: 'M2-2',
+  recordFastSlow: 'M2-4',
+  // editor (M5)
+  normalizeShapeChain: 'M5-4',
+  runCommand: 'M5-1',
+  dispatch: 'M5-1',
+  undo: 'M5-1',
+  redo: 'M5-1',
+  canUndo: 'M5-1',
+  canRedo: 'M5-1',
+  clearHistory: 'M5-1',
+  MirrorNotes: 'M5-2',
+  MirrorShapeEvents: 'M5-4',
+  AddLaneEvents: 'M5-4',
+  DeleteLaneEvents: 'M5-4',
+  MutateLaneEvents: 'M5-4',
+  EditTempo: 'M5-3',
+  AddTimeSignature: 'M5-3',
+};
+
 /** §4의 상태 필드 중 아직 짓지 않은 것. 같은 규칙 — 지으면 여기서 지운다. */
 const PENDING_FIELDS: Readonly<Record<string, string>> = {
   fastCount: 'M2',
@@ -34,9 +69,12 @@ const PENDING_FIELDS: Readonly<Record<string, string>> = {
   laneGridDivisor: 'M5',
 };
 
+const FUNCTION_SECTION_HEADING = '## 2. 함수 대응표 (현재 → 새 이름)';
 const SECTION_HEADING = '## 3. 상수 / 테이블 대응표';
 const FIELD_SECTION_HEADING = '## 4. 상태 객체 / 필드 대응표';
 const IDENTIFIER = /`([A-Z][A-Z0-9_]{2,})`/g;
+/** §2는 `` `shapeGeometryAt(tick)` `` 꼴로 적는다 — 백틱 뒤 첫 식별자만 본다. */
+const FUNCTION_IDENTIFIER = /`([A-Za-z][A-Za-z0-9]*)\b/g;
 /** §4는 `playState.foo`·`editorState.foo` 형태로 필드를 적는다. */
 const FIELD_IDENTIFIER = /`(?:playState|editorState)\.([A-Za-z][A-Za-z0-9]*)`/g;
 
@@ -108,6 +146,44 @@ function declaredFields(): string[] {
   return [...fields].sort();
 }
 
+/**
+ * `naming.md` §2의 "새 이름" 열에서 함수·커맨드 이름을 뽑는다.
+ *
+ * M1-4가 상수 이탈을, M1-5가 상태 필드 이탈을 드러냈을 때 §2에는 기계 대조가
+ * 없었다. M1-9가 §2의 이름을 한 번에 다섯 개 넘게 지으므로 여기서 같은 가드를
+ * 건다(D-2026-043). 세우자마자 judge 세 자리가 표와 어긋나 있는 것이 드러났고,
+ * 그것은 표를 고치는 쪽으로 정리했다 — 조건은 `_rationale/rationale.md`.
+ */
+function declaredFunctions(): string[] {
+  const text = readFileSync(NAMING_PATH, 'utf8');
+  const start = text.indexOf(FUNCTION_SECTION_HEADING);
+  expect(
+    start,
+    `${FUNCTION_SECTION_HEADING}을 찾지 못했다 — 파서가 서식과 어긋났다`,
+  ).toBeGreaterThan(-1);
+
+  const body = text.slice(start).split('\n## ')[0]!;
+  const names = new Set<string>();
+
+  for (const line of body.split('\n')) {
+    if (!line.trimStart().startsWith('|')) continue;
+
+    const cells = line
+      .replace(/^\s*\|/, '')
+      .replace(/\|\s*$/, '')
+      .split('|')
+      .map((cell) => cell.trim());
+    if (cells.length < 2) continue;
+
+    const renamed = cells[1] ?? '';
+    // 폐기·제거된 자리와 다른 레이어로 넘긴 자리는 이름이 남지 않는다.
+    if (/폐기|제거|흡수|폐지/.test(renamed)) continue;
+
+    for (const match of renamed.matchAll(FUNCTION_IDENTIFIER)) names.add(match[1]!);
+  }
+  return [...names].sort();
+}
+
 /** `src/` 전체의 소스 텍스트. 레이어를 가리지 않고 이름의 존재만 본다. */
 function sourceText(): string {
   const chunks: string[] = [];
@@ -145,6 +221,55 @@ function mentions(source: string, name: string): boolean {
 function declaresField(source: string, name: string): boolean {
   return new RegExp(`(^|[^.\\w])${name}\\??\\s*:`, 'm').test(source);
 }
+
+/**
+ * 함수는 **정의**를 찾되 `export`를 요구하지 않는다 — `advanceJudgmentStateTo`처럼
+ * 모듈 안에만 사는 것도 §2가 이름을 정한 개념이다. 커맨드는 `const`로 설 수 있어
+ * 둘 다 받는다.
+ */
+function definesFunction(source: string, name: string): boolean {
+  return new RegExp(`(function|const|class)\\s+${name}\\b`).test(source);
+}
+
+describe('함수 대응표 (naming §2) ↔ 구현', () => {
+  const names = declaredFunctions();
+  const source = sourceText();
+
+  it('표에서 함수 이름을 읽어낸다 — 파서가 서식과 어긋나면 조용히 통과하지 않는다', () => {
+    expect(names.length).toBeGreaterThan(30);
+    expect(names).toContain('shapeGeometryAt');
+    expect(names).toContain('laneLayoutAt');
+    expect(names).toContain('applyEasing');
+    expect(names).toContain('buildTimeline');
+  });
+
+  it('표가 정한 이름을 구현이 그대로 쓴다', () => {
+    const missing = names.filter(
+      (name) => !(name in PENDING_FUNCTIONS) && !definesFunction(source, name),
+    );
+
+    expect(
+      missing,
+      `naming §2가 정한 함수 이름이 구현에 없다. 구현을 표에 맞추거나, 표가 뒤에 알게 된 ` +
+        `사실을 못 담고 있다면 naming §2를 먼저 고친다 — 어느 쪽인지 판별하는 조건은 ` +
+        `_rationale/rationale.md "표를 고치는 조건"이다.`,
+    ).toEqual([]);
+  });
+
+  it('PENDING_FUNCTIONS 목록이 낡지 않았다 — 지어놓고 지우지 않으면 실패한다', () => {
+    const built = Object.keys(PENDING_FUNCTIONS).filter((name) => definesFunction(source, name));
+
+    expect(
+      built,
+      `PENDING_FUNCTIONS에 있는 이름이 구현에 나타났다. 해당 step이 끝났다면 목록에서 지운다.`,
+    ).toEqual([]);
+  });
+
+  it('대기 목록의 이름이 전부 표에 실재한다 — 목록이 표와 어긋나지 않는다', () => {
+    const orphans = Object.keys(PENDING_FUNCTIONS).filter((name) => !names.includes(name));
+    expect(orphans, 'PENDING_FUNCTIONS에 표에 없는 이름이 있다').toEqual([]);
+  });
+});
 
 describe('명칭 대응표 (naming §3) ↔ 구현', () => {
   const names = declaredNames();

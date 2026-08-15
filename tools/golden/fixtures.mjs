@@ -137,17 +137,88 @@ export const overlapFixtures = {
   },
 };
 
-// shape / lane 체인 — easing 3종과 anchor
+// shape 체인 — 원본 `shape.js`의 필드명(`isBlue`/`targetPos`)과 easing 이름
+// (`Linear`/`In-Sine`/`Out-Sine`)을 그대로 쓴다.
+//
+// 이전 판은 이벤트에 `blue: [10,20,30,40]` 같은 배열을 넣고 easing에
+// `In`/`Out`/`InOut`을 넘겼다. 원본에는 그런 필드도 그 easing 이름도 없어서,
+// 두 체인이 통째로 "비었다"고 판정되고 easing은 전부 기본 가지(Linear)로
+// 떨어졌다 — 58건 중 체인 보간을 대조하는 값이 0건이었다(D-2026-043).
+//
+// 위치는 원본 내부단위 0~64다. 재설계 외부단위와는 `내부 = (외부+8)×4`로 이어진다.
 export const shapeFixtures = {
+  // 두 체인 + easing 3종 + 즉시점프. 표본 tick이 보간 **도중**을 지난다.
   chain: {
     shapeEvents: [
-      { startTick: 0,     duration: T,     easing: 'Linear', blue: [10, 20, 30, 40], red: [50, 60, 70, 80] },
-      { startTick: T * 2, duration: T * 2, easing: 'InOut',  blue: [40, 30, 20, 10], red: [80, 70, 60, 50] },
-      { startTick: T * 5, duration: 0,     easing: 'Linear', blue: [0, 0, 0, 0],     red: [64, 64, 64, 64] },
+      { startTick: 0,     duration: 0,     isBlue: true,  targetPos: 24, easing: null },
+      { startTick: 0,     duration: 0,     isBlue: false, targetPos: 44, easing: null },
+      { startTick: T,     duration: T,     isBlue: true,  targetPos: 8,  easing: 'Out-Sine' },
+      { startTick: T * 3, duration: T,     isBlue: true,  targetPos: 40, easing: 'In-Sine' },
+      { startTick: T,     duration: T * 2, isBlue: false, targetPos: 60, easing: 'Linear' },
+      { startTick: T * 4, duration: 0,     isBlue: false, targetPos: 32, easing: 'Linear' },
     ],
-    lineEvents: [
-      { startTick: 0,     duration: 0, lines: [25, 25, 25, 25] },
-      { startTick: T * 3, duration: T, lines: [10, 20, 30, 40] },
+  },
+
+  // anchor가 없는 체인 — 기본 기하로 떨어진다 (원본 Blue 32 / Red 40).
+  noAnchor: {
+    shapeEvents: [
+      { startTick: T, duration: T, isBlue: true, targetPos: 0, easing: 'Linear' },
+    ],
+  },
+
+  // 체인 한가운데 anchor. 원본은 이것을 **무시한다** — 걸러내고 쳐다보지 않는다.
+  midAnchor: {
+    shapeEvents: [
+      { startTick: 0,     duration: 0, isBlue: true, targetPos: 10, easing: null },
+      { startTick: T,     duration: T, isBlue: true, targetPos: 50, easing: 'Linear' },
+      { startTick: T * 3, duration: 0, isBlue: true, targetPos: 0,  easing: null },
+      { startTick: T * 4, duration: T, isBlue: true, targetPos: 64, easing: 'Linear' },
+    ],
+  },
+
+  // anchor가 둘. 원본은 tick이 이른 쪽이 아니라 **배열에 먼저 적힌** 쪽을 쓴다.
+  anchorOrder: {
+    shapeEvents: [
+      { startTick: T * 8, duration: 0, isBlue: true, targetPos: 5,  easing: null },
+      { startTick: 0,     duration: 0, isBlue: true, targetPos: 60, easing: null },
+    ],
+  },
+
+  // 같은 tick에 즉시점프와 보간. 즉시점프가 먼저 서고 보간이 그 값에서 출발한다.
+  sameTick: {
+    shapeEvents: [
+      { startTick: 0, duration: 0, isBlue: true, targetPos: 0,  easing: null },
+      { startTick: T, duration: T, isBlue: true, targetPos: 64, easing: 'Linear' },
+      { startTick: T, duration: 0, isBlue: true, targetPos: 32, easing: 'Linear' },
+    ],
+  },
+
+  // 즉시점프가 잇달아 셋. 순회를 끊지 않고 차례로 다 걸린다.
+  steps: {
+    shapeEvents: [
+      { startTick: 0,     duration: 0, isBlue: true, targetPos: 0,  easing: null },
+      { startTick: T,     duration: 0, isBlue: true, targetPos: 20, easing: 'Linear' },
+      { startTick: T * 2, duration: 0, isBlue: true, targetPos: 40, easing: 'Linear' },
+      { startTick: T * 3, duration: 0, isBlue: true, targetPos: 60, easing: 'Linear' },
+    ],
+  },
+
+  // 긴 보간 안에 짧은 보간이 들어앉는다. 진행 중인 것을 만나면 거기서 끝내므로
+  // 안쪽 이벤트는 바깥이 끝난 뒤에야 값을 낸다.
+  overlapping: {
+    shapeEvents: [
+      { startTick: 0,     duration: 0,     isBlue: true, targetPos: 0,  easing: null },
+      { startTick: T,     duration: T * 4, isBlue: true, targetPos: 64, easing: 'Linear' },
+      { startTick: T * 2, duration: T,     isBlue: true, targetPos: 32, easing: 'Linear' },
+    ],
+  },
+
+  // Arc 입력 교번 — 직전 동색 보간의 easing이 다음 선택을 정한다.
+  arc: {
+    shapeEvents: [
+      { startTick: 0,     duration: 0, isBlue: true, targetPos: 0,  easing: null },
+      { startTick: T,     duration: T, isBlue: true, targetPos: 20, easing: 'Out-Sine' },
+      { startTick: T * 3, duration: T, isBlue: true, targetPos: 40, easing: 'In-Sine' },
     ],
   },
 };

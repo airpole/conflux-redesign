@@ -452,6 +452,18 @@
 - **Commit:** `532554d`
 
 
+### D-2026-043 — 체인 보간과 anchor 정의, 골든 shape 재추출
+
+- **Status:** Accepted
+- **Decision:** `buildFieldGeometry(chart)`가 shape·lane 다섯 체인을 한 번에 만들고 나머지 함수가 그것을 인자로 받는다(`buildTimeline`과 같은 형태). **shape와 lane은 한 구현이다** — 선택자와 좌표계만 다르고 평가는 글자 그대로 같아, 문서가 `shape` §4를 단일 출처로 삼은 구조를 코드가 그대로 반영한다. **anchor는 체인의 시작값 하나다** `[보존]` — `startTick`도 `duration`도 보지 않으므로 시작값이 음수 tick에도 유효하고, 중간 anchor는 아무 일도 하지 않는다. anchor가 여럿이면 **가장 이른 tick**의 것이 이긴다 `[수정]`(원본은 배열 순서 — 대장 SH-6): 배열 순서에 기대면 같은 chart를 다시 저장하는 것만으로 모양이 바뀐다. 같은 tick 정렬은 **`duration 0`이 먼저** `[보존]` — 이 순서가 값을 바꾼다(즉시점프 32 뒤 보간이면 중간값 48, 아니면 32). 목록 밖 easing은 Linear로 흐르되 domain 검증이 **보고**한다 `[수정]`(대장 SH-3). `isStepTick`·`stepTicks`·`resolveArcEasing`을 함께 지어 "저장 안 되는 입력 호칭"(Step·Arc) 두 개가 한자리에서 닫혔다.
+- **Amends:** **골든 `shape.json`이 사실상 빈 표였다.** 픽스처가 원본에 없는 필드(`blue: [10,20,30,40]`)를 써서 원본이 두 체인을 "비었다"고 판정했고, `getShape` 아홉 건이 전부 `{left: 32, right: null}`이었다 — 체인 보간을 대조하는 값이 **0건**이었다. easing도 추출기가 `In`/`Out`/`InOut`을 넘겼는데 원본의 실제 가지는 `Linear`/`In-Sine`/`Out-Sine`/`Arc`라, 28건이 전부 기본 가지(Linear)로 떨어졌다 — In-Sine·Out-Sine은 한 번도 측정된 적이 없었다. 하네스의 빈 표 방어는 "전부 비었는가"만 보므로 절반이 빈 표를 통과시켰다. 픽스처 8종으로 다시 뽑아 117건이 됐고 표본 tick에 보간 **도중** 지점을 넣었다(끝점만 재면 어떤 곡선을 써도 값이 같다). 하네스 `loadChart`가 fixture 교체 시 원본 캐시를 비우지 않던 것도 함께 고쳤다 — 이전 추출기는 fixture가 하나라 드러나지 않았다. 대장 **SH-3을 재정의**했다(원본 easing 4종이라는 서술은 추출기 인자 목록을 원본 명세로 읽은 것이었다 — 세 이름은 원본과 글자까지 같아 `[보존]`이다). `Arc` 가지를 **SH-5(`없음`)**, anchor 선택을 **SH-6(`어긋남`)**, 폐기된 `lineEvents` 모델을 **LE-1(`없음`)**으로 신설했다. **`overlap.json`이 `TABLES` 목록에 없어 M1-8 이후 아무 가드도 받지 않고 있었고**, 지문이 다른 표와 어긋난 것도 그래서 드러나지 않았다 — 전 표를 같은 원본에서 다시 뽑았고 기대값은 전부 동일했다. 명칭 가드를 `naming` §2(함수)까지 넓혔고, 세우자마자 드러난 judge 3자리는 **표를 고치는 쪽으로** 정리했다(`judgeKeyDown`/`judgeKeyUp`, `closeTail`) — 구현이 표보다 뒤에 알게 된 사실을 담고 있는 경우이며, 그 판별 조건을 `_rationale`에 못박았다.
+- **Defined in:** `core/shape.md` §4·§5·§8, `core/lane-events.md` §6·§7, `core/naming.md` §2, `tests/golden/DIVERGENCES.md` §3·§4·§7
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** shape, lane-events, naming, tests/golden, tests/support, tools/golden, src/core, README
+- **Supersedes:** None (`shape` §4 anchor 서술과 대장 SH-3 문구를 대체)
+- **Commit:** `TBD`
+
+
 ```md
 ### D-YYYY-NNN — <Title>
 

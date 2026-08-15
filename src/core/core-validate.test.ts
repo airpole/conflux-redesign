@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ledgerEntry } from '../../tests/support/divergences.js';
 import { makeChart } from './core-chart-fixture.js';
-import { type Chart, type Lane } from './core-chart.js';
+import { type Chart, type Easing, type Lane } from './core-chart.js';
 import { validateChartDomain, validateChartStructure } from './core-validate.js';
 
 const paths = (issues: readonly { path: string }[]): string[] => issues.map((i) => i.path);
@@ -181,5 +181,78 @@ describe('DM-1·DM-2 — chart 하나가 계산에 필요한 전부를 소유한
 
     expect(validateChartDomain.length).toBe(1);
     expect(single(makeChart())).toEqual({ issues: [] });
+  });
+});
+
+describe('SH-3 — 조용히 사라지는 체인 데이터를 보고한다', () => {
+  it('목록 밖 easing을 보고한다 — 평가는 Linear로 흘러 값이 멀쩡해 보인다', () => {
+    expect(ledgerEntry('SH-3').relation).toBe('미커버');
+
+    const chart = makeChart({
+      shapeEvents: [
+        { startTick: 0, duration: 0, isBlue: true, targetPos: -2, easing: null },
+        {
+          startTick: 480,
+          duration: 480,
+          isBlue: true,
+          targetPos: 2,
+          easing: 'InOut' as unknown as Easing,
+        },
+      ],
+    });
+    expect(paths(validateChartDomain(chart).issues)).toContain('shapeEvents[1].easing');
+  });
+
+  it('구분선의 목록 밖 easing도 같이 본다', () => {
+    const chart = makeChart({
+      laneEvents: [
+        {
+          startTick: 0,
+          duration: 480,
+          lineNum: 2,
+          targetPos: 0.5,
+          easing: 'Bounce' as unknown as Easing,
+        },
+      ],
+    });
+    expect(paths(validateChartDomain(chart).issues)).toContain('laneEvents[0].easing');
+  });
+
+  it('한 체인에 anchor가 둘이면 보고한다 — 늦은 쪽은 흔적 없이 사라진다', () => {
+    const chart = makeChart({
+      shapeEvents: [
+        { startTick: 0, duration: 0, isBlue: true, targetPos: -2, easing: null },
+        { startTick: 960, duration: 0, isBlue: true, targetPos: 5, easing: null },
+      ],
+    });
+    const issues = validateChartDomain(chart).issues;
+    expect(paths(issues)).toContain('shapeEvents');
+    expect(issues.some((issue) => issue.message.includes('blue'))).toBe(true);
+  });
+
+  it('체인이 다르면 anchor가 하나씩인 것은 정상이다', () => {
+    const chart = makeChart({
+      shapeEvents: [
+        { startTick: 0, duration: 0, isBlue: true, targetPos: -2, easing: null },
+        { startTick: 0, duration: 0, isBlue: false, targetPos: 2, easing: null },
+      ],
+      laneEvents: [
+        { startTick: 0, duration: 0, lineNum: 1, targetPos: 0.25, easing: null },
+        { startTick: 0, duration: 0, lineNum: 2, targetPos: 0.5, easing: null },
+        { startTick: 0, duration: 0, lineNum: 3, targetPos: 0.75, easing: null },
+      ],
+    });
+    expect(validateChartDomain(chart).issues).toEqual([]);
+  });
+
+  it('구분선 체인의 anchor 중복도 본다', () => {
+    const chart = makeChart({
+      laneEvents: [
+        { startTick: 0, duration: 0, lineNum: 3, targetPos: 0.75, easing: null },
+        { startTick: 480, duration: 0, lineNum: 3, targetPos: 0.9, easing: null },
+      ],
+    });
+    const issues = validateChartDomain(chart).issues;
+    expect(issues.some((issue) => issue.message.includes('line3'))).toBe(true);
   });
 });

@@ -9,7 +9,8 @@
     "play-state.js": "ad50bb6789ba",
     "gauge.js": "597a62a3a6cd",
     "play-judgment.js": "5ff739b127fd",
-    "settings.js": "774909ad6b59"
+    "settings.js": "774909ad6b59",
+    "overlaps.js": "308a81a10d87"
   },
   "extractedBy": "tools/golden/extract-constants.mjs",
   "note": "원본에서 뜬 관측 자료. 손으로 고치지 않고 재생성한다.",

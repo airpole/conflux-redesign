@@ -61,28 +61,33 @@
 | `normalizeShapeChain` | `normalizeShapeChain` (유지 가능) | shape 이벤트 체인 정규화 | 보존 |
 | `sp2f(...)` | `shapePosToField(...)` | shape 외부단위(-8~+8) → 필드 좌표 (구 내부0~64) | 수정 |
 | `getStepTicks` / `isStepTick` | `stepTicks` / `isStepTick` | step(즉시점프) 이벤트 틱 | 보존 |
-| `applyEasing(t, type)` | `applyEasing(t, easing)` | easing 곡선 적용 (linear/arc/inSine/outSine 등) | 보존 |
+| `ease(from, to, t, type)` | `applyEasing(t, easing)` | easing 곡선을 **진행률에** 적용 — 위치 보간은 부르는 쪽이 한다 | 수정 |
+| (신규) | `buildFieldGeometry(chart)` | shape·lane 다섯 체인의 파생 객체. 캐시·수동 무효화 폐기 → [[shape]] §4 | 신규 |
 
 \* `laneLayoutAt`은 무구속 상대 실수를 반환한다. px 변환과 경계·순서·최소 간격 구속은 gameplay render의 투영 단계가 담당한다. 전체 설계 → [[lane-events]].
 
 ### 판정 / 입력
 | 현재 | 새 이름 | 역할 | 태그 |
 |---|---|---|---|
-| `getPlayJudgment(ch, ms)` | `judgeKeyPress(key, nowMs)` | 키 입력에 대한 판정 후보 산출 | 보존 |
+| `getPlayJudgment(ch, ms)` | `judgeKeyDown(key, rawMs)` / `judgeKeyUp(key, rawMs)` | 키 누름·뗌의 판정 진입 경계 | 수정‖ |
 | `applyJudgment` | `commitJudgment` | 판정 확정 → 상태 반영 | 보존 |
-| `applyTailSuccess` | `commitTailRelease` | hold tail 릴리즈 성공 → **SYNC로 처리** | 수정† |
-| `applyMidRelease` | `commitMidRelease` | hold 중간 릴리즈 → **MISS로 처리** | 수정† |
+| `applyTailSuccess` / `applyMidRelease` | `closeTail(index, ms, judgment)` | hold tail을 닫는다 — 성공은 SYNC, 중간 릴리즈는 MISS로 같은 자리에서 갈린다 | 수정†‖ |
 | `seedPlayStateFromCurMs` | `seedPlayStateAt(nowMs)` | 중간 시작 시 과거 노트·crossing-Hold SYNC 시드 — pause Resume은 호출 안 함 | 수정‡ |
 | (신규) | `advanceJudgmentStateTo(nowMs)` | tail 자동완료·head 만료를 결정론적 시간 순서로 처리 | 신규 |
 | (신규) | `reconcileHeldCapacity(nowMs)` | Normal shortage 해소 → Wide owner 유지/이양/해소 | 신규 |
 | (신규) | `registerKeyDown(key)` / `registerKeyUp(key)` | 카운트다운 중 키 상태만 갱신 — **시각을 받지 않는다** | 신규§ |
 | `feedFastSlow` | `recordFastSlow` | Fast/Slow 피드백 기록 | 보존 |
 
-† TAIL_OK/TAIL_MISS 판정 종류를 폐기하고 SYNC/MISS로 통합 — **게이지 델타 포함 완전 통합**([[constants]] §2 `[수정]`, hard tail 특례 폐기). 함수는 남되 별도 judgment kind를 만들지 않는다. ([[glossary]] 판정 종류 참조)
+† TAIL_OK/TAIL_MISS 판정 종류를 폐기하고 SYNC/MISS로 통합 — **게이지 델타 포함 완전 통합**([[constants]] §2 `[수정]`, hard tail 특례 폐기). tail을 닫는 자리는 남되 별도 judgment kind를 만들지 않는다. ([[glossary]] 판정 종류 참조)
 
 ‡ D-2026-024: crossing Hold는 Normal 우선·Wide 나머지로 anchor에서 재배정한다. 상세 → [[judge]] §10.
 
 § D-2026-040: 중간 시작·Resume 카운트다운은 chart 시간이 흐르지 않는 구간이라 판정 진입점과 갈린다. 시각을 인자로 받지 않는 것이 그 사실의 표현이다. 상세 → [[judge]] §9.
+
+‖ 두 행은 **구현이 표를 고친 자리**다(D-2026-043). `judgeKeyPress`는 `judgeKeyUp`이
+없던 때의 이름이라 짝이 생긴 뒤 비대칭이 됐고, `commitTailRelease`/`commitMidRelease`는
+M1-5에서 두 경우가 **판정 종류만 다른 같은 계산**임이 드러나 한 함수가 됐다. 이름을
+둘로 되돌리면 같은 계산이 두 벌이 된다 — 조건은 [[rationale#표를 고치는 조건]].
 
 ### 게이지 / 결과
 | 현재 | 새 이름 | 역할 | 태그 |

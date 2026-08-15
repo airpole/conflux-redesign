@@ -138,10 +138,10 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M1-9 [[shape]]·[[lane-events]] 체인 보간 — easing 3종 + anchor
-- **Discussion Scope:** [[shape]]·[[lane-events]]. 대장 SH-1~SH-3.
-- **Change Scope:** 보간 모듈(신설)과 그 테스트
-- **Exit:** 같은 이벤트 열에서 임의 tick의 보간값이 골든 표와 일치한다. Step 입력이 `Linear + duration 0`으로 저장된다
+- **Active unit:** M1 마감 확인 → M2-1 진입 (`env` — canvas·resize·rAF·입력·audio)
+- **Discussion Scope:** [[build-order]] §5. M2 진입 gate(§3 M2 실측).
+- **Change Scope:** 미정 — M2 진입 결정 사이클에서 정한다
+- **Exit:** M1 아홉 step의 골든 테스트가 모두 통과하고, core 어느 모듈도 전역 상태나 브라우저 API를 import하지 않는다
 
 ### Completed
 
@@ -218,6 +218,14 @@ conflict group이 `excess`를 함께 낸다 — capacity 규칙이 core와 edito
 
 골든 `overlap.json` 54건을 새로 뽑았다. 원본 `overlaps.js`는 스텁 없이 Node에서 돈다. 갈리는 4 fixture를 뺀 14 fixture가 값까지 일치하며, 반개구간 경계·노랑 구간 좌표·`merged`/`hidden` 짝짓기·먼저 만난 쌍 우선이 전부 `[보존]`으로 확인됐다. 테스트는 545건이다.
 
+체인 보간을 구현했다(M1-9, D-2026-043). shape와 lane이 **한 구현**이다 — `buildFieldGeometry(chart)`가 다섯 체인을 만들고 나머지가 인자로 받는다. 문서가 `shape` §4를 단일 출처로 삼은 구조를 코드가 그대로 반영한다. **anchor는 체인의 시작값 하나다** — `startTick`을 보지 않으므로 시작값이 곡 시작 전에도 유효하고, pre-roll 모양이 tick 0에서 튀지 않는다. `shape` §4는 글머리에서 anchor가 "그 tick에 값을 못박는다"고 하고 평가 절차에서는 시작값으로만 썼다 — **자기 안에서 어긋나 있었고** 원본은 후자다. 같은 tick 정렬(`duration 0` 먼저)도 명문화했다. 정하지 않으면 정렬이 배열 순서에 기대게 되어 같은 chart가 다른 모양을 낸다.
+
+**골든 `shape.json` 58건이 사실상 빈 표였다.** 픽스처가 원본에 없는 필드(`blue: [10,20,30,40]`)를 써서 원본이 두 체인을 "비었다"고 판정했고, `getShape` 아홉 건이 전부 `{left: 32, right: null}` — 체인 보간을 대조하는 값이 **0건**이었다. easing도 추출기가 `In`/`Out`/`InOut`을 넘겼는데 원본의 실제 가지는 `Linear`/`In-Sine`/`Out-Sine`/`Arc`라 28건이 전부 Linear로 떨어졌다. **In-Sine·Out-Sine은 한 번도 측정된 적이 없었다.** 빈 표 방어가 "전부 비었는가"만 보기 때문에 절반이 빈 표가 통과했다 — 표가 있다는 사실이 대조가 있다는 뜻은 아니다. 픽스처 8종으로 다시 뽑아 117건이 됐고, 표본 tick에 보간 **도중** 지점을 넣었다(끝점만 재면 어떤 곡선이든 값이 같다).
+
+대장도 그만큼 정정했다. SH-3의 "원본 easing 4종"은 추출기 인자 목록을 원본 명세로 읽은 것이었다 — 세 이름은 원본과 글자까지 같아 `[보존]`이고, 남은 차이인 폴백 보고로 행을 재정의했다. `Arc` 가지를 SH-5(`없음`), anchor 선택 규칙을 SH-6(`어긋남`), 폐기된 `lineEvents` 모델을 LE-1(`없음`)로 신설했다. **`overlap.json`은 M1-8 이후 `TABLES` 목록에 없어 아무 가드도 받지 않고 있었다** — 지문이 다른 표와 어긋난 것도 그래서 드러나지 않았다. 전 표를 같은 원본에서 다시 뽑았고 기대값은 전부 동일했다.
+
+명칭 가드를 `naming` §2(함수)까지 넓혔다. M1-4가 상수를, M1-5가 상태 필드를 잡았고 함수는 아직 무보호였다. 세우자마자 judge 세 자리가 드러났는데 이번에는 **표를 고쳤다** — `judgeKeyPress`는 `judgeKeyUp`이 없던 때의 이름이고, `commitTailRelease`/`commitMidRelease`는 M1-5에서 두 경우가 판정 종류만 다른 같은 계산임이 드러나 `closeTail` 하나가 됐다. 구현이 이탈한 것이 아니라 표가 낡은 것이다. 방향이 사례마다 흔들리지 않도록 조건을 못박았다: **표를 고치는 것은 구현이 표보다 뒤에 알게 된 사실을 담고 있을 때뿐이고, 표를 보지 않아서 생긴 차이는 언제나 구현을 고친다.** 테스트는 603건이다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
@@ -225,7 +233,7 @@ conflict group이 `excess`를 함께 낸다 — capacity 규칙이 core와 edito
 
 ### 다음 후보
 
-- M1-9 [[shape]]·[[lane-events]] 체인 보간 (Current Focus)
+- M2 진입 결정 사이클 (Current Focus) — §3 M2 실측 gate
 - D-2026-021 사이클 (M3 진입 전)
 - UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
 - credits scene 표시 내용 채우기 (소형, M4-2 전)

@@ -115,6 +115,20 @@ export function validateChartStructure(value: unknown): StructuralResult {
 const isEasing = (v: unknown): v is Easing =>
   v === null || (isString(v) && (EASINGS as readonly string[]).includes(v));
 
+/** 체인별 anchor 개수. 체인을 무엇으로 가르는지는 호출측이 정한다. */
+function countAnchors<T extends { readonly easing: Easing }>(
+  events: readonly T[],
+  chainOf: (event: T) => string,
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const event of events) {
+    if (event.easing !== null) continue;
+    const chain = chainOf(event);
+    counts.set(chain, (counts.get(chain) ?? 0) + 1);
+  }
+  return counts;
+}
+
 /**
  * 값이 말이 되는가. **거부하지 않는다** — 보고만 한다.
  *
@@ -165,12 +179,29 @@ export function validateChartDomain(chart: Chart): DomainResult {
     if (!isEasing(event.easing)) flag(`shapeEvents[${i}].easing`, '알 수 없는 easing이다');
   });
 
+  // anchor(`easing === null`)는 체인의 **시작값 하나**다. 둘 이상이면 가장 이른
+  // tick의 것만 쓰이고 나머지는 화면에 아무 흔적을 남기지 않는다 — 조용히
+  // 사라지는 데이터이므로 여기서 말한다(`shape.md` §4, D-2026-043).
+  countAnchors(chart.shapeEvents, (event) => (event.isBlue ? 'blue' : 'red')).forEach(
+    (count, chain) => {
+      if (count > 1) {
+        flag('shapeEvents', `${chain} 체인에 anchor가 ${count}개다 — 가장 이른 것만 쓰인다`);
+      }
+    },
+  );
+
   chart.laneEvents.forEach((event, i) => {
     if (event.duration < 0) flag(`laneEvents[${i}].duration`, '음수일 수 없다');
     if (![1, 2, 3].includes(event.lineNum)) flag(`laneEvents[${i}].lineNum`, '1~3이어야 한다');
     if (!isEasing(event.easing)) flag(`laneEvents[${i}].easing`, '알 수 없는 easing이다');
     // `targetPos`는 검사하지 않는다 — 저장 데이터는 무구속이고 구속은 gameplay
     // 투영이 맡는다. 역전·초과가 정상 값이다. (설계 대장 DM-4)
+  });
+
+  countAnchors(chart.laneEvents, (event) => `line${event.lineNum}`).forEach((count, chain) => {
+    if (count > 1) {
+      flag('laneEvents', `${chain} 체인에 anchor가 ${count}개다 — 가장 이른 것만 쓰인다`);
+    }
   });
 
   chart.textEvents.forEach((event, i) => {

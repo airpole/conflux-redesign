@@ -58,8 +58,10 @@ laneEvent와 동형이다. 차이는 선택자(`isBlue` ↔ `lineNum`)와 좌표
 
 `shapeEvent`는 한 종류의 객체다(§2). 동작은 `easing` 값으로 갈린다:
 
-- **`easing === null`** = **anchor**. 보간하지 않고 그 tick에 값을 **못박는다**(`targetPos`만 쓰고 `duration`은 보지 않는다). 직전값을 무시하고 기준을 새로 세운다.
-  - 체인의 **첫 anchor를 `init`이라 부른다** — 체인의 시작값. (호칭일 뿐 별도 타입이 아니다. 평가는 anchor를 첫 번째인지 따지지 않는다.)
+- **`easing === null`** = **anchor**. 체인의 **시작값** 하나다. `targetPos`만 쓰고 `startTick`도 `duration`도 보지 않는다 — 그래서 시작값은 곡 시작 전(음수 tick)에도 유효하고, pre-roll 구간의 모양이 tick 0에서 튀지 않는다.
+  - anchor를 `init`이라 부른다(호칭일 뿐 별도 타입이 아니다).
+  - **체인당 anchor는 하나다.** 둘 이상이면 **가장 이른 `startTick`**의 것이 시작값이 되고 나머지는 화면에 아무 흔적을 남기지 않는다 — 조용히 사라지는 데이터이므로 domain 검증이 보고한다([[data-model]] §11). 원본은 배열에 먼저 적힌 것을 골랐다 `[수정]`(설계 대장 SH-6).
+  - anchor는 **체인 한가운데에서 값을 다시 세우지 않는다.** 중간 anchor는 아무 일도 하지 않는다 `[보존]`.
 - **`easing !== null`** = **보간 이벤트**. 직전값(from)에서 자기 `targetPos`(to)까지 `duration` 동안 `easing` 곡선으로 흐른다. from은 자기가 들지 않고 직전 문맥에서 상속한다.
 
 ### 평가 절차
@@ -71,15 +73,19 @@ shapeGeometryAt(tick) → { blue, red }
 ```
 
 각 체인:
-1. **초기값** = 그 체인 anchor(`easing === null`)의 `targetPos`. anchor가 없으면 init fallback.
-2. 보간 이벤트(`easing !== null`)들을 시간순 정렬.
+1. **초기값** = 그 체인 anchor의 `targetPos`. anchor가 없으면 init fallback.
+2. 보간 이벤트(`easing !== null`)들을 **`startTick` 오름차순**으로 정렬. `startTick`이 같으면 **`duration === 0`이 먼저** 선다 `[보존]`.
 3. 순회하며:
-   - `tick < startTick` → 현재값 유지하고 종료.
-   - `duration === 0` → 즉시 목표값으로 점프. *(에디터 입력 라벨 "Step", §5)*
+   - `tick < startTick` → 현재값 유지하고 **종료**.
+   - `duration === 0` → 즉시 목표값으로 점프하고 **계속 순회**. *(에디터 입력 라벨 "Step", §5)*
    - `tick >= startTick + duration` (이미 끝남) → 목표값 확정, 다음으로.
-   - 진행 중 → `ease(현재값, 목표값, t, easing)`. `t = (tick − startTick) / duration`, [0,1] clamp.
+   - 진행 중 → 목표값까지 곡선을 타고 **종료**. `t = (tick − startTick) / duration`, [0,1] clamp.
 
 - shape가 없어도 동작한다. 보간 이벤트가 없으면 anchor(또는 fallback) 값으로 고정.
+
+> **같은 tick 순서가 값을 바꾼다.** tick T에 `duration 0 → 32`와 `duration T → 64`가 함께 있으면, 즉시 점프가 먼저여야 보간이 32에서 출발한다(T+T/2에서 48). 순서를 정하지 않으면 정렬이 배열 순서에 기대게 되어 같은 chart가 다른 모양을 낸다.
+>
+> **진행 중인 이벤트를 만나면 거기서 끝낸다.** 이벤트가 겹쳐 있으면 바깥 것이 끝날 때까지 안쪽 것이 값을 내지 못하고, 바깥이 끝난 뒤 안쪽 목표값으로 되돌아간다 `[보존]`.
 
 ### init fallback
 
@@ -105,6 +111,10 @@ Blue = -2,  Red = +2   (폭 4, 중앙 0 대칭)
 | `null` | (보간 안 함 — anchor, §4. duration 무시) |
 
 보간: `결과 = from + (to − from) · e`.
+
+**목록 밖 easing은 `Linear`로 흐른다** `[보존]`. 원본도 그렇다. 다만 원본은 그것으로 끝이고, 여기서는 domain 검증이 같은 값을 **보고**한다 `[수정]` — 모양은 같되 "이 이벤트의 easing이 이상하다"가 뜬다. 거부하지 않는 것은 편집 중 chart가 잠깐 domain-invalid하기 때문이다([[data-model]] §11). 설계 대장 SH-3.
+
+> 원본 `ease()`에는 네 번째 가지 `Arc`(`sin(t·π)` — 올라갔다 제자리로 돌아옴)가 있지만, 저장 경로가 전부 아래 `resolveArcEasing`을 거치므로 실제 차트에 남지 않는다(실측). 재설계는 그 사실을 타입으로 굳혀 가지 자체를 두지 않는다 — 설계 대장 SH-5(`없음`).
 
 ### Step — 입력 라벨 (저장값 아님)
 
@@ -156,6 +166,9 @@ shape 탭에서 두 체인(Blue·Red)을 raw로 보여주고 직접 편집한다
 - [x] isBlue = 체인 식별자, 순서·교차 자유
 - [x] lane-events와 easing·Arc 동일
 - [x] chain 평가 단일 출처를 §4로 확정 (이벤트 1종, easing null=anchor / 첫 anchor=init 호칭, lane은 이 절 참조)
+- [x] anchor = 체인의 시작값 하나. tick을 보지 않고, 중간 anchor는 무일, 여럿이면 가장 이른 tick (D-2026-043)
+- [x] 같은 tick 정렬 = `duration 0` 먼저. 진행 중 이벤트에서 순회 종료 (D-2026-043)
+- [x] 목록 밖 easing = Linear로 흐르되 domain 검증이 보고 (D-2026-043)
 - [x] Step = 저장 안 되는 입력 라벨(=Linear+duration0). 데이터 easing은 3종+null 유지
 - [x] symmetry 축: 스냅 tick 시점 체인 평균 기본값 + 드래그 −8~+8 조절 ([번복]: 기본 0 고정 폐기)
 - [x] shape/lane 배치 툴·편집 인터랙션 → [[editor-editing]] §2 확정 (구 L/R/C/P = 현 Q/W/E/R)

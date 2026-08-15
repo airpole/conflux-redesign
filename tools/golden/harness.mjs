@@ -90,16 +90,24 @@ export async function emit(name, payload, { compact = false } = {}) {
   console.log(`[${name}] ${rows.length}건 → tests/golden/${name}.json`);
 }
 
-/** fixture를 원본 전역 D에 적재한다. */
+/**
+ * fixture를 원본 전역 D에 적재한다.
+ *
+ * **적재 후 캐시를 전부 비운다.** 원본은 `D`를 고치는 쪽이 `invalidate`를 부르는
+ * 규약인데, 여기서는 배열을 통째로 갈아끼우므로 그 규약 밖이다. 한 추출기가
+ * fixture를 둘 이상 쓰면 두 번째부터 첫 fixture의 캐시가 그대로 나온다.
+ */
 export async function loadChart(fixture) {
   const { D } = await load('state.js');
   const timing = await load('timing.js');
+  const cache = await load('cache.js');
   D.tempo = structuredClone(fixture.tempo ?? [{ tick: 0, bpm: 120 }]);
   D.timeSignatures = structuredClone(fixture.timeSignatures ?? [{ tick: 0, numerator: 4, denominator: 4 }]);
   D.notes = structuredClone(fixture.notes ?? []);
   D.shapeEvents = structuredClone(fixture.shapeEvents ?? []);
   D.lineEvents = structuredClone(fixture.lineEvents ?? [{ startTick: 0, duration: 0, lines: [25, 25, 25, 25] }]);
   D.textEvents = structuredClone(fixture.textEvents ?? []);
+  cache.invalidateAll();
   timing.compBPM();
   timing.invalidateTSCache();
   return D;

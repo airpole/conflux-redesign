@@ -8,7 +8,12 @@ import {
   uncoveredIds,
 } from './divergences.js';
 
-const TABLES = ['constants', 'timing', 'judge', 'gauge', 'shape'] as const;
+/**
+ * 골든 표 전부. **표를 새로 뽑으면 여기에 더한다** — M1-8이 `overlap.json`을
+ * 만들면서 이 목록에 넣지 않아 그 표가 아무 가드도 받지 않았고, 지문이 다른 표와
+ * 어긋난 것도 드러나지 않았다(D-2026-043).
+ */
+const TABLES = ['constants', 'timing', 'judge', 'gauge', 'shape', 'overlap'] as const;
 
 describe('골든 표 로더', () => {
   it.each(TABLES)('%s 표를 읽고 케이스가 비어 있지 않다', (name) => {
@@ -17,8 +22,9 @@ describe('골든 표 로더', () => {
     expect(table.cases.length).toBeGreaterThan(0);
   });
 
-  it('네 표가 같은 원본 지문에서 나왔다', () => {
+  it('모든 표가 같은 원본 지문에서 나왔다', () => {
     // 표마다 다른 시점의 원본에서 떴다면 서로 모순되는 기대값을 담을 수 있다.
+    // 지문은 하네스의 모듈 목록 전체를 덮으므로, 한 표만 다시 뽑으면 여기서 걸린다.
     const fingerprints = TABLES.map((name) => JSON.stringify(loadGolden(name).sourceFingerprint));
     expect(new Set(fingerprints).size).toBe(1);
   });
