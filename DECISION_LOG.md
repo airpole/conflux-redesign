@@ -461,7 +461,7 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** shape, lane-events, naming, tests/golden, tests/support, tools/golden, src/core, README
 - **Supersedes:** None (`shape` §4 anchor 서술과 대장 SH-3 문구를 대체)
-- **Commit:** `TBD`
+- **Commit:** `6398679`
 
 
 ```md
