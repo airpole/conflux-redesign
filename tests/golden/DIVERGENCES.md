@@ -147,16 +147,39 @@ score·accuracy·rank 산출(GA-7)은 셋 다 `[보존]`이면서도 골든이 �
 
 ## 4. data-model
 
-골든 표가 없는 영역이지만 **core 계산이고 M1 범위**라 여기 담는다. 전부 스펙
-테스트가 검증한다.
+DM-1·DM-2·DM-4·DM-5는 골든 표가 없는 영역이지만 **core 계산이고 M1 범위**라 여기
+담는다 — 스펙 테스트가 검증한다. DM-3·DM-6은 M1-8에서 `overlap.json`이 생겨
+대조 대상이 됐다.
 
 | ID | 자리 | 원본 | 재설계 | 관계 | 근거 |
 |---|---|---|---|---|---|
 | DM-1 | 저장 단위 | 전역 `D` 하나, song 단위 암묵 | 독립 chart가 canonical, song은 같은 `songId`의 파생 그룹 | 미커버 | `data-model` §1 |
 | DM-2 | metadata·timing·asset 소유 | 전역에 흩어짐 | 전부 chart 소유 | 미커버 | `data-model` §2·§3 |
-| DM-3 | overlap 검출 | 순회 기반 | sweep-line, 풀별 동시 활성 집합, O(n log n) | 미커버 | `data-model` §5.1 |
+| DM-3 | lane 2·3 3겹 이상 | pairwise라 conflict를 **검출하지 못한다** — 동일구간이면 한 장만 남기고 나머지를 `hidden`으로 숨긴다 | 동시 활성 수가 capacity를 넘으면 그 순간 활성인 노트 전체가 conflict | 어긋남 | `data-model` §5.1 |
 | DM-4 | lane 데이터 구속 | 저장 시점에 구속 | 데이터 무구속(`targetPos` 실수, 역전·초과 허용), 구속은 gameplay 투영이 담당 | 미커버 | `lane-events` |
 | DM-5 | 검증 | 층 구분 없음 — 잘못된 값은 런타임까지 그대로 감 | structural(거부) / domain(보고) 2층, 무mutate, `schemaVersion` 불일치 거부 | 미커버 | `data-model` §11 |
+| DM-6 | conflict와 overlap이 겨룰 때 | 겨루는 자리가 없다 — lane 2·3은 overlap만, lane 1·4·Wide는 conflict만 낸다 | conflict가 세부 분류를 덮는다. group에 든 노트는 `hidden`이어도 conflict로 보인다 | 없음 | `data-model` §5.1 |
+
+### DM-3은 알고리즘 차이가 아니다
+
+처음 이 항목은 `순회 기반 → sweep-line, O(n log n)` / `미커버`로 등재돼 있었다.
+**M1-8에서 원본을 직접 돌려 보니 바뀌는 것은 계산 방식이 아니라 검출되는 집합
+자체였다.** 2겹 결과는 원본과 완전히 같고, 갈리는 것은 3겹 이상뿐이다.
+
+원본은 노트를 두 장씩 짝지어 비교하므로 "이 순간 세 장이 동시에 활성"이라는 사실을
+계산하지 않는다. lane 2에 Hold를 계단으로 세 장 겹치면 `clipped`·`yellow`·`yellow`가
+나오고 conflict가 아니며, 같은 tick에 Tap 네 장이면 `merged` 한 장에 `hidden` 세
+장이다 — **화면에 한 장만 보이는데 네 번 쳐야 한다.** 채보를 만드는 사람이 그것을
+알아챌 방법이 없다.
+
+계산 방식(pairwise → sweep) 자체는 2겹 결과가 같으므로 대장 행이 아니라
+`data-model` §5.1의 `[수정]` 태그가 담는다 — 관계 세 표기 중 어디에도 들어가지
+않는 자리다.
+
+DM-6이 `없음`인 것도 같은 조사에서 나왔다. 원본은 풀마다 낼 수 있는 표시 종류가
+갈려 있어(lane 2·3 = overlap 계열, lane 1·4·Wide = `invalid`) **두 종류가 한 노트를
+두고 겨루는 상황 자체가 생기지 않는다.** 우선순위 규칙은 3겹 검출(DM-3)과 global
+6키(JD-5)가 생기면서 비로소 필요해진 재설계 고유 규칙이다.
 
 ---
 
@@ -171,7 +194,7 @@ score·accuracy·rank 산출(GA-7)은 셋 다 `[보존]`이면서도 골든이 �
 | JD-2 | Hold 소유 | key-owned (`holds` 맵) | key-demand — Normal 익명 수요, Wide 단일 소유·원자적 이양 | 미커버 | D-2026-024 |
 | JD-3 | hit 이펙트 | `commitJudgment`가 `above/below`를 계산해 실어보냄 | judge는 싣지 않음, render 소관 | 없음 | `judge` §4 |
 | JD-4 | overlap/conflict | judge 안 | domain 파생 속성(`noteOverlapMap`) | 없음 | `judge` §11 |
-| JD-5 | global 6키 conflict | 없음 | 매 tick 물리 키 총수요 검사 | 없음 | D-2026-024 |
+| JD-5 | global 6키 conflict | 없음 — 풀끼리 서로 보지 않는다 | 검사 지점마다 `D1+D2+D3+D4+W <= 6` | 없음 | D-2026-024 |
 | JD-6 | Hold tail 처리 | tail 자동완료는 **autoplay에서만**, 수동은 keyup 전까지 미확정 | 항상 `tailMs`에 자동완료, `[head, tail)` 반개구간, 같은 tick이면 tail 먼저 | 미커버 | `judge` §7 |
 | JD-7 | 중간 시작·Resume | crossing Hold 처리 미정의 | mid-start crossing-Hold 시드·anchor 규칙, Resume은 비-재시드 | 미커버 | `judge` §10 |
 | JD-8 | visualOffset | 렌더 시점 보정 | 입력 타임스탬프 보정으로 배선 | 미커버 | `judge` §1 |
@@ -266,16 +289,21 @@ HOLD_RELEASE_GRACE_MS`를 직접 건다.
 | GA-4 | cascade 병렬 평가 (`gauge` §4 시나리오 6종) | M1-7 |
 | GA-6·GA-7 | state 산출 표와 score·accuracy·rank 산식 (`core-gauge.test.ts`) | M1-7 |
 | GA-8 | `as` 모드 terminate | M1-7 |
-| DM-3 | sweep-line overlap/conflict 검출 (로컬 capacity) | M1-8 |
-| JD-5 | global 6키 conflict (같은 sweep) | M1-8 |
+| DM-3 | lane 2·3 3겹 이상 conflict 검출 (`core-overlap.test.ts` §3) | M1-8 |
+| DM-6 | conflict가 세부 분류를 덮는 우선순위 (`core-overlap.test.ts` §5) | M1-8 |
+| JD-5 | global 6키 conflict (같은 검사 지점, `core-overlap.test.ts` §4) | M1-8 |
 | TM-5 | Resume leadIn 미적용 | M2-5 |
 | SH-4 | symmetry 축 동적 스냅샷 | M5-4 |
 
-**25행이다**(ID로는 33건). M1의 9개 step 중 7개가 스펙 테스트를 요구한다 — 골든만으로 통과할
+**26행이다**(ID로는 34건). M1의 9개 step 중 8개가 스펙 테스트를 요구한다 — 골든만으로 통과할
 수 있는 step은 거의 없다.
 
+DM-3은 M1-8에서 `overlap.json`이 생기며 `미커버` → `어긋남`이 됐다. 위 표에 남는 이유는
+관계가 바뀌어도 **의도한 차이라는 사실**은 그대로이기 때문이다 — 롤업은 담당 step의
+소재를 가리키고, 검증 방식은 관계 칸이 갖는다.
+
 JD-5(global 6키)는 원래 M1-6에 있었으나 M1-8로 옮겼다(D-2026-040). global 부등식은
-별도 패스가 아니라 DM-3과 **같은 sweep 위에서** tick별 수요를 합산한 것이고, 검출은
+별도 패스가 아니라 DM-3과 **같은 검사 지점 위에서** 풀별 활성 수를 합산한 것이고, 검출은
 judge 밖(`data-model` §5.1)이라 judge step에 둘 자리가 없었다. TM-5(Resume leadIn
 미적용)는 core에 확인할 대상이 없어 — `leadIn`은 상수 하나이고 "Resume에 적용하지
 않는다"는 play loop의 성질이다 — 배선이 서는 M2-5로 옮겼다.

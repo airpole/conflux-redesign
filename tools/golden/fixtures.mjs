@@ -87,6 +87,56 @@ export const fixtures = {
   },
 };
 
+// 겹침 검출 — 활성구간 경계, 2겹 세부 분류, 3겹 이상, global 6키.
+// notes 배열 순서 = 배치 순서이므로 순서 자체가 입력의 일부다 (merged/hidden 짝).
+const n = (ch, startTick, duration = 0, isWide = false) =>
+  ({ startTick, duration, channel: ch, isWide });
+
+export const overlapFixtures = {
+  // ── 활성구간 경계 — Hold가 끝나는 tick은 이미 활성이 아니다
+  touchTapAtHoldEnd:  { notes: [n(2, 0, T), n(2, T)] },
+  touchTapInsideHold: { notes: [n(2, 0, T), n(2, T - 1)] },
+  touchHoldAfterHold: { notes: [n(2, 0, T), n(2, T, T)] },
+  touchTapAtHoldHead: { notes: [n(2, 0, T), n(2, 0)] },
+
+  // ── 2겹 세부 분류
+  sameRangePair:  { notes: [n(2, 0), n(2, 0)] },
+  sameRangeHolds: { notes: [n(3, 0, T), n(3, 0, T)] },
+  partialHolds:   { notes: [n(2, 0, T), n(2, T / 2, T)] },
+  tapOverHold:    { notes: [n(3, 0, T), n(3, T / 2)] },
+
+  // 한 노트가 서로 다른 두 쌍에 낀다 — 먼저 만난 쌍의 표시가 남는가
+  chainOfPairs: { notes: [n(2, 0, T), n(2, T / 2, T), n(2, T + T / 4, T)] },
+
+  // ── 3겹 이상 (재설계는 conflict, 원본은 못 잡는다)
+  tripleStaircase: { notes: [n(2, 0, T), n(2, T / 4, T), n(2, T / 2, T)] },
+  quadSameTick:    { notes: [n(3, 0), n(3, 0), n(3, 0), n(3, 0)] },
+
+  // ── 1키 lane과 Wide — 2겹이 곧 conflict
+  singleKeyLane:  { notes: [n(1, 0), n(1, 0)] },
+  singleKeyHold:  { notes: [n(4, 0, T), n(4, T / 2)] },
+  wideOnWide:     { notes: [n(1, 0, 0, true), n(1, 0, 0, true)] },
+  widePlusLane:   { notes: [n(1, 0, 0, true), n(1, 0)] },
+
+  // ── global 6키 — 로컬은 전부 통과하는 7-입력 (1+2+2+1+1)
+  sevenInput: {
+    notes: [
+      n(1, 0), n(2, 0), n(2, 0), n(3, 0), n(3, 0), n(4, 0), n(1, 0, 0, true),
+    ],
+  },
+  // 총 6이라 통과해야 하는 대조군
+  sixInput: {
+    notes: [n(1, 0), n(2, 0), n(2, 0), n(3, 0), n(3, 0), n(4, 0)],
+  },
+  // Hold가 지속되는 동안 다른 lane head가 들어와 총수요가 7이 되는 자리
+  heldThenHeads: {
+    notes: [
+      n(2, 0, T), n(2, 0, T), n(3, 0, T), n(3, 0, T),
+      n(1, T / 2), n(4, T / 2), n(1, T / 2, 0, true),
+    ],
+  },
+};
+
 // shape / lane 체인 — easing 3종과 anchor
 export const shapeFixtures = {
   chain: {

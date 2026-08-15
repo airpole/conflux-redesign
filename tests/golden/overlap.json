@@ -1,0 +1,734 @@
+{
+  "source": "conflux-editor",
+  "sourceFingerprint": {
+    "constants.js": "00f7e5d47454",
+    "state.js": "347e698b21c4",
+    "cache.js": "fed0448471a4",
+    "timing.js": "aadcadf768f2",
+    "shape.js": "5a47fa71cf91",
+    "play-state.js": "ad50bb6789ba",
+    "gauge.js": "597a62a3a6cd",
+    "play-judgment.js": "5ff739b127fd",
+    "settings.js": "774909ad6b59",
+    "overlaps.js": "308a81a10d87"
+  },
+  "extractedBy": "tools/golden/extract-overlap.mjs",
+  "note": "원본에서 뜬 관측 자료. 손으로 고치지 않고 재생성한다.",
+  "tolerance": {
+    "integer": "exact"
+  },
+  "fieldNames": "original (conflux-editor)",
+  "note2": "원본은 3겹 이상을 conflict로 잡지 못하고(pairwise), 먼저 찍힌 표시를 유지한다. 재설계와 갈리는 자리는 설계 대장 DM-3·DM-6.",
+  "cases": [
+    {
+      "fixture": "touchTapAtHoldEnd",
+      "index": 0,
+      "note": {
+        "startTick": 0,
+        "duration": 1920,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": null
+    },
+    {
+      "fixture": "touchTapAtHoldEnd",
+      "index": 1,
+      "note": {
+        "startTick": 1920,
+        "duration": 0,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": null
+    },
+    {
+      "fixture": "touchTapInsideHold",
+      "index": 0,
+      "note": {
+        "startTick": 0,
+        "duration": 1920,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "clipped",
+        "clipStart": 1919,
+        "clipEnd": 1919
+      }
+    },
+    {
+      "fixture": "touchTapInsideHold",
+      "index": 1,
+      "note": {
+        "startTick": 1919,
+        "duration": 0,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "yellow",
+        "yellowStart": 1919,
+        "yellowEnd": 1919,
+        "fullYellow": true
+      }
+    },
+    {
+      "fixture": "touchHoldAfterHold",
+      "index": 0,
+      "note": {
+        "startTick": 0,
+        "duration": 1920,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": null
+    },
+    {
+      "fixture": "touchHoldAfterHold",
+      "index": 1,
+      "note": {
+        "startTick": 1920,
+        "duration": 1920,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": null
+    },
+    {
+      "fixture": "touchTapAtHoldHead",
+      "index": 0,
+      "note": {
+        "startTick": 0,
+        "duration": 1920,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "clipped",
+        "clipStart": 0,
+        "clipEnd": 0
+      }
+    },
+    {
+      "fixture": "touchTapAtHoldHead",
+      "index": 1,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "yellow",
+        "yellowStart": 0,
+        "yellowEnd": 0,
+        "fullYellow": true
+      }
+    },
+    {
+      "fixture": "sameRangePair",
+      "index": 0,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "merged"
+      }
+    },
+    {
+      "fixture": "sameRangePair",
+      "index": 1,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "hidden"
+      }
+    },
+    {
+      "fixture": "sameRangeHolds",
+      "index": 0,
+      "note": {
+        "startTick": 0,
+        "duration": 1920,
+        "channel": 3,
+        "isWide": false
+      },
+      "expected": {
+        "type": "merged"
+      }
+    },
+    {
+      "fixture": "sameRangeHolds",
+      "index": 1,
+      "note": {
+        "startTick": 0,
+        "duration": 1920,
+        "channel": 3,
+        "isWide": false
+      },
+      "expected": {
+        "type": "hidden"
+      }
+    },
+    {
+      "fixture": "partialHolds",
+      "index": 0,
+      "note": {
+        "startTick": 0,
+        "duration": 1920,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "clipped",
+        "clipStart": 960,
+        "clipEnd": 1920
+      }
+    },
+    {
+      "fixture": "partialHolds",
+      "index": 1,
+      "note": {
+        "startTick": 960,
+        "duration": 1920,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "yellow",
+        "yellowStart": 960,
+        "yellowEnd": 1920,
+        "fullYellow": false
+      }
+    },
+    {
+      "fixture": "tapOverHold",
+      "index": 0,
+      "note": {
+        "startTick": 0,
+        "duration": 1920,
+        "channel": 3,
+        "isWide": false
+      },
+      "expected": {
+        "type": "clipped",
+        "clipStart": 960,
+        "clipEnd": 960
+      }
+    },
+    {
+      "fixture": "tapOverHold",
+      "index": 1,
+      "note": {
+        "startTick": 960,
+        "duration": 0,
+        "channel": 3,
+        "isWide": false
+      },
+      "expected": {
+        "type": "yellow",
+        "yellowStart": 960,
+        "yellowEnd": 960,
+        "fullYellow": true
+      }
+    },
+    {
+      "fixture": "chainOfPairs",
+      "index": 0,
+      "note": {
+        "startTick": 0,
+        "duration": 1920,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "clipped",
+        "clipStart": 960,
+        "clipEnd": 1920
+      }
+    },
+    {
+      "fixture": "chainOfPairs",
+      "index": 1,
+      "note": {
+        "startTick": 960,
+        "duration": 1920,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "yellow",
+        "yellowStart": 960,
+        "yellowEnd": 1920,
+        "fullYellow": false
+      }
+    },
+    {
+      "fixture": "chainOfPairs",
+      "index": 2,
+      "note": {
+        "startTick": 2400,
+        "duration": 1920,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "yellow",
+        "yellowStart": 2400,
+        "yellowEnd": 2880,
+        "fullYellow": false
+      }
+    },
+    {
+      "fixture": "tripleStaircase",
+      "index": 0,
+      "note": {
+        "startTick": 0,
+        "duration": 1920,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "clipped",
+        "clipStart": 480,
+        "clipEnd": 1920
+      }
+    },
+    {
+      "fixture": "tripleStaircase",
+      "index": 1,
+      "note": {
+        "startTick": 480,
+        "duration": 1920,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "yellow",
+        "yellowStart": 480,
+        "yellowEnd": 1920,
+        "fullYellow": false
+      }
+    },
+    {
+      "fixture": "tripleStaircase",
+      "index": 2,
+      "note": {
+        "startTick": 960,
+        "duration": 1920,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "yellow",
+        "yellowStart": 960,
+        "yellowEnd": 1920,
+        "fullYellow": false
+      }
+    },
+    {
+      "fixture": "quadSameTick",
+      "index": 0,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 3,
+        "isWide": false
+      },
+      "expected": {
+        "type": "merged"
+      }
+    },
+    {
+      "fixture": "quadSameTick",
+      "index": 1,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 3,
+        "isWide": false
+      },
+      "expected": {
+        "type": "hidden"
+      }
+    },
+    {
+      "fixture": "quadSameTick",
+      "index": 2,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 3,
+        "isWide": false
+      },
+      "expected": {
+        "type": "hidden"
+      }
+    },
+    {
+      "fixture": "quadSameTick",
+      "index": 3,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 3,
+        "isWide": false
+      },
+      "expected": {
+        "type": "hidden"
+      }
+    },
+    {
+      "fixture": "singleKeyLane",
+      "index": 0,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 1,
+        "isWide": false
+      },
+      "expected": {
+        "type": "invalid"
+      }
+    },
+    {
+      "fixture": "singleKeyLane",
+      "index": 1,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 1,
+        "isWide": false
+      },
+      "expected": {
+        "type": "invalid"
+      }
+    },
+    {
+      "fixture": "singleKeyHold",
+      "index": 0,
+      "note": {
+        "startTick": 0,
+        "duration": 1920,
+        "channel": 4,
+        "isWide": false
+      },
+      "expected": {
+        "type": "invalid"
+      }
+    },
+    {
+      "fixture": "singleKeyHold",
+      "index": 1,
+      "note": {
+        "startTick": 960,
+        "duration": 0,
+        "channel": 4,
+        "isWide": false
+      },
+      "expected": {
+        "type": "invalid"
+      }
+    },
+    {
+      "fixture": "wideOnWide",
+      "index": 0,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 1,
+        "isWide": true
+      },
+      "expected": {
+        "type": "invalid"
+      }
+    },
+    {
+      "fixture": "wideOnWide",
+      "index": 1,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 1,
+        "isWide": true
+      },
+      "expected": {
+        "type": "invalid"
+      }
+    },
+    {
+      "fixture": "widePlusLane",
+      "index": 0,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 1,
+        "isWide": true
+      },
+      "expected": null
+    },
+    {
+      "fixture": "widePlusLane",
+      "index": 1,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 1,
+        "isWide": false
+      },
+      "expected": null
+    },
+    {
+      "fixture": "sevenInput",
+      "index": 0,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 1,
+        "isWide": false
+      },
+      "expected": null
+    },
+    {
+      "fixture": "sevenInput",
+      "index": 1,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "merged"
+      }
+    },
+    {
+      "fixture": "sevenInput",
+      "index": 2,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "hidden"
+      }
+    },
+    {
+      "fixture": "sevenInput",
+      "index": 3,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 3,
+        "isWide": false
+      },
+      "expected": {
+        "type": "merged"
+      }
+    },
+    {
+      "fixture": "sevenInput",
+      "index": 4,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 3,
+        "isWide": false
+      },
+      "expected": {
+        "type": "hidden"
+      }
+    },
+    {
+      "fixture": "sevenInput",
+      "index": 5,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 4,
+        "isWide": false
+      },
+      "expected": null
+    },
+    {
+      "fixture": "sevenInput",
+      "index": 6,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 1,
+        "isWide": true
+      },
+      "expected": null
+    },
+    {
+      "fixture": "sixInput",
+      "index": 0,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 1,
+        "isWide": false
+      },
+      "expected": null
+    },
+    {
+      "fixture": "sixInput",
+      "index": 1,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "merged"
+      }
+    },
+    {
+      "fixture": "sixInput",
+      "index": 2,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "hidden"
+      }
+    },
+    {
+      "fixture": "sixInput",
+      "index": 3,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 3,
+        "isWide": false
+      },
+      "expected": {
+        "type": "merged"
+      }
+    },
+    {
+      "fixture": "sixInput",
+      "index": 4,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 3,
+        "isWide": false
+      },
+      "expected": {
+        "type": "hidden"
+      }
+    },
+    {
+      "fixture": "sixInput",
+      "index": 5,
+      "note": {
+        "startTick": 0,
+        "duration": 0,
+        "channel": 4,
+        "isWide": false
+      },
+      "expected": null
+    },
+    {
+      "fixture": "heldThenHeads",
+      "index": 0,
+      "note": {
+        "startTick": 0,
+        "duration": 1920,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "merged"
+      }
+    },
+    {
+      "fixture": "heldThenHeads",
+      "index": 1,
+      "note": {
+        "startTick": 0,
+        "duration": 1920,
+        "channel": 2,
+        "isWide": false
+      },
+      "expected": {
+        "type": "hidden"
+      }
+    },
+    {
+      "fixture": "heldThenHeads",
+      "index": 2,
+      "note": {
+        "startTick": 0,
+        "duration": 1920,
+        "channel": 3,
+        "isWide": false
+      },
+      "expected": {
+        "type": "merged"
+      }
+    },
+    {
+      "fixture": "heldThenHeads",
+      "index": 3,
+      "note": {
+        "startTick": 0,
+        "duration": 1920,
+        "channel": 3,
+        "isWide": false
+      },
+      "expected": {
+        "type": "hidden"
+      }
+    },
+    {
+      "fixture": "heldThenHeads",
+      "index": 4,
+      "note": {
+        "startTick": 960,
+        "duration": 0,
+        "channel": 1,
+        "isWide": false
+      },
+      "expected": null
+    },
+    {
+      "fixture": "heldThenHeads",
+      "index": 5,
+      "note": {
+        "startTick": 960,
+        "duration": 0,
+        "channel": 4,
+        "isWide": false
+      },
+      "expected": null
+    },
+    {
+      "fixture": "heldThenHeads",
+      "index": 6,
+      "note": {
+        "startTick": 960,
+        "duration": 0,
+        "channel": 1,
+        "isWide": true
+      },
+      "expected": null
+    }
+  ]
+}

@@ -10,6 +10,7 @@ const scripts = [
   'extract-gauge.mjs',
   'extract-shape.mjs',
   'extract-judge.mjs',
+  'extract-overlap.mjs',
 ];
 
 let failed = 0;

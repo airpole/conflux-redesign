@@ -109,8 +109,14 @@ judge는 input→judgment, render는 표시만 담당한다. overlap·shape·lan
 ### overlap/conflict를 derived domain으로 둔 이유
 검출은 notes만으로 계산되는 순수 map이고 render는 색을 입히는 소비자다. capacity 이내=overlap, 초과=conflict로 한 검출 뒤 분기한다.
 
-### sweep-line n-way로 확장한 이유
-3중 이상 overlap에서 정확한 active set과 초과 수가 필요하다. O(n log n) sweep-line은 정확성과 성능을 동시에 만족한다.
+### overlap과 conflict 검출을 sweep-line n-way로 확장한 이유
+3중 이상 overlap에서 정확한 active set과 초과 수가 필요하다. 원본은 노트를 두 장씩 짝지어 비교해서 "이 순간 세 장이 동시에 활성"이라는 사실 자체를 계산하지 않는다 — lane 2·3의 3겹이 conflict로 잡히지 않고, 동일구간이면 한 장만 남기고 나머지가 `hidden`으로 숨어 채보를 만드는 사람이 알아챌 방법이 없다. O(n log n) sweep은 정확성과 성능을 동시에 만족한다.
+
+### 활성을 구간 표기가 아니라 점으로 정의한 이유
+`Tap = [t, t]`를 sweep 이벤트로 옮기면 자기 끝이 자기 시작보다 먼저 처리되어 같은 tick의 Tap 두 장이 서로 만나지 못한다. 처리 순서를 세 단계로 못박아 피할 수도 있지만, 그러면 외워야 할 규칙이 하나 늘고 "왜 Tap 끝만 뒤인가"를 다시 설명해야 한다. "tick `t`에서 활성인가"를 직접 정의하면 반개구간 경계·같은 tick 동시성·맞닿은 Hold가 한 문장에서 전부 나오고, 빠르게 세는 방법이 정의에서 빠져나와 구현의 몫이 된다. `startTick`에 정수 제약이 없어 `[t, t+1)`로 통일하는 길은 애초에 막혀 있다.
+
+### 초과 수를 검출 쪽이 함께 내는 이유
+capacity 규칙이 core와 editor 두 곳에 살면 한쪽만 고쳤을 때 화면에는 빨간 노트가 세 장 보이는데 삭제는 한 장만 되는 식으로 어긋난다. 초과 수는 검출이 이미 알고 있는 값이므로 함께 낸다 — group을 내는 것까지가 domain이고 지우는 것은 editor다.
 
 ### conflict 삭제가 reverse insertion order인 이유
 배치 순서는 항상 total order이고 “나중에 얹은 초과분”을 지우는 편집 직관과 맞다. notes 배열은 insertion order를 보존한다.

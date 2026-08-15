@@ -62,7 +62,7 @@ runtime core에는 song group이 아니라 active chart를 넘긴다.
 
 ### overlap / conflict / global conflict
 
-notes와 활성 Hold 상태에서 sweep-line으로 계산하는 derived map.
+notes만 보고 계산하는 derived map. judge의 runtime 상태를 보지 않는다.
 
 - overlap: 로컬 capacity 이내, L2/L3 2중, playable, yellow.
 - conflict: 로컬 capacity 초과, unplayable warning.

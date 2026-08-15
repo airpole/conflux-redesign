@@ -120,44 +120,59 @@ note = { startTick, duration, lane, isWide }
 
 ### 5.1 겹침 검출 — overlap / conflict (파생)
 
-노트에 저장되는 필드가 아니라 notes에서 계산되는 파생 속성이다(`noteOverlapMap`). 재계산 트리거는 notes를 invalidate하는 dispatch뿐이다.
+노트에 저장되는 필드가 아니라 notes만 보고 계산하는 파생 결과다(`noteOverlapMap`). 캐시도 무효화도 없다 — `buildOverlapMap(notes)`가 한 번 만들고 소비자는 그것을 인자로 받는다([[timing]] `Timeline`과 같은 형태).
 
-**활성구간**: Tap = `[t, t]`, Hold = `[head, head+dur)`.
+**활성 정의** — tick `t`에서 노트가 활성이라는 것은:
 
-**검출 = sweep-line** `[수정]`: 풀(lane 1~4 각각 + Wide)별로 시작/종료 이벤트를 정렬해 훑으며 동시 활성 수와 집합을 구한다. O(n log n).
+| 종류 | 활성 조건 |
+|---|---|
+| Tap (`duration == 0`) | `startTick == t` |
+| Hold (`duration > 0`) | `startTick <= t < startTick + duration` |
 
-**로컬 capacity로 분기**:
-- lane 1·4 (1키): 2겹부터 conflict.
-- lane 2·3 (2키, `OVERLAP_LANES`): 2겹 = overlap, 3겹부터 conflict.
-- Wide 풀: 2겹부터 conflict.
-- conflict는 그 순간 동시 활성인 노트 집합 전체에 표시한다. 해소 삭제는 [[editor-editing]] §1.
+Hold가 끝나는 tick은 이미 활성이 아니다 `[보존]`. 이 한 줄이 이벤트 처리 순서 규칙을 대신한다 — 같은 tick에서 tail이 먼저 빠지고 그다음 head가 평가되는 것([[judge]] §7)이 별도 규칙이 아니라 이 정의의 귀결이다.
 
-**global 6키 conflict** `[번복]`: 로컬 capacity를 모두 만족해도 물리 키 총수요가 6을 넘으면 구조적으로 칠 수 없다. 매 tick에서:
+**검사 지점**: 활성 집합은 노트의 `startTick`에서만 커진다. 따라서 chart 안의 서로 다른 `startTick` 전부에서만 검사하면 충분하며, 그 사이는 볼 필요가 없다. sweep-line은 이것을 O(n log n)으로 계산하는 **방법**이지 정의가 아니다 `[수정]`.
+
+**풀과 로컬 capacity**: 풀은 lane 1~4 각각과 Wide, 5개다. 풀끼리는 키 집합이 서로소다.
+
+| 풀 | capacity | 2겹 | 3겹 이상 |
+|---|---|---|---|
+| lane 1·4 | 1 | conflict | conflict |
+| lane 2·3 (`OVERLAP_LANES`) | 2 | overlap | conflict |
+| Wide | 1 | conflict | conflict |
+
+conflict는 그 tick에 활성인 그 풀의 노트 **전체**에 표시한다. 해소 삭제는 [[editor-editing]] §1.
+
+**global 6키 conflict** `[번복]`: 로컬 capacity를 모두 만족해도 물리 키 총수요가 6을 넘으면 구조적으로 칠 수 없다. 검사 지점 `t`마다 그 tick의 풀별 활성 수를 세어:
 
 ```text
-D1 = lane 1 활성 Hold + 이 tick의 lane 1 head 수
-D2 = lane 2 활성 Hold + 이 tick의 lane 2 head 수
-D3 = lane 3 활성 Hold + 이 tick의 lane 3 head 수
-D4 = lane 4 활성 Hold + 이 tick의 lane 4 head 수
-W  = 활성 WideHold 수요 + 이 tick의 wide head 수
+D1..D4 = lane 1..4의 t 활성 노트 수
+W      = Wide 풀의 t 활성 노트 수
 
-D1<=1, D2<=2, D3<=2, D4<=1, W<=1
-D1+D2+D3+D4+W <= 6
+로컬  D1<=1, D2<=2, D3<=2, D4<=1, W<=1
+global D1+D2+D3+D4+W <= 6
 ```
 
 마지막 부등식이 로컬 capacity를 모두 통과해도 발생하는 7-입력 문제(예: 1+2+2+1+1=7)를 잡는다. lane별 키 집합이 서로소이고 wide 수요가 최대 1이므로, 이 부등식들은 현재 6키 구성에서 **완전한 배정 가능성 검사**다([[judge]] §12).
 
-- 같은 tick에서는 **tail이 먼저 빠지고** 그다음 같은 tick의 head를 평가한다([[judge]] §7).
-- global conflict group은 그 tick/상태에서 수요에 기여한 노트 전체를 포함하며, 로컬 overlap 표시보다 **우선**한다.
-- global conflict 해소 삭제는 reverse-insertion으로 초과분(`총수요 − 6`)만 지운다 — 자동 삭제는 없다.
+- global conflict group은 그 tick에 활성인 노트 전체(풀 무관)를 포함한다.
+- 로컬·global 모두 표시는 같다. 다른 것은 **초과분**뿐이다 — 로컬은 `풀 활성 수 − capacity`, global은 `총수요 − 6`. 해소 삭제는 reverse-insertion으로 초과분만 지우며 자동 삭제는 없다([[editor-editing]] §1).
 - 판정창은 구조적으로 불가능한 동시 chord를 눈감아주지 않는다 — 검증은 note domain의 문제이지 judge 판정 로직의 문제가 아니다.
 
-**overlap 세부 분류**:
-- `merged` — 활성구간 동일. 한 장 표시, 다른 장 `hidden`.
-- `yellow` / `clipped` — 부분 겹침. 늦은/짧은 쪽 겹침부가 `yellow`, 흰 노트 몸통은 `clipped`.
+**출력** `[신규]`: 검출 결과는 두 가지다.
 
-**conflict** (로컬·global 공통):
-- 흰 채움 + 빨간 경고 테두리. merged/yellow 분류 없음. global conflict가 로컬 overlap 표시를 덮는다.
+1. **노트별 표시** — notes와 같은 길이·같은 순번의 목록. `i`번째 항목이 `notes[i]`의 표시이며, 겹치지 않은 노트 자리는 비어 있다. 노트를 순번으로 가리키는 이유는 영속 note ID가 없기 때문이고, notes 배열 순서가 곧 배치 순서라 순번이 이미 도메인 값이기 때문이다.
+2. **conflict group 목록** — `{ scope: local|global, tick, noteIndices, excess }`. 초과분을 검출 쪽이 함께 내는 이유는 capacity 규칙이 두 곳에 살면 표시와 삭제 개수가 어긋나기 때문이다. group을 **내는 것**까지가 domain이고 **지우는 것**은 [[editor-editing]] §1이다.
+
+**표시 종류와 우선순위**:
+
+- `conflict` — 흰 채움 + 빨간 경고 테두리. **어떤 conflict group에든 속한 노트는 conflict다** — 아래 세부 분류를 덮는다 `[수정]`.
+- `merged` — 활성구간이 완전히 같은 2겹. 배치가 이른 쪽이 `merged`(한 장만 표시), 늦은 쪽이 `hidden`.
+- `yellow` / `clipped` — 부분 겹침. 겹침부 = `[max(시작), min(끝)]`. 늦게 시작한 쪽이, 시작이 같으면 짧은 쪽이 `yellow`이고 상대가 Hold면 그 몸통이 `clipped`다.
+
+세부 분류(`merged`/`hidden`/`yellow`/`clipped`)는 **정확히 2겹에서만** 생긴다 — 3겹부터는 conflict가 덮기 때문이다. 그래서 쌍 단위 개념으로 닫히고 n-way 규칙이 필요 없다. 실제로 남는 것은 lane 2·3뿐이다(다른 풀은 2겹이 곧 conflict).
+
+한 노트가 서로 다른 두 쌍에 낄 수 있다. 이때 **먼저 만난 쌍의 표시가 남는다** `[보존]` — 쌍은 `(startTick, duration, 배치 순서)` 정렬로 훑는다.
 
 > **notes 배열 순서 = 배치 순서** `[신규]`: 직렬화에서도 보존한다. 시간순 접근은 정렬 캐시가 담당한다.
 > 검출(domain)과 표시(render)를 분리한다. judge는 overlap/conflict를 모른다. conflict 저장 필드·note ID는 두지 않는다.

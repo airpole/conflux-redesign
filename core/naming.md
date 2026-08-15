@@ -95,6 +95,15 @@
 
 ‡ 구 `evaluateEnd`는 클리어 여부(boolean)만 냈고 state는 `computeState`가 따로 냈다. 재설계는 한 표로 합친다. `fc`/`ap`/`as`/`cascade`는 gaugeMode 값이고, 플레이 중에는 `playState.tier`가 현재 생존 단계를 추적한다. `state`는 runtime 저장 필드가 아니라 `computeResult` 반환값이며 rank와 독립적으로 기록된다. gaugeMode 정의는 [[gauge]] 단일 출처.
 
+### 겹침 검출 (상세 → [[data-model]] §5.1)
+| 현재 | 새 이름 | 역할 | 태그 |
+|---|---|---|---|
+| `computeNoteOverlaps` | `buildOverlapMap(notes)` | notes에서 표시·conflict group 산출 | 수정¶ |
+| `invalidateNoteOverlaps` | (폐기) | 캐시 무효화 통보 — 파생 결과를 인자로 넘기므로 불필요 | 번복 |
+| `classifyNotesForZOrder` | (render 소관) | z-order 버킷팅. 검출이 아니라 표시라 core에 두지 않는다 | 수정 |
+
+¶ `build*` 접두는 `buildTimeline`·`buildJudgeNotes`와 맞춘 것이다 — chart에서 파생 결과를 한 번 만들고 소비자가 인자로 받는 형태를 이름이 표시한다.
+
 ### 노트 색/스킨
 | 현재 | 새 이름 | 역할 | 태그 |
 |---|---|---|---|

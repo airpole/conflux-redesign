@@ -138,10 +138,10 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M1-8 overlap/conflict 검출 — [[data-model]] §5.1 sweep-line, 로컬 capacity와 global 6키
-- **Discussion Scope:** [[data-model]] §5.1과 [[judge]] §11. 대장 DM-3·JD-5.
-- **Change Scope:** overlap 검출 모듈(신설)과 그 테스트
-- **Exit:** lane 1·4는 2겹, lane 2·3은 3겹, Wide는 2겹부터 conflict로 잡힌다. 로컬 capacity를 모두 통과한 7-입력이 global conflict로 잡히고 로컬 표시보다 우선한다
+- **Active unit:** M1-9 [[shape]]·[[lane-events]] 체인 보간 — easing 3종 + anchor
+- **Discussion Scope:** [[shape]]·[[lane-events]]. 대장 SH-1~SH-3.
+- **Change Scope:** 보간 모듈(신설)과 그 테스트
+- **Exit:** 같은 이벤트 열에서 임의 tick의 보간값이 골든 표와 일치한다. Step 입력이 `Linear + duration 0`으로 저장된다
 
 ### Completed
 
@@ -210,6 +210,14 @@ Hold 소유를 구현했다(M1-5, D-2026-039). Normal Hold는 lane의 익명 수
 
 골든 `gauge.json`은 `computeState`·`computeResult`를 뽑지 않아 state·score·accuracy·rank 산출 전체가 대조 밖이었다 — 셋 다 `[보존]`이면서 검증이 없던 자리다. 대장에 `미커버` 3행(GA-6·GA-7·GA-8)을 늘려 스펙 테스트를 판정자로 세웠다. 테스트는 489건이며 골든 30건 중 GA-1 범위 6건을 뺀 24건이 값까지 일치한다.
 
+겹침 검출을 구현했다(M1-8, D-2026-042). **활성을 점으로 정의했다** — tick `t`에서 Tap은 `startTick == t`, Hold는 `startTick <= t < startTick + duration`이다. 활성 집합은 `startTick`에서만 커지므로 검사 지점은 chart의 `startTick` 전부이고, sweep은 그것을 계산하는 **방법**이지 정의가 아니다. 이 한 줄이 이벤트 순서 규칙을 대신한다 — 같은 tick에서 tail이 먼저 빠지고 head가 평가되는 것이 별도 규칙이 아니라 귀결이 됐다. 구 표기 `Tap = [t, t]`를 sweep 이벤트로 옮기면 **같은 tick의 Tap 두 장이 서로 만나지 못한다**(자기 끝이 자기 시작을 밀어낸다).
+
+conflict group이 `excess`를 함께 낸다 — capacity 규칙이 core와 editor 두 곳에 살면 화면의 빨간 노트 수와 삭제 개수가 어긋난다. group을 내는 것까지가 domain이고 지우는 것은 editor다. conflict가 세부 분류를 덮으므로 `merged`/`hidden`/`yellow`/`clipped`는 **정확히 2겹에서만** 생기고 쌍 개념으로 닫힌다 — n-way 규칙이 필요 없다.
+
+**원본을 직접 돌려 대장 DM-3이 실제보다 작게 적혀 있었음을 확인했다.** `순회 기반 → sweep-line, O(n log n)` / `미커버`로 등재돼 있었지만 바뀌는 것은 계산 방식이 아니라 **검출되는 집합 자체**다 — 원본은 pairwise라 lane 2·3의 3겹 이상을 conflict로 잡지 못한다. 계단형 3겹은 `clipped`·`yellow`·`yellow`가 되고, 같은 tick 4겹은 `merged` 한 장에 `hidden` 세 장이 되어 **화면에 한 장만 보이는데 네 번 쳐야 한다.** DM-3을 3겹 행으로 재정의해 `어긋남`으로 올리고 우선순위를 DM-6으로 분리했다. DM-6은 `없음`이다 — 원본은 풀마다 낼 수 있는 표시 종류가 갈려 있어 두 종류가 한 노트를 두고 겨루는 상황 자체가 없다.
+
+골든 `overlap.json` 54건을 새로 뽑았다. 원본 `overlaps.js`는 스텁 없이 Node에서 돈다. 갈리는 4 fixture를 뺀 14 fixture가 값까지 일치하며, 반개구간 경계·노랑 구간 좌표·`merged`/`hidden` 짝짓기·먼저 만난 쌍 우선이 전부 `[보존]`으로 확인됐다. 테스트는 545건이다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
@@ -217,8 +225,7 @@ Hold 소유를 구현했다(M1-5, D-2026-039). Normal Hold는 lane의 익명 수
 
 ### 다음 후보
 
-- M1-8 overlap/conflict 검출 — 로컬 sweep-line + global 6키(JD-5 이관분) (Current Focus)
-- M1-9 [[shape]]·[[lane-events]] 체인 보간
+- M1-9 [[shape]]·[[lane-events]] 체인 보간 (Current Focus)
 - D-2026-021 사이클 (M3 진입 전)
 - UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
 - credits scene 표시 내용 채우기 (소형, M4-2 전)

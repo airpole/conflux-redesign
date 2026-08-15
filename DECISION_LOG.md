@@ -440,6 +440,18 @@
 - **Commit:** `5d9cbcf`
 
 
+### D-2026-042 — 겹침 검출: 활성은 점으로 정의하고, conflict가 표시를 덮는다
+
+- **Status:** Accepted
+- **Decision:** `buildOverlapMap(notes)`가 표시와 conflict group을 한 번에 낸다 — 캐시도 무효화도 없다(`buildTimeline`과 같은 형태). **활성을 점으로 정의했다** `[수정]`: tick `t`에서 Tap은 `startTick == t`, Hold는 `startTick <= t < startTick + duration`이다. 활성 집합은 `startTick`에서만 커지므로 검사 지점은 chart의 `startTick` 전부이고, sweep은 그것을 O(n log n)으로 계산하는 **방법**이지 정의가 아니다. 이 한 줄이 이벤트 처리 순서 규칙을 대신한다 — 같은 tick에서 tail이 먼저 빠지고 head가 평가되는 것(`judge` §7)이 별도 규칙이 아니라 귀결이 됐다. 구 표기 `Tap = [t, t]`를 sweep 이벤트로 옮기면 **같은 tick의 Tap 두 장이 서로 만나지 못한다**(자기 끝이 자기 시작을 밀어낸다). `startTick`에 정수 제약이 없어 `[t, t+1)` 통일도 성립하지 않는다. **출력은 순번 기반이다** — 영속 note ID가 없고 notes 배열 순서가 곧 배치 순서라 순번이 이미 도메인 값이며, 골든 JSON에 적을 수 있다. **conflict group이 `excess`를 함께 낸다** `[신규]` — capacity 규칙이 core와 editor 두 곳에 살면 표시와 삭제 개수가 어긋난다(judge에서 누적을 뺀 D-2026-039와 같은 부류). group을 내는 것까지가 domain이고 지우는 것은 `editor-editing` §1이다. **conflict가 세부 분류를 덮는다** — 그래서 `merged`/`hidden`/`yellow`/`clipped`는 정확히 2겹에서만 생기고 쌍 개념으로 닫힌다(n-way 규칙이 필요 없다). 노랑 구간은 tick으로 domain이 낸다 — px가 아니므로 render의 몫이 아니고, 골든이 그 값을 뽑는다.
+- **Amends:** 원본 `overlaps.js`를 Node에서 직접 돌려 **대장 DM-3이 실제보다 작게 적혀 있었음을 확인했다.** `순회 기반 → sweep-line, O(n log n)` / `미커버`로 등재돼 있었으나, 바뀌는 것은 계산 방식이 아니라 **검출되는 집합 자체**다 — 원본은 pairwise라 lane 2·3의 3겹 이상을 conflict로 잡지 못한다. 계단형 3겹은 `clipped`·`yellow`·`yellow`가 되고, 같은 tick 4겹은 `merged` 한 장에 `hidden` 세 장이 되어 **화면에 한 장만 보이는데 네 번 쳐야 한다.** DM-3을 3겹 행으로 재정의하고 관계를 `어긋남`으로 올렸으며, 우선순위를 DM-6으로 분리했다. DM-6은 `어긋남`이 아니라 **`없음`**이다 — 원본은 풀마다 낼 수 있는 표시 종류가 갈려 있어(lane 2·3 = overlap 계열, lane 1·4·Wide = `invalid`) 두 종류가 한 노트를 두고 겨루는 상황 자체가 생기지 않는다. 계산 방식 자체는 2겹 결과가 같으므로 대장 행이 아니라 §5.1의 `[수정]` 태그가 담는다.
+- **Defined in:** `core/data-model.md` §5.1, `core/naming.md` §2, `tests/golden/DIVERGENCES.md` §4·§5·§7
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** data-model, naming, tests/golden, tools/golden, src/core, README
+- **Supersedes:** None (`data-model` §5.1의 활성구간 표기와 대장 DM-3 문구를 대체)
+- **Commit:** TBD
+
+
 ```md
 ### D-YYYY-NNN — <Title>
 

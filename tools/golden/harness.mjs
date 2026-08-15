@@ -18,7 +18,7 @@ const WORK = path.resolve(here, '.work');
 const MODULES = [
   'constants.js', 'state.js', 'cache.js', 'timing.js',
   'shape.js', 'play-state.js', 'gauge.js', 'play-judgment.js',
-  'settings.js',
+  'settings.js', 'overlaps.js',
 ];
 
 /** 원본 모듈을 작업 디렉터리로 복사하고 audio.js를 스텁으로 채운다. */
