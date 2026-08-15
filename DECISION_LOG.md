@@ -437,7 +437,7 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** gauge, naming, data-model, glossary, tests/golden, src/core, README
 - **Supersedes:** None (`gauge` §2의 "성공 시 state" 열과 §1의 "terminate = 게이지 0" 표현을 대체)
-- **Commit:** TBD
+- **Commit:** `5d9cbcf`
 
 
 ```md
