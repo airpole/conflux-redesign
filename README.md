@@ -138,10 +138,10 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M1-7 [[gauge]] — 6모드, terminate, cascade 병렬 평가, state·rank 산출
-- **Discussion Scope:** [[gauge]] 전체와 [[constants]] §2 게이지 델타. 미커버 GA-3·GA-4.
-- **Change Scope:** `src/core/core-gauge.ts`(신설)와 그 테스트, 골든 표 `gauge.json`
-- **Exit:** [[gauge]] §4 검증 시나리오 6종이 명시된 state를 낸다. rank가 gauge와 독립으로 나온다
+- **Active unit:** M1-8 overlap/conflict 검출 — [[data-model]] §5.1 sweep-line, 로컬 capacity와 global 6키
+- **Discussion Scope:** [[data-model]] §5.1과 [[judge]] §11. 대장 DM-3·JD-5.
+- **Change Scope:** overlap 검출 모듈(신설)과 그 테스트
+- **Exit:** lane 1·4는 2겹, lane 2·3은 3겹, Wide는 2겹부터 conflict로 잡힌다. 로컬 capacity를 모두 통과한 7-입력이 global conflict로 잡히고 로컬 표시보다 우선한다
 
 ### Completed
 
@@ -202,6 +202,14 @@ Hold 소유를 구현했다(M1-5, D-2026-039). Normal Hold는 lane의 익명 수
 
 **설계 대장의 배정 두 건을 옮겼다.** global 6키 conflict(JD-5)는 M1-6 → **M1-8**이다 — `data-model` §5.1의 global 부등식은 별도 패스가 아니라 로컬 검출과 같은 sweep 위의 합산이고, `judge` §11이 검출을 judge 밖으로 못박고 있어 judge step에 둘 자리가 없었다. TM-5(Resume leadIn 미적용)는 M1-6 → **M2-5**다 — core에는 상수 하나뿐이라 M1에서는 확인할 대상이 없었다. 배정만 있고 검증이 없는 행은 공백을 덮어 가린다.
 
+게이지를 구현했다(M1-7, D-2026-041). **state는 고른 모드가 아니라 성적이 정한다** `[보존]` — 어느 게이지로 쳐도 `FC`/`AP`/`AS`가 나오고, `tier`는 `H`와 `C`를 가르는 자리에서만 쓰인다. `gauge` §2의 "성공 시 state" 열은 그 반대로 읽혀 삭제했고 산출을 §3의 7줄 표 하나로 모았다 — **cascade가 별도 산출 경로를 갖지 않는다.**
+
+그 결과 모드 표가 두 열로 줄었다. `gaugeMode` 6종이 정하는 것은 **시작 tier와 탈락 시 동작**뿐이다. 시작값·증감은 게이지의 성질이지 모드의 성질이 아니고(두 게이지는 전 모드 병렬 누적), 탈락 조건은 tier마다 하나씩 붙어 `TIER_LADDER`(`as > ap > fc > hard > normal`)로 내려갔다. terminate는 게이지 값을 밟지 않고 `forceEnded` 하나가 든다 `[번복]` — 두 값은 result 막대와 score가 함께 쓰는 회계다. 누산기도 하나로 모았다: 판정별 단위 수 `counts`를 gauge가 들고 게이지·score·accuracy·state가 전부 그것을 읽는다. judge에서 누적을 뺀 D-2026-039의 반대편이다.
+
+**원본을 다시 읽어 구현을 한 번 되돌렸다.** 처음에는 terminate 즉시 회계를 끊었는데, 원본 `play.js`는 `PS.playForceEnded`를 **프레임 끝에서** 확인하므로 그 프레임의 남은 MISS가 게이지·score에 그대로 들어간다. 골든 30건 중 4건이 그 자리에서 어긋나 드러났다 — 판을 멈추는 것은 gauge가 아니라 host의 몫이다. 원본 조사에서 하나가 더 나왔다: `settings.js gaugeToLock`이 cascade를 `gaugeType: 'normal'`로 매핑하므로 **원본 cascade는 `H`를 낼 수 없었다**(코드 주석의 `AS→AP→FC→Hard→Normal`은 사실과 달랐다).
+
+골든 `gauge.json`은 `computeState`·`computeResult`를 뽑지 않아 state·score·accuracy·rank 산출 전체가 대조 밖이었다 — 셋 다 `[보존]`이면서 검증이 없던 자리다. 대장에 `미커버` 3행(GA-6·GA-7·GA-8)을 늘려 스펙 테스트를 판정자로 세웠다. 테스트는 489건이며 골든 30건 중 GA-1 범위 6건을 뺀 24건이 값까지 일치한다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
@@ -209,8 +217,8 @@ Hold 소유를 구현했다(M1-5, D-2026-039). Normal Hold는 lane의 익명 수
 
 ### 다음 후보
 
-- M1-7 [[gauge]] (Current Focus)
-- M1-8 overlap/conflict 검출 — 로컬 sweep-line + global 6키(JD-5 이관분)
+- M1-8 overlap/conflict 검출 — 로컬 sweep-line + global 6키(JD-5 이관분) (Current Focus)
+- M1-9 [[shape]]·[[lane-events]] 체인 보간
 - D-2026-021 사이클 (M3 진입 전)
 - UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
 - credits scene 표시 내용 채우기 (소형, M4-2 전)

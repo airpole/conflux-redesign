@@ -24,14 +24,10 @@ const SRC_DIR = fileURLToPath(new URL('../', import.meta.url));
  * 아직 짓지 않은 이름과 담당 step. 여기 있는 것은 구현에 **없어야** 한다 —
  * 지어놓고 목록에서 지우지 않으면 그것도 실패한다(목록이 낡는 것을 막는다).
  */
-const PENDING: Readonly<Record<string, string>> = {
-  GAUGE_MODE_TABLE: 'M1-7',
-};
+const PENDING: Readonly<Record<string, string>> = {};
 
 /** §4의 상태 필드 중 아직 짓지 않은 것. 같은 규칙 — 지으면 여기서 지운다. */
 const PENDING_FIELDS: Readonly<Record<string, string>> = {
-  gauge: 'M1-7',
-  tier: 'M1-7',
   fastCount: 'M2',
   slowCount: 'M2',
   flashTiming: 'M2',

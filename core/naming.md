@@ -87,13 +87,13 @@
 ### 게이지 / 결과
 | 현재 | 새 이름 | 역할 | 태그 |
 |---|---|---|---|
-| `gaugeOnJudgment(kind)` | `applyGaugeChange(judgment)` | 판정 결과를 병렬 `hardPct`·`normalPct` 게이지에 반영 — 구 6종 kind(TAIL 포함) → judgment 4종 | 수정† |
-| `resetGauge` | `resetGauge` (유지) | 게이지 초기화 | 보존 |
+| `gaugeOnJudgment(kind)` | `applyGaugeChange(judgment, units)` | 판정 하나를 병렬 `hardPct`·`normalPct` 게이지·`counts`·`tier`에 반영 — 구 6종 kind(TAIL 포함) → judgment 4종 + 판정 단위 수 | 수정† |
+| `resetGauge` | `resetGauge` (유지) | 세션 시작 게이지 상태 생성 — 전역을 제자리에서 지우는 대신 새 상태를 돌려준다 | 보존 |
 | `computeResult` | `computeResult` (유지) | 곡 종료 결과 산출 (rank + state) | 보존 |
-| `evaluateEnd` / `_evalSorted` | `evaluateState` / (내부화) | gaugeMode 조건 평가·terminate/강등 및 최종 state 산출 보조 | 수정‡ |
+| `evaluateEnd` / `_evalSorted` | `evaluateState` / (내부화) | [[gauge]] §3 산출 표 — 성적이 마크를 정하고 `tier`는 `H`/`C`만 가른다 | 수정‡ |
 | (구 재설계안) | `clearState(playState)` (폐기) | 플레이 중 생존 단계는 `playState.tier`; 최종 state는 `computeResult`가 산출 | 번복 |
 
-‡ `fc`/`ap`/`as`/`cascade`는 gaugeMode 값이고, 플레이 중에는 `playState.tier`가 현재 생존 단계를 추적한다. `state`는 runtime 저장 필드가 아니라 `computeResult` 반환값이며 rank와 독립적으로 기록된다. gaugeMode 정의는 [[gauge]] 단일 출처.
+‡ 구 `evaluateEnd`는 클리어 여부(boolean)만 냈고 state는 `computeState`가 따로 냈다. 재설계는 한 표로 합친다. `fc`/`ap`/`as`/`cascade`는 gaugeMode 값이고, 플레이 중에는 `playState.tier`가 현재 생존 단계를 추적한다. `state`는 runtime 저장 필드가 아니라 `computeResult` 반환값이며 rank와 독립적으로 기록된다. gaugeMode 정의는 [[gauge]] 단일 출처.
 
 ### 노트 색/스킨
 | 현재 | 새 이름 | 역할 | 태그 |
@@ -134,7 +134,8 @@
 | `GAUGE_DELTA` | `GAUGE_DELTA` (유지) | |
 | `NORMAL_CLEAR_PCT` | `NORMAL_CLEAR_PCT` (유지) | |
 | `RANK_TABLE` | `RANK_TABLE` (유지) | rank 축 |
-| `LOCK_TIERS` | `GAUGE_MODE_TABLE` | gaugeMode 정의 (`normal`/`hard` 게이지 동작 + `fc`/`ap`/`as` terminate 조건 + `cascade` 강등 사슬). 단일 출처 [[gauge]] |
+| `LOCK_TIERS` | `TIER_LADDER` | 탈락 사다리 `as > ap > fc > hard > normal` — 원본 3종에 게이지 2단계가 편입됐다. 단일 출처 [[gauge]] §2 |
+| (원본은 `gaugeType`+`lockTarget`+`lockMode` 3필드에 흩어짐) | `GAUGE_MODE_TABLE` | gaugeMode 6종 → **시작 tier + 탈락 시 동작** 두 열. 단일 출처 [[gauge]] §2 |
 | `DEFAULT_KEYS` | `DEFAULT_LANE_KEYS` | |
 | `DEFAULT_ACTION_KEYS` | `DEFAULT_ACTION_KEYS` (유지) | |
 | `SPEED_MIN/MAX/STEP` | `SCROLL_SPEED_MIN/MAX/STEP` | scrollSpeed 명시 |
@@ -182,6 +183,10 @@
 | (신규) | `playState.keyPressSerial` / `playState.nextPressSerial` | Wide owner 이양 판정용 keydown 순번 — [[judge]] §5·§6 |
 | `PS.playKeyHeld` | `playState.keysHeld` | 눌린 키 집합 |
 | `PS.lineMap` | `playState.laneMap` | 미러 매핑 |
+| (원본은 `computeResult`가 `playHitMap`을 매번 재순회) | `playState.counts` | 판정별 **단위 수** 누적 `[신규]`. score·accuracy·state가 같은 하나를 읽는다 — 계약 GA-5의 실체 (D-2026-041) |
+| `PS.gaugeUnitScale` | `playState.unitScale` | `normal` 양수 delta에 걸리는 `a`. 세션 시작 1회 계산 |
+| `PS.playForceEnded` | `playState.forceEnded` | 단일 모드에서 tier가 탈락해 중도 종료됐다. terminate가 남기는 유일한 흔적 — 게이지 값을 밟지 않는다 `[번복]` ([[gauge]] §1) |
+| `PS.lockTier` | `playState.tier`에 흡수 | 구 `'broken'` 값은 두지 않는다 — 실패는 `forceEnded`가 든다 |
 | `PS.fastCount`/`slowCount` | `playState.fastCount` / `playState.slowCount` | 세션 누적, result 표시. 누적은 judge 밖 — `JudgmentEvent`를 받는 쪽이 센다 (D-2026-039) |
 | `PS.flashTiming` | `playState.flashTiming` | 'FAST'/'SLOW'/null 순간표시 (기록 안 됨) |
 | (구 재설계안의 `playState.state`) | `result.state` | `computeResult` 산출물. playState에 저장하지 않음 `[번복]` |

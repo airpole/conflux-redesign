@@ -88,6 +88,9 @@ M2 이후 영역(render·scene·persistence·`.cfx`·editor)의 차이는 각 �
 | GA-3 | state `P` | "끝까지 쳤으나 미달" = `P`, best 순위 `C > P > N > F` | `P`를 `F`에 흡수, `C > F > N` | 미커버 | `gauge` §3 |
 | GA-4 | cascade | `as/ap/fc` 티어만 한 칸 강등, 게이지는 단일·연속 | 게이지 2종 병렬 평가, 최고 생존 티어 | 없음 | `gauge` §4 |
 | GA-5 | judgment 단위 회계 | kind 6종 피드, 단위 개념이 암묵적 | 판정 단위를 명시적으로 정의하고 score·accuracy·게이지가 같은 단위를 쓴다 | 미커버 | `gauge` §5 |
+| GA-6 | state 산출 | `computeState`가 판정 카운트만 본다 — 고른 모드는 `H`/`C`만 가른다 | 같은 규칙 유지 `[보존]`. 어느 게이지로 쳐도 `FC`/`AP`/`AS`가 나온다. `tier`가 `gaugeType` 자리를 대신한다 | 미커버 | `gauge` §3 |
+| GA-7 | score·accuracy·rank 산출 | `computeResult`가 `playHitMap`을 재순회해 센다 | 같은 산식 `[보존]`. 카운트는 판정 이벤트 누산기(`counts`) 하나에서 온다 | 미커버 | `constants` §3 |
+| GA-8 | `as` 모드 terminate | `lockTarget: 'as'` + `lockMode: 'terminate'` | gaugeMode `as` — 규칙 동일 `[보존]` | 미커버 | `gauge` §2 |
 
 > `HOLD_RELEASE_GRACE_MS = 50`은 대장에 오르지 않는다. 재설계 과정에서 한 번
 > 폐기했다가 `[번복]`으로 복원한 값이라 **최종 상태가 원본과 같다** — 원본 대비
@@ -104,7 +107,20 @@ M2 이후 영역(render·scene·persistence·`.cfx`·editor)의 차이는 각 �
 (lockTarget 3종 × 2시퀀스 = 6건).
 
 GA-4는 원본에 병렬 평가 모델이 없어 대조할 값이 없다. `gauge` §4의 검증
-시나리오 6종이 기준이다.
+시나리오 6종이 기준이다. 원본의 6단 사다리는 `settings.js gaugeToLock`이
+cascade를 `gaugeType: 'normal'`로 매핑하므로 **`H`를 낼 수 없었다** — 코드
+주석의 `AS→AP→FC→Hard→Normal`은 실제 매핑과 달랐다(D-2026-041).
+
+### GA-6~8이 미커버인 이유
+
+`tools/golden/extract-gauge.mjs`는 `gaugeOnJudgment`와 `evaluateEnd`만 뽑고
+**`computeState`·`computeResult`를 뽑지 않는다.** 그래서 state 산출(GA-6)과
+score·accuracy·rank 산출(GA-7)은 셋 다 `[보존]`이면서도 골든이 닿지 않는다 —
+값이 같다는 주장 자체를 확인하는 것이 스펙 테스트뿐이다. 추출기의 `lockTarget`
+축도 `none`/`fc`/`ap` 셋이라 `as` 모드(GA-8)가 빠져 있다.
+
+세 건 다 원본에 대응 함수가 있으므로, 의심이 들면 추출 대상에 추가할 수 있다.
+`computeResult`는 원본 `PS.playHitMap`을 합성해야 뽑히므로 값이 싸지 않다.
 
 ---
 
@@ -248,12 +264,14 @@ HOLD_RELEASE_GRACE_MS`를 직접 건다.
 | JD-7 | mid-start 시드·anchor, Resume 비-재시드 (`core-judge.test.ts` §9·§10) | M1-6 |
 | GA-3 | state `P→F` 흡수와 best 순위 | M1-7 |
 | GA-4 | cascade 병렬 평가 (`gauge` §4 시나리오 6종) | M1-7 |
+| GA-6·GA-7 | state 산출 표와 score·accuracy·rank 산식 (`core-gauge.test.ts`) | M1-7 |
+| GA-8 | `as` 모드 terminate | M1-7 |
 | DM-3 | sweep-line overlap/conflict 검출 (로컬 capacity) | M1-8 |
 | JD-5 | global 6키 conflict (같은 sweep) | M1-8 |
 | TM-5 | Resume leadIn 미적용 | M2-5 |
 | SH-4 | symmetry 축 동적 스냅샷 | M5-4 |
 
-**23행이다**(ID로는 30건). M1의 9개 step 중 7개가 스펙 테스트를 요구한다 — 골든만으로 통과할
+**25행이다**(ID로는 33건). M1의 9개 step 중 7개가 스펙 테스트를 요구한다 — 골든만으로 통과할
 수 있는 step은 거의 없다.
 
 JD-5(global 6키)는 원래 M1-6에 있었으나 M1-8로 옮겼다(D-2026-040). global 부등식은

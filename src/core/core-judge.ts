@@ -131,6 +131,14 @@ export interface JudgeNotes {
   readonly ordered: readonly JudgeNote[];
   /** 같은 객체를 원본 `notes` 인덱스로 본 것. 활성 Hold를 인덱스로 들고 다니므로 필요하다. */
   readonly byIndex: readonly JudgeNote[];
+  /**
+   * chart 전체의 판정 단위 수(§8) — Tap 1, Hold 2(head+tail). 게이지 `a` 스케일과
+   * score의 분모가 이 값이다.
+   *
+   * gauge가 아니라 여기서 센다: "Hold는 2단위"는 §8의 정의이므로 세는 곳도 §8의
+   * 구현이어야 한다. gauge가 따로 세면 같은 정의가 두 곳에 생긴다(D-2026-041).
+   */
+  readonly totalUnits: number;
 }
 
 /**
@@ -175,7 +183,14 @@ export function buildJudgeNotes(chart: Pick<Chart, 'notes'>, timeline: Timeline)
     } satisfies JudgeNote;
   });
 
-  return { ordered: [...byIndex].sort(compareCandidates), byIndex };
+  const totalUnits = byIndex.reduce((sum, entry) => sum + unitsOf(entry.note), 0);
+
+  return { ordered: [...byIndex].sort(compareCandidates), byIndex, totalUnits };
+}
+
+/** 노트 하나가 차지하는 판정 단위 수(§8). Hold는 head·tail 둘이다. */
+function unitsOf(note: Note): number {
+  return note.duration > 0 ? 2 : 1;
 }
 
 // ── 상태 ────────────────────────────────────────────────────

@@ -99,7 +99,9 @@ Blue · 1 · 2 · 3 · Red
 
 ## Gauge / Result / Record
 
-- gauge/gaugeMode/state/cascade/terminate → [[gauge]].
+- gauge/gaugeMode/tier/state/cascade/terminate → [[gauge]].
+- tier — 살아있는 최고 단계 `as > ap > fc > hard > normal`. 탈락은 비가역 → [[gauge]] §2.
+- state는 고른 모드가 아니라 **성적**이 정한다 — 어느 게이지로 쳐도 `FC`/`AP`/`AS`가 나온다 → [[gauge]] §3.
 - combo — GOOD 이상 연속, MISS reset.
 - rank — score 등급, state와 독립.
 - record — playable chart best(`bestJudgments/bestState/maxCombo`). score·rank·accuracy는 파생.

@@ -10,7 +10,25 @@
 SYNC/PERFECT/GOOD/MISS는 `abs(diff_ms)` 한 축의 구간이다. wide도 다른 threshold row일 뿐이라 한 table lookup으로 표현한다. FAST/SLOW는 diff 부호라 judgment 종류와 분리한다.
 
 ### gaugeMode를 단일 축 6종으로 둔 이유
-과거 gaugeType×lockTarget×lockMode 3축은 사용자 선택 하나를 과도하게 분해했다. normal/hard/fc/ap/as/cascade 6종으로 평탄화하면 UI와 engine 분기가 일치한다. terminate는 gauge 0으로 수렴하고 cascade만 강등 규칙을 둔다.
+과거 gaugeType×lockTarget×lockMode 3축은 사용자 선택 하나를 과도하게 분해했다. normal/hard/fc/ap/as/cascade 6종으로 평탄화하면 UI와 engine 분기가 일치한다. 평탄화 뒤 모드가 실제로 정하는 것은 **시작 tier와 탈락 시 동작** 둘뿐이고 cascade는 후자의 값 하나(강등)일 뿐이다 — 원본 3축은 그 두 정보를 세 필드에 흩어 놓았을 뿐이었다 (D-2026-041).
+
+### state를 성적으로 산출하고 모드로 산출하지 않는 이유 `[보존]`
+모드를 마크의 조건으로 삼으면(노멀로 치면 최대 `C`) 유저가 낸 성적을 고른 옵션이 되받아 깎는다. 원본 `computeState`도 판정 카운트만 보고 모드는 `H`/`C`만 갈랐다. 대가는 `fc`/`ap`/`as` terminate 모드가 보상 없는 순수 위험이 된다는 것인데, 그 셋의 값어치는 "깨지면 즉시 끝난다"는 압박 자체이므로 자기 규율용 모드로 성립한다. 보상을 붙이는 것은 나중에 별도로 결정할 수 있고, 반대 방향(마크를 좁혔다가 되돌리기)은 이미 쌓인 기록을 무효화한다 (D-2026-041).
+
+### terminate를 게이지 0이 아니라 `forceEnded`로 표현한 이유 `[번복]`
+구안은 "terminate = 게이지를 즉시 0으로"였다. 그런데 두 게이지는 전 모드에서 병렬 누적되고 result 막대·score가 같은 값을 읽으므로, 종료가 그 값을 밟으면 표시와 점수가 어긋난다. 게이지를 쓰지 않는 `fc`/`ap`/`as`에서는 애초에 0으로 만들 대상도 없다. 실패는 `forceEnded` 하나가 들고, 단일 모드의 `tier`는 탈락 직전 값으로 얼어붙는다 — 같은 사실을 두 필드에 적지 않는다 (D-2026-041).
+
+### gauge를 2값 병렬 + tier 단일 구조로 통일한 이유
+구 단일 `gaugeValue`는 모드마다 다른 뜻이었다. hard·normal 두 값을 **모든 모드에서 함께** 굴리면 cascade가 특별한 경로를 갖지 않는다 — 강등은 "어느 값을 결과로 보느냐"가 내려가는 것이고, 그 시점의 normal 값은 이미 거기 쌓여 있다. 전환 순간에 새 게이지를 시작하는 구조였다면 "cascade로 `C` = normal 모드 클리어"가 성립하지 않는다.
+
+### cascade의 hard 탈락을 래칫으로 둔 이유
+hard 모드였다면 0에 닿은 순간 죽은 판이다. 값이 회복됐다고 `H`로 복귀시키면 "cascade로 `H` = hard로 클리어"라는 동치가 깨지고, cascade가 hard보다 유리한 모드가 된다. `as`/`ap`/`fc`의 조건 위반이 비가역인 것과 같은 규칙을 게이지 단계에도 적용한다.
+
+### cascade result 막대를 최종 티어 기준으로 바꾼 이유 `[번복]`
+구안은 "result 막대는 항상 hard 값"이었다. 그러면 `normal` 단계로 끝난 판이 이미 0인 hard 막대를 보여줘 플레이 중 막대와 끊긴다. 최종 생존 tier를 따르면 플레이 중 표시와 result가 연속되고, 각 단일 모드의 result 표시와도 동치가 된다 — 표시까지 "cascade로 `C` = normal 모드 클리어"가 성립한다.
+
+### state에서 P를 F로 흡수한 이유
+구 코드는 "끝까지 쳤으나 미달"(`P`)과 "중도 강제종료"(`F`)를 갈랐고 best 순위도 `C > P > N > F`였다. 유저 관점에서 둘 다 "클리어 실패" 하나이고, 안 친 곡(`N`)이 친 곡보다 위에 오는 순위는 읽히지 않는다. 안 친 노트는 전부 MISS로 처리되므로 미달 판도 실제 플레이 결과다.
 
 ### hold tail 특례를 폐기한 이유
 head/tail을 일반 judgment와 같은 SYNC/MISS 규칙으로 처리하면 display·count·terminate·gauge가 한 의미를 공유한다. hard tail 수치는 일부 바뀌지만 예외 signal과 전용 delta가 사라진다.

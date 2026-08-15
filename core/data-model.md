@@ -216,14 +216,15 @@ editorState = { scrollSpeed, ...selection/tool/viewport/history }
 playState   = {
   gauge: { hardPct, normalPct },
   tier,
-  gaugeMode, combo, maxCombo, hits,
+  gaugeMode, forceEnded, counts, unitScale, combo, maxCombo, hits,
   activeNormalHolds, activeWideHold, wideOwnerKey,
   keysHeld, keyPressSerial, nextPressSerial,
-  laneMap, fastCount, slowCount, flashTiming, forceEnded, ...
+  laneMap, fastCount, slowCount, flashTiming, ...
 }
 ```
 
 - `activeNormalHolds`/`activeWideHold`/`wideOwnerKey`/`keyPressSerial`/`nextPressSerial`은 D-2026-024의 key-demand Hold 모델 상태다. 구 `holds`(key→note 소유 맵)를 대체한다 `[번복]` — 모델 단일 출처는 [[judge]] §5~§9, 이름 대응 [[naming]] §4.
+- `counts`는 판정별 **단위 수** 누적이다. score·accuracy·state가 같은 하나를 읽는다 — 게이지와 점수가 같은 단위를 쓴다는 계약(설계 대장 GA-5)의 실체다 (D-2026-041). `forceEnded`는 단일 모드의 terminate 흔적이며 게이지 값을 밟지 않는다 → [[gauge]] §1.
 - `hits`는 note별 판정 상태 하나이며 구 `playMissSet`을 겸한다. judgment 누적 개수는 상태가 아니라 `JudgmentEvent`를 받는 쪽이 센다 — 같은 사실을 상태와 이벤트 두 곳에 두지 않는다 (D-2026-039).
 
 - core 함수에는 **활성 chart**를 인자로 넘긴다. core는 library의 songId 그룹이나 멀티 chart 목록을 모른다.

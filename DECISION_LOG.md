@@ -428,6 +428,18 @@
 - **Commit:** `6c5e67e`
 
 
+### D-2026-041 — state는 성적이 정한다, tier 사다리, 단일 누산기
+
+- **Status:** Accepted
+- **Decision:** **state는 고른 모드가 아니라 성적이 정한다** `[보존]` — 원본 `computeState`가 `gaugeType`·`lockTarget`을 보지 않고 판정 카운트만 보는 것을 그대로 지킨다. 어느 게이지로 쳐도 `FC`/`AP`/`AS`가 나오고, `tier`는 `H`와 `C`를 가르는 자리에서만 쓰인다. `gauge` §2의 "성공 시 state" 열은 그 반대(모드 종속)로 읽혀 삭제했고, 산출은 §3의 7줄 표 하나로 모았다 — cascade가 별도 산출 경로를 갖지 않는다. **모드 표가 두 열로 줄었다**: `gaugeMode` 6종은 이제 **시작 tier + 탈락 시 동작**만 정한다(`GAUGE_MODE_TABLE`). 시작값·증감은 게이지의 성질이지 모드의 성질이 아니므로(두 게이지는 전 모드 병렬 누적) 표에서 뺐고, 탈락 조건은 tier마다 하나씩 붙는 `TIER_LADDER`(`as > ap > fc > hard > normal`)로 내렸다. **terminate는 게이지 값을 밟지 않고 `forceEnded` 하나로 표현한다** `[번복 — 구안은 "게이지를 즉시 0으로"]`; 단일 모드의 `tier`는 탈락 직전 값으로 얼어붙어 실패가 두 곳에 적히지 않는다. **누산기는 하나다** — 판정별 단위 수 `playState.counts`를 gauge가 들고 게이지·score·accuracy·state가 모두 그것을 읽는다(계약 GA-5의 실체). judge에서 누적을 뺀 D-2026-039의 반대편이다. `a` 스케일의 분모는 `JudgeNotes.totalUnits`가 낸다 — "Hold는 2단위"가 `judge` §8의 정의이므로 세는 곳도 거기다.
+- **Amends:** 원본을 다시 읽어 **terminate 뒤에도 같은 프레임의 판정이 회계에 들어간다**는 것을 확인했다 `[보존]`. 원본 `play.js`는 `PS.playForceEnded`를 **프레임 끝에서** 확인하므로 그 프레임의 남은 MISS가 게이지·score에 그대로 반영된다. 처음 구현은 terminate 즉시 회계를 끊었고, 골든 30건 중 4건이 그 자리에서 어긋나 드러났다 — 판을 멈추는 것은 gauge가 아니라 host의 몫이다.
+- **Defined in:** `core/gauge.md` (전면), `core/naming.md` §2·§3·§4, `core/data-model.md` §9, `core/glossary.md`, `tests/golden/DIVERGENCES.md` §2·§7
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** gauge, naming, data-model, glossary, tests/golden, src/core, README
+- **Supersedes:** None (`gauge` §2의 "성공 시 state" 열과 §1의 "terminate = 게이지 0" 표현을 대체)
+- **Commit:** TBD
+
+
 ```md
 ### D-YYYY-NNN — <Title>
 
