@@ -461,7 +461,7 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** gauge, tests/golden, tests/support, tools/golden, src/core, README
 - **Supersedes:** None (대장 GA-3 관계 표기와 GA-6·GA-7·GA-8 행을 대체)
-- **Commit:** `TBD`
+- **Commit:** `585ba1b`
 
 
 ### D-2026-043 — 체인 보간과 anchor 정의, 골든 shape 재추출
