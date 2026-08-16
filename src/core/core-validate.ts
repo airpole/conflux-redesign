@@ -165,6 +165,12 @@ export function validateChartDomain(chart: Chart): DomainResult {
       flag(`timeSignatures[${i}].denominator`, '양의 정수여야 한다');
     }
   });
+  if (
+    chart.timeSignatures.length > 0 &&
+    Math.min(...chart.timeSignatures.map((sig) => sig.startTick)) !== 0
+  ) {
+    flag('timeSignatures[0].startTick', '첫 박자표는 tick 0이어야 한다');
+  }
 
   chart.notes.forEach((note, i) => {
     if (![1, 2, 3, 4].includes(note.lane)) flag(`notes[${i}].lane`, '1~4여야 한다');

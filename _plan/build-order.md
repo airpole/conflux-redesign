@@ -43,6 +43,8 @@ tools/golden/   기대값 추출 스크립트
 
 M1 각 step의 완료 기준에 포함된다. 골든 테스트는 별도 step이 아니라 모든 core step에 깔리는 조건이다.
 
+milestone 마감 시 `npm run mutate`를 `src/core` 전 파일에 실행한다. 생존 뮤턴트는 테스트를 추가해 죽이거나 `tools/audit/MUTATION_EQUIVALENTS.md`에 동등 사유와 함께 등재해야 gate를 통과한다.
+
 **배치** `[신규]`
 
 ```

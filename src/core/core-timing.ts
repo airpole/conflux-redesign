@@ -193,9 +193,16 @@ export function cellTickOf(gridDivisor: number): number {
   return (TPB * 4) / gridDivisor;
 }
 
-function formatMeasure(measure: number, beat: number, subTick: number, cellTick: number): string {
+function formatMeasure(
+  measure: number,
+  beat: number,
+  subTick: number,
+  cellTick: number,
+  tick: number,
+): string {
   if (subTick === 0 && beat === 1) return `${measure}`;
   if (subTick === 0) return `${measure}.${beat}`;
+  if (subTick % cellTick !== 0) return `t${tick}`;
   return `${measure}.${beat}.${Math.round(subTick / cellTick)}`;
 }
 
@@ -203,8 +210,10 @@ function formatMeasure(measure: number, beat: number, subTick: number, cellTick:
  * tick → `measure.beat.sub` 표기.
  *
  * `sub`는 `gridDivisor` 격자 칸 수다 — 원본의 "박당 고정 16분할"을 폐기하고
- * 표기와 snap이 같은 격자를 쓴다(설계 대장 TM-7). 격자에 떨어지지 않는 tick은
- * 반올림해 근사 표기한다(원본과 같은 `round`).
+ * 표기와 snap이 같은 격자를 쓴다(설계 대장 TM-7). sub가 그 tick을 정확히
+ * 표현하지 못하면(마디 상대 나머지가 cell로 나눠떨어지지 않으면) 근사하지
+ * 않고 `t{tick}` 원시 표기로 떨어진다(D-2026-045) — 절대 tick이 canonical
+ * representation이고, 이 표기는 그 파생일 뿐이다.
  */
 export function tickToMeasure(
   timeline: Timeline,
@@ -223,6 +232,7 @@ export function tickToMeasure(
       Math.floor(relativeTick / first.tpbUnit) + 1,
       relativeTick % first.tpbUnit,
       cellTick,
+      tick,
     );
   }
 
@@ -236,6 +246,7 @@ export function tickToMeasure(
     Math.floor(remainder / segment.tpbUnit) + 1,
     remainder % segment.tpbUnit,
     cellTick,
+    tick,
   );
 }
 

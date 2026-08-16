@@ -4,8 +4,9 @@
  * M1 외부 검토(WO-1 §4)에서 상설화. 검토 중 이 파일의 2번 속성이
  * 실제 왕복 붕괴 하나를 찾았다(TS 전환점이 cell 미정렬일 때 — 결정 1).
  *
- * TODO(결정 1 / WO-2 §1): 아래 왕복 속성의 박자표 전환점을 cell 정렬로
- * 제한해 두었다. 결정 1 반영 후 이 제한을 해제한다.
+ * TODO(결정 1 / WO-2 §1): D-2026-045로 해소. 표현 불가 tick은 `t{tick}`
+ * 폴백으로 떨어지고 왕복은 표기 형태와 무관하게 항상 성립하므로, 박자표
+ * 전환점의 cell 정렬 제한이 더 필요 없다.
  */
 import { describe, expect, it } from 'vitest';
 import {
@@ -60,9 +61,7 @@ describe('속성 — timing 왕복', () => {
       if (r() > 0.5) {
         const s0 = sigs[0]!;
         const tpm0 = ((1920 * 4) / s0.denominator) * s0.numerator;
-        // TODO(결정 1): cell 정렬 제한 — tpm0의 배수 중 cell의 배수인 자리만 고른다.
-        let cut = tpm0 * (1 + Math.floor(r() * 3));
-        if (cut % cell !== 0) cut = Math.ceil(cut / cell) * cell * s0.numerator * s0.denominator;
+        const cut = tpm0 * (1 + Math.floor(r() * 3));
         sigs.push({
           startTick: cut,
           numerator: 1 + Math.floor(r() * 7),

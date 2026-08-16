@@ -281,6 +281,8 @@ playState   = {
   `position`이 목록 밖.
 - **`laneEvent.targetPos`는 검사하지 않는다.** 저장 데이터는 무구속이고 구속은
   gameplay 투영이 맡는다(§7, [[lane-events]]). 역전·초과가 정상 값이다.
+- `timeSignatures`가 비어 있지 않은데 `startTick` 최솟값이 0이 아님 `[신규]`
+  (`timeSignatures[0].startTick`, D-2026-045 — TM-11).
 - 겹침(overlap/conflict)은 여기 없다 — §5.1의 파생 속성이며 별도로 계산한다.
 - 첫 문제에서 멈추지 않고 전부 모아 보고한다.
 

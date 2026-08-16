@@ -68,10 +68,11 @@ M2 이후 영역(render·scene·persistence·`.cfx`·editor)의 차이는 각 �
 | TM-4 | 5000ms 하한 | `totalMs`가 종료 판정과 seek 분모를 겸함 | 종료에서 제거, timeline 소관 | 미커버 | D-2026-030 |
 | TM-5 | leadIn | 시작·Resume 구분 없음 | Resume은 leadIn 미적용 (되감기 없는 카운트다운 재개) | 미커버 | D-2026-022 |
 | TM-6 | grid 분리 | note grid와 lane 수평 스냅이 같은 축 | `gridDivisor`와 `laneGridDivisor` 분리, 공유하지 않음 | 미커버 | `timing` §6 |
-| TM-7 | `sub` 분할 | 박 하나를 **고정 16분할** (`round(subTick/(tpbUnit/16))`) | 온음표를 `gridDivisor` 등분 — 표기와 snap이 같은 격자 | 미커버 | D-2026-037 |
+| TM-7 | `sub` 분할 | 박 하나를 **고정 16분할** (`round(subTick/(tpbUnit/16))`) | 온음표를 `gridDivisor` 등분 — 표기와 snap이 같은 격자 … 표현 불가 tick은 `t{tick}` 폴백(근사 표기 폐기) | 미커버 | D-2026-037 |
 | TM-8 | `gridDivisor` 목록·기본 | `GDIVS` 상단 64, 기본 `ES.nGD = 2` | 상단 `96·128·192·256` 추가, 기본 8 | **어긋남** | D-2026-037 |
 | TM-10 | `measureToTick` 마디 0 | 빈 값 폴백이 `0`까지 먹어 `"0"`이 마디 1로 떨어진다 — 왕복이 깨진다 | 마디 0을 그대로 읽는다. 빈 문자열만 1로 폴백 | 미커버 | D-2026-037 |
 | TM-9 | `getGridLines` | `{tick, isMeasure, measureNum, beatInMeasure, isPreRoll}` | 같은 기술자 유지(px 없음). 골든이 뽑지 않아 스펙만이 판정 | 미커버 | D-2026-037 |
+| TM-11 | 첫 박자표 앞 구간 표기 | tick < 첫 TS tick이면 't{tick}' 폴백 (epoch 루프 break → 폴백) | 첫 박자 구간을 뒤로 외삽해 수치 표기. domain 검증이 이 배치 자체를 보고한다 | 어긋남 | M1 외부 검토 / D-2026-045 |
 
 **TM-1~4는 원본에 대응 함수가 있다**(`getChartEndMs`·`updateTotalMs`). 골든이
 뽑지 않았을 뿐이다. 지금은 스펙 테스트로 검증하되, 의심이 들면 추출 대상에
@@ -131,7 +132,10 @@ M1 마감에서 둘 다 덮었다(D-2026-044). `tools/golden/extract-result.mjs`
   판정된 판을 `AS`로 낸다. 실제 판은 miss sweep이 끝을 쓸고 지나가 늘 완주
   상태로 끝나지만, 마크의 뜻이 "이 성적으로 곡을 통과했다"인 이상 판정되지 않은
   단위가 남아 있으면 그 뜻이 성립하지 않는다. 재설계는 `F`를 뺀 모든 마크에
-  완주를 요구한다.
+  완주를 요구한다. 원본 배선에서는 이 입력이 만들어지지 않는다(자연 종료 전
+  miss sweep이 전부 판정하고, force-end는 잔여를 missSet에 넣는다 —
+  `play.js` 실측). 이 조건은 재설계에서 gauge가 host와 분리되며 새로 열린
+  호출 경로에 대한 방어다.
 
 `result.json`의 게이지 값은 판정 열을 다시 돌려 얻은 것이 아니라 집계에 맞춰 직접
 세운 것이다 — 결과 산출만 홀로 재기 위해서다. 그래서 표에는 실제 판에서 나올 수

@@ -78,6 +78,7 @@
 - [ ] 파급 파일이 식별되었다.
 - [ ] Implementation Agent 지시와 Acceptance Criteria를 작성할 수 있다.
 - [ ] 마지막 단순화 검토를 마쳤다.
+- [ ] milestone 마감 시 `npm run mutate`를 `src/core` 전 파일에 실행했다. 생존 뮤턴트는 테스트를 추가해 죽였거나 `tools/audit/MUTATION_EQUIVALENTS.md`에 동등 사유와 함께 등재했다.
 
 ---
 
@@ -106,4 +107,5 @@
 - [ ] 파급 파일 식별
 - [ ] Implementation Agent 지시·Acceptance Criteria 작성 가능
 - [ ] 마지막 단순화 검토 완료
+- [ ] milestone 마감 시 `npm run mutate`를 `src/core` 전 파일에 실행. 생존 뮤턴트는 테스트로 죽이거나 `tools/audit/MUTATION_EQUIVALENTS.md`에 동등 사유와 함께 등재
 ```

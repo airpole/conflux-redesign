@@ -476,6 +476,17 @@
 - **Commit:** `6398679`
 
 
+### D-2026-045 — 표기 폴백 + TM-11 + 검토 결정 반영
+
+- **Status:** Accepted
+- **Decision:** M1 외부 검토에서 결정된 다섯 건을 반영한다. **1.** `tickToMeasure`가 sub를 gridDivisor 격자로 표현하지 못하면(마디 상대 나머지가 cell로 나눠떨어지지 않으면) 근사 표기 대신 `t{tick}` 원시 표기로 떨어진다 `[수정]` — 왕복이 표기 형태와 무관하게 항상 성립한다. 장기 방향으로 **절대 tick이 canonical representation**이고 `bar.beat.sub`는 파생 display라는 것을 명문화했다 — 시간 모델 재정리(Deferred, M2 에디터 표기 UI 설계 시 재론)는 이번 범위 밖이다. **2.** 첫 박자표 앞 구간은 외삽 표기가 원본 배선에 없는 자리라 `t{tick}` 폴백으로 떨어진다(TM-11, `어긋남`) — domain 검증에 `timeSignatures[0].startTick`이 0이 아니면 flag하는 규칙을 추가했다. **3.** GA-9 근거에 원본 배선상 이 입력이 만들어지지 않으며 재설계에서 gauge/host 분리로 새로 열린 호출 경로에 대한 방어라는 문장을 추가했다(코드 무변경). **4.** rationale의 "표를 고치는 조건"에 출처 인용 요건과, 이 조건이 어긋남의 **처분**만 정하고 **발견**은 별도 장치의 몫이라는 두 문장을 추가했다. **5.** `_plan/build-order.md`·`REVIEW_CHECKLIST.md`에 milestone 마감 시 `npm run mutate`를 `src/core` 전체에 실행하고 생존 뮤턴트를 테스트로 죽이거나 `MUTATION_EQUIVALENTS.md`에 등재하는 gate를 명문화했다.
+- **Defined in:** `core/timing.md` §1·§4·§5, `core/data-model.md` §11, `tests/golden/DIVERGENCES.md` §1·§2·§7, `_plan/build-order.md`, `REVIEW_CHECKLIST.md`
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** timing, data-model, tests/golden, tests/property, _plan, src/core
+- **Supersedes:** None (`timing` §5의 근사 표기 서술과 대장 TM-7 문구를 대체)
+- **Commit:** `TBD`
+
+
 ```md
 ### D-YYYY-NNN — <Title>
 

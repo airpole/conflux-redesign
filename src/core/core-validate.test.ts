@@ -85,6 +85,18 @@ describe('[DM-5] domain — 거부하지 않고 보고한다', () => {
     expect(found).toContain('timeSignatures');
   });
 
+  it('첫 박자표 startTick이 0이 아니면 보고한다 (TM-11 / D-2026-045)', () => {
+    const chart = makeChart({
+      timeSignatures: [{ startTick: 1920, numerator: 4, denominator: 4 }],
+    });
+    expect(paths(validateChartDomain(chart).issues)).toContain('timeSignatures[0].startTick');
+  });
+
+  it('첫 박자표 startTick이 0이면 그 flag가 없다', () => {
+    const chart = makeChart({ timeSignatures: [{ startTick: 0, numerator: 4, denominator: 4 }] });
+    expect(paths(validateChartDomain(chart).issues)).not.toContain('timeSignatures[0].startTick');
+  });
+
   it('읽을 수 없는 updatedAt을 보고한다', () => {
     const chart = makeChart({ updatedAt: '어제' });
     expect(paths(validateChartDomain(chart).issues)).toContain('updatedAt');

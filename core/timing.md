@@ -56,6 +56,8 @@ visMs = SCROLL_VIEW_MS/scrollSpeed
 
 ## 4. tickToMeasure / measureToTick
 
+**절대 tick이 canonical representation이다. `measure.beat.sub`는 사람이 읽기 위한 파생 표시이며, 표기→tick 왕복은 편의 보장이지 시간 모델의 전제가 아니다.** grid/snap도 절대 tick 기준으로 동작한다 `[신규]`.
+
 ```text
 segment = {startTick, measure, tpbUnit, tpm, numerator}
 tpbUnit = TPB*4/denominator
@@ -80,7 +82,7 @@ sub = round(subTick/cellTick)
 ```
 
 fixed 16 subdivision을 폐기하고 active gridDivisor와 표기·snap을 통일한다 `[수정]`.
-격자에 떨어지지 않는 tick은 반올림해 근사 표기한다.
+sub가 그 tick을 정확히 표현하지 못하면(마디 상대 나머지가 cell로 나눠떨어지지 않으면) 근사하지 않고 `t{tick}` 원시 표기로 떨어진다. 왕복은 표기 형태와 무관하게 항상 성립한다 `[수정]` (근거: `_rationale/rationale.md` §sub 격자 통일의 대가와 처분 — D-2026-045).
 
 ---
 
@@ -172,4 +174,4 @@ editor scroll lower clamp.
 
 ## 12. 미해결
 
-(없음)
+- 시간 모델 재정리(표기를 canonical 왕복 전제에서 제외, DAW 유사 모델) — M2 에디터 표기 UI 설계 시 재론 (D-2026-045 참조)

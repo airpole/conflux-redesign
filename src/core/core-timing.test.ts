@@ -218,16 +218,52 @@ describe('[TM-7] sub 분할 = gridDivisor', () => {
     expect(cellTickOf(256)).toBe(30);
   });
 
-  it('격자 밖 tick은 반올림해 근사 표기한다', () => {
-    // 481은 어느 격자에도 안 떨어진다 — 원본과 같은 round.
-    expect(tickToMeasure(timeline, 481, { gridDivisor: 16 })).toBe('1.1.1');
-    // 격자가 성기면 반올림 폭이 커진다. 480은 8분 격자(칸 960)의 절반이다.
-    expect(tickToMeasure(timeline, 480, { gridDivisor: 8 })).toBe('1.1.1');
+  it('격자 밖 tick은 근사하지 않고 t 표기로 떨어진다 (D-2026-045)', () => {
+    // 481은 어느 격자에도 안 떨어진다. 480도 8분 격자(칸 960)의 절반이다.
+    // 근사 표기는 왕복을 깨뜨리므로 폐기했다 — 표기 형태와 무관하게 왕복이 성립한다.
+    expect(tickToMeasure(timeline, 481, { gridDivisor: 16 })).toBe('t481');
+    expect(measureToTick(timeline, 't481', { gridDivisor: 16 })).toBe(481);
+    expect(tickToMeasure(timeline, 480, { gridDivisor: 8 })).toBe('t480');
+    expect(measureToTick(timeline, 't480', { gridDivisor: 8 })).toBe(480);
   });
 
   it('sub 없는 자리는 표기가 짧아진다', () => {
     expect(tickToMeasure(timeline, 0)).toBe('1');
     expect(tickToMeasure(timeline, T)).toBe('1.2');
+  });
+
+  it('cell 미정렬 TS 전환점 재현 케이스가 t 폴백으로 왕복한다 (D-2026-045)', () => {
+    // TS [{0,3,8},{2880,4,1}], gd 4 — tick 238080은 마디 상대 나머지가
+    // cell로 나눠떨어지지 않는다. 근사 표기(과거: "11.3.3" → 239040, +960
+    // drift)를 폐기하고 t 폴백으로 왕복을 유지한다.
+    const tl = buildTimeline(
+      makeChart({
+        tempos: [{ startTick: 0, bpm: 120 }],
+        timeSignatures: [
+          { startTick: 0, numerator: 3, denominator: 8 },
+          { startTick: 2880, numerator: 4, denominator: 1 },
+        ],
+      }),
+    );
+    const label = tickToMeasure(tl, 238080, { gridDivisor: 4 });
+    expect(label).toBe('t238080');
+    expect(measureToTick(tl, label, { gridDivisor: 4 })).toBe(238080);
+  });
+});
+
+describe('[TM-11] 첫 박자표 앞 구간 외삽 표기 (D-2026-045)', () => {
+  it('첫 TS의 startTick이 0이 아니면 뒤로 외삽해 수치 표기하고 왕복한다', () => {
+    // TS [{startTick:1920,num:4,den:4}], gridDivisor 8. 값은 §1 폴백과
+    // 무간섭 확인(실측): 0.4.1 / 0.4 / 960 — 사전 참고값과 일치한다.
+    const tl = buildTimeline(
+      makeChart({
+        tempos: [],
+        timeSignatures: [{ startTick: 1920, numerator: 4, denominator: 4 }],
+      }),
+    );
+    expect(tickToMeasure(tl, 960, { gridDivisor: 8 })).toBe('0.4.1');
+    expect(tickToMeasure(tl, 0, { gridDivisor: 8 })).toBe('0.4');
+    expect(measureToTick(tl, '0.4.1', { gridDivisor: 8 })).toBe(960);
   });
 });
 
