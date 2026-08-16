@@ -374,3 +374,68 @@ describe('measureToTick 실패 처리', () => {
     expect(measureToTick(timeline, '-1')).toBe(-T * 8);
   });
 });
+
+// ── WO-1 §3-2 ~ §3-4 ─────────────────────────────────────────
+
+describe('[TM-9] gridLines 실값', () => {
+  it('기본 4/4에서 pre-roll을 포함한 네 줄이 정확히 나온다', () => {
+    const timeline = timelineOf('plain');
+    const lines = gridLines(timeline, -T, T * 2);
+    expect(lines).toEqual([
+      { tick: -T, isMeasure: false, measureNum: 0, beatInMeasure: 4, isPreRoll: true },
+      { tick: 0, isMeasure: true, measureNum: 1, beatInMeasure: 1, isPreRoll: false },
+      { tick: T, isMeasure: false, measureNum: 1, beatInMeasure: 2, isPreRoll: false },
+      { tick: T * 2, isMeasure: false, measureNum: 1, beatInMeasure: 3, isPreRoll: false },
+    ]);
+  });
+
+  it('박자표 전환 지점에서 마디·박이 이어진다', () => {
+    const timeline = buildTimeline(
+      makeChart({
+        timeSignatures: [
+          { startTick: 0, numerator: 4, denominator: 4 },
+          { startTick: T * 4, numerator: 3, denominator: 4 },
+        ],
+      }),
+    );
+    const lines = gridLines(timeline, T * 4, T * 6);
+    expect(lines).toEqual([
+      { tick: T * 4, isMeasure: true, measureNum: 2, beatInMeasure: 1, isPreRoll: false },
+      { tick: T * 5, isMeasure: false, measureNum: 2, beatInMeasure: 2, isPreRoll: false },
+      { tick: T * 6, isMeasure: false, measureNum: 2, beatInMeasure: 3, isPreRoll: false },
+    ]);
+  });
+
+  it('labelOffset은 measureNum만 옮기고 isPreRoll은 바꾸지 않는다', () => {
+    const timeline = timelineOf('plain');
+    const lines = gridLines(timeline, -T, T * 2, { labelOffset: 10 });
+    expect(lines.map((line) => line.measureNum)).toEqual([10, 11, 11, 11]);
+    expect(lines.map((line) => line.isPreRoll)).toEqual([true, false, false, false]);
+  });
+});
+
+describe('[TM-7] measureToTick 3부 입력', () => {
+  const timeline = timelineOf('plain');
+
+  it('gridDivisor 16(cell 480)에서 파싱이 정확하다', () => {
+    expect(measureToTick(timeline, '1.1.1', { gridDivisor: 16 })).toBe(480);
+    expect(measureToTick(timeline, '1.2.3', { gridDivisor: 16 })).toBe(3360); // 1920 + 3*480
+  });
+
+  it('왕복한다', () => {
+    expect(tickToMeasure(timeline, 3360, { gridDivisor: 16 })).toBe('1.2.3');
+  });
+});
+
+describe('[TM-3] lastEventTick은 가장 늦게 끝나는 event를 고른다', () => {
+  it('나중에 적힌 event가 아니라 가장 늦게 끝나는 event가 기준이다', () => {
+    const timeline = buildTimeline(makeChart());
+    const chart = makeChart({
+      notes: [
+        { startTick: 0, duration: T * 5, lane: 1, isWide: false },
+        { startTick: T, duration: 0, lane: 2, isWide: false },
+      ],
+    });
+    expect(songEndOf(timeline, chart, null).chartEndMs).toBe(tickToMs(timeline, T * 5));
+  });
+});

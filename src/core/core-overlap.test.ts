@@ -389,3 +389,23 @@ describe('§8 불변식', () => {
     for (const scope of scopes(map)) expect(['local', 'global']).toContain(scope);
   });
 });
+
+// ── WO-1 §3-10: 반개구간 경계 두 방향 ([보존] 핵심) ──────────
+
+describe('[보존] 반개구간 경계 — sweep 쪽과 쌍 분류 쪽 둘 다', () => {
+  it('sweep 쪽: hold [0,T) + 그 tick의 tap은 conflict가 없다', () => {
+    const map = buildOverlapMap([note(1, 0, T), note(1, T)]);
+    expect(map.conflicts).toHaveLength(0);
+    expect(map.marks).toEqual([null, null]);
+  });
+
+  it('쌍 분류 쪽: 맞닿은 hold 둘은 겹침 표시가 없다 — 맞닿음은 겹침이 아니다', () => {
+    const map = buildOverlapMap([note(2, 0, T), note(2, T, T)]);
+    expect(map.marks).toEqual([null, null]);
+  });
+
+  it('경계 바로 안쪽(한 tick 전)은 잡힌다', () => {
+    const map = buildOverlapMap([note(1, 0, T), note(1, T - 1)]);
+    expect(map.conflicts).toHaveLength(1);
+  });
+});

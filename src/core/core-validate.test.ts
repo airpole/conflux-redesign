@@ -248,3 +248,74 @@ describe('[SH-3] 조용히 사라지는 체인 데이터를 보고한다', () =>
     expect(issues.some((issue) => issue.message.includes('line3'))).toBe(true);
   });
 });
+
+// ── WO-1 §3-11: 경계값 표 (DM-5 경계) ────────────────────────
+
+describe('[DM-5 경계] domain 경계값 표', () => {
+  it.each([
+    {
+      label: 'tempos[].bpm',
+      path: 'tempos[0].bpm',
+      build: (v: number): Chart => makeChart({ tempos: [{ startTick: 0, bpm: v }] }),
+      flagged: 0,
+      clean: 1,
+    },
+    {
+      label: 'timeSignatures[].numerator',
+      path: 'timeSignatures[0].numerator',
+      build: (v: number): Chart =>
+        makeChart({ timeSignatures: [{ startTick: 0, numerator: v, denominator: 4 }] }),
+      flagged: 0,
+      clean: 1,
+    },
+    {
+      label: 'timeSignatures[].denominator',
+      path: 'timeSignatures[0].denominator',
+      build: (v: number): Chart =>
+        makeChart({ timeSignatures: [{ startTick: 0, numerator: 4, denominator: v }] }),
+      flagged: 0,
+      clean: 1,
+    },
+    {
+      label: 'notes[].duration',
+      path: 'notes[0].duration',
+      build: (v: number): Chart =>
+        makeChart({ notes: [{ startTick: 0, duration: v, lane: 1, isWide: false }] }),
+      flagged: -1,
+      clean: 0,
+    },
+    {
+      label: 'chartId',
+      path: 'chartId',
+      build: (v: number): Chart => makeChart({ chartId: v }),
+      flagged: -1,
+      clean: 0,
+    },
+    {
+      label: 'textEvents[].duration',
+      path: 'textEvents[0].duration',
+      build: (v: number): Chart =>
+        makeChart({
+          textEvents: [{ startTick: 0, duration: v, content: 'x', position: 'left' }],
+        }),
+      flagged: -1,
+      clean: 0,
+    },
+  ])('$label: flag되는 값과 안 되는 값', ({ path, build, flagged, clean }) => {
+    expect(paths(validateChartDomain(build(flagged)).issues)).toContain(path);
+    expect(paths(validateChartDomain(build(clean)).issues)).not.toContain(path);
+  });
+
+  it.each([
+    { value: -8.001, flagged: true },
+    { value: 8.001, flagged: true },
+    { value: -8, flagged: false },
+    { value: 8, flagged: false },
+  ])('shapeEvents[].targetPos $value — flagged=$flagged', ({ value, flagged }) => {
+    const chart = makeChart({
+      shapeEvents: [{ startTick: 0, duration: 0, isBlue: true, targetPos: value, easing: null }],
+    });
+    const found = paths(validateChartDomain(chart).issues).includes('shapeEvents[0].targetPos');
+    expect(found).toBe(flagged);
+  });
+});

@@ -342,6 +342,15 @@ describe('state 산출 — 성적이 정한다 (§3)', () => {
     expect(evaluateState(state)).toBe('F');
   });
 
+  it('[GA-3] normal 게이지 75% 경계 (스팟체크 #1) — 완주·MISS 통과·클램프 미개입 상태에서 정확히 75%면 통과다 (`>=`)', () => {
+    const state = resetGauge('normal', 15); // unitScale = 150/15 = 10
+    for (let i = 0; i < 7; i += 1) applyGaugeChange(state, 'SYNC'); // +70
+    for (let i = 0; i < 3; i += 1) applyGaugeChange(state, 'GOOD'); // +15 → 85
+    for (let i = 0; i < 5; i += 1) applyGaugeChange(state, 'MISS'); // -10 → 75
+    expect(state.gauge.normalPct).toBe(75);
+    expect(evaluateState(state)).toBe('C');
+  });
+
   it('terminate된 판은 성적과 무관하게 `F`다', () => {
     const state = play('as', 30, [...Array<Judgment>(20).fill('SYNC'), 'PERFECT']);
     expect(evaluateState(state)).toBe('F');

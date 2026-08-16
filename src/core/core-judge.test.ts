@@ -1335,3 +1335,134 @@ describe('pause Resume — 비-재시드 재조정 (§10, JD-7)', () => {
     expect(s.state.combo).toBe(0);
   });
 });
+
+// ── WO-1 §3-5 ~ §3-9 ─────────────────────────────────────────
+
+describe('[JD-1] 같은 tick hold가 tap보다 우선한다 (배열 순서 무관, 스팟체크 #4)', () => {
+  it('케이스 A: notes = [hold, tap] — keydown이 hold의 head를 잡고 holdOpened를 동반한다', () => {
+    const s = scene([
+      { startTick: 0, duration: T, lane: 2 }, // index 0: hold
+      { startTick: 0, lane: 2 }, // index 1: tap
+    ]);
+    expect(s.context.notes.ordered[0]!.note.duration).toBe(T);
+
+    const events = judgeKeyDown(s.state, s.context, 'key2', s.msOf(0), 0);
+    const parts = events
+      .filter((e) => e.kind === 'judged' || e.kind === 'holdOpened')
+      .map((e) => (e.kind === 'judged' ? e.part : e.kind));
+
+    expect(parts).toEqual(['head', 'holdOpened']);
+  });
+
+  it('케이스 B: notes = [tap, hold] — 배열 순서를 뒤집어도 결과는 같다', () => {
+    const s = scene([
+      { startTick: 0, lane: 2 }, // index 0: tap
+      { startTick: 0, duration: T, lane: 2 }, // index 1: hold
+    ]);
+    expect(s.context.notes.ordered[0]!.note.duration).toBe(T);
+
+    const events = judgeKeyDown(s.state, s.context, 'key2', s.msOf(0), 0);
+    const parts = events
+      .filter((e) => e.kind === 'judged' || e.kind === 'holdOpened')
+      .map((e) => (e.kind === 'judged' ? e.part : e.kind));
+
+    expect(parts).toEqual(['head', 'holdOpened']);
+  });
+});
+
+describe('[JD-7 경계] 시드의 tail == anchor 경계 (이벤트 순서, 스팟체크 #5)', () => {
+  it('tailMs가 정확히 anchor면 head→holdOpened→tail→tap 순으로 시드된다', () => {
+    const s = scene([
+      { startTick: 0, duration: T, lane: 1 }, // index 0: hold [0, 1920)
+      { startTick: 960, lane: 3 }, // index 1: tap @960
+    ]);
+    const anchor = s.msOf(T); // tail이 anchor와 정확히 같다
+
+    const events = seedPlayStateAt(s.state, s.context, anchor);
+    const sequence = events
+      .filter((e) => e.kind === 'judged' || e.kind === 'holdOpened')
+      .map((e) => [e.kind === 'judged' ? e.part : e.kind, e.noteIndex] as const);
+
+    expect(sequence).toEqual([
+      ['head', 0],
+      ['holdOpened', 0],
+      ['tail', 0],
+      ['tap', 1],
+    ]);
+    for (const lane of [1, 2, 3, 4] as const) {
+      expect(s.state.activeNormalHolds[lane]).toEqual([]);
+    }
+  });
+});
+
+describe('무효 chart 중복 WideHold의 tail 동률 (judge §12)', () => {
+  it('MISS로 닫히는 쪽은 새로 판정된 노트다 — 동률이면 기존 소유가 남는다(`<=`)', () => {
+    const s = scene([
+      { startTick: 0, duration: T, lane: 1, isWide: true }, // index 0
+      { startTick: 0, duration: T, lane: 4, isWide: true }, // index 1 — 다른 키, 같은 tick·duration
+    ]);
+    const at = s.msOf(0);
+
+    judgeKeyDown(s.state, s.context, 'key1', at, 0); // index 0을 head 확정
+    const second = judged(judgeKeyDown(s.state, s.context, 'key6', at, 0)); // index 1
+
+    const tailMiss = second.filter((e) => e.part === 'tail');
+    expect(tailMiss).toHaveLength(1);
+    expect(tailMiss[0]!.noteIndex).toBe(1); // 새로 판정된 노트가 닫힌다
+    expect(tailMiss[0]!.judgment).toBe('MISS');
+    expect(s.state.activeWideHold).toBe(0); // 기존 소유(index 0)가 남는다
+  });
+});
+
+describe('heldCapacityViolations 자기 검증 (judge §6)', () => {
+  it('tail 순이 아닌 활성 목록을 잡아낸다', () => {
+    const s = scene([
+      { startTick: 0, duration: T, lane: 2 }, // index 0 — a, tailMs 500
+      { startTick: 0, duration: T * 2, lane: 2 }, // index 1 — b, tailMs 1000
+    ]);
+    s.state.hits[0] = 'hit';
+    s.state.hits[1] = 'hit';
+    s.state.keysHeld.add('key2');
+    s.state.keysHeld.add('key4');
+    // 일부러 tail 역순으로 합성한다: b(늦음) 먼저, a(이름) 나중.
+    s.state.activeNormalHolds[2] = [1, 0];
+
+    const violations = heldCapacityViolations(s.state, s.context);
+    expect(violations).toContain('lane 2: 활성 목록이 tail 순이 아니다');
+  });
+
+  it('활성 목록의 수요가 눌린 키보다 많으면 잡아낸다', () => {
+    const s = scene([{ startTick: 0, duration: T, lane: 2 }]);
+    s.state.hits[0] = 'hit';
+    s.state.activeNormalHolds[2] = [0];
+    // keysHeld를 일부러 비운다 — 수요 1인데 눌린 키가 0이다.
+
+    const violations = heldCapacityViolations(s.state, s.context);
+    expect(violations).toContain('lane 2: Normal 수요가 눌린 키보다 많다');
+  });
+
+  it('정상 상태는 빈 배열이다', () => {
+    const s = scene([{ startTick: 0, duration: T, lane: 2 }]);
+    judgeKeyDown(s.state, s.context, 'key2', s.msOf(0), 0);
+
+    expect(heldCapacityViolations(s.state, s.context)).toEqual([]);
+  });
+});
+
+describe('자동완료 동률 tail의 결정론 순서', () => {
+  it('tail 이벤트가 noteIndex 오름차순으로 나온다', () => {
+    const s = scene([
+      { startTick: 0, duration: T, lane: 2 }, // index 0
+      { startTick: 0, duration: T, lane: 2 }, // index 1 — 같은 구간, 무효 chart
+    ]);
+    const at = s.msOf(0);
+
+    judgeKeyDown(s.state, s.context, 'key2', at, 0); // index 0을 head 확정
+    judgeKeyDown(s.state, s.context, 'key4', at, 0); // index 1을 head 확정
+
+    const events = judged(judgeAdvance(s.state, s.context, s.msOf(T), 0));
+    const tailEvents = events.filter((e) => e.part === 'tail');
+
+    expect(tailEvents.map((e) => e.noteIndex)).toEqual([0, 1]);
+  });
+});

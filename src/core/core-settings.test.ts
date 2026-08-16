@@ -120,4 +120,25 @@ describe('settings 병합', () => {
       expect(mergeSettings({ gaugeMode: mode }).settings.gaugeMode).toBe(mode);
     }
   });
+
+  // ── WO-1 §3-12: 검증 규칙 경계값 ────────────────────────────
+
+  it('[경계] noteThickness — 0은 되돌리고 0.1은 유지한다', () => {
+    expect(mergeSettings({ noteThickness: 0 }).settings.noteThickness).toBe(
+      DEFAULT_SETTINGS.noteThickness,
+    );
+    expect(mergeSettings({ noteThickness: 0.1 }).settings.noteThickness).toBe(0.1);
+  });
+
+  it('[경계] judgeLinePos — 상한과 정확히 같은 값은 유지, 상한+0.001과 0은 되돌린다', () => {
+    expect(mergeSettings({ judgeLinePos: JUDGE_LINE_DEFAULT }).settings.judgeLinePos).toBe(
+      JUDGE_LINE_DEFAULT,
+    );
+    expect(mergeSettings({ judgeLinePos: JUDGE_LINE_DEFAULT + 0.001 }).settings.judgeLinePos).toBe(
+      DEFAULT_SETTINGS.judgeLinePos,
+    );
+    expect(mergeSettings({ judgeLinePos: 0 }).settings.judgeLinePos).toBe(
+      DEFAULT_SETTINGS.judgeLinePos,
+    );
+  });
 });
