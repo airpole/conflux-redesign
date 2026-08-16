@@ -587,3 +587,22 @@ describe('골든 대조 — 원본 shape.js', () => {
     expectDivergence('SH-1');
   });
 });
+
+// ── WO-1 §3-13: tie-break 둘 ──────────────────────────────────
+
+describe('[SH-6 여집합] anchor 동률 — 배열 앞이 이긴다', () => {
+  it('같은 tick의 anchor 둘 중 먼저 적힌 것이 initPos다 (strict `<`)', () => {
+    const events = [shapeEvent(true, 0, 0, 3, null), shapeEvent(true, 0, 0, 5, null)];
+    expect(blueAt(events, 0)).toBe(3);
+  });
+});
+
+describe('resolveArcEasing 도착 동률', () => {
+  it('배열 순서 [Out-Sine, Linear]에서 뒤에 적힌 Linear가 직전으로 잡혀 Out-Sine이 나온다 (`>=`)', () => {
+    const events = [
+      shapeEvent(true, 0, T, 20, 'Out-Sine'), // 도착 T
+      shapeEvent(true, T / 2, T / 2, 40, 'Linear'), // 도착 T도 같다
+    ];
+    expect(resolveArcEasing(events, true, T + 1)).toBe('Out-Sine');
+  });
+});
