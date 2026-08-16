@@ -484,7 +484,7 @@
 - **Rationale:** `_rationale/rationale.md`
 - **Affects:** timing, data-model, tests/golden, tests/property, _plan, src/core
 - **Supersedes:** None (`timing` §5의 근사 표기 서술과 대장 TM-7 문구를 대체)
-- **Commit:** `TBD`
+- **Commit:** `0890dc505b212c7a1cae4a594bdf0091d07fe42b`
 
 
 ```md
