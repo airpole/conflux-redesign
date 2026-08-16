@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { ledgerEntry } from '../../tests/support/divergences.js';
 import {
   DEFAULT_SETTINGS,
   GAUGE_MODES,
@@ -22,9 +21,8 @@ describe('settings 스키마', () => {
     }
   });
 
-  it('키 배치가 settings 영속 필드다', () => {
+  it('[ST-5] 키 배치가 settings 영속 필드다', () => {
     // 원본은 런타임 상태(PS)에 뒀다. rebinding이 영속하려면 여기 있어야 한다.
-    expect(ledgerEntry('ST-5').relation).toBe('미커버');
     expect(DEFAULT_SETTINGS.keyBindings.key1).toBe('KeyE');
     expect(SETTING_CHECKS).toHaveProperty('keyBindings');
   });
@@ -57,8 +55,7 @@ describe('settings 병합', () => {
     expect(settings.noteSkin).toBe(DEFAULT_SETTINGS.noteSkin);
   });
 
-  it('알 수 없는 키를 버린다', () => {
-    expect(ledgerEntry('ST-2').relation).toBe('미커버');
+  it('[ST-2] 알 수 없는 키를 버린다', () => {
     // 폐기된 cmod가 남은 저장본이 실제로 존재한다. 조용히 살아남으면 폐기가 아니다.
     const { settings, report } = mergeSettings({ cmod: true, hiSpeed: 9 });
 
@@ -67,8 +64,7 @@ describe('settings 병합', () => {
     expect([...report.unknownKeys].sort()).toEqual(['cmod', 'hiSpeed']);
   });
 
-  it('범위 밖·타입 불일치 값을 필드 단위로 되돌린다', () => {
-    expect(ledgerEntry('ST-3').relation).toBe('미커버');
+  it('[ST-3] 범위 밖·타입 불일치 값을 필드 단위로 되돌린다', () => {
     const { settings, report } = mergeSettings({
       scrollSpeed: 99, // 범위 밖
       volMaster: 'loud', // 타입 불일치

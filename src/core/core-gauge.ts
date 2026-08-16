@@ -196,9 +196,16 @@ function applyTierBreak(state: GaugeState, judgment: Judgment): void {
  * 성적이 먼저 마크를 정하므로 **어느 모드로 쳤든 `FC`/`AP`/`AS`가 나온다**
  * `[보존]`. `tier`는 `H`와 `C`를 가르는 자리에서만 쓰이고, 그 자리는 cascade가
  * 아니면 모드마다 고정이라 분기가 되지 않는다.
+ *
+ * **`F`를 뺀 모든 마크는 완주를 요구한다** `[수정]`(GA-9). 원본 `computeState`는
+ * 미스·GOOD·PERFECT 개수만 보므로, 절반만 판정된 판도 미스가 없으면 `AS`가
+ * 나왔다. 실제 판은 miss sweep이 끝을 쓸고 지나가 늘 완주 상태로 끝나지만,
+ * 마크의 뜻은 "이 성적으로 곡을 통과했다"이므로 판정되지 않은 단위가 남아
+ * 있으면 그 뜻이 성립하지 않는다.
  */
 export function evaluateState(state: GaugeState): PlayState {
   if (state.forceEnded) return 'F';
+  if (judgedUnits(state) < state.totalUnits) return 'F';
 
   const { PERFECT, GOOD, MISS } = state.counts;
   if (MISS === 0 && GOOD === 0 && PERFECT === 0) return 'AS';
@@ -207,6 +214,12 @@ export function evaluateState(state: GaugeState): PlayState {
 
   if (state.tier === 'hard') return 'H';
   return state.gauge.normalPct >= NORMAL_CLEAR_PCT ? 'C' : 'F';
+}
+
+/** 지금까지 판정이 붙은 단위 수. `totalUnits`에 닿아야 판이 끝난 것이다. */
+function judgedUnits(state: GaugeState): number {
+  const { SYNC, PERFECT, GOOD, MISS } = state.counts;
+  return SYNC + PERFECT + GOOD + MISS;
 }
 
 /** score·accuracy의 판정별 가중치. → `constants.md` §3 */

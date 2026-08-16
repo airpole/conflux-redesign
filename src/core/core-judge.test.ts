@@ -13,7 +13,6 @@
  */
 import { describe, expect, it } from 'vitest';
 import { loadGolden } from '../../tests/support/golden.js';
-import { ledgerEntry } from '../../tests/support/divergences.js';
 import { makeChart } from './core-chart-fixture.js';
 import {
   HOLD_RELEASE_GRACE_MS,
@@ -259,11 +258,7 @@ describe('골든 대조 — 후보 선택', () => {
 
 // ── JD-1 — 골든이 닿지 않는 후보 순서 ───────────────────────
 
-describe('후보 순서 (§1) — 골든 미커버, 스펙이 유일한 판정자', () => {
-  it('대장에 미커버로 등재돼 있다', () => {
-    expect(ledgerEntry('JD-1').relation).toBe('미커버');
-  });
-
+describe('[JD-1] 후보 순서 (§1) — 골든 미커버, 스펙이 유일한 판정자', () => {
   it('더 이른 wide가 더 늦은 normal을 이긴다 — 분리 풀 폐기의 실체', () => {
     // 두 노트가 같은 창(±100ms) 안에 있고, wide가 20ms 이르다.
     // 구 규칙(bestNormal ?? bestWide)은 normal을, 새 규칙(earliest tick)은 wide를 고른다.
@@ -460,10 +455,7 @@ describe('commitJudgment (§4)', () => {
     );
   });
 
-  it('게이지도 이펙트도 이벤트 밖으로 새지 않는다 (JD-3·JD-4)', () => {
-    expect(ledgerEntry('JD-3').relation).toBe('없음');
-    expect(ledgerEntry('JD-4').relation).toBe('없음');
-
+  it('[JD-3][JD-4] 게이지도 이펙트도 이벤트 밖으로 새지 않는다', () => {
     const s = scene([{ startTick: 0, lane: 2 }]);
     const kinds = new Set(
       judgeKeyDown(s.state, s.context, 'key2', s.msOf(0), 0).map((e) => e.kind),
@@ -556,11 +548,7 @@ describe('Tap 만료 MISS (§2·§9)', () => {
 
 // ── JD-8 visualOffset ───────────────────────────────────────
 
-describe('visualOffset (§1, JD-8) — 골든 미커버', () => {
-  it('대장에 미커버로 등재돼 있다', () => {
-    expect(ledgerEntry('JD-8').relation).toBe('미커버');
-  });
-
+describe('[JD-8] visualOffset (§1) — 골든 미커버', () => {
   it('진입 경계에서 한 번만 걸린다', () => {
     expect(toJudgeMs(1000, 30)).toBe(970);
     expect(toJudgeMs(1000, -30)).toBe(1030);
@@ -654,11 +642,7 @@ function expectInvariants(s: Scene): void {
 /** lane 2의 두 물리 키. lane 1·4는 키가 하나뿐이라 수요가 0 또는 1이다. */
 const LANE2 = ['key2', 'key4'] as const;
 
-describe('Normal Hold — lane 익명 수요 (§5, JD-2)', () => {
-  it('대장에 미커버로 등재돼 있다 — 골든은 빈 hold 상태만 뽑았다', () => {
-    expect(ledgerEntry('JD-2').relation).toBe('미커버');
-  });
-
+describe('[JD-2] Normal Hold — lane 익명 수요 (§5)', () => {
   it('hold + tap: 어느 손가락이 tap이어도 hold가 유지된다', () => {
     const s = scene([{ startTick: 0, duration: T, lane: 2 }]);
 
@@ -844,11 +828,7 @@ describe('reconcileHeldCapacity 불변식 (§6)', () => {
 
 // ── §7 tail·release grace ───────────────────────────────────
 
-describe('Hold tail 처리·release grace (§7, JD-6)', () => {
-  it('대장에 미커버로 등재돼 있다', () => {
-    expect(ledgerEntry('JD-6').relation).toBe('미커버');
-  });
-
+describe('[JD-6] Hold tail 처리·release grace (§7)', () => {
   it('임계 폭은 GOOD 창 + grace이며 원본과 같다 (D-2026-039)', () => {
     // 원본 `play-input.js`: curMs < tailMs - JUDGE_GOOD - LN_RELEASE_GRACE_MS → mid-release.
     expect(HOLD_RELEASE_WINDOW_MS).toBe(WINDOW_GOOD_MS + HOLD_RELEASE_GRACE_MS);
@@ -948,12 +928,7 @@ describe('Hold tail 처리·release grace (§7, JD-6)', () => {
 
 // ── §8 head MISS 2단위 ──────────────────────────────────────
 
-describe('Hold head MISS — 2단위 회계 (§8, GA-2·GA-5)', () => {
-  it('대장에 미커버로 등재돼 있다 — 원본은 게이지를 1회만 깎았다', () => {
-    expect(ledgerEntry('GA-2').relation).toBe('미커버');
-    expect(ledgerEntry('GA-5').relation).toBe('미커버');
-  });
-
+describe('[GA-2][GA-5] Hold head MISS — 2단위 회계 (§8)', () => {
   it('head 만료가 2단위를 즉시 확정하고 그 Hold를 종결한다', () => {
     const s = scene([{ startTick: 0, duration: T * 2, lane: 2 }]);
     const events = judged(judgeAdvance(s.state, s.context, s.msOf(0) + WINDOW_GOOD_MS + 1, 0));
@@ -1155,11 +1130,7 @@ describe('카운트다운 등록 진입점 (§9)', () => {
 
 // ── §10 중간 시작 ───────────────────────────────────────────
 
-describe('중간 시작 시드 (§10, JD-7)', () => {
-  it('대장에 미커버로 등재돼 있다', () => {
-    expect(ledgerEntry('JD-7').relation).toBe('미커버');
-  });
-
+describe('[JD-7] 중간 시작 시드 (§10)', () => {
   it('anchor 이전 노트를 SYNC로 시드하고 combo를 쌓는다 — AP/FC 유효성이 보존된다', () => {
     const s = scene([
       { startTick: 0, lane: 1 },

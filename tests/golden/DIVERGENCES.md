@@ -85,12 +85,10 @@ M2 이후 영역(render·scene·persistence·`.cfx`·editor)의 차이는 각 �
 |---|---|---|---|---|---|
 | GA-1 | hold tail 게이지 델타 | hard에 tail 특례 (`TAIL_OK +0.1` / `TAIL_MISS −2.5`) | tail 성공 = SYNC 델타, tail MISS = MISS 델타 1회 | **어긋남** | `constants` §2 |
 | GA-2 | Hold head MISS 회계 | MISS 델타 1회 | 즉시 2회 (head 단위 + tail 단위) | 미커버 | D-2026-024 |
-| GA-3 | state `P` | "끝까지 쳤으나 미달" = `P`, best 순위 `C > P > N > F` | `P`를 `F`에 흡수, `C > F > N` | 미커버 | `gauge` §3 |
+| GA-3 | state `P` | "끝까지 쳤으나 미달" = `P`, best 순위 `C > P > N > F` | `P`를 `F`에 흡수, `C > F > N` | **어긋남** | `gauge` §3 |
 | GA-4 | cascade | `as/ap/fc` 티어만 한 칸 강등, 게이지는 단일·연속 | 게이지 2종 병렬 평가, 최고 생존 티어 | 없음 | `gauge` §4 |
 | GA-5 | judgment 단위 회계 | kind 6종 피드, 단위 개념이 암묵적 | 판정 단위를 명시적으로 정의하고 score·accuracy·게이지가 같은 단위를 쓴다 | 미커버 | `gauge` §5 |
-| GA-6 | state 산출 | `computeState`가 판정 카운트만 본다 — 고른 모드는 `H`/`C`만 가른다 | 같은 규칙 유지 `[보존]`. 어느 게이지로 쳐도 `FC`/`AP`/`AS`가 나온다. `tier`가 `gaugeType` 자리를 대신한다 | 미커버 | `gauge` §3 |
-| GA-7 | score·accuracy·rank 산출 | `computeResult`가 `playHitMap`을 재순회해 센다 | 같은 산식 `[보존]`. 카운트는 판정 이벤트 누산기(`counts`) 하나에서 온다 | 미커버 | `constants` §3 |
-| GA-8 | `as` 모드 terminate | `lockTarget: 'as'` + `lockMode: 'terminate'` | gaugeMode `as` — 규칙 동일 `[보존]` | 미커버 | `gauge` §2 |
+| GA-9 | 완주하지 않은 판의 마크 | `computeState`가 미스·GOOD·PERFECT 개수만 본다 — 절반만 판정된 판도 미스가 없으면 `AS` | `F`를 뺀 모든 마크가 완주를 요구한다 — 판정되지 않은 단위가 남으면 `F` | **어긋남** | `gauge` §3 |
 
 > `HOLD_RELEASE_GRACE_MS = 50`은 대장에 오르지 않는다. 재설계 과정에서 한 번
 > 폐기했다가 `[번복]`으로 복원한 값이라 **최종 상태가 원본과 같다** — 원본 대비
@@ -111,16 +109,34 @@ GA-4는 원본에 병렬 평가 모델이 없어 대조할 값이 없다. `gauge
 cascade를 `gaugeType: 'normal'`로 매핑하므로 **`H`를 낼 수 없었다** — 코드
 주석의 `AS→AP→FC→Hard→Normal`은 실제 매핑과 달랐다(D-2026-041).
 
-### GA-6~8이 미커버인 이유
+### 결과 산출은 이제 골든이 채점한다
 
-`tools/golden/extract-gauge.mjs`는 `gaugeOnJudgment`와 `evaluateEnd`만 뽑고
-**`computeState`·`computeResult`를 뽑지 않는다.** 그래서 state 산출(GA-6)과
-score·accuracy·rank 산출(GA-7)은 셋 다 `[보존]`이면서도 골든이 닿지 않는다 —
-값이 같다는 주장 자체를 확인하는 것이 스펙 테스트뿐이다. 추출기의 `lockTarget`
-축도 `none`/`fc`/`ap` 셋이라 `as` 모드(GA-8)가 빠져 있다.
+한때 GA-6(state 산출)·GA-7(score·accuracy·rank 산출)·GA-8(`as` 모드 terminate)
+세 행이 `미커버`로 올라 있었다. 셋 다 `[보존]`인데 골든이 닿지 않아 **같다는 주장
+자체를 확인할 길이 없던 자리**였다 — 추출기가 `gaugeOnJudgment`·`evaluateEnd`만
+뽑고 `lockTarget` 축에 `as`가 빠져 있었기 때문이다.
 
-세 건 다 원본에 대응 함수가 있으므로, 의심이 들면 추출 대상에 추가할 수 있다.
-`computeResult`는 원본 `PS.playHitMap`을 합성해야 뽑히므로 값이 싸지 않다.
+M1 마감에서 둘 다 덮었다(D-2026-044). `tools/golden/extract-result.mjs`가
+`computeResult`를 직접 불러 `result.json` 40건을 뽑고, `extract-gauge.mjs`의
+`lockTarget` 축에 `as`가 들어가 `gauge.json`이 30건 → 40건이 됐다. 값이 전부
+일치하므로 **세 행은 차이도 공백도 아니게 되어 대장에서 내려갔다.** 세 표기 중
+어디에도 속하지 않는 것을 남겨 두면 대장이 "스펙만이 판정한다"고 거짓말을 한다.
+
+그 추출에서 두 건이 드러났다.
+
+- **GA-3이 `미커버` → `어긋남`이 됐다.** 원본 `computeState`의 마지막 줄은
+  `return 'P'`이고, `result.json`에 그 케이스가 값으로 들어왔다. 원본이 `P`를
+  내는 3건에서 재설계는 `F`를 낸다.
+- **GA-9가 새로 생겼다.** 원본은 판정된 단위 수를 세지 않으므로 24단위 중 10단위만
+  판정된 판을 `AS`로 낸다. 실제 판은 miss sweep이 끝을 쓸고 지나가 늘 완주
+  상태로 끝나지만, 마크의 뜻이 "이 성적으로 곡을 통과했다"인 이상 판정되지 않은
+  단위가 남아 있으면 그 뜻이 성립하지 않는다. 재설계는 `F`를 뺀 모든 마크에
+  완주를 요구한다.
+
+`result.json`의 게이지 값은 판정 열을 다시 돌려 얻은 것이 아니라 집계에 맞춰 직접
+세운 것이다 — 결과 산출만 홀로 재기 위해서다. 그래서 표에는 실제 판에서 나올 수
+없는 조합(hard 게이지가 12미스를 견딘 자리 등)도 들어 있다. 이 표가 재는 것은
+**입력 집계 → 결과**이지 판의 진행이 아니다.
 
 ---
 
@@ -314,10 +330,9 @@ HOLD_RELEASE_GRACE_MS`를 직접 건다.
 | JD-2 | key-demand Hold 모델 (`core-judge.test.ts` §5·§6) | M1-5 |
 | JD-6 | tail 자동완료·반개구간·같은 tick 순서 (`core-judge.test.ts` §7) | M1-5 |
 | JD-7 | mid-start 시드·anchor, Resume 비-재시드 (`core-judge.test.ts` §9·§10) | M1-6 |
-| GA-3 | state `P→F` 흡수와 best 순위 | M1-7 |
+| GA-3 | state `P→F` 흡수와 best 순위 (`core-gauge.test.ts` §7) | M1-7 |
+| GA-9 | 완주하지 않은 판은 `F` (`core-gauge.test.ts` §7) | M1-7 |
 | GA-4 | cascade 병렬 평가 (`gauge` §4 시나리오 6종) | M1-7 |
-| GA-6·GA-7 | state 산출 표와 score·accuracy·rank 산식 (`core-gauge.test.ts`) | M1-7 |
-| GA-8 | `as` 모드 terminate | M1-7 |
 | DM-3 | lane 2·3 3겹 이상 conflict 검출 (`core-overlap.test.ts` §3) | M1-8 |
 | DM-6 | conflict가 세부 분류를 덮는 우선순위 (`core-overlap.test.ts` §5) | M1-8 |
 | JD-5 | global 6키 conflict (같은 검사 지점, `core-overlap.test.ts` §4) | M1-8 |

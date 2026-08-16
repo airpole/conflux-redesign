@@ -6,14 +6,16 @@ import {
   ledgerEntry,
   loadLedger,
   uncoveredIds,
+  assignedSteps,
 } from './divergences.js';
+import { tagSites, taggedIds } from './coverage.js';
 
 /**
  * 골든 표 전부. **표를 새로 뽑으면 여기에 더한다** — M1-8이 `overlap.json`을
  * 만들면서 이 목록에 넣지 않아 그 표가 아무 가드도 받지 않았고, 지문이 다른 표와
  * 어긋난 것도 드러나지 않았다(D-2026-043).
  */
-const TABLES = ['constants', 'timing', 'judge', 'gauge', 'shape', 'overlap'] as const;
+const TABLES = ['constants', 'timing', 'judge', 'gauge', 'shape', 'overlap', 'result'] as const;
 
 describe('골든 표 로더', () => {
   it.each(TABLES)('%s 표를 읽고 케이스가 비어 있지 않다', (name) => {
@@ -86,5 +88,47 @@ describe('설계 대장', () => {
     // 검증 공백은 어긋남보다 위험하므로, 배정 누락을 §7 롤업과 대조해 잡는다.
     const orphans = uncoveredIds().filter((id) => assignedStep(id) === undefined);
     expect(orphans, '§7 롤업에 담당 step이 없는 미커버 항목').toEqual([]);
+  });
+});
+
+// ── 미커버 가드 — 담당 테스트가 실재하는가 ──────────────────
+
+/**
+ * 스펙 테스트를 이미 지은 step. **step을 마칠 때 여기에 한 줄 더한다.**
+ *
+ * 목록 없이 `M1-`로 시작하는 배정을 전부 강제하면, M2 안에서 step을 하나씩 지을
+ * 때 아직 짓지 않은 뒤쪽 step이 먼저 실패한다. 목록 갱신을 step 마감의 일부로
+ * 두는 쪽이 낫다(D-2026-044).
+ */
+const COVERED_STEPS = ['M1-2', 'M1-3', 'M1-4', 'M1-5', 'M1-6', 'M1-7', 'M1-8', 'M1-9'] as const;
+
+describe('미커버 가드', () => {
+  it('태그된 ID가 전부 대장에 실재한다', () => {
+    // 대장에서 빠진 ID를 태그가 계속 가리키고 있으면, 지운 자리를 아직 검증하는
+    // 것처럼 보인다. `ledgerEntry`는 없는 ID에 던진다.
+    for (const site of tagSites()) {
+      expect(() => ledgerEntry(site.id), `${site.file}: ${site.title}`).not.toThrow();
+    }
+  });
+
+  it('완료한 step의 미커버 항목은 전부 담당 테스트를 갖는다', () => {
+    // §7 롤업의 배정은 "누가 맡는가"까지고, 그 테스트가 **실재하는가**는 여기서 본다.
+    const tagged = taggedIds();
+    const missing = uncoveredIds().filter((id) => {
+      const step = assignedStep(id);
+      return step !== undefined && (COVERED_STEPS as readonly string[]).includes(step)
+        ? !tagged.has(id)
+        : false;
+    });
+
+    expect(missing, '담당 테스트 제목에 태그가 없는 미커버 항목').toEqual([]);
+  });
+
+  it('`COVERED_STEPS`의 step 이름이 롤업에 실재한다', () => {
+    // 오타 하나가 그 step 전체를 조용히 면제시킨다.
+    const assigned = assignedSteps();
+    for (const step of COVERED_STEPS) {
+      expect(assigned.has(step), `롤업이 배정한 적 없는 step: ${step}`).toBe(true);
+    }
   });
 });

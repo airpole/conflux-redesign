@@ -10,7 +10,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { loadGolden, realEquals } from '../../tests/support/golden.js';
-import { expectDivergence, ledgerEntry } from '../../tests/support/divergences.js';
+import { expectDivergence } from '../../tests/support/divergences.js';
 import { makeChart } from './core-chart-fixture.js';
 import {
   GRID_DIVISORS,
@@ -166,14 +166,10 @@ describe('timing — round trip', () => {
 
 // ── 스펙 테스트 — 골든이 닿지 않는 자리 ─────────────────────
 
-describe('TM-1~4 곡 종료 4값', () => {
+describe('[TM-1][TM-2][TM-3][TM-4] 곡 종료 4값', () => {
   const timeline = buildTimeline(makeChart());
 
   it('네 값이 §9 정의대로 나온다', () => {
-    for (const id of ['TM-1', 'TM-2', 'TM-3', 'TM-4']) {
-      expect(ledgerEntry(id).relation).toBe('미커버');
-    }
-
     const chart = makeChart({
       metadata: { ...makeChart().metadata, offset: 200 },
       notes: [{ startTick: T * 2, duration: T, lane: 1, isWide: false }],
@@ -206,12 +202,10 @@ describe('TM-1~4 곡 종료 4값', () => {
   });
 });
 
-describe('TM-7 sub 분할 = gridDivisor', () => {
+describe('[TM-7] sub 분할 = gridDivisor', () => {
   const timeline = timelineOf('plain');
 
   it('원본의 박당 고정 16분할이 아니라 gridDivisor 격자를 쓴다', () => {
-    expect(ledgerEntry('TM-7').relation).toBe('미커버');
-
     // tick 480은 1마디 1박에서 16분음표 한 칸 지난 자리다.
     // 원본이라면 480/(1920/16) = 4 → "1.1.4". 재설계는 격자 칸 수를 센다.
     expect(tickToMeasure(timeline, 480, { gridDivisor: 16 })).toBe('1.1.1'); // 칸 480
@@ -237,7 +231,7 @@ describe('TM-7 sub 분할 = gridDivisor', () => {
   });
 });
 
-describe('TM-8 gridDivisor 목록과 기본값', () => {
+describe('[TM-8] gridDivisor 목록과 기본값', () => {
   it('원본 GDIVS의 상단을 늘리고 기본을 8로 올렸다', () => {
     expectDivergence('TM-8');
 
@@ -260,20 +254,17 @@ describe('TM-8 gridDivisor 목록과 기본값', () => {
   });
 });
 
-describe('TM-6 laneGridDivisor와 공유하지 않는다', () => {
+describe('[TM-6] laneGridDivisor와 공유하지 않는다', () => {
   it('시간축 격자에 lane 공간 격자가 섞이지 않는다', () => {
-    expect(ledgerEntry('TM-6').relation).toBe('미커버');
     // 시간축 API는 gridDivisor 하나만 받는다 — 공간 축 인자가 없다.
     expect(tickToMeasure(timelineOf('plain'), 480, { gridDivisor: 16 })).toBe('1.1.1');
   });
 });
 
-describe('TM-9 grid line 기술자', () => {
+describe('[TM-9] grid line 기술자', () => {
   const timeline = timelineOf('plain');
 
   it('px를 모르고 표시값과 위치를 분리해 담는다', () => {
-    expect(ledgerEntry('TM-9').relation).toBe('미커버');
-
     const lines = gridLines(timeline, 0, T * 4);
     expect(lines).toHaveLength(5);
     expect(lines[0]).toEqual({
@@ -376,9 +367,7 @@ describe('measureToTick 실패 처리', () => {
     expect(measureToTick(timeline, 'tzz')).toBeNull();
   });
 
-  it('TM-10 — 마디 0이 왕복한다', () => {
-    expect(ledgerEntry('TM-10').relation).toBe('미커버');
-
+  it('[TM-10] 마디 0이 왕복한다', () => {
     // 원본은 `parts[0] || 1`이라 "0"이 마디 1(tick 0)로 떨어졌다.
     expect(tickToMeasure(timeline, -T * 4)).toBe('0');
     expect(measureToTick(timeline, '0')).toBe(-T * 4);

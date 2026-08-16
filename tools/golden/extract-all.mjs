@@ -11,6 +11,7 @@ const scripts = [
   'extract-shape.mjs',
   'extract-judge.mjs',
   'extract-overlap.mjs',
+  'extract-result.mjs',
 ];
 
 let failed = 0;

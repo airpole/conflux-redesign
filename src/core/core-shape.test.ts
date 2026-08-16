@@ -23,7 +23,7 @@ import {
 import type { FieldGeometrySource } from './core-shape.js';
 import type { Easing, LaneEvent, ShapeEvent } from './core-chart.js';
 import { loadGolden, realEquals } from '../../tests/support/golden.js';
-import { expectDivergence, ledgerEntry } from '../../tests/support/divergences.js';
+import { expectDivergence } from '../../tests/support/divergences.js';
 
 const T = 1920;
 
@@ -286,7 +286,7 @@ describe('즉시 점프 tick', () => {
 
 // ── lane 체인 ───────────────────────────────────────────────
 
-describe('lane 체인 — shape와 같은 알고리즘, 선택자와 좌표계만 다르다', () => {
+describe('[DM-4] lane 체인 — shape와 같은 알고리즘, 선택자와 좌표계만 다르다', () => {
   it('구분선 셋이 각각 독립 체인이다', () => {
     const geometry = buildFieldGeometry(
       source([], [laneEvent(2, 0, 0, 0.9, null), laneEvent(2, T, T, 0.1, 'Linear')]),
@@ -308,7 +308,6 @@ describe('lane 체인 — shape와 같은 알고리즘, 선택자와 좌표계�
       ),
     );
     expect(laneLayoutAt(geometry, 0)).toEqual({ line1: 1.8, line2: -0.5, line3: 0.5 });
-    expect(ledgerEntry('DM-4').relation).toBe('미커버');
   });
 
   it('같은 알고리즘이다 — 같은 이벤트 열이면 shape와 값이 같다', () => {
@@ -327,7 +326,7 @@ describe('lane 체인 — shape와 같은 알고리즘, 선택자와 좌표계�
 
 // ── Arc — 저장되지 않는 입력 호칭 ───────────────────────────
 
-describe('§5 Arc — 교번 규칙', () => {
+describe('[SH-5] §5 Arc — 교번 규칙', () => {
   const events = [
     shapeEvent(true, 0, 0, -8, null),
     shapeEvent(true, T, T, -4, 'Out-Sine'), // 도착 T*2
@@ -371,7 +370,6 @@ describe('§5 Arc — 교번 규칙', () => {
 
   it('원본의 네 번째 곡선 Arc는 저장값이 아니다', () => {
     // `resolveArcEasing`이 낼 수 있는 값에 'Arc'가 없다는 것이 그 실체다.
-    expect(ledgerEntry('SH-5').relation).toBe('없음');
   });
 });
 
@@ -510,8 +508,7 @@ describe('골든 대조 — 원본 shape.js', () => {
       expect(realEquals(ours, c.expected as number)).toBe(true);
     }
     // 값이 같은 데까지가 골든의 몫이다. 재설계가 여기에 더한 것은 domain 검증의
-    // 보고이고, 원본에 대응물이 없어 골든이 닿지 않는다.
-    expect(ledgerEntry('SH-3').relation).toBe('미커버');
+    // 보고이고(SH-3), 원본에 대응물이 없어 `core-validate.test.ts`가 판정한다.
   });
 
   it('체인 값이 단위 변환 뒤 원본과 일치한다', () => {

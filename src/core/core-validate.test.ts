@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { ledgerEntry } from '../../tests/support/divergences.js';
 import { makeChart } from './core-chart-fixture.js';
 import { type Chart, type Easing, type Lane } from './core-chart.js';
 import { validateChartDomain, validateChartStructure } from './core-validate.js';
 
 const paths = (issues: readonly { path: string }[]): string[] => issues.map((i) => i.path);
 
-describe('structural — 통과하면 chart다', () => {
+describe('[DM-5] structural — 통과하면 chart다', () => {
   it('정상 chart가 통과한다', () => {
     expect(validateChartStructure(makeChart())).toEqual({ ok: true, errors: [] });
   });
@@ -59,7 +58,7 @@ describe('structural — 통과하면 chart다', () => {
   });
 });
 
-describe('domain — 거부하지 않고 보고한다', () => {
+describe('[DM-5] domain — 거부하지 않고 보고한다', () => {
   it('정상 chart는 보고할 것이 없다', () => {
     expect(validateChartDomain(makeChart()).issues).toEqual([]);
   });
@@ -116,10 +115,8 @@ describe('domain — 거부하지 않고 보고한다', () => {
   });
 });
 
-describe('DM-4 — lane 데이터는 무구속이다', () => {
+describe('[DM-4] lane 데이터는 무구속이다', () => {
   it('targetPos의 역전·초과가 통과한다', () => {
-    expect(ledgerEntry('DM-4').relation).toBe('미커버');
-
     const chart = makeChart({
       laneEvents: [
         { startTick: 0, duration: 480, lineNum: 1, targetPos: 1, easing: 'Linear' },
@@ -144,11 +141,8 @@ describe('DM-4 — lane 데이터는 무구속이다', () => {
   });
 });
 
-describe('DM-1·DM-2 — chart 하나가 계산에 필요한 전부를 소유한다', () => {
+describe('[DM-1][DM-2] chart 하나가 계산에 필요한 전부를 소유한다', () => {
   it('같은 songId의 다른 chart 없이 검증이 완결된다', () => {
-    expect(ledgerEntry('DM-1').relation).toBe('미커버');
-    expect(ledgerEntry('DM-2').relation).toBe('미커버');
-
     // 같은 songId를 공유하되 metadata·timing·asset이 서로 다른 두 chart.
     const a = makeChart({
       chartId: 1,
@@ -184,10 +178,8 @@ describe('DM-1·DM-2 — chart 하나가 계산에 필요한 전부를 소유한
   });
 });
 
-describe('SH-3 — 조용히 사라지는 체인 데이터를 보고한다', () => {
+describe('[SH-3] 조용히 사라지는 체인 데이터를 보고한다', () => {
   it('목록 밖 easing을 보고한다 — 평가는 Linear로 흘러 값이 멀쩡해 보인다', () => {
-    expect(ledgerEntry('SH-3').relation).toBe('미커버');
-
     const chart = makeChart({
       shapeEvents: [
         { startTick: 0, duration: 0, isBlue: true, targetPos: -2, easing: null },

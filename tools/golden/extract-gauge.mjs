@@ -17,7 +17,9 @@ const SEQUENCES = {
 
 const cases = [];
 for (const gaugeType of ['normal', 'hard']) {
-  for (const lockTarget of ['none', 'fc', 'ap']) {
+  // 'as'가 빠져 있어 GA-8(`as` 모드 terminate)이 대조 밖이었다 — 기존 축이라
+  // 한 칸 더하면 그대로 곱해진다(D-2026-044).
+  for (const lockTarget of ['none', 'fc', 'ap', 'as']) {
     for (const [seqName, seq] of Object.entries(SEQUENCES)) {
       await loadChart(fixtures.plain);
       // 게이지는 노트 수에 unit-scale이 걸린다 — 길이 의존을 보려고 24노트로 채운다.

@@ -452,6 +452,18 @@
 - **Commit:** `532554d`
 
 
+### D-2026-044 — 미커버 가드와 결과 산출 골든
+
+- **Status:** Accepted
+- **Decision:** 설계 대장의 `미커버`는 "스펙 테스트가 유일한 판정자"라는 뜻인데, **그 판정자가 실재하는지 검사하는 장치가 없었다.** `expect(ledgerEntry('DM-4').relation).toBe('미커버')`는 대장의 글자만 확인하므로 주변 테스트를 전부 지워도 통과한다 — 링크지 가드가 아니었다. 연결을 **테스트 제목의 `[ID]` 태그**로 옮긴다: `tests/support/coverage.ts`가 `describe`·`it` 제목을 읽어 태그를 모으고, `support.test.ts`가 ① 태그된 ID가 대장에 실재하는가 ② 완료한 step에 배정된 `미커버` 전원이 태그를 갖는가 ③ `COVERED_STEPS`의 step 이름이 롤업에 실재하는가를 본다. 태그는 테스트를 지우면 함께 사라진다 — 주석이나 별도 목록과 달리 **뒤에 남을 수 없는 자리**다. 검사는 2층(담당 테스트가 실재하는가)까지이며, 그 테스트가 실제로 그 동작을 판별하는가(3층)는 사람이 리뷰에서 본다. 강제 범위는 `COVERED_STEPS` 상수로 한정해, M2 안에서 step을 하나씩 지을 때 아직 짓지 않은 뒤쪽 step이 먼저 실패하지 않게 한다. 기존 링크 여덟 자리는 **지웠다** — 같은 것을 두 곳에서 보면 한쪽을 고치고 다른 쪽을 잊는다.
+- **Amends:** **`GA-6`·`GA-7`·`GA-8`을 골든으로 끌어올려 미커버가 아니게 만들었다.** 셋 다 `[보존]`인데 골든이 닿지 않아 "원본과 같다"는 주장 자체를 확인할 길이 없던 자리다 — 검증 공백 중 가장 약한 고리였다. `tools/golden/extract-result.mjs`가 원본 `computeResult`를 직접 불러 `result.json` 40건을 뽑고(집계만 맞춰 `playHitMap`을 합성한다), `extract-gauge.mjs`의 `lockTarget` 축에 `as`가 들어가 `gauge.json`이 30 → 40건이 됐다. score·accuracy·rank·counts가 전부 일치하므로 세 행은 차이도 공백도 아니게 되어 **대장에서 내려갔다**(세 표기 어디에도 속하지 않는 행을 남기면 대장이 거짓말을 한다). 그 추출에서 둘이 드러났다. **GA-3이 `미커버` → `어긋남`**이 됐다 — 원본 `computeState`의 마지막 줄 `return 'P'`가 표에 값으로 들어왔다. **GA-9를 신설했다** — 원본은 판정된 단위를 세지 않아 24단위 중 10단위만 판정된 판을 `AS`로 낸다. `F`를 뺀 모든 마크에 **완주 조건**을 걸어 `gauge` §3 산출표에 2번 줄을 추가했다. 결과 산출 골든의 게이지 값은 판을 다시 돌려 얻은 것이 아니라 집계에 맞춰 직접 세운 것이므로, 표에는 실제 판에서 나올 수 없는 조합도 들어 있다 — 이 표가 재는 것은 **입력 집계 → 결과**이지 판의 진행이 아니다. `result.json`을 `TABLES`에 등록해 지문 가드를 받게 했다(M1-8의 `overlap.json` 누락과 같은 부류를 반복하지 않기 위함). 리뷰가 지목한 "테스트가 언급조차 하지 않는 8행" 중 실제로 비어 있던 것은 `DM-5` 하나였다 — 나머지는 배열 안에 들어 있어 `ledgerEntry('TM-2')` 꼴 검색에 걸리지 않았을 뿐이고, 그 사실 자체가 grep 기반 링크 세기가 못 미더움을 보인다.
+- **Defined in:** `core/gauge.md` §3, `tests/golden/DIVERGENCES.md` §2·§7, `tests/support/coverage.ts`
+- **Rationale:** `_rationale/rationale.md`
+- **Affects:** gauge, tests/golden, tests/support, tools/golden, src/core, README
+- **Supersedes:** None (대장 GA-3 관계 표기와 GA-6·GA-7·GA-8 행을 대체)
+- **Commit:** `TBD`
+
+
 ### D-2026-043 — 체인 보간과 anchor 정의, 골든 shape 재추출
 
 - **Status:** Accepted

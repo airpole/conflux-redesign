@@ -1,0 +1,825 @@
+{
+  "source": "conflux-editor",
+  "sourceFingerprint": {
+    "constants.js": "00f7e5d47454",
+    "state.js": "347e698b21c4",
+    "cache.js": "fed0448471a4",
+    "timing.js": "aadcadf768f2",
+    "shape.js": "5a47fa71cf91",
+    "play-state.js": "ad50bb6789ba",
+    "gauge.js": "597a62a3a6cd",
+    "play-judgment.js": "5ff739b127fd",
+    "settings.js": "774909ad6b59",
+    "overlaps.js": "308a81a10d87"
+  },
+  "extractedBy": "tools/golden/extract-result.mjs",
+  "note": "원본에서 뜬 관측 자료. 손으로 고치지 않고 재생성한다.",
+  "tolerance": {
+    "integer": "exact",
+    "real": 1e-9
+  },
+  "fieldNames": "original (conflux-editor) — gaugeType/cleared, 재설계는 gaugeMode/tier",
+  "note2": "computeResult를 직접 부른다. playHitMap/playMissSet은 집계만 맞춰 합성한다.",
+  "cases": [
+    {
+      "gaugeType": "normal",
+      "shape": "allSync",
+      "forceEnded": false,
+      "gaugeValue": 100,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "AS",
+        "score": 1000000,
+        "accuracy": 100,
+        "rank": "U",
+        "counts": {
+          "sync": 24,
+          "perfect": 0,
+          "good": 0,
+          "miss": 0
+        },
+        "cleared": true
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "shape": "allSync",
+      "forceEnded": true,
+      "gaugeValue": 100,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "F",
+        "score": 1000000,
+        "accuracy": 100,
+        "rank": "U",
+        "counts": {
+          "sync": 24,
+          "perfect": 0,
+          "good": 0,
+          "miss": 0
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "shape": "withPerfect",
+      "forceEnded": false,
+      "gaugeValue": 100,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "AP",
+        "score": 1000000,
+        "accuracy": 95,
+        "rank": "U",
+        "counts": {
+          "sync": 20,
+          "perfect": 4,
+          "good": 0,
+          "miss": 0
+        },
+        "cleared": true
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "shape": "withPerfect",
+      "forceEnded": true,
+      "gaugeValue": 100,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "F",
+        "score": 1000000,
+        "accuracy": 95,
+        "rank": "U",
+        "counts": {
+          "sync": 20,
+          "perfect": 4,
+          "good": 0,
+          "miss": 0
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "shape": "withGood",
+      "forceEnded": false,
+      "gaugeValue": 100,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "FC",
+        "score": 937500,
+        "accuracy": 87.5,
+        "rank": "B",
+        "counts": {
+          "sync": 18,
+          "perfect": 3,
+          "good": 3,
+          "miss": 0
+        },
+        "cleared": true
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "shape": "withGood",
+      "forceEnded": true,
+      "gaugeValue": 100,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "F",
+        "score": 937500,
+        "accuracy": 87.5,
+        "rank": "B",
+        "counts": {
+          "sync": 18,
+          "perfect": 3,
+          "good": 3,
+          "miss": 0
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "shape": "fewMiss",
+      "forceEnded": false,
+      "gaugeValue": 92,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "C",
+        "score": 895833,
+        "accuracy": 88.75,
+        "rank": "C",
+        "counts": {
+          "sync": 21,
+          "perfect": 0,
+          "good": 1,
+          "miss": 2
+        },
+        "cleared": true
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "shape": "fewMiss",
+      "forceEnded": true,
+      "gaugeValue": 92,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "F",
+        "score": 895833,
+        "accuracy": 88.75,
+        "rank": "C",
+        "counts": {
+          "sync": 21,
+          "perfect": 0,
+          "good": 1,
+          "miss": 2
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "shape": "manyMiss",
+      "forceEnded": false,
+      "gaugeValue": 50,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "P",
+        "score": 458333,
+        "accuracy": 44.166666666666664,
+        "rank": "F",
+        "counts": {
+          "sync": 10,
+          "perfect": 0,
+          "good": 2,
+          "miss": 12
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "shape": "manyMiss",
+      "forceEnded": true,
+      "gaugeValue": 50,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "F",
+        "score": 458333,
+        "accuracy": 44.166666666666664,
+        "rank": "F",
+        "counts": {
+          "sync": 10,
+          "perfect": 0,
+          "good": 2,
+          "miss": 12
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "shape": "tailFail",
+      "forceEnded": false,
+      "gaugeValue": 88,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "C",
+        "score": 875000,
+        "accuracy": 87.5,
+        "rank": "C",
+        "counts": {
+          "sync": 21,
+          "perfect": 0,
+          "good": 0,
+          "miss": 3
+        },
+        "cleared": true
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "shape": "tailFail",
+      "forceEnded": true,
+      "gaugeValue": 88,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "F",
+        "score": 875000,
+        "accuracy": 87.5,
+        "rank": "C",
+        "counts": {
+          "sync": 21,
+          "perfect": 0,
+          "good": 0,
+          "miss": 3
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "shape": "holdHeadMiss",
+      "forceEnded": false,
+      "gaugeValue": 80,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "C",
+        "score": 800000,
+        "accuracy": 80,
+        "rank": "C",
+        "counts": {
+          "sync": 16,
+          "perfect": 0,
+          "good": 0,
+          "miss": 4
+        },
+        "cleared": true
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "shape": "holdHeadMiss",
+      "forceEnded": true,
+      "gaugeValue": 80,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "F",
+        "score": 800000,
+        "accuracy": 80,
+        "rank": "C",
+        "counts": {
+          "sync": 16,
+          "perfect": 0,
+          "good": 0,
+          "miss": 4
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "shape": "allMiss",
+      "forceEnded": false,
+      "gaugeValue": 0,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "P",
+        "score": 0,
+        "accuracy": 0,
+        "rank": "F",
+        "counts": {
+          "sync": 0,
+          "perfect": 0,
+          "good": 0,
+          "miss": 24
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "shape": "allMiss",
+      "forceEnded": true,
+      "gaugeValue": 0,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "F",
+        "score": 0,
+        "accuracy": 0,
+        "rank": "F",
+        "counts": {
+          "sync": 0,
+          "perfect": 0,
+          "good": 0,
+          "miss": 24
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "shape": "emptyChart",
+      "forceEnded": false,
+      "gaugeValue": 0,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "AS",
+        "score": 0,
+        "accuracy": 0,
+        "rank": "F",
+        "counts": {
+          "sync": 0,
+          "perfect": 0,
+          "good": 0,
+          "miss": 0
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "shape": "emptyChart",
+      "forceEnded": true,
+      "gaugeValue": 0,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "F",
+        "score": 0,
+        "accuracy": 0,
+        "rank": "F",
+        "counts": {
+          "sync": 0,
+          "perfect": 0,
+          "good": 0,
+          "miss": 0
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "shape": "incomplete",
+      "forceEnded": false,
+      "gaugeValue": 100,
+      "allowIncomplete": true,
+      "expected": {
+        "state": "AS",
+        "score": 416667,
+        "accuracy": 41.66666666666667,
+        "rank": "F",
+        "counts": {
+          "sync": 10,
+          "perfect": 0,
+          "good": 0,
+          "miss": 0
+        },
+        "cleared": true
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "shape": "incomplete",
+      "forceEnded": true,
+      "gaugeValue": 100,
+      "allowIncomplete": true,
+      "expected": {
+        "state": "F",
+        "score": 416667,
+        "accuracy": 41.66666666666667,
+        "rank": "F",
+        "counts": {
+          "sync": 10,
+          "perfect": 0,
+          "good": 0,
+          "miss": 0
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "allSync",
+      "forceEnded": false,
+      "gaugeValue": 100,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "AS",
+        "score": 1000000,
+        "accuracy": 100,
+        "rank": "U",
+        "counts": {
+          "sync": 24,
+          "perfect": 0,
+          "good": 0,
+          "miss": 0
+        },
+        "cleared": true
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "allSync",
+      "forceEnded": true,
+      "gaugeValue": 100,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "F",
+        "score": 1000000,
+        "accuracy": 100,
+        "rank": "U",
+        "counts": {
+          "sync": 24,
+          "perfect": 0,
+          "good": 0,
+          "miss": 0
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "withPerfect",
+      "forceEnded": false,
+      "gaugeValue": 100,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "AP",
+        "score": 1000000,
+        "accuracy": 95,
+        "rank": "U",
+        "counts": {
+          "sync": 20,
+          "perfect": 4,
+          "good": 0,
+          "miss": 0
+        },
+        "cleared": true
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "withPerfect",
+      "forceEnded": true,
+      "gaugeValue": 100,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "F",
+        "score": 1000000,
+        "accuracy": 95,
+        "rank": "U",
+        "counts": {
+          "sync": 20,
+          "perfect": 4,
+          "good": 0,
+          "miss": 0
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "withGood",
+      "forceEnded": false,
+      "gaugeValue": 100,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "FC",
+        "score": 937500,
+        "accuracy": 87.5,
+        "rank": "B",
+        "counts": {
+          "sync": 18,
+          "perfect": 3,
+          "good": 3,
+          "miss": 0
+        },
+        "cleared": true
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "withGood",
+      "forceEnded": true,
+      "gaugeValue": 100,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "F",
+        "score": 937500,
+        "accuracy": 87.5,
+        "rank": "B",
+        "counts": {
+          "sync": 18,
+          "perfect": 3,
+          "good": 3,
+          "miss": 0
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "fewMiss",
+      "forceEnded": false,
+      "gaugeValue": 92,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "H",
+        "score": 895833,
+        "accuracy": 88.75,
+        "rank": "C",
+        "counts": {
+          "sync": 21,
+          "perfect": 0,
+          "good": 1,
+          "miss": 2
+        },
+        "cleared": true
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "fewMiss",
+      "forceEnded": true,
+      "gaugeValue": 92,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "F",
+        "score": 895833,
+        "accuracy": 88.75,
+        "rank": "C",
+        "counts": {
+          "sync": 21,
+          "perfect": 0,
+          "good": 1,
+          "miss": 2
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "manyMiss",
+      "forceEnded": false,
+      "gaugeValue": 50,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "H",
+        "score": 458333,
+        "accuracy": 44.166666666666664,
+        "rank": "F",
+        "counts": {
+          "sync": 10,
+          "perfect": 0,
+          "good": 2,
+          "miss": 12
+        },
+        "cleared": true
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "manyMiss",
+      "forceEnded": true,
+      "gaugeValue": 50,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "F",
+        "score": 458333,
+        "accuracy": 44.166666666666664,
+        "rank": "F",
+        "counts": {
+          "sync": 10,
+          "perfect": 0,
+          "good": 2,
+          "miss": 12
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "tailFail",
+      "forceEnded": false,
+      "gaugeValue": 88,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "H",
+        "score": 875000,
+        "accuracy": 87.5,
+        "rank": "C",
+        "counts": {
+          "sync": 21,
+          "perfect": 0,
+          "good": 0,
+          "miss": 3
+        },
+        "cleared": true
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "tailFail",
+      "forceEnded": true,
+      "gaugeValue": 88,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "F",
+        "score": 875000,
+        "accuracy": 87.5,
+        "rank": "C",
+        "counts": {
+          "sync": 21,
+          "perfect": 0,
+          "good": 0,
+          "miss": 3
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "holdHeadMiss",
+      "forceEnded": false,
+      "gaugeValue": 80,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "H",
+        "score": 800000,
+        "accuracy": 80,
+        "rank": "C",
+        "counts": {
+          "sync": 16,
+          "perfect": 0,
+          "good": 0,
+          "miss": 4
+        },
+        "cleared": true
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "holdHeadMiss",
+      "forceEnded": true,
+      "gaugeValue": 80,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "F",
+        "score": 800000,
+        "accuracy": 80,
+        "rank": "C",
+        "counts": {
+          "sync": 16,
+          "perfect": 0,
+          "good": 0,
+          "miss": 4
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "allMiss",
+      "forceEnded": false,
+      "gaugeValue": 0,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "P",
+        "score": 0,
+        "accuracy": 0,
+        "rank": "F",
+        "counts": {
+          "sync": 0,
+          "perfect": 0,
+          "good": 0,
+          "miss": 24
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "allMiss",
+      "forceEnded": true,
+      "gaugeValue": 0,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "F",
+        "score": 0,
+        "accuracy": 0,
+        "rank": "F",
+        "counts": {
+          "sync": 0,
+          "perfect": 0,
+          "good": 0,
+          "miss": 24
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "emptyChart",
+      "forceEnded": false,
+      "gaugeValue": 100,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "AS",
+        "score": 0,
+        "accuracy": 0,
+        "rank": "F",
+        "counts": {
+          "sync": 0,
+          "perfect": 0,
+          "good": 0,
+          "miss": 0
+        },
+        "cleared": true
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "emptyChart",
+      "forceEnded": true,
+      "gaugeValue": 100,
+      "allowIncomplete": false,
+      "expected": {
+        "state": "F",
+        "score": 0,
+        "accuracy": 0,
+        "rank": "F",
+        "counts": {
+          "sync": 0,
+          "perfect": 0,
+          "good": 0,
+          "miss": 0
+        },
+        "cleared": false
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "incomplete",
+      "forceEnded": false,
+      "gaugeValue": 100,
+      "allowIncomplete": true,
+      "expected": {
+        "state": "AS",
+        "score": 416667,
+        "accuracy": 41.66666666666667,
+        "rank": "F",
+        "counts": {
+          "sync": 10,
+          "perfect": 0,
+          "good": 0,
+          "miss": 0
+        },
+        "cleared": true
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "shape": "incomplete",
+      "forceEnded": true,
+      "gaugeValue": 100,
+      "allowIncomplete": true,
+      "expected": {
+        "state": "F",
+        "score": 416667,
+        "accuracy": 41.66666666666667,
+        "rank": "F",
+        "counts": {
+          "sync": 10,
+          "perfect": 0,
+          "good": 0,
+          "miss": 0
+        },
+        "cleared": false
+      }
+    }
+  ]
+}

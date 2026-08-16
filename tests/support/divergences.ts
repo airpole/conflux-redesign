@@ -189,3 +189,13 @@ export function uncoveredIds(): readonly string[] {
 export function assignedStep(id: string): string | undefined {
   return ledger().rollup.get(id);
 }
+
+/**
+ * §7 롤업에 실제로 등장하는 step 이름 전부.
+ *
+ * 롤업은 `미커버`뿐 아니라 관계가 바뀐 행(DM-3)도 담으므로, 미커버 배정만
+ * 모으면 M1-8처럼 미커버가 하나도 없는 step이 빠진다.
+ */
+export function assignedSteps(): ReadonlySet<string> {
+  return new Set(ledger().rollup.values());
+}

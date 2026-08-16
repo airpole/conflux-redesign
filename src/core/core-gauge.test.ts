@@ -5,8 +5,9 @@
  * 재설계는 단일 `gaugeMode` 6종이다. 매핑은 §1에 한 곳으로 모았다 — 관측 자료는
  * 관측 대상의 이름을 쓰고 매핑표가 한 곳에 모여야 개명 누락이 드러난다.
  *
- * 골든이 닿지 않는 자리(GA-3·GA-4·GA-6·GA-7·GA-8)는 §3~§6의 스펙 테스트가
- * 유일한 판정자다.
+ * state·score·accuracy·rank 산출은 §7이 골든 `result.json`으로 채점한다 —
+ * 셋 다 `[보존]`이면서도 골든이 닿지 않아 주장 자체를 확인할 길이 없던 자리다
+ * (D-2026-044). 남은 미커버는 GA-3·GA-4이며 §3·§4가 판정자다.
  */
 import { describe, expect, it } from 'vitest';
 
@@ -28,7 +29,7 @@ import { buildTimeline } from './core-timing.js';
 import { NORMAL_CLEAR_PCT } from './core-constants.js';
 import { makeChart } from './core-chart-fixture.js';
 import { loadGolden, realEquals } from '../../tests/support/golden.js';
-import { expectDivergence, assignedStep, ledgerEntry } from '../../tests/support/divergences.js';
+import { expectDivergence } from '../../tests/support/divergences.js';
 
 /** 판정 열을 순서대로 먹인다. 단위는 전부 1 — 골든이 그렇게 뽑혔다. */
 function feed(state: GaugeState, sequence: readonly Judgment[]): void {
@@ -76,7 +77,7 @@ const SEQUENCES: Readonly<Record<string, readonly string[]>> = {
 
 interface GaugeCase {
   readonly gaugeType: 'normal' | 'hard';
-  readonly lockTarget: 'none' | 'fc' | 'ap';
+  readonly lockTarget: 'none' | 'fc' | 'ap' | 'as';
   readonly sequence: string;
   readonly expected: {
     readonly unitScale: number;
@@ -127,9 +128,10 @@ function divergesByGa1(kase: GaugeCase): boolean {
 describe('gauge — 골든 대조', () => {
   const cases = loadGolden<GaugeCase>('gauge').cases;
 
-  it('표를 읽어낸다 — 6모드 중 4모드가 여기서 대조된다', () => {
-    expect(cases.length).toBe(30);
-    expect(new Set(cases.map(modeOf))).toEqual(new Set(['normal', 'hard', 'fc', 'ap']));
+  it('표를 읽어낸다 — 6모드 중 5모드가 여기서 대조된다', () => {
+    // `as`는 추출기 축에 없어 GA-8이 미커버였다. 축에 한 칸 더해 덮었다(D-2026-044).
+    expect(cases.length).toBe(40);
+    expect(new Set(cases.map(modeOf))).toEqual(new Set(['normal', 'hard', 'fc', 'ap', 'as']));
   });
 
   it('`a` 스케일이 원본과 같다', () => {
@@ -140,7 +142,7 @@ describe('gauge — 골든 대조', () => {
 
   it('게이지 궤적이 GA-1 범위 밖에서 전부 일치한다', () => {
     const compared = cases.filter((kase) => !divergesByGa1(kase));
-    expect(compared.length).toBe(24);
+    expect(compared.length).toBe(32);
 
     for (const kase of compared) {
       const { trace } = replay(kase);
@@ -198,7 +200,7 @@ describe('gauge — 의도한 차이', () => {
     expectDivergence('GA-1');
 
     const diverging = cases.filter(divergesByGa1);
-    expect(diverging.length).toBe(6);
+    expect(diverging.length).toBe(8);
 
     for (const kase of diverging) {
       expect(replay(kase).trace).not.toEqual([...kase.expected.trace]);
@@ -211,21 +213,13 @@ describe('gauge — 의도한 차이', () => {
         kase.gaugeType === 'normal' &&
         (SEQUENCES[kase.sequence] ?? []).some((k) => k.startsWith('TAIL')),
     );
-    expect(normalTail.length).toBe(6);
+    expect(normalTail.length).toBe(8);
 
     for (const kase of normalTail) {
       replay(kase).trace.forEach((value, index) => {
         expect(realEquals(value, kase.expected.trace[index] as number)).toBe(true);
       });
     }
-  });
-
-  it('골든이 닿지 않는 자리가 대장에 등재돼 있고 이 step이 담당한다', () => {
-    for (const id of ['GA-3', 'GA-6', 'GA-7', 'GA-8']) {
-      expect(ledgerEntry(id).relation).toBe('미커버');
-      expect(assignedStep(id)).toBe('M1-7');
-    }
-    expect(ledgerEntry('GA-4').relation).toBe('없음');
   });
 });
 
@@ -308,9 +302,9 @@ describe('tier 사다리와 gaugeMode (§2)', () => {
   });
 });
 
-// ── §3. state 산출 (gauge.md §3 · 대장 GA-6) ────────────────
+// ── §3. state 산출 (gauge.md §3) ───────────────────────────
 
-describe('state 산출 — 성적이 정한다 (§3, GA-6)', () => {
+describe('state 산출 — 성적이 정한다 (§3)', () => {
   it('어느 게이지로 쳐도 FC·AP·AS가 나온다', () => {
     for (const mode of ['normal', 'hard'] as const) {
       expect(evaluateState(play(mode, 30, Array<Judgment>(30).fill('SYNC')))).toBe('AS');
@@ -335,10 +329,14 @@ describe('state 산출 — 성적이 정한다 (§3, GA-6)', () => {
     expect(evaluateState(normalCleared)).toBe('C');
   });
 
-  it('normal 게이지 미달은 `F`다 (구 `P` 흡수 — GA-3)', () => {
-    expect(ledgerEntry('GA-3').relation).toBe('미커버');
-
-    const state = play('normal', 30, [...Array<Judgment>(10).fill('SYNC'), 'MISS']);
+  it('[GA-3] normal 게이지 미달은 `F`다 — 구 `P` 흡수', () => {
+    // **완주한 판**으로 잰다. 단위가 남아 있으면 GA-9가 먼저 `F`를 내므로
+    // 게이지 임계가 판별했다는 주장이 확인되지 않는다.
+    const sequence: readonly Judgment[] = [
+      ...Array<Judgment>(10).fill('SYNC'),
+      ...Array<Judgment>(20).fill('MISS'),
+    ];
+    const state = play('normal', sequence.length, sequence);
     expect(state.forceEnded).toBe(false);
     expect(state.gauge.normalPct).toBeLessThan(NORMAL_CLEAR_PCT);
     expect(evaluateState(state)).toBe('F');
@@ -375,7 +373,7 @@ describe('state 산출 — 성적이 정한다 (§3, GA-6)', () => {
 
 // ── §4. cascade 검증 시나리오 (gauge.md §4 · 대장 GA-4) ─────
 
-describe('cascade 검증 시나리오 6종 (§4, GA-4)', () => {
+describe('[GA-4] cascade 검증 시나리오 6종 (§4)', () => {
   /** hard 게이지를 0으로 떨구는 데 필요한 MISS 수 (−5.0 × 20 = 100). */
   const MISSES_TO_KILL_HARD = 20;
 
@@ -457,9 +455,9 @@ describe('cascade 검증 시나리오 6종 (§4, GA-4)', () => {
   });
 });
 
-// ── §5. score · accuracy · rank (constants.md §3 · 대장 GA-7) ─
+// ── §5. score · accuracy · rank (constants.md §3) ──────────
 
-describe('결과 산출 (GA-7)', () => {
+describe('결과 산출 (§5)', () => {
   it('rank는 gauge와 독립이다 — 같은 판정 열이면 모드가 달라도 같은 rank', () => {
     const sequence: readonly Judgment[] = ['MISS', ...Array<Judgment>(29).fill('SYNC')];
     const results = GAUGE_MODES.map((mode) => computeResult(play(mode, 30, sequence), 0));
@@ -522,9 +520,9 @@ describe('결과 산출 (GA-7)', () => {
   });
 });
 
-// ── §6. 판정 단위 총수 (judge.md §8 · 대장 GA-5) ────────────
+// ── §6. 판정 단위 총수 (judge.md §8) ───────────────────────
 
-describe('판정 단위 총수는 judge가 센다 (GA-5)', () => {
+describe('[GA-5] 판정 단위 총수는 judge가 센다', () => {
   it('Tap 1 · Hold 2로 세고 `a` 스케일의 분모가 된다', () => {
     const chart = makeChart({
       notes: [
@@ -547,5 +545,115 @@ describe('판정 단위 총수는 judge가 센다 (GA-5)', () => {
 
     const total = Object.values(state.counts).reduce((sum, n) => sum + n, 0);
     expect(total).toBe(state.totalUnits);
+  });
+});
+
+// ── §7. 결과 산출 골든 대조 (원본 computeResult) ────────────
+
+/**
+ * `result.json`은 원본 `gauge.js computeResult`를 직접 불러 뜬 표다.
+ *
+ * 원본은 `PS.playHitMap`을 재순회해 세고 재설계는 판정 이벤트 누산기(`counts`)
+ * 하나를 읽는다 — **세는 방법이 다르고 산식이 같다**는 주장을 여기서 확인한다.
+ * 그 주장이 이전에는 스펙 테스트로만 서 있었다(D-2026-044).
+ */
+interface ResultCase {
+  readonly gaugeType: 'normal' | 'hard';
+  readonly shape: string;
+  readonly forceEnded: boolean;
+  readonly gaugeValue: number;
+  readonly allowIncomplete: boolean;
+  readonly expected: {
+    readonly state: string;
+    readonly score: number;
+    readonly accuracy: number;
+    readonly rank: string;
+    readonly counts: { sync: number; perfect: number; good: number; miss: number };
+    readonly cleared: boolean;
+  };
+}
+
+/** 골든의 집계를 재설계 상태로 세운다. 게이지 값도 표에 적힌 것을 그대로 쓴다. */
+function stateOf(kase: ResultCase): GaugeState {
+  const { counts } = kase.expected;
+  const totalUnits = counts.sync + counts.perfect + counts.good + counts.miss + missingUnits(kase);
+  const state = resetGauge(kase.gaugeType, totalUnits);
+
+  state.counts = {
+    SYNC: counts.sync,
+    PERFECT: counts.perfect,
+    GOOD: counts.good,
+    MISS: counts.miss,
+  };
+  state.gauge = { hardPct: kase.gaugeValue, normalPct: kase.gaugeValue };
+  // hard 게이지가 0이면 원본에서도 그 자리에서 판이 끝났다 — 재설계는 그것을
+  // `forceEnded` 하나로 든다.
+  state.forceEnded = kase.forceEnded || (kase.gaugeType === 'hard' && kase.gaugeValue <= 0);
+  return state;
+}
+
+/** 판정되지 않고 남은 단위. `incomplete` fixture만 0이 아니다. */
+function missingUnits(kase: ResultCase): number {
+  return kase.allowIncomplete ? 14 : 0;
+}
+
+describe('§7 결과 산출 골든 대조 — 원본 computeResult', () => {
+  const cases = loadGolden<ResultCase>('result').cases;
+
+  it('표를 읽어낸다', () => {
+    expect(cases.length).toBe(40);
+    expect(new Set(cases.map((kase) => kase.shape)).size).toBe(10);
+  });
+
+  it('score·accuracy·rank·counts가 전부 일치한다 `[보존]`', () => {
+    for (const kase of cases) {
+      const result = computeResult(stateOf(kase), 0);
+      const label = `${kase.gaugeType}/${kase.shape}${kase.forceEnded ? '/forceEnded' : ''}`;
+
+      expect(result.score, label).toBe(kase.expected.score);
+      expect(realEquals(result.accuracy, kase.expected.accuracy), label).toBe(true);
+      expect(result.rank, label).toBe(kase.expected.rank);
+      expect(result.counts, label).toEqual({
+        SYNC: kase.expected.counts.sync,
+        PERFECT: kase.expected.counts.perfect,
+        GOOD: kase.expected.counts.good,
+        MISS: kase.expected.counts.miss,
+      });
+    }
+  });
+
+  it('state가 GA-3·GA-9 범위 밖에서 전부 일치한다', () => {
+    const compared = cases.filter((kase) => kase.expected.state !== 'P' && !kase.allowIncomplete);
+    expect(compared.length).toBe(33);
+
+    for (const kase of compared) {
+      expect(evaluateState(stateOf(kase)), `${kase.gaugeType}/${kase.shape}`).toBe(
+        kase.expected.state,
+      );
+    }
+  });
+
+  it('[GA-3] 원본이 `P`를 낸 자리가 전부 `F`가 된다', () => {
+    expectDivergence('GA-3');
+
+    const diverging = cases.filter((kase) => kase.expected.state === 'P');
+    expect(diverging.length).toBe(3);
+
+    for (const kase of diverging) {
+      expect(evaluateState(stateOf(kase)), `${kase.gaugeType}/${kase.shape}`).toBe('F');
+    }
+  });
+
+  it('[GA-9] 끝까지 가지 않은 판은 미스가 없어도 `F`다', () => {
+    expectDivergence('GA-9');
+
+    const incomplete = cases.filter((kase) => kase.allowIncomplete && !kase.forceEnded);
+    expect(incomplete.length).toBe(2);
+
+    for (const kase of incomplete) {
+      // 원본은 미스·GOOD·PERFECT 개수만 보므로 절반만 친 판을 `AS`로 냈다.
+      expect(kase.expected.state).toBe('AS');
+      expect(evaluateState(stateOf(kase)), `${kase.gaugeType}/${kase.shape}`).toBe('F');
+    }
   });
 });

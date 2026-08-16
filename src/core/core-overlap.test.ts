@@ -10,7 +10,7 @@ import { buildOverlapMap, isActiveAt } from './core-overlap.js';
 import type { ConflictGroup, NoteOverlapMap, OverlapMark } from './core-overlap.js';
 import type { Lane, Note } from './core-chart.js';
 import { loadGolden } from '../../tests/support/golden.js';
-import { assignedStep, ledgerEntry } from '../../tests/support/divergences.js';
+import { ledgerEntry } from '../../tests/support/divergences.js';
 
 const T = 1920;
 
@@ -111,7 +111,7 @@ describe('§2 로컬 capacity — 풀마다 몇 겹부터 못 치는가', () => 
 
 // ── §3. 3겹 이상 (DM-3) ─────────────────────────────────────
 
-describe('§3 3겹 이상 — 원본이 잡지 못하던 자리 (DM-3)', () => {
+describe('[DM-3] §3 3겹 이상 — 원본이 잡지 못하던 자리', () => {
   it('lane 2의 3겹 계단이 셋 다 conflict다', () => {
     const map = buildOverlapMap([note(2, 0, T), note(2, T / 4, T), note(2, T / 2, T)]);
     expect(kinds(map)).toEqual(['conflict', 'conflict', 'conflict']);
@@ -132,16 +132,11 @@ describe('§3 3겹 이상 — 원본이 잡지 못하던 자리 (DM-3)', () => {
     const five = [0, 1, 2, 3, 4].map(() => note(2, 0));
     expect(groupsOf(buildOverlapMap(five), 'local')[0]!.excess).toBe(3);
   });
-
-  it('DM-3이 대장에 등재돼 있고 담당 step이 M1-8이다', () => {
-    expect(ledgerEntry('DM-3').relation).toBe('어긋남');
-    expect(assignedStep('DM-3')).toBe('M1-8');
-  });
 });
 
 // ── §4. global 6키 (JD-5) ───────────────────────────────────
 
-describe('§4 global 6키 — 로컬을 다 통과해도 손가락이 모자란 자리 (JD-5)', () => {
+describe('[JD-5] §4 global 6키 — 로컬을 다 통과해도 손가락이 모자란 자리', () => {
   /** 1+2+2+1+1 = 7. 각 풀은 capacity 이내다. */
   const seven: readonly Note[] = [
     note(1, 0),
@@ -189,16 +184,11 @@ describe('§4 global 6키 — 로컬을 다 통과해도 손가락이 모자란 
     expect(global[0]!.tick).toBe(T / 2);
     expect(global[0]!.excess).toBe(1);
   });
-
-  it('JD-5가 대장에 등재돼 있고 담당 step이 M1-8이다', () => {
-    expect(ledgerEntry('JD-5').relation).toBe('없음');
-    expect(assignedStep('JD-5')).toBe('M1-8');
-  });
 });
 
 // ── §5. 우선순위 (DM-6) ─────────────────────────────────────
 
-describe('§5 우선순위 — conflict가 세부 분류를 덮는다 (DM-6)', () => {
+describe('[DM-6] §5 우선순위 — conflict가 세부 분류를 덮는다', () => {
   it('global conflict 안의 2겹 쌍은 merged/hidden이 아니라 conflict다', () => {
     const map = buildOverlapMap([
       note(1, 0),
@@ -227,11 +217,6 @@ describe('§5 우선순위 — conflict가 세부 분류를 덮는다 (DM-6)', (
       note(3, T * 4, T),
     ]);
     expect(kinds(map)).toEqual(['conflict', 'conflict', 'conflict', 'merged', 'hidden']);
-  });
-
-  it('DM-6이 대장에 등재돼 있다 — 원본에는 두 종류가 겨루는 자리가 없다', () => {
-    expect(ledgerEntry('DM-6').relation).toBe('없음');
-    expect(assignedStep('DM-6')).toBe('M1-8');
   });
 });
 
@@ -332,6 +317,8 @@ describe('§7 골든 대조 — 원본 overlaps.js', () => {
         // 원본은 아무 conflict도 내지 못했고, 재설계는 전부 conflict로 잡는다.
         expect(cases.every((kase) => kase.expected?.type !== 'invalid')).toBe(true);
         expect(kinds(map).every((kind) => kind === 'conflict')).toBe(true);
+        // DM-3은 `어긋남`, JD-5는 `없음`이다 — 원본에 6키 합산이라는 개념 자체가
+        // 없어 값이 아니라 자리가 비어 있다. `expectDivergence`를 쓸 수 없는 이유다.
         expect(ledgerEntry(divergence).id).toBe(divergence);
         return;
       }

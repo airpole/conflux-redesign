@@ -480,6 +480,159 @@
       }
     },
     {
+      "gaugeType": "normal",
+      "lockTarget": "as",
+      "sequence": "allSync",
+      "expected": {
+        "unitScale": 5,
+        "trace": [
+          5,
+          10,
+          15,
+          20,
+          25,
+          30,
+          35,
+          40,
+          45,
+          50,
+          55,
+          60,
+          65,
+          70,
+          75,
+          80,
+          85,
+          90,
+          95,
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "forceEndedAt": null,
+        "lockTier": "as",
+        "evaluateEnd": true
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "lockTarget": "as",
+      "sequence": "allMiss",
+      "expected": {
+        "unitScale": 5,
+        "trace": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "forceEndedAt": 0,
+        "lockTier": "broken",
+        "evaluateEnd": false
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "lockTarget": "as",
+      "sequence": "mixed",
+      "expected": {
+        "unitScale": 5,
+        "trace": [
+          5,
+          10,
+          12.5,
+          10.5,
+          15.5,
+          20.5,
+          18.5,
+          16.5,
+          21.5,
+          24,
+          29,
+          27
+        ],
+        "forceEndedAt": 2,
+        "lockTier": "broken",
+        "evaluateEnd": false
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "lockTarget": "as",
+      "sequence": "lateCollapse",
+      "expected": {
+        "unitScale": 5,
+        "trace": [
+          5,
+          10,
+          15,
+          20,
+          25,
+          30,
+          35,
+          40,
+          45,
+          50,
+          55,
+          60,
+          58,
+          56,
+          54,
+          52,
+          50,
+          48,
+          46,
+          44,
+          42,
+          40,
+          38,
+          36
+        ],
+        "forceEndedAt": 12,
+        "lockTier": "broken",
+        "evaluateEnd": false
+      }
+    },
+    {
+      "gaugeType": "normal",
+      "lockTarget": "as",
+      "sequence": "tailOnly",
+      "expected": {
+        "unitScale": 5,
+        "trace": [
+          5,
+          3,
+          8,
+          6
+        ],
+        "forceEndedAt": 1,
+        "lockTier": "broken",
+        "evaluateEnd": false
+      }
+    },
+    {
       "gaugeType": "hard",
       "lockTarget": "none",
       "sequence": "allSync",
@@ -924,6 +1077,159 @@
     {
       "gaugeType": "hard",
       "lockTarget": "ap",
+      "sequence": "tailOnly",
+      "expected": {
+        "unitScale": 5,
+        "trace": [
+          100,
+          97.5,
+          97.6,
+          95.1
+        ],
+        "forceEndedAt": 1,
+        "lockTier": "broken",
+        "evaluateEnd": true
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "lockTarget": "as",
+      "sequence": "allSync",
+      "expected": {
+        "unitScale": 5,
+        "trace": [
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "forceEndedAt": null,
+        "lockTier": "as",
+        "evaluateEnd": true
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "lockTarget": "as",
+      "sequence": "allMiss",
+      "expected": {
+        "unitScale": 5,
+        "trace": [
+          95,
+          90,
+          85,
+          80,
+          75,
+          70,
+          65,
+          60,
+          55,
+          50,
+          45,
+          40,
+          35,
+          30,
+          25,
+          20,
+          15,
+          10,
+          5,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "forceEndedAt": 0,
+        "lockTier": "broken",
+        "evaluateEnd": false
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "lockTarget": "as",
+      "sequence": "mixed",
+      "expected": {
+        "unitScale": 5,
+        "trace": [
+          100,
+          100,
+          100,
+          95,
+          95.15,
+          95.3,
+          90.3,
+          85.3,
+          85.45,
+          85.45,
+          85.55,
+          83.05
+        ],
+        "forceEndedAt": 2,
+        "lockTier": "broken",
+        "evaluateEnd": true
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "lockTarget": "as",
+      "sequence": "lateCollapse",
+      "expected": {
+        "unitScale": 5,
+        "trace": [
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          95,
+          90,
+          85,
+          80,
+          75,
+          70,
+          65,
+          60,
+          55,
+          50,
+          45,
+          40
+        ],
+        "forceEndedAt": 12,
+        "lockTier": "broken",
+        "evaluateEnd": true
+      }
+    },
+    {
+      "gaugeType": "hard",
+      "lockTarget": "as",
       "sequence": "tailOnly",
       "expected": {
         "unitScale": 5,
