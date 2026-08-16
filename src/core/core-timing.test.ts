@@ -253,6 +253,8 @@ describe('[TM-7] sub 분할 = gridDivisor', () => {
 
 describe('[TM-11] 첫 박자표 앞 구간 외삽 표기 (D-2026-045)', () => {
   it('첫 TS의 startTick이 0이 아니면 뒤로 외삽해 수치 표기하고 왕복한다', () => {
+    expectDivergence('TM-11');
+
     // TS [{startTick:1920,num:4,den:4}], gridDivisor 8. 값은 §1 폴백과
     // 무간섭 확인(실측): 0.4.1 / 0.4 / 960 — 사전 참고값과 일치한다.
     const tl = buildTimeline(
