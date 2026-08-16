@@ -141,4 +141,12 @@ describe('settings 병합', () => {
       DEFAULT_SETTINGS.judgeLinePos,
     );
   });
+
+  it('[경계] keyBindings — 빈 문자열 바인딩은 거부한다', () => {
+    const { settings, report } = mergeSettings({
+      keyBindings: { ...DEFAULT_SETTINGS.keyBindings, key2: '' },
+    });
+    expect(settings.keyBindings.key2).toBe(DEFAULT_SETTINGS.keyBindings.key2);
+    expect(report.rejectedKeys).toContain('keyBindings');
+  });
 });

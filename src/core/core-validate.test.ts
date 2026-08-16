@@ -97,6 +97,23 @@ describe('[DM-5] domain — 거부하지 않고 보고한다', () => {
     expect(paths(validateChartDomain(chart).issues)).not.toContain('timeSignatures[0].startTick');
   });
 
+  it('timeSignatures가 비면 startTick flag는 붙지 않는다', () => {
+    const chart = makeChart({ timeSignatures: [] });
+    expect(validateChartDomain(chart).issues).toEqual([
+      { path: 'timeSignatures', message: '적어도 하나 있어야 한다' },
+    ]);
+  });
+
+  it('첫 박자표가 0이면 나중 박자표가 커도 통과한다', () => {
+    const chart = makeChart({
+      timeSignatures: [
+        { startTick: 0, numerator: 4, denominator: 4 },
+        { startTick: 7680, numerator: 3, denominator: 4 },
+      ],
+    });
+    expect(validateChartDomain(chart).issues).toEqual([]);
+  });
+
   it('읽을 수 없는 updatedAt을 보고한다', () => {
     const chart = makeChart({ updatedAt: '어제' });
     expect(paths(validateChartDomain(chart).issues)).toContain('updatedAt');

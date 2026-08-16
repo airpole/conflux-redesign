@@ -1447,6 +1447,31 @@ describe('heldCapacityViolations 자기 검증 (judge §6)', () => {
 
     expect(heldCapacityViolations(s.state, s.context)).toEqual([]);
   });
+
+  it('tap이 활성 목록에 있으면 잡아낸다', () => {
+    const s = scene([{ startTick: 0, duration: 0, lane: 2 }]); // tap
+    s.state.hits[0] = 'hit';
+    s.state.keysHeld.add('key2');
+    s.state.activeNormalHolds[2] = [0];
+
+    const violations = heldCapacityViolations(s.state, s.context);
+    expect(violations).toContain('note 0: Hold가 아닌데 활성 목록에 있다');
+  });
+
+  it('tail이 같은 둘은 순서 위반이 아니다', () => {
+    const s = scene([
+      { startTick: 0, duration: T, lane: 2 },
+      { startTick: 0, duration: T, lane: 2 }, // tail 동률
+    ]);
+    s.state.hits[0] = 'hit';
+    s.state.hits[1] = 'hit';
+    s.state.keysHeld.add('key2');
+    s.state.keysHeld.add('key4');
+    s.state.activeNormalHolds[2] = [0, 1];
+
+    const violations = heldCapacityViolations(s.state, s.context);
+    expect(violations).not.toContain('lane 2: 활성 목록이 tail 순이 아니다');
+  });
 });
 
 describe('자동완료 동률 tail의 결정론 순서', () => {

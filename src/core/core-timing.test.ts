@@ -416,6 +416,21 @@ describe('measureToTick 실패 처리', () => {
 // ── WO-1 §3-2 ~ §3-4 ─────────────────────────────────────────
 
 describe('[TM-9] gridLines 실값', () => {
+  it('세그먼트 경계 tick이 중복되지 않는다', () => {
+    // 4/4 한 마디(7680) 뒤 3/4 — 경계 7680에 박이 정확히 떨어진다.
+    const tl = buildTimeline(
+      makeChart({
+        tempos: [{ startTick: 0, bpm: 120 }],
+        timeSignatures: [
+          { startTick: 0, numerator: 4, denominator: 4 },
+          { startTick: 7680, numerator: 3, denominator: 4 },
+        ],
+      }),
+    );
+    const ticks = gridLines(tl, 0, 11520).map((line) => line.tick);
+    expect(ticks).toEqual([0, 1920, 3840, 5760, 7680, 9600, 11520]);
+  });
+
   it('기본 4/4에서 pre-roll을 포함한 네 줄이 정확히 나온다', () => {
     const timeline = timelineOf('plain');
     const lines = gridLines(timeline, -T, T * 2);
