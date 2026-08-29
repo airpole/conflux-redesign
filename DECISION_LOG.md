@@ -506,7 +506,7 @@
 - **Rationale:** `_rationale/rationale.md` (복귀 로드맵 §4 논의 참조)
 - **Affects:** _plan, src/env (검증 방법론만 — 구현은 아직 없음)
 - **Supersedes:** None
-- **Commit:** (pending)
+- **Commit:** `7483642`
 
 
 ```md
