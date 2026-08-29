@@ -517,7 +517,7 @@
 - **Rationale:** `_rationale/rationale.md` (사용자 확인: 최소 간격 제한 없음, lane이 좁아져 선처럼 보이는 것도 연출로 사용)
 - **Affects:** lane-events, _plan, _extracted
 - **Supersedes:** None (lane-events §3의 "최소 간격" 서술을 대체)
-- **Commit:** (pending)
+- **Commit:** `df95fe6`
 
 
 ```md
