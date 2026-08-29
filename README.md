@@ -138,9 +138,9 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M2-1 착수 가능 (`env` — canvas·resize·rAF·입력·audio). 진입 gate 없음 (D-2026-046). M1 마감 확인 완료 (D-2026-045, `npm run mutate` 재확인 — 239 mutants 0 survived)
-- **Discussion Scope:** [[build-order]] §5. M2-2 진입 gate(§3 M2-2 실측 — 렌더 레이아웃 전수, D-2026-046으로 M2-1에서 이동).
-- **Change Scope:** 미정 — M2-1 착수 세션에서 정한다
+- **Active unit:** M2-1 진행 중 (`env` 4파일 — audio·canvas·time·input 완료, storage·file은 M3). 다음은 M2-2(playfield 렌더) — 진입 gate: §3 M2-2 실측 필요.
+- **Discussion Scope:** [[build-order]] §5. M2-2 진입 gate(§3 M2-2 실측 — 렌더 레이아웃 전수).
+- **Change Scope:** M2-1 env 4파일 + mock 계약 테스트(D-2026-047)
 - **Exit:** M1 아홉 step의 골든 테스트가 모두 통과하고, core 어느 모듈도 전역 상태나 브라우저 API를 import하지 않는다
 
 ### Completed
@@ -243,12 +243,6 @@ display라는 방향을 명문화했다(시간 모델 재정리 자체는 M2 에
 `MUTATION_EQUIVALENTS.md`에 등재하는 gate를 명문화했다 — 이번 복귀 세션에서 그 gate를
 `src/core` 전체(239 mutants)에 대해 재확인했고 생존 뮤턴트는 0건이다.
 
-M2 진입 실측 gate를 M2-2 전으로 옮겼다(D-2026-046). M2-1(`env`)은 판정선 Y·`gw`/`gh`·lane
-구분선 굵기 같은 렌더 수치를 한 줄도 쓰지 않는다 — gate의 뜻은 "그거 없이는 못 짓는다"인데
-M2-1은 그 값 없이 지어지므로, 못 짓는 게 아니라 순서였다면 gate가 아니라 할 일 목록이다.
-값을 실제로 쓰는 시점(M2-2) 바로 앞으로 옮겨 재는 시점과 쓰는 시점을 붙였다.
-**M2-1은 진입 gate 없이 바로 착수 가능하다.**
-
 **`GA-6`·`GA-7`·`GA-8`은 아예 미커버가 아니게 만들었다.** 셋 다 `[보존]`인데 골든이 닿지
 않아 "원본과 같다"는 주장 자체를 확인할 길이 없던 자리다. 원본 `computeResult`를 직접 부르는
 추출기를 세워 `result.json` 40건을 뽑고 `lockTarget` 축에 `as`를 더했다(`gauge.json` 30 →
@@ -257,6 +251,31 @@ M2-1은 그 값 없이 지어지므로, 못 짓는 게 아니라 순서였다면
 원본은 판정된 단위를 세지 않아 24단위 중 10단위만 판정된 판도 미스가 없으면 `AS`를 낸다.
 `F`를 뺀 모든 마크에 완주 조건을 걸었다. 테스트는 601건이다.
 
+M2 진입 실측 gate를 M2-2 전으로 옮겼다(D-2026-046). M2-1(`env`)은 판정선 Y·`gw`/`gh`·lane
+구분선 굵기 같은 렌더 수치를 한 줄도 쓰지 않는다 — gate의 뜻은 "그거 없이는 못 짓는다"인데
+M2-1은 그 값 없이 지어지므로, 못 짓는 게 아니라 순서였다면 gate가 아니라 할 일 목록이다.
+값을 실제로 쓰는 시점(M2-2) 바로 앞으로 옮겨 재는 시점과 쓰는 시점을 붙였다.
+**M2-1은 진입 gate 없이 바로 착수 가능하다.**
+
+M2-1 검증 전략을 mock 계약 검사로 확정했다(D-2026-047). `env`는 브라우저에 값을 물어보는
+층이라 골든 표가 성립하지 않으므로, 값이 아니라 **실패 모드별 동작**을 mock으로 검사한다.
+
+`env` 4파일(`env-audio`·`env-canvas`·`env-time`·`env-input`)을 구현했다(M2-1 일부).
+전부 **브라우저 API를 함수 인자로 주입받는다** — `window`·`document`·`AudioContext`를
+직접 참조하지 않으므로 jsdom 없이 Node에서 mock으로 계약을 검사한다(D-2026-047의 실제
+적용). `env-audio`는 AudioContext가 `suspended`로 뜨는 모바일 브라우저에서 decode 전에
+resume을 시도한다 `[보존]`(원본 `audio.js`). `env-canvas`는 폭·높이가 1px 미만이면
+아무 것도 하지 않고, resize를 100ms/320ms 두 단계로 debounce한다 `[보존]`(원본
+`canvas-resize.js` — orientation 전환 중 한 번만 debounce하면 잘못된 순간을 샘플링한다).
+`env-time`은 `frameCap`을 실제로 적용한다 `[신규]` — 원본 `settings.js`는 이 필드를
+두고도 어디서도 소비하지 않는 죽은 설정이었다; `architecture` §1이 이미 `env-time`의
+소관으로 명문화해 뒀으므로 새 제품 결정이 아니라 [[settings]] §4가 이미 정의한 의미(0=무제한,
+30/60=상한)를 실제로 구현한 것이다. `env-input`은 keydown/keyup을 timestamp와 함께
+올리고 focus 이탈·visibility 신호를 raw로 전달할 뿐, 어느 lane에 매핑되는지도 held
+상태를 어떻게 복구하는지도 모른다 — 원본 `keyboard.js`의 blur 시 stuck key 복구는 game
+상태(어느 채널이 눌려 있는지)를 아는 정책이라 env가 아니라 이후 step(game)의 몫으로 남겼다.
+`env-storage`·`env-file`은 M3에서 쓰이므로 아직 만들지 않았다. 테스트는 672건이다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
@@ -264,7 +283,7 @@ M2-1은 그 값 없이 지어지므로, 못 짓는 게 아니라 순서였다면
 
 ### 다음 후보
 
-- M2 진입 결정 사이클 (Current Focus) — §3 M2 실측 gate
+- M2-2 진입 전 원본 렌더 실측 (Current Focus) — §3 M2-2 항목, `_extracted/EXTRACTED_FACTS.md`에 기입
 - D-2026-021 사이클 (M3 진입 전)
 - UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
 - credits scene 표시 내용 채우기 (소형, M4-2 전)
