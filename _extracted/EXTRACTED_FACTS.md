@@ -389,9 +389,9 @@ x = gx + fraction * gw          // mirror 시 gx + (1 - fraction) * gw
 
 정확도 % 아래: `fsY = pctY + pctSz/2 + G + fsSz/2`, `fsSz = gw*0.016`. FAST는 `#ff5a6a`, SLOW는 `#5aa0ff`(`constants.js` `FAST_COLOR`/`SLOW_COLOR`), 500ms 페이드.
 
-### 12.9 lane 최소 간격 px — 원본에 대응물 없음 (`없음`)
+### 12.9 lane 최소 간격 px — 원본에 대응물 없음 (`없음`) → 제한 없음으로 확정 (D-2026-048)
 
-[[lane-events]] §7 잔여 "최소 간격의 구체 px 값"을 찾아 `shape.js`·`overlaps.js`·게임 렌더 전체를 뒤졌으나 **원본에 lane 최소 간격을 강제하는 코드가 없다**(`min`/`clamp`/`MIN_` 패턴 grep 0건). [[lane-events]] §1의 "투영(gameplay, 경계+순서 클램프+최소 간격)" 서술은 재설계가 새로 도입하려는 `[신규]` 개념이지 원본 실측이 아니다 — 이 항목은 실측이 아니라 **제품 결정**으로 남는다(구체 px 값은 M5 진입 전 gate에서 정하거나, 필요 시 더 이른 시점에 별도 결정 요청).
+[[lane-events]] §7 잔여 "최소 간격의 구체 px 값"을 찾아 `shape.js`·`overlaps.js`·게임 렌더 전체를 뒤졌으나 **원본에 lane 최소 간격을 강제하는 코드가 없다**(`min`/`clamp`/`MIN_` 패턴 grep 0건). [[lane-events]] §1의 "투영(gameplay, 경계+순서 클램프+최소 간격)" 서술은 재설계가 새로 도입하려는 `[신규]` 개념이지 원본 실측이 아니었다 — 사용자 확인 결과 최소 간격 제한 자체가 없고, 구분선이 붙어 선처럼 좁아지는 것도 의도된 연출이다(D-2026-048). §1·§4·§7의 "최소 간격" 서술을 그에 맞춰 정정했다.
 
 ---
 

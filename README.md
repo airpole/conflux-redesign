@@ -138,8 +138,8 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M2-2(playfield 렌더) 착수 가능. M2-1(`env` 4파일) 완료. M2-2 실측 gate는 `_extracted/EXTRACTED_FACTS.md` §12로 해소했다 — 단, lane 최소 간격 px는 원본에 대응물이 없어 실측이 아니라 **제품 결정**(사전 승인 필요, [[lane-events]] §7)으로 남는다.
-- **Discussion Scope:** [[build-order]] §5. lane 최소 간격 px 결정.
+- **Active unit:** M2-2(playfield 렌더) 착수 가능 — 진입 gate 전부 닫힘. M2-1(`env` 4파일) 완료, M2-2 실측(§12) + lane 최소 간격 결정(D-2026-048, 제한 없음) 모두 해소.
+- **Discussion Scope:** [[build-order]] §5. M2-2(playfield 레이아웃 + note 렌더 + 스크롤) 구현.
 - **Change Scope:** M2-2 착수 세션에서 정한다
 - **Exit:** M1 아홉 step의 골든 테스트가 모두 통과하고, core 어느 모듈도 전역 상태나 브라우저 API를 import하지 않는다
 
@@ -283,10 +283,11 @@ lane 구분선 1.5px·shape 경계 3px 등 스타일 상수와 게이지 바(판
 전체 폭에서 고정 비율로 떼 shape가 collapse해도 안 사라지게 한 설계)까지 원본에서
 그대로 옮겼다. shape 좌표→px 매핑은 원본의 raw 상수(`/64`)를 쓰지 않는다 — [[shape]]
 §1이 이미 확정한 외부단위 -8~+8에서 새로 유도한 `(value+8)/16`이 맞는 식이다(실측이
-아니라 이미 닫힌 스펙 결정의 산수). 유일하게 못 닫은 것은 **lane 최소 간격 px** —
-원본 코드 전체를 뒤졌지만 이걸 강제하는 로직 자체가 없다. [[lane-events]] §1의
-"투영 시 최소 간격"은 재설계가 새로 넣으려는 개념이지 원본 실측이 아니므로, 이건
-실측 gate가 아니라 **사전 승인이 필요한 제품 결정**으로 넘긴다.
+아니라 이미 닫힌 스펙 결정의 산수). lane 최소 간격 px는 원본 코드 전체를 뒤졌지만
+강제하는 로직 자체가 없어 실측으로는 못 닫았는데, **제한을 두지 않는 쪽으로
+확정했다**(D-2026-048) — 구분선끼리 붙어 선처럼 좁아지는 것도 원본이 실제로 쓰던
+연출이다. [[lane-events]] §3의 "최소 간격" 서술을 지우고 구속을 경계+순서 클램프
+둘로 좁혔다. 이제 M2-2 진입 gate는 전부 닫혔다.
 
 ### Deferred
 
@@ -295,7 +296,7 @@ lane 구분선 1.5px·shape 경계 3px 등 스타일 상수와 게이지 바(판
 
 ### 다음 후보
 
-- lane 최소 간격 px 결정 (Current Focus) — [[lane-events]] §7, 사전 승인 필요
+- M2-2 구현 (Current Focus) — playfield 레이아웃 + note 렌더 + 스크롤, `_extracted/EXTRACTED_FACTS.md` §12 기준
 - D-2026-021 사이클 (M3 진입 전)
 - UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
 - credits scene 표시 내용 채우기 (소형, M4-2 전)

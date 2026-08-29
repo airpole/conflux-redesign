@@ -509,6 +509,17 @@
 - **Commit:** `7483642`
 
 
+### D-2026-048 — lane 최소 간격 제한 없음
+
+- **Status:** Accepted
+- **Decision:** gameplay 투영에서 lane 구분선의 **최소 간격 제한을 두지 않는다** `[신규 결정]`. [[lane-events]] §3/§4가 서술하던 "경계·이웃과 최소 간격을 둔 채 따라다닌다"를 제거하고, 구속은 경계 클램프 + 순서 클램프(`Blue ≤ 1 ≤ 2 ≤ 3 ≤ Red`) 둘로만 좁힌다. 구분선끼리, 또는 구분선과 경계가 맞붙어 **선처럼 좁아지는 것도 유효한 연출**로 확정했다(원본에서도 lane이 좁혀져 선처럼 보이는 것을 실제로 연출에 쓰고 있었다). `_extracted/EXTRACTED_FACTS.md` §12.9가 확인한 대로 원본에도 최소 간격을 강제하는 코드가 없었다 — 실측이 뒷받침하는 방향과 제품 결정이 일치한다.
+- **Defined in:** `core/lane-events.md` §3·§4·§7, `_plan/build-order.md` §3 M2-2 항목, `_extracted/EXTRACTED_FACTS.md` §12.9
+- **Rationale:** `_rationale/rationale.md` (사용자 확인: 최소 간격 제한 없음, lane이 좁아져 선처럼 보이는 것도 연출로 사용)
+- **Affects:** lane-events, _plan, _extracted
+- **Supersedes:** None (lane-events §3의 "최소 간격" 서술을 대체)
+- **Commit:** (pending)
+
+
 ```md
 ### D-YYYY-NNN — <Title>
 
