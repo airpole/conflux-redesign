@@ -138,8 +138,8 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M2-5 부분 완료 — 게이지·clear/fail 분기·pause/Resume(되감기 없는 카운트다운 재개) 메커니즘까지 끝났고 전부 테스트됨. **아직 없는 것**: pause overlay UI(scene/render 컴포넌트 자체), quick options 패널(build-order §2 gate — 내부 조작 키 사전 승인 필요), 히트음 스케줄링.
-- **Discussion Scope:** [[build-order]] §5. quick options overlay 내부 조작 키 결정, pause overlay UI.
+- **Active unit:** M2-5 부분 완료 — 게이지·clear/fail 분기·pause/Resume 메커니즘·quick options 조작 로직(D-2026-049)까지 끝났고 전부 테스트됨. **아직 없는 것**: pause overlay·quick options 패널 둘 다 **UI 자체**(scene/render 컴포넌트 — 배치·렌더는 host 몫, M4-7·M5-6), 히트음 스케줄링.
+- **Discussion Scope:** [[build-order]] §5. 히트음·효과음 asset 출처 결정(구 코드 asset 계승 여부) — 남은 마지막 M2-5 전 gate.
 - **Change Scope:** M2-5 마무리 세션에서 정한다
 - **Exit:** M1 아홉 step의 골든 테스트가 모두 통과하고, core 어느 모듈도 전역 상태나 브라우저 API를 import하지 않는다
 
@@ -394,8 +394,23 @@ autoplay 판정을 건너뛰어 `result.state`가 잘못 나온 것(테스트를
 `NORMAL_CLEAR_PCT`(75%) 미만 초록 → 이상 하늘색 반전(`render/theme.md` §1).
 
 **아직 없는 것**: pause overlay UI(scene/render 컴포넌트 — 지금은 세션의
-상태 기계만 있다), quick options 패널(gate 대기), 히트음 스케줄링. 테스트는
+상태 기계만 있다), quick options 패널 UI, 히트음 스케줄링. 테스트는
 749건이다.
+
+quick options 패널 내부 조작을 확정하고 구현했다(D-2026-049) — 위/아래
+화살표 row 이동, 값 변경은 마우스 클릭(즉시 점프)/좌우 화살표(한 칸
+step)/스크롤 휠(한 칸씩), **Enter가 지금 row의 바뀐 값만 확정**한다(row를
+옮기면 그 전 row의 미확정 값은 버려지고 마지막 확정값으로 되돌아간다 —
+"한 번에 한 필드만 손보는" 모델). `core-quick-options.ts`에 로직만 뒀다 —
+song-select overlay와 editor test embedded panel이 같은 component를
+쓰는데(`scene.md` §5) edit·game이 형제라 서로 못 보므로, 둘 다 아래로
+보는 core가 공유 자리다. bool 필드(mirror·staticShape·autoplay)는 값이
+둘뿐이라 방향과 무관하게 토글이고, gaugeMode는 `GAUGE_MODES` 목록을
+오가며 양 끝에서 멈추고, scrollSpeed는 기존 `SCROLL_SPEED_STEP`
+단위로 clamp된다. 사용자가 정하지 않은 세부 둘(스크롤 휠의 부호, row
+이동 시 미확정값 처리)은 가장 단순한 관용으로 채우고 재확인 필요
+항목으로 코드·결정 로그에 명시했다. 배치·렌더는 여전히 host 몫이라
+없다. 테스트는 763건이다.
 
 ### Deferred
 
@@ -404,8 +419,8 @@ autoplay 판정을 건너뛰어 `result.state`가 잘못 나온 것(테스트를
 
 ### 다음 후보
 
-- quick options overlay 내부 조작 키 결정 (Current Focus) — [[build-order]] §2 gate, 사전 승인 필요
-- pause overlay UI (scene/render 컴포넌트)
+- 히트음·효과음 asset 출처 결정 (Current Focus) — [[build-order]] §2 gate, 구 코드 asset 계승 여부
+- pause overlay·quick options 패널 UI (scene/render 컴포넌트, M4-7·M5-6)
 - D-2026-021 사이클 (M3 진입 전)
 - UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
 - credits scene 표시 내용 채우기 (소형, M4-2 전)
