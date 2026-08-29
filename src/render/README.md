@@ -16,6 +16,11 @@ M2-4 범위: `drawCombo`·`drawJudgmentText`·`drawFastSlow`·hit effect
 등)만 인자로 받는다. hit effect는 판정선 위쪽 반원 하나로 단순화했다(원본은
 위/아래를 note 쪽에 따라 가르고 Hold는 tail까지 지속하는 별도 애니메이션).
 
+M2-5: `drawGaugeBar` — 라이브 게이지 바(판정선 겸용). `drawPlayfield`가 그린
+idle 트랙(`drawJudgeTrack`) 위에 덧그린다. `hard`는 항상 빨강, `normal`은
+`NORMAL_CLEAR_PCT`(75%) 미만 초록 → 이상 하늘색 반전(`render/theme.md` §1
+gauge, `GAUGE_COLOR`).
+
 overlap 기반 노트 채색(`noteColor`/`noteHeadColorAt`)과 `noteSkin` 전환,
-카운터·정확도·score·게이지 채색·sudden·key 빔·곡정보 띠·text event는 아직
-없다(M2-5·M2-6).
+카운터·정확도·score·sudden·key 빔·곡정보 띠·text event·pause overlay UI는
+아직 없다(M2-6, pause overlay는 scene 층).

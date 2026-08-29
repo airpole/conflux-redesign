@@ -138,9 +138,9 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M2-4 완료 — 입력→judge 결선, autoplay, 판정 표시, host 배선(`game-session.ts`)까지 끝났고 전부 테스트됨. 남은 건 히트음 스케줄링(env-audio lookahead, M2-5 배선 시점에 붙임)뿐.
-- **Discussion Scope:** [[build-order]] §5. M2-5(gauge HUD + clear/fail 분기 + pause overlay + quick options) 착수.
-- **Change Scope:** M2-5 착수 세션에서 정한다
+- **Active unit:** M2-5 부분 완료 — 게이지·clear/fail 분기·pause/Resume(되감기 없는 카운트다운 재개) 메커니즘까지 끝났고 전부 테스트됨. **아직 없는 것**: pause overlay UI(scene/render 컴포넌트 자체), quick options 패널(build-order §2 gate — 내부 조작 키 사전 승인 필요), 히트음 스케줄링.
+- **Discussion Scope:** [[build-order]] §5. quick options overlay 내부 조작 키 결정, pause overlay UI.
+- **Change Scope:** M2-5 마무리 세션에서 정한다
 - **Exit:** M1 아홉 step의 골든 테스트가 모두 통과하고, core 어느 모듈도 전역 상태나 브라우저 API를 import하지 않는다
 
 ### Completed
@@ -358,6 +358,45 @@ play/stop/position/setVolume까지고 lookahead 스케줄러가 없다. 게이�
 같은 시점(M2-5)에 붙이는 게 D-2026-046과 같은 이유로 맞다. **M2-4 완료**.
 테스트는 733건이다.
 
+M2-5를 부분 구현했다 — **게이지·clear/fail 분기·pause/Resume 메커니즘**까지다.
+quick options overlay 내부 조작 키(build-order §2 gate)는 사전 승인이 필요해
+손대지 않았고, 그와 무관한 부분만 먼저 지었다.
+
+`game-engine.ts`에 pause/resume을 붙였다. pause는 그 시점 `ctx.sharedMs` 값을
+anchor로 얼리고, resume은 `RESUME_LEAD_MS`(3000) 카운트다운 뒤 **같은
+anchor에서 되감기 없이** 이어 흐른다(`judge.md` §10 "Pause Resume") — mid-start
+의 `LEAD_IN_MS` 구간과 달리 카운트다운 동안 chart 시간이 전혀 안 흐른다.
+`game-judge-input.ts`는 `engine.paused`가 참이면 `judgeKeyDown`/`Up` 대신
+시각을 안 받는 `registerKeyDown`/`Up`(`judge.md` §9, M1-6에서 이미 지어둔
+카운트다운 전용 진입점)만 부른다.
+
+**여기서 두 번째 진짜 버그를 잡았다.** `game-judge-input`이 입력 timestamp를
+바꾸는 데 쓰던 `wallClockToChartMs`(세션을 연 시점 `startNowMs` 기준 고정
+공식)는 pause/resume이 시계 기준점을 다시 잡는 것을 반영하지 못했다 — 재개
+뒤 keydown이 잘못된 chart ms로 변환될 뻔했다. 독립 함수를 없애고
+`EngineSession.toChartMs(nowMs)`를 세션 메서드로 옮겨, `tick()`이 쓰는 것과
+**항상 같은** 기준점을 쓰게 했다. 테스트를 작성하다가 시간 점프 방식의
+결함도 둘 찾았다 — 하나는 한 번의 큰 `advance()` 점프가 중간 프레임의
+autoplay 판정을 건너뛰어 `result.state`가 잘못 나온 것(테스트를 두 단계
+점프로 고쳤다), 다른 하나는 hard 게이지가 MISS 한 번(`GAUGE_DELTA.hard.MISS
+= -5`, 시작 100)으로는 안 죽는다는 산수 실수였다(21개 note를 다 놓치는
+시나리오로 고쳤다) — 둘 다 세션 코드가 아니라 내가 쓴 테스트의 결함이었다.
+
+`game-session.ts`에 `core-gauge.ts`를 배선했다. 판정 이벤트마다
+`applyGaugeChange`를 먹이고, `forceEnded`가 뜨면(terminate 모드 사망) 그
+프레임 끝에서 `computeResult`로 `result`를 확정하고 세션을 멈춘다 —
+`gauge.md`의 "프레임 끝에서 확인, 이 함수가 아니라 host가 멈춘다" 원칙 그대로
+"판을 멈추는 건 core가 아니라 host"를 지켰다. 자연 종료(songEnd)도 같은
+`finalize`를 한 번만 거치도록 가드했다.
+
+`render-playfield.ts`에 `drawGaugeBar`를 추가했다 — `drawJudgeTrack`의 idle
+6px 트랙 위에 라이브 값으로 덧그린다. `hard`는 항상 빨강, `normal`은
+`NORMAL_CLEAR_PCT`(75%) 미만 초록 → 이상 하늘색 반전(`render/theme.md` §1).
+
+**아직 없는 것**: pause overlay UI(scene/render 컴포넌트 — 지금은 세션의
+상태 기계만 있다), quick options 패널(gate 대기), 히트음 스케줄링. 테스트는
+749건이다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
@@ -365,7 +404,8 @@ play/stop/position/setVolume까지고 lookahead 스케줄러가 없다. 게이�
 
 ### 다음 후보
 
-- M2-5 (Current Focus) — gauge HUD + clear/fail 분기 + pause overlay + quick options 패널
+- quick options overlay 내부 조작 키 결정 (Current Focus) — [[build-order]] §2 gate, 사전 승인 필요
+- pause overlay UI (scene/render 컴포넌트)
 - D-2026-021 사이클 (M3 진입 전)
 - UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
 - credits scene 표시 내용 채우기 (소형, M4-2 전)

@@ -14,7 +14,7 @@
  * 부분집합) — env-*와 같은 이유로, jsdom 없이 Node에서 mock으로 계약을 검사한다.
  */
 
-import { SCROLL_VIEW_MS } from '../core/core-constants.js';
+import { NORMAL_CLEAR_PCT, SCROLL_VIEW_MS } from '../core/core-constants.js';
 import { laneLayoutAt, shapeGeometryAt, type FieldGeometry } from '../core/core-shape.js';
 import { msToTick, scrollProgressAt, tickToMs, type Timeline } from '../core/core-timing.js';
 import type { Note } from '../core/core-chart.js';
@@ -22,6 +22,7 @@ import type { Judgment } from '../core/core-judge.js';
 import {
   CANVAS_BG,
   FAST_SLOW_COLOR,
+  GAUGE_COLOR,
   HIT_EFFECT,
   HUD_TEXT,
   JUDGE_TRACK,
@@ -223,6 +224,41 @@ export function drawJudgeTrack(ctx: DrawContext, rect: PlayfieldRect, jY: number
   const half = JUDGE_TRACK.thicknessPx / 2;
   ctx.fillStyle = JUDGE_TRACK.trackColor;
   ctx.fillRect(rect.gx, jY - half, rect.gw, JUDGE_TRACK.thicknessPx);
+  ctx.strokeStyle = JUDGE_TRACK.baselineColor;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(rect.gx, jY);
+  ctx.lineTo(rect.gx + rect.gw, jY);
+  ctx.stroke();
+}
+
+/**
+ * 라이브 게이지 바(=판정선 겸용). `drawPlayfield`가 그린 idle 트랙 위에 이
+ * 함수를 덧그려 채운다 — 같은 6px 두께 트랙에 값만큼 채우고 baseline은
+ * 그대로다. `hard`는 항상 빨강, `normal`은 75%(`NORMAL_CLEAR_PCT`) 미만
+ * 초록 → 이상 하늘색으로 반전(`render/theme.md` §1 gauge).
+ */
+export function drawGaugeBar(
+  ctx: DrawContext,
+  rect: PlayfieldRect,
+  jY: number,
+  gaugeValue: number,
+  mode: 'hard' | 'normal',
+): void {
+  const half = JUDGE_TRACK.thicknessPx / 2;
+  ctx.fillStyle = JUDGE_TRACK.trackColor;
+  ctx.fillRect(rect.gx, jY - half, rect.gw, JUDGE_TRACK.thicknessPx);
+
+  const frac = Math.max(0, Math.min(1, gaugeValue / 100));
+  const fill =
+    mode === 'hard'
+      ? GAUGE_COLOR.hard
+      : gaugeValue >= NORMAL_CLEAR_PCT
+        ? GAUGE_COLOR.normalCleared
+        : GAUGE_COLOR.normalBelowClear;
+  ctx.fillStyle = fill;
+  ctx.fillRect(rect.gx, jY - half, rect.gw * frac, JUDGE_TRACK.thicknessPx);
+
   ctx.strokeStyle = JUDGE_TRACK.baselineColor;
   ctx.lineWidth = 1;
   ctx.beginPath();

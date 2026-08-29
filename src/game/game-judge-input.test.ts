@@ -30,6 +30,7 @@ describe('createJudgeInputHandlers', () => {
       DEFAULT_SETTINGS.keyBindings,
       0,
       (wallClockMs) => wallClockMs,
+      () => false,
       onEvents,
     );
 
@@ -55,6 +56,7 @@ describe('createJudgeInputHandlers', () => {
       DEFAULT_SETTINGS.keyBindings,
       0,
       (wallClockMs) => wallClockMs,
+      () => false,
       onEvents,
     );
 
@@ -80,6 +82,7 @@ describe('createJudgeInputHandlers', () => {
       DEFAULT_SETTINGS.keyBindings,
       0,
       (wallClockMs) => wallClockMs,
+      () => false,
       onEvents,
     );
 
@@ -106,6 +109,7 @@ describe('createJudgeInputHandlers', () => {
       DEFAULT_SETTINGS.keyBindings,
       0,
       (wallClockMs) => wallClockMs - 3000,
+      () => false,
       onEvents,
     );
 
@@ -114,5 +118,34 @@ describe('createJudgeInputHandlers', () => {
     expect(state.hits[0]).toBe('hit');
     const events = onEvents.mock.calls[0]![0] as { kind: string; judgment?: string }[];
     expect(events.some((e) => e.kind === 'judged' && e.judgment === 'SYNC')).toBe(true);
+  });
+
+  it('isPaused()가 참이면 registerKeyDown/Up만 하고 판정을 부르지 않는다', () => {
+    const chart = makeChart({ notes: [{ startTick: 0, duration: 0, lane: 1, isWide: false }] });
+    const timeline = buildTimeline(chart);
+    const notes = buildJudgeNotes(chart, timeline);
+    const context: CandidateContext = { notes, laneMap: laneMapOf(false) };
+    const state = createJudgeState(notes);
+    const onEvents = vi.fn();
+
+    const handlers = createJudgeInputHandlers(
+      state,
+      context,
+      DEFAULT_SETTINGS.keyBindings,
+      0,
+      (wallClockMs) => wallClockMs,
+      () => true,
+      onEvents,
+    );
+
+    handlers.onKeyDown(fakeKeyEvent('KeyE', 0));
+
+    expect(onEvents).not.toHaveBeenCalled();
+    expect(state.hits[0]).toBe('pending');
+    expect(state.keysHeld.has('key1')).toBe(true);
+
+    handlers.onKeyUp(fakeKeyEvent('KeyE', 100));
+    expect(onEvents).not.toHaveBeenCalled();
+    expect(state.keysHeld.has('key1')).toBe(false);
   });
 });

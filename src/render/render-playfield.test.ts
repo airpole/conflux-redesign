@@ -8,6 +8,7 @@ import {
   computeNoteHeadRect,
   drawCombo,
   drawFastSlow,
+  drawGaugeBar,
   drawHitEffect,
   drawJudgeTrack,
   drawJudgmentText,
@@ -190,6 +191,32 @@ describe('drawJudgeTrack', () => {
       `fillRect rgba(255,255,255,0.10) ${rect.gx},${jY - 3},${rect.gw},6`,
     );
     expect(ctx.calls.some((c) => c === `moveTo ${rect.gx},${jY}`)).toBe(true);
+  });
+});
+
+describe('drawGaugeBar', () => {
+  it('hard 모드는 값과 무관하게 항상 빨강이다', () => {
+    const ctx = fakeCtx();
+    drawGaugeBar(ctx, rect, jY, 90, 'hard');
+    expect(ctx.calls).toContain(`fillRect #ff4a5a ${rect.gx},${jY - 3},${rect.gw * 0.9},6`);
+  });
+
+  it('normal 모드는 75% 미만이면 초록이다', () => {
+    const ctx = fakeCtx();
+    drawGaugeBar(ctx, rect, jY, 50, 'normal');
+    expect(ctx.calls).toContain(`fillRect #4aff8a ${rect.gx},${jY - 3},${rect.gw * 0.5},6`);
+  });
+
+  it('normal 모드는 75% 이상이면 하늘색으로 반전한다', () => {
+    const ctx = fakeCtx();
+    drawGaugeBar(ctx, rect, jY, 80, 'normal');
+    expect(ctx.calls).toContain(`fillRect #4ad6ff ${rect.gx},${jY - 3},${rect.gw * 0.8},6`);
+  });
+
+  it('75% 정확히는 반전된 쪽(하늘색)이다 — 경계 포함', () => {
+    const ctx = fakeCtx();
+    drawGaugeBar(ctx, rect, jY, 75, 'normal');
+    expect(ctx.calls).toContain(`fillRect #4ad6ff ${rect.gx},${jY - 3},${rect.gw * 0.75},6`);
   });
 });
 

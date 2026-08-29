@@ -1,8 +1,8 @@
 /**
- * M2-2·M2-4 범위의 표현 값. 단일 출처는 `render/theme.md` — 여기는 그 문서
- * §1·§3의 코드 표현이다. 값을 바꾸려면 먼저 theme.md를 고친다.
+ * M2-2·M2-4·M2-5 범위의 표현 값. 단일 출처는 `render/theme.md` — 여기는 그
+ * 문서 §1·§3의 코드 표현이다. 값을 바꾸려면 먼저 theme.md를 고친다.
  *
- * sudden·key 빔·text event·게이지 채색·카운터/정확도(M2-5)는 아직 없다.
+ * sudden·key 빔·text event·카운터/정확도/score·곡정보 띠는 아직 없다(M2-6).
  */
 
 export const CANVAS_BG = '#000';
@@ -32,12 +32,23 @@ export const SHAPE_STEP_LINE = {
   lineWidth: 2,
 } as const;
 
-/** 게이지 값이 없는(=idle) 상태의 판정선 트랙. 라이브 게이지 채색은 M2-5. */
+/** 게이지 값이 없는(=idle) 상태의 판정선 트랙. 라이브 채색은 `GAUGE_COLOR`. */
 export const JUDGE_TRACK = {
   trackColor: 'rgba(255,255,255,0.10)',
   baselineColor: '#ffffff',
   thicknessPx: 6,
   glowThicknessPx: 12,
+} as const;
+
+/**
+ * 게이지 바(=판정선) 채색 — `render/theme.md` §1 "gauge". `hard`는 항상 빨강
+ * (반전 없음), `normal`은 `NORMAL_CLEAR_PCT`(75%, `core-constants`) 미만이면
+ * 초록, 그 이상이면 하늘색으로 반전한다(clear-secured 신호).
+ */
+export const GAUGE_COLOR = {
+  hard: '#ff4a5a',
+  normalBelowClear: '#4aff8a',
+  normalCleared: '#4ad6ff',
 } as const;
 
 /** 판정별 색 — `render/theme.md` §1 "판정 색(hit effect)". 판정 텍스트에도 쓴다. */

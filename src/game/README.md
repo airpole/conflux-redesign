@@ -18,10 +18,11 @@ CTX 필드는 `sharedMs` 하나뿐이다.
 묶는 host 배선)가 M2-4다.
 
 `game-judge-input.ts`가 받는 `KeyEvent.timestampMs`는 **wall-clock**이다
-(env-input) — judge가 받는 `rawMs`는 chart-relative ms라 `game-engine.ts`의
-`wallClockToChartMs`(엔진 시계와 같은 식)로 변환한 뒤 넘긴다. 처음엔 이
-변환 없이 잘못 넘겨 lead-in 직후 keydown이 이미 지난 노트로 오판되는 버그가
-있었다 — `game-session.test.ts`가 그 경계를 잡는다.
+(env-input) — judge가 받는 `rawMs`는 chart-relative ms라 `EngineSession.
+toChartMs`(호출측이 넘긴다)로 변환한 뒤 넘긴다. 처음엔 세션을 연 시점의
+`startNowMs`만으로 고정 계산했는데, pause·Resume이 시계 기준점을 다시 잡는
+걸 반영 못 해 재개 이후 값이 어긋나는 문제가 있었다 — 그래서 독립 함수가
+아니라 엔진이 매번 "지금 기준점"으로 계산하는 세션 메서드다.
 
 autoplay는 원본 `play.js`의 autoplay(스케줄러가 `applyJudgment`/
 `applyTailSuccess`를 입력 우회로 직접 호출)와 같은 경로를 쓴다 —
@@ -30,4 +31,16 @@ autoplay는 원본 `play.js`의 autoplay(스케줄러가 `applyJudgment`/
 `commitJudgment(..., entry.startMs)`로 불러 `diff`가 항상 0이다 — autoplay는
 판정 오차가 없다.
 
-mid-start·Resume·gauge·HUD·히트음 스케줄링(env-audio lookahead)은 M2-5.
+M2-5: `game-engine.ts`에 pause/resume이 붙었다 — pause는 그 시점 값(anchor)에
+`ctx.sharedMs`를 얼리고, resume은 `RESUME_LEAD_MS` 카운트다운(chart 시간
+정지) 뒤 **같은 anchor에서 되감기 없이** 이어 흐른다(`judge.md` §10 "Pause
+Resume"). `paused` 동안은 `game-judge-input.ts`가 `judgeKeyDown`/`Up` 대신
+`registerKeyDown`/`Up`(시각을 안 받는 등록 진입점, `judge.md` §9)만 부른다.
+`game-session.ts`에 `core-gauge.ts`(게이지·clear/fail) 배선이 붙었다 —
+`applyGaugeChange`를 판정 이벤트마다 먹이고, `forceEnded`가 뜨면(terminate
+모드 사망) 그 프레임 끝에서 `computeResult`로 `result`를 확정하고 세션을
+멈춘다. 자연 종료(songEnd)도 같은 `finalize`를 거친다.
+
+**아직 없는 것**: pause overlay UI(scene/render, 이 파일들은 상태 기계만 다룸),
+quick options 패널(build-order §2 gate — overlay 내부 조작 키가 사전 승인
+필요라 보류), 히트음 스케줄링(env-audio lookahead).
