@@ -520,6 +520,17 @@
 - **Commit:** `df95fe6`
 
 
+### D-2026-049 — quick options 패널 내부 조작
+
+- **Status:** Accepted
+- **Decision:** quick options 패널(`scene.md` §5, 5필드 — scrollSpeed·gaugeMode·mirror·staticShape·autoplay)의 조작을 확정한다 `[신규 결정]`(build-order §2 gate 해소). **위/아래 화살표**로 row 이동. **값 변경**은 셋 — 마우스 클릭이 그 값으로 즉시 점프, 좌/우 화살표가 한 칸씩 step, 스크롤 휠이 위/아래로 한 칸씩. **Enter가 지금 row의 바뀐 값을 확정**한다. 사용자가 정하지 않은 세부 둘은 구현 시 가장 단순한 관용을 따랐고 재확인이 필요하면 뒤집기 쉽게 한 자리에 모아뒀다 — (1) 스크롤 휠의 부호(위=증가로 스피너 관용을 따름), (2) row 이동 시 그 전 row의 미확정 값 처리(확정 안 된 값은 버려지고 그 필드의 마지막 확정값으로 되돌아간다 — "한 번에 한 필드만 손보는" 모델). bool 필드(mirror/staticShape/autoplay)는 값이 둘뿐이라 방향과 무관하게 토글이다.
+- **Defined in:** `src/core/core-quick-options.ts`, `scene/scene.md` §5, `_plan/build-order.md` §2
+- **Rationale:** `_rationale/rationale.md` (사용자 확인: "위 아래 화살표로 상하 이동. 값은 그 값으로 바로 점프하는 마우스, 화살표 오른쪽 왼쪽으로 한칸씩, 스크롤은 위 아래로 한칸씩. 바뀐 값은 enter로 confirm.")
+- **Affects:** scene, _plan, src/core
+- **Supersedes:** None
+- **Commit:** (pending)
+
+
 ```md
 ### D-YYYY-NNN — <Title>
 

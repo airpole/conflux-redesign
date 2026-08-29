@@ -102,6 +102,13 @@ library의 playable chart를 탐색·선택한다. 화면 구성·목록 모델�
 - staticShape(no-record)
 - autoplay(no-record)
 
+**내부 조작**(D-2026-049): 위/아래 화살표 = row 이동. 값 변경은 마우스 클릭(그
+값으로 즉시 점프) / 좌우 화살표(한 칸 step) / 스크롤 휠(위아래로 한 칸씩) 셋.
+**Enter가 지금 row의 바뀐 값을 확정**한다 — row를 이동하면 그 전 row의
+미확정 값은 버려지고 마지막 확정값으로 돌아간다. bool 필드(mirror·
+staticShape·autoplay)는 값이 둘뿐이라 방향과 무관하게 토글. 로직은
+`src/core/core-quick-options.ts` — 배치·렌더는 host 몫(M4-7·M5-6).
+
 song-select와 editor test가 같은 component를 사용한다. no-record 단일 출처는 [[settings]] §2.
 
 `cmod`·`hidden`은 폐기. F/S·judge line·volume은 full settings 소관.
