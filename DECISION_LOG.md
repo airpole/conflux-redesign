@@ -495,7 +495,7 @@
 - **Rationale:** `_rationale/rationale.md` (복귀 로드맵 §3 논의 참조)
 - **Affects:** _plan
 - **Supersedes:** None (build-order §2·§3의 "M2 진입" gate 배치를 대체)
-- **Commit:** (pending)
+- **Commit:** `f92786c`
 
 ```md
 ### D-YYYY-NNN — <Title>
