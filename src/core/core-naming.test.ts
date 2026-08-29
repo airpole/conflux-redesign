@@ -34,14 +34,10 @@ const PENDING: Readonly<Record<string, string>> = {};
  */
 const PENDING_FUNCTIONS: Readonly<Record<string, string>> = {
   // render (M2)
-  scrollYAt: 'M2-2',
   noteColor: 'M2-2',
   noteHeadColorAt: 'M2-2',
   noteSkin: 'M2-2',
   setNoteSkin: 'M2-2',
-  drawNoteHead: 'M2-2',
-  buildFieldSamplePoints: 'M2-2',
-  shapePosToField: 'M2-2',
   recordFastSlow: 'M2-4',
   // editor (M5)
   normalizeShapeChain: 'M5-4',

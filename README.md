@@ -138,9 +138,9 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M2-2(playfield 렌더) 착수 가능 — 진입 gate 전부 닫힘. M2-1(`env` 4파일) 완료, M2-2 실측(§12) + lane 최소 간격 결정(D-2026-048, 제한 없음) 모두 해소.
-- **Discussion Scope:** [[build-order]] §5. M2-2(playfield 레이아웃 + note 렌더 + 스크롤) 구현.
-- **Change Scope:** M2-2 착수 세션에서 정한다
+- **Active unit:** M2-2 완료 기준(레이아웃·note·스크롤) 충족. 다음은 M2-3(engine loop — CTX seam, lead-in, songEndMs 종료). overlap 채색·noteSkin 전환·hit effect·sudden·HUD는 M2-4·M2-5.
+- **Discussion Scope:** [[build-order]] §5. M2-3 착수.
+- **Change Scope:** M2-3 착수 세션에서 정한다
 - **Exit:** M1 아홉 step의 골든 테스트가 모두 통과하고, core 어느 모듈도 전역 상태나 브라우저 API를 import하지 않는다
 
 ### Completed
@@ -289,6 +289,17 @@ lane 구분선 1.5px·shape 경계 3px 등 스타일 상수와 게이지 바(판
 연출이다. [[lane-events]] §3의 "최소 간격" 서술을 지우고 구속을 경계+순서 클램프
 둘로 좁혔다. 이제 M2-2 진입 gate는 전부 닫혔다.
 
+M2-2를 구현했다 — playfield 레이아웃 + note 렌더 + 스크롤. `render-layout.ts`는
+순수 기하(letterbox·판정선 Y·shape→px·lane 투영 clamp·진행도→Y)만 담아 canvas 없이
+전수 단위 테스트했고, `render-playfield.ts`는 `DrawContext`(Canvas2D 부분집합)를
+함수 인자로 받아 env-*와 같은 방식으로 mock 계약을 검사한다. `naming` §2가 이미
+`scrollYAt`·`shapePosToField`·`buildFieldSamplePoints`·`drawNoteHead` 이름을
+못박아 둔 걸 그대로 따랐다 — 처음에 `scrollY`/`shapeFraction`/`sampleField`로 짓고
+가드가 잡기 전에 이름을 맞춰 고쳤다. lane 폭은 `laneLayoutAt`을 [[lane-events]] §4
+그대로 clamp(경계 [0,1] + 순서, 최소 간격 없음 — D-2026-048)해서 얻는다. overlap
+기반 노트 채색(`noteColor`/`noteHeadColorAt`)과 `noteSkin` 전환은 아직 없다 —
+overlap 검출(M1-8)과 채색을 잇는 자리라 M2-4(판정 결선)로 미뤘다. 테스트는 700건이다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
@@ -296,7 +307,7 @@ lane 구분선 1.5px·shape 경계 3px 등 스타일 상수와 게이지 바(판
 
 ### 다음 후보
 
-- M2-2 구현 (Current Focus) — playfield 레이아웃 + note 렌더 + 스크롤, `_extracted/EXTRACTED_FACTS.md` §12 기준
+- M2-3 engine loop (Current Focus) — CTX seam, 3초 lead-in, `songEndMs` 종료
 - D-2026-021 사이클 (M3 진입 전)
 - UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
 - credits scene 표시 내용 채우기 (소형, M4-2 전)

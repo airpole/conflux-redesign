@@ -142,7 +142,7 @@
 |---|---|
 | 노트 두께 | `noteThickness × (wide ? 1 : 0.9)`. 기본 `noteThickness=15px` → [[settings]] |
 | 노트 좌우 패딩 | normal `lnW × 0.05`, wide `0` |
-| lane 폭 `lnW` | wide=전폭 `sw`; normal=**gameplay 투영된 구분선 간격**(laneLayoutAt → 경계·순서 클램프+최소 간격, [[lane-events]] §3) `[수정 — 구 `lines[li]/100` 수식은 폐기된 lineEvents 데이터 참조]` |
+| lane 폭 `lnW` | wide=전폭 `sw`; normal=**gameplay 투영된 구분선 간격**(laneLayoutAt → 경계·순서 클램프, 최소 간격 제한 없음 — D-2026-048, [[lane-events]] §3) `[수정 — 구 `lines[li]/100` 수식은 폐기된 lineEvents 데이터 참조]` |
 | conflict 테두리 | `lineWidth 2`, `CONFLICT_COLOR` |
 
 ### 키 빔 · 선
