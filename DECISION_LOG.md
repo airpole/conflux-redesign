@@ -487,6 +487,16 @@
 - **Commit:** `0890dc505b212c7a1cae4a594bdf0091d07fe42b`
 
 
+### D-2026-046 — M2 진입 실측 gate를 M2-2 전으로 분리
+
+- **Status:** Accepted
+- **Decision:** `_plan/build-order.md` §2·§3의 "M2 진입 전" 실측 gate(판정선 Y·`gw`/`gh`·lane 구분선 굵기·콤보 블록 앵커·게이지 바 위치와 75% 색 반전·히트 이펙트 반지름·sudden lane cover·판정 텍스트 위치·shape render 폭 매핑·lane 최소 간격)를 **M2-2 전**으로 옮긴다. M2-1(`env` — canvas·resize·rAF·입력·audio)은 이 수치를 한 줄도 쓰지 않으므로, gate의 뜻("그거 없이는 이 step을 못 짓는다")이 M2-1에는 성립하지 않았다 — 못 짓는 게 아니라 순서 문제였다면 gate가 아니라 할 일 목록이다. 값이 실제로 쓰이는 시점(M2-2) 바로 앞으로 옮겨, 재는 시점과 쓰는 시점을 붙여 오독을 줄인다 — `HOLD_RELEASE_WINDOW_MS`가 상수 파일만 읽고 사용처를 안 읽어 값이 좁아졌던 사례(D-2026-039)와 같은 부류를 gate 배치 단계에서 막는다. M2-1은 진입 gate 없이 즉시 착수 가능하다.
+- **Defined in:** `_plan/build-order.md` §2·§3·§5
+- **Rationale:** `_rationale/rationale.md` (복귀 로드맵 §3 논의 참조)
+- **Affects:** _plan
+- **Supersedes:** None (build-order §2·§3의 "M2 진입" gate 배치를 대체)
+- **Commit:** (pending)
+
 ```md
 ### D-YYYY-NNN — <Title>
 

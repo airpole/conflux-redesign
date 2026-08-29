@@ -138,9 +138,9 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M2-1 진입 (`env` — canvas·resize·rAF·입력·audio). M1 마감 확인 완료 (D-2026-045, `npm run mutate` 재확인 — 239 mutants 0 survived)
-- **Discussion Scope:** [[build-order]] §5. M2 진입 gate(§3 M2 실측).
-- **Change Scope:** 미정 — M2 진입 결정 사이클에서 정한다
+- **Active unit:** M2-1 착수 가능 (`env` — canvas·resize·rAF·입력·audio). 진입 gate 없음 (D-2026-046). M1 마감 확인 완료 (D-2026-045, `npm run mutate` 재확인 — 239 mutants 0 survived)
+- **Discussion Scope:** [[build-order]] §5. M2-2 진입 gate(§3 M2-2 실측 — 렌더 레이아웃 전수, D-2026-046으로 M2-1에서 이동).
+- **Change Scope:** 미정 — M2-1 착수 세션에서 정한다
 - **Exit:** M1 아홉 step의 골든 테스트가 모두 통과하고, core 어느 모듈도 전역 상태나 브라우저 API를 import하지 않는다
 
 ### Completed
@@ -242,6 +242,12 @@ display라는 방향을 명문화했다(시간 모델 재정리 자체는 M2 에
 마감 시 `npm run mutate`를 `src/core` 전체에 돌리고 생존 뮤턴트를 테스트로 죽이거나
 `MUTATION_EQUIVALENTS.md`에 등재하는 gate를 명문화했다 — 이번 복귀 세션에서 그 gate를
 `src/core` 전체(239 mutants)에 대해 재확인했고 생존 뮤턴트는 0건이다.
+
+M2 진입 실측 gate를 M2-2 전으로 옮겼다(D-2026-046). M2-1(`env`)은 판정선 Y·`gw`/`gh`·lane
+구분선 굵기 같은 렌더 수치를 한 줄도 쓰지 않는다 — gate의 뜻은 "그거 없이는 못 짓는다"인데
+M2-1은 그 값 없이 지어지므로, 못 짓는 게 아니라 순서였다면 gate가 아니라 할 일 목록이다.
+값을 실제로 쓰는 시점(M2-2) 바로 앞으로 옮겨 재는 시점과 쓰는 시점을 붙였다.
+**M2-1은 진입 gate 없이 바로 착수 가능하다.**
 
 **`GA-6`·`GA-7`·`GA-8`은 아예 미커버가 아니게 만들었다.** 셋 다 `[보존]`인데 골든이 닿지
 않아 "원본과 같다"는 주장 자체를 확인할 길이 없던 자리다. 원본 `computeResult`를 직접 부르는

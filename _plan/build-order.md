@@ -80,7 +80,7 @@ Vitest `environment: 'node'`. core 테스트는 DOM 없이 돈다 — [[architec
 |---|---|---|
 | ~~M1 진입~~ | 결정 | ~~`FEATURES` 목록·기본값 / `env` 내부 세분 / core 테스트 하네스~~ — **닫힘** (D-2026-033) |
 | M1 진입 | 실측 | §3 M1 항목 |
-| M2 진입 | 실측 | §3 M2 항목 |
+| M2-2 전 | 실측 | §3 M2-2 항목 — playfield 렌더 레이아웃·shape render·lane 간격 (D-2026-046: M2 진입에서 이동, env는 이 수치를 쓰지 않는다) |
 | M2-5 전 | 결정 | quick options overlay 내부 조작(이동·값 변경 키) |
 | M2-5 전 | 결정 | 히트음·효과음 asset 출처 — 구 코드 asset 계승 여부 |
 | M2-6 전 | 결정 | **ui-design 최소본** — 토큰(색·타이포·간격) + result 레이아웃 |
@@ -105,7 +105,9 @@ gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한
 - 골든 테스트 입력·기대값 세트: `tickToMs`/`msToTick`, measure 변환, 판정 산출, 게이지 증감 누적, shape chain 보간.
 - `constants` 튜닝 수치와 `DEFAULT_SETTINGS` 기본값 전수 — 원본 `constants.js`·`settings.js`. [[settings]] §4가 값의 단일 출처이고, 골든 표 `constants.json`이 대조를 맡는다 (D-2026-036에서 해소).
 
-### M2 진입 전
+### M2-2 전
+
+`[신규]` (D-2026-046) — 원래 "M2 진입 전"이었으나, M2-1(`env`)은 아래 수치를 하나도 쓰지 않는다. 값이 실제로 쓰이는 step 바로 앞으로 gate를 옮겼다 — 재는 시점과 쓰는 시점을 붙여 오독을 줄인다.
 
 - playfield 렌더 레이아웃 전수: 판정선 Y, `gw`/`gh` 산출, lane 구분선 굵기, 콤보 블록 앵커, 게이지 바 위치와 75% 색 반전, 히트 이펙트 반지름, sudden lane cover, 판정 텍스트 위치.
 - shape render 폭 매핑·선 굵기 — [[shape]] §8 잔여.
@@ -145,12 +147,12 @@ gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한
 
 **목표**: chart 하나를 처음부터 끝까지 실제로 칠 수 있다. scene 그래프·파일 층은 아직 없고 chart는 고정 입력이다.
 
-**진입 gate**: §3 M2 실측.
+**진입 gate**: 없음 `[신규]` (D-2026-046) — M2-1은 §3 실측 수치를 쓰지 않는다. §3 M2-2 항목은 M2-2 진입 gate로 아래 표에 배치했다.
 
 | step | 범위 | 완료 기준 |
 |---|---|---|
 | M2-1 | `env` — canvas·resize·rAF·입력·audio decode/재생/position | 음원이 재생되고 재생 위치를 ms로 읽을 수 있다. 키 press/release가 timestamp와 함께 도착한다. |
-| M2-2 | playfield 레이아웃 + note 렌더 + 스크롤 | 실측 레이아웃대로 판정선·lane·노트가 그려지고, `scrollSpeed` 변경이 밀도만 바꾼다(재생 속도 불변). |
+| M2-2 | (**진입 gate**: §3 M2-2 실측) playfield 레이아웃 + note 렌더 + 스크롤 | 실측 레이아웃대로 판정선·lane·노트가 그려지고, `scrollSpeed` 변경이 밀도만 바꾼다(재생 속도 불변). |
 | M2-3 | engine loop — CTX seam, 3초 lead-in, `songEndMs` 종료 | lead-in 3초 뒤 정확히 tick 0에서 음악과 노트가 만난다. `songEndMs` 경과 시 판이 끝난다. |
 | M2-4 | 입력 → judge 결선 + 판정 표시(콤보·판정 텍스트·FAST/SLOW·히트 이펙트) | 친 노트가 원본과 같은 판정을 받고 화면에 뜬다. autoplay가 정확한 타이밍에 자동 판정하고 히트음을 낸다. |
 | M2-5 | gauge HUD + clear/fail 분기 + pause overlay + quick options 패널 | 게이지가 판정에 따라 증감하고 75% 경계 표시가 바뀐다. terminate 모드에서 0 도달이 즉시 판을 끝낸다. Esc가 pause를 열고 Resume이 되감기 없이 카운트다운 후 그 지점에서 재개한다. |
