@@ -94,7 +94,7 @@ Vitest `environment: 'node'`. core 테스트는 DOM 없이 돈다 — [[architec
 |---|---|---|
 | ~~M1 진입~~ | 결정 | ~~`FEATURES` 목록·기본값 / `env` 내부 세분 / core 테스트 하네스~~ — **닫힘** (D-2026-033) |
 | M1 진입 | 실측 | §3 M1 항목 |
-| M2-2 전 | 실측 | §3 M2-2 항목 — playfield 렌더 레이아웃·shape render·lane 간격 (D-2026-046: M2 진입에서 이동, env는 이 수치를 쓰지 않는다) |
+| M2-2 전 | 실측 | §3 M2-2 항목 — playfield 렌더 레이아웃·shape render **해소**, lane 최소 간격은 원본에 대응물이 없어 제품 결정으로 남음(§3 참조, 사전 승인 필요) |
 | M2-5 전 | 결정 | quick options overlay 내부 조작(이동·값 변경 키) |
 | M2-5 전 | 결정 | 히트음·효과음 asset 출처 — 구 코드 asset 계승 여부 |
 | M2-6 전 | 결정 | **ui-design 최소본** — 토큰(색·타이포·간격) + result 레이아웃 |
@@ -119,13 +119,13 @@ gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한
 - 골든 테스트 입력·기대값 세트: `tickToMs`/`msToTick`, measure 변환, 판정 산출, 게이지 증감 누적, shape chain 보간.
 - `constants` 튜닝 수치와 `DEFAULT_SETTINGS` 기본값 전수 — 원본 `constants.js`·`settings.js`. [[settings]] §4가 값의 단일 출처이고, 골든 표 `constants.json`이 대조를 맡는다 (D-2026-036에서 해소).
 
-### M2-2 전
+### M2-2 전 — **해소** (`_extracted/EXTRACTED_FACTS.md` §12)
 
 `[신규]` (D-2026-046) — 원래 "M2 진입 전"이었으나, M2-1(`env`)은 아래 수치를 하나도 쓰지 않는다. 값이 실제로 쓰이는 step 바로 앞으로 gate를 옮겼다 — 재는 시점과 쓰는 시점을 붙여 오독을 줄인다.
 
-- playfield 렌더 레이아웃 전수: 판정선 Y, `gw`/`gh` 산출, lane 구분선 굵기, 콤보 블록 앵커, 게이지 바 위치와 75% 색 반전, 히트 이펙트 반지름, sudden lane cover, 판정 텍스트 위치.
-- shape render 폭 매핑·선 굵기 — [[shape]] §8 잔여.
-- lane 최소 간격 px — [[lane-events]] 잔여.
+- [x] playfield 렌더 레이아웃 전수: 판정선 Y, `gw`/`gh` 산출, lane 구분선 굵기, 콤보 블록 앵커, 게이지 바 위치와 75% 색 반전, 히트 이펙트 반지름, sudden lane cover, 판정 텍스트 위치 — §12.1~12.8.
+- [x] shape render 폭 매핑·선 굵기 — §12.3·§12.4, [[shape]] §8.
+- [ ] lane 최소 간격 px — **원본에 대응물 없음**(§12.9). 실측이 아니라 제품 결정이라 이 gate로는 닫히지 않는다 — [[lane-events]] §7, 사전 승인 필요.
 
 ### M5 진입 전
 

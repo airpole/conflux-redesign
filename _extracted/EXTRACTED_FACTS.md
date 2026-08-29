@@ -303,11 +303,103 @@ L6 entry:   main
 
 ---
 
+## 12. M2-2 렌더 레이아웃 전수 (`_plan/build-order.md` §3 M2-2 항목)
+
+> 출처: `airpole/conflux-editor` commit `09aa8dad4` (2026-06-25) — `play-render.js`·`game-render.js`·`shape-render-helpers.js`·`constants.js`. D-2026-046으로 M2-1에서 이 항목으로 옮긴 실측 gate를 여기서 닫는다.
+
+### 12.1 playfield 사각형 (`gw`/`gh`/`gx`/`gy`)
+
+캔버스 CSS px 크기 `cw`×`ch`에서 **16:9로 letterbox**한다 (`drawPlayScreen`/`drawPlayIdle` 공통):
+
+```js
+const asp = 16 / 9;
+if (cw / ch > asp) { gh = ch; gw = gh * asp; gx = (cw - gw) / 2; gy = 0; }
+else { gw = cw; gh = gw / asp; gx = 0; gy = (ch - gh) / 2; }
+```
+
+DPR은 캔버스 픽셀→CSS px 환산에서 한 번 걷힌다(`cw = cv.width / dpr`) — 이후 `gw`/`gh`/`gx`/`gy`는 전부 CSS px 좌표계다. 배경은 두 겹: 캔버스 전체 `#000` 채움 뒤 playfield 영역만 `#050508`로 다시 채우고, 그 사각형으로 클립(clip)한 뒤 `drawGameFrame`을 부른다.
+
+### 12.2 판정선 Y (`jY`)
+
+```js
+const JDEF = 8 / 9;
+const frac = Math.min(JDEF, judgeLinePos ?? JDEF);  // 8/9보다 아래로만 허용(raise-only)
+const jY = gy + gh * frac;
+```
+
+기본은 `gy + gh * 8/9`. `judgeLinePos`(CTX 필드, [[architecture]] §3에 이미 정본 seam 밖 host 주입 값으로 등재됨)는 **낮출 수만 있고 8/9보다 올릴 수 없다** — `Math.min(JDEF, …)`이 상한을 못박는다.
+
+### 12.3 lane 구분선 굵기 · shape 경계 굵기 · 색
+
+`shape-render-helpers.js`의 스타일 상수(게임/라이브 렌더용 `STYLE_GAME`·`STYLE_GAME_STEP`):
+
+| 요소 | 굵기(px) | 색/알파 |
+|---|---|---|
+| shape 좌우 경계선(boundary) | **3** | `#ffffffc8` (≈0.78 알파) — 두 반투명 스트로크가 겹쳤을 때(shape가 선으로 collapse) 합성되는 값과 같게 맞춰서, 폭이 넓든 좁든 밝기가 안 변한다 |
+| shape step 연결선(경계가 순간 이동하는 지점의 가로선) | 1.8 | `#ffffff88` |
+| lane 내부 구분선(3개, `game-render.js` 인라인) | **1.5** | `#ffffff22` |
+| 마디(measure)선 | 1.5 | `#ffffff44` |
+| shape step 마커(가로선) | 2 | `#7ad6ff66` |
+
+에디터 프리뷰용(`STYLE_SHAPE_EDITOR`)은 별도 색(`#6bb5ff`/`#ff6b8a`)이며 M2-2(게임 재생) 범위가 아니다 — 에디터 shape 탭은 M5.
+
+### 12.4 shape 좌표 → canvas px 매핑
+
+원본 raw 내부 단위 → 0..1 fraction: `sp2f(p) = p / 64`, 이어서 `x = gx + sp2f(p) * gw`(mirror 시 `gx + (1 - sp2f(p)) * gw`).
+
+**재구현에서는 이 raw 상수(64)를 그대로 쓰지 않는다** — [[shape]] §1이 이미 좌표계를 외부단위 **-8~+8 단일**(저장=표시=입력)로 확정했고(`[수정]`), 원본의 `/64`는 그 통일 이전 원본 내부 표현(구 표기 스케일)에 대한 것이라 재설계 외부단위와 자릿수가 다르다. 재설계 매핑은 그 확정된 범위에서 직접 유도된다:
+
+```
+fraction = (value + 8) / 16    // value ∈ [-8, 8] → fraction ∈ [0, 1]
+x = gx + fraction * gw          // mirror 시 gx + (1 - fraction) * gw
+```
+
+이 변환식 자체는 원본에 대응물이 없다(원본 좌표계가 다르므로) — [[shape]] §1의 좌표계 통일 결정에서 직접 유도되는 `[신규]`이며, 실측이 아니라 이미 닫힌 스펙 결정의 산수다.
+
+### 12.5 콤보/판정/카운터/정확도 블록 (`drawUnifiedHUD`)
+
+전부 `gw`/`gh` 비례, `cx_ = gx + gw/2` 중심 정렬. `cell = gw / 16`.
+
+- **콤보 Y**: `comboY = jY - gh * (JDEF - 0.22)` — 판정선에서 고정 거리만큼 **위로 뜬 자리**. 판정선이 올라가면(=낮은 frac) 블록도 같이 올라가 기본 간격이 유지된다.
+- 판정 텍스트 Y: `judgeY = comboY + comboSz/2 + G + judgeSz/2` (`G = gw * 0.008`)
+- 카운터(SYNC/PERFECT/GOOD/MISS 4열) Y: `cntY = judgeY + judgeSz/2 + G + cntSz/2`, `cx_` 중심으로 `cntGap`(= `"9999"` 폭 + `cntSz*0.4`) 간격 4열
+- 정확도 % Y: `pctY = cntY + cntSz/2 + G + pctSz/2`
+- 폰트 크기: 콤보 `gw*0.06` / 판정 `gw*0.021` / 카운터 `gw*0.014` / 정확도 `gw*0.01625`
+- 하단 스트립(제목·아티스트·난이도·score)은 **판정선이 움직여도 자리를 지킨다** — `jYDefault`(=`gy + gh*8/9`, raise 이전 기본값) 기준 고정 밴드 `[jYDefault, gy+gh]`에 배치되므로, 판정선을 올려도 늘어나거나 깨지지 않는다.
+- 일시정지 버튼: 좌상단, `cell` 기준(`barW=cell*0.12`, `barH=cell*0.45`), 배경 없이 두 세로 막대.
+
+### 12.6 게이지 바 위치 · 75% 색 반전
+
+판정선이 **게이지 바를 겸한다**(별도 위치가 아니라 `jY` 그 자체):
+
+```
+바 트랙: fillRect(gx, jY - 3, gw, 6)   // 6px 두께, 전체 폭 fill (반투명 배경)
+채움:    fillRect(gx, jY - 3, gw * frac, 6)   // frac = gaugeValue / 100
+```
+
+색: `gaugeType === 'hard'`면 항상 `#ff4a5a`(빨강, 반전 없음). Normal은 `NORMAL_CLEAR_PCT`(**75**, `constants.js`) 미만이면 `#4aff8a`(초록), **75 이상이면 `#4ad6ff`(하늘색)로 반전**한다 — 클리어 확정 신호. 채움 위에 흰 leading-edge 라인(1px)과 세로 글로우(±6px 그라디언트)가 겹친다.
+
+### 12.7 히트 이펙트 반지름 · sudden lane cover
+
+- 반지름은 **shape 폭이 아니라 `gw`(field 전체 폭)에서 고정 비율로** 뗀다 — shape가 collapse해도 이펙트가 안 보이는 문제를 막기 위한 의도적 설계: `FIXED_R = gw * 0.045`. wide 노트는 `FIXED_R * 1.6`.
+- 이펙트는 판정선(`jY`) 위/아래 반원(semicircle) — normal은 채널 위치에 따라 위/아래, wide는 항상 위.
+- sudden lane cover: `coverH = (jY - gy) * Math.min(0.95, sudden / 100)`, `gy`부터 `coverH`만큼 `#000` 불투명 사각형으로 덮는다(최대 판정선까지의 95%). 노트 렌더 **뒤**, 판정선/게이지/이펙트 **앞**에 그린다.
+
+### 12.8 판정 텍스트(FAST/SLOW) 위치
+
+정확도 % 아래: `fsY = pctY + pctSz/2 + G + fsSz/2`, `fsSz = gw*0.016`. FAST는 `#ff5a6a`, SLOW는 `#5aa0ff`(`constants.js` `FAST_COLOR`/`SLOW_COLOR`), 500ms 페이드.
+
+### 12.9 lane 최소 간격 px — 원본에 대응물 없음 (`없음`)
+
+[[lane-events]] §7 잔여 "최소 간격의 구체 px 값"을 찾아 `shape.js`·`overlaps.js`·게임 렌더 전체를 뒤졌으나 **원본에 lane 최소 간격을 강제하는 코드가 없다**(`min`/`clamp`/`MIN_` 패턴 grep 0건). [[lane-events]] §1의 "투영(gameplay, 경계+순서 클램프+최소 간격)" 서술은 재설계가 새로 도입하려는 `[신규]` 개념이지 원본 실측이 아니다 — 이 항목은 실측이 아니라 **제품 결정**으로 남는다(구체 px 값은 M5 진입 전 gate에서 정하거나, 필요 시 더 이른 시점에 별도 결정 요청).
+
+---
+
 ## 부록: 온라인에서 추가 추출 필요한 placeholder 목록
 
 오프라인에서 결정만 하고, 아래는 온라인 복귀 시 정밀 추출:
 
-- [ ] **렌더 레이아웃 전수**: jY(판정선 Y), gw/gh 산출, 레인 구분선 굵기, 콤보 블록 Y앵커, 게이지 바 위치/75% 색 반전, 히트이펙트 반지름(gw×0.045), sudden lane cover, 판정 텍스트 위치 — game-render.js/play-render.js 정밀 추출
+- [x] **렌더 레이아웃 전수**: jY(판정선 Y), gw/gh 산출, 레인 구분선 굵기, 콤보 블록 Y앵커, 게이지 바 위치/75% 색 반전, 히트이펙트 반지름(gw×0.045), sudden lane cover, 판정 텍스트 위치 — §12로 이관 완료 (M2-2 gate 실측)
 - [ ] **play-* 의존성 그래프**: 각 play 파일이 ES(editor-state)를 import하는 지점 전수 → 분리 경계 확정 근거
 - [ ] **scene-title/modeselect/settings 실제 내용**: 화면 구성·전환 타깃
 - [ ] **textEvents/keybeam/shape boundary alpha** 등 세부 렌더 수치

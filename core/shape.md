@@ -174,5 +174,5 @@ shape 탭에서 두 체인(Blue·Red)을 raw로 보여주고 직접 편집한다
 - [x] shape/lane 배치 툴·편집 인터랙션 → [[editor-editing]] §2 확정 (구 L/R/C/P = 현 Q/W/E/R)
 
 잔여:
-- [ ] render 폭 매핑·선 굵기 구체 수치 (render/playfield 추출 시)
+- [x] render 폭 매핑·선 굵기 구체 수치 — `_extracted/EXTRACTED_FACTS.md` §12.3·§12.4 (M2-2 gate 실측, D-2026-046)
 - [ ] normalize 등 원본 shape 보조 툴의 계승 여부 (M5 진입 전 원본 실측 — [[build-order]] §3)
