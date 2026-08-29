@@ -30,6 +30,22 @@ export interface EngineSession {
 }
 
 /**
+ * wall-clock 시각을 chart-relative ms로. 세션 시계와 **완전히 같은 식**이다 —
+ * 입력 이벤트의 timestamp(`env-input`의 `KeyEvent.timestampMs`, wall-clock
+ * 기준)를 judge가 받는 chart ms로 바꿀 때도 이 식을 그대로 써야 한다. 원본
+ * `handlePlayKeyDown`이 keydown 처리 시점에 `PS.playOffMs + (performance.now()
+ * − PS.playT0) × rate`로 **다시 계산**한 것과 같다 — keydown이 브라우저
+ * 이벤트 자체의 timestamp가 아니라 이 변환을 거친 값을 쓴다.
+ */
+export function wallClockToChartMs(
+  startNowMs: number,
+  playbackRate: number,
+  nowMs: number,
+): number {
+  return -LEAD_IN_MS + (nowMs - startNowMs) * playbackRate;
+}
+
+/**
  * lead-in부터 시작하는 세션. `startNowMs`는 세션을 연 시점의 wall-clock
  * (`performance.now()` 등, env-time이 공급). `ctx.contentEndMs +
  * SONG_END_TAIL_MS`가 종료 조건이다(`songEndOf`와 같은 식, [[timing]] §9).
@@ -53,7 +69,7 @@ export function startEngineSession(
     },
     tick(nowMs) {
       if (finished) return;
-      const curMs = -LEAD_IN_MS + (nowMs - startNowMs) * playbackRate;
+      const curMs = wallClockToChartMs(startNowMs, playbackRate, nowMs);
 
       if (!audioStarted && curMs >= 0) {
         audioStarted = true;

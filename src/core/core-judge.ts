@@ -458,8 +458,13 @@ function dropActive(state: JudgeState, index: number): void {
  *
  * `atMs`는 그 tail이 **끝난 시각**이다 — 자동완료는 `tailMs`이고 release는 그 시각이다.
  * 프레임 간격이 판정 기록을 흔들지 않게 호출 시점이 아니라 사건 시각을 싣는다.
+ *
+ * export된 이유: `seedPlayStateAt`과 같은 이유로 autoplay(M2-4, game 레이어)도
+ * 입력 경로를 거치지 않고 이 자리를 직접 부른다 — 원본 `play.js`의 autoplay가
+ * `applyTailSuccess`를 스케줄러에서 직접 불러 입력 우회로 hold tail을 자동
+ * 완료시키던 것과 같은 경로다(D-2026 autoplay 결정).
  */
-function closeTail(
+export function closeTail(
   state: JudgeState,
   context: CandidateContext,
   index: number,

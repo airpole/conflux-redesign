@@ -138,9 +138,9 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M2-4 부분 완료 — 입력→judge 결선(`game-judge-input`)과 콤보·판정 텍스트·FAST/SLOW·hit effect 표시(`game-judge-display` + render)는 끝났고 각자 테스트됨. **아직 없는 것**: 세 모듈(engine·judge input·judge display)을 한 세션으로 묶는 host 배선(매 프레임 `judgeAdvance` 호출), autoplay, 히트음 스케줄링.
-- **Discussion Scope:** [[build-order]] §5. M2-4 host 배선 + autoplay.
-- **Change Scope:** M2-4 마무리 세션에서 정한다
+- **Active unit:** M2-4 완료 — 입력→judge 결선, autoplay, 판정 표시, host 배선(`game-session.ts`)까지 끝났고 전부 테스트됨. 남은 건 히트음 스케줄링(env-audio lookahead, M2-5 배선 시점에 붙임)뿐.
+- **Discussion Scope:** [[build-order]] §5. M2-5(gauge HUD + clear/fail 분기 + pause overlay + quick options) 착수.
+- **Change Scope:** M2-5 착수 세션에서 정한다
 - **Exit:** M1 아홉 step의 골든 테스트가 모두 통과하고, core 어느 모듈도 전역 상태나 브라우저 API를 import하지 않는다
 
 ### Completed
@@ -336,6 +336,28 @@ display 세 모듈을 실제로 한 세션으로 묶는 host 배선(엔진 매 �
 합성 keydown/keyup으로 흉내낼지 결정 필요), 히트음 스케줄링(lookahead).
 테스트는 723건이다.
 
+M2-4를 마저 구현했다 — **원본과 같은 경로로 autoplay를 붙였다**(사용자 확인).
+`closeTail`을 core-judge.ts에서 export했다 `[신규 가시성, 동작 무변경]` —
+`seedPlayStateAt`이 이미 같은 자리를 같은 방식(입력 우회 직접 호출)으로 쓰고
+있었다. `game-judge-autoplay.ts`의 `advanceAutoplay`는 `context.notes.ordered`
+(startMs 오름차순)를 훑어 due한 head를 `commitJudgment(..., entry.startMs)`로
+확정하고(diff 항상 0 → SYNC), 활성 Hold의 tail이 도래하면 `closeTail(...,
+'SYNC')`로 닫는다 — `judgeAdvance`(MISS 판정 경로)를 대신한다.
+
+`game-session.ts`가 engine·judge input·autoplay·display를 실제로 묶었다.
+그 과정에서 **진짜 버그를 하나 잡았다** — `game-judge-input.ts`가
+`KeyEvent.timestampMs`(env-input의 wall-clock)를 그대로 judge의 `rawMs`(chart
+상대 ms)로 넘기고 있었다. 원본 `handlePlayKeyDown`은 keydown 처리 시점에
+`playOffMs + (performance.now() − playT0) × rate`로 **다시 계산**하는데,
+그 변환이 빠져 있었다 — lead-in 뒤 첫 keydown이 곧바로 MISS로 잡히는 통합
+테스트가 이 자리에서 실패해 드러났다. `game-engine.ts`에 `wallClockToChartMs`
+(엔진 시계와 같은 식)를 뽑아 `game-judge-input`의 `toChartMs` 인자로 흘렸다.
+
+히트음 스케줄링(env-audio lookahead)만 남았다 — env-audio는 M2-1에서 decode/
+play/stop/position/setVolume까지고 lookahead 스케줄러가 없다. 게이지 채색과
+같은 시점(M2-5)에 붙이는 게 D-2026-046과 같은 이유로 맞다. **M2-4 완료**.
+테스트는 733건이다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
@@ -343,7 +365,7 @@ display 세 모듈을 실제로 한 세션으로 묶는 host 배선(엔진 매 �
 
 ### 다음 후보
 
-- M2-4 마무리 (Current Focus) — host 배선(매 프레임 judgeAdvance), autoplay(closeTail export 여부 결정 필요), 히트음 스케줄링
+- M2-5 (Current Focus) — gauge HUD + clear/fail 분기 + pause overlay + quick options 패널
 - D-2026-021 사이클 (M3 진입 전)
 - UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
 - credits scene 표시 내용 채우기 (소형, M4-2 전)

@@ -29,6 +29,7 @@ describe('createJudgeInputHandlers', () => {
       context,
       DEFAULT_SETTINGS.keyBindings,
       0,
+      (wallClockMs) => wallClockMs,
       onEvents,
     );
 
@@ -53,6 +54,7 @@ describe('createJudgeInputHandlers', () => {
       context,
       DEFAULT_SETTINGS.keyBindings,
       0,
+      (wallClockMs) => wallClockMs,
       onEvents,
     );
 
@@ -77,6 +79,7 @@ describe('createJudgeInputHandlers', () => {
       context,
       DEFAULT_SETTINGS.keyBindings,
       0,
+      (wallClockMs) => wallClockMs,
       onEvents,
     );
 
@@ -84,5 +87,32 @@ describe('createJudgeInputHandlers', () => {
     handlers.onKeyUp(fakeKeyEvent('KeyE', 100));
 
     expect(onEvents).toHaveBeenCalledTimes(2);
+  });
+
+  it('KeyEvent.timestampMs(wall-clock)를 toChartMs로 변환한 뒤 judge에 넘긴다', () => {
+    // wall-clock 3000ms 시점의 keydown이 lead-in 3000ms 뒤 chart tick 0과
+    // 같은 순간이라면, 변환 없이 그대로 3000을 넘기면 note가 이미 지난
+    // 것으로 오판된다(회귀 재현) — toChartMs(3000) = 0으로 바뀌어야 한다.
+    const chart = makeChart({ notes: [{ startTick: 0, duration: 0, lane: 1, isWide: false }] });
+    const timeline = buildTimeline(chart);
+    const notes = buildJudgeNotes(chart, timeline);
+    const context: CandidateContext = { notes, laneMap: laneMapOf(false) };
+    const state = createJudgeState(notes);
+    const onEvents = vi.fn();
+
+    const handlers = createJudgeInputHandlers(
+      state,
+      context,
+      DEFAULT_SETTINGS.keyBindings,
+      0,
+      (wallClockMs) => wallClockMs - 3000,
+      onEvents,
+    );
+
+    handlers.onKeyDown(fakeKeyEvent('KeyE', 3000));
+
+    expect(state.hits[0]).toBe('hit');
+    const events = onEvents.mock.calls[0]![0] as { kind: string; judgment?: string }[];
+    expect(events.some((e) => e.kind === 'judged' && e.judgment === 'SYNC')).toBe(true);
   });
 });
