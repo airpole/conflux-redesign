@@ -539,7 +539,7 @@
 - **Rationale:** `_rationale/rationale.md` (사용자 확인: "히트음 효과음은 계승해서 사용하기"; 원본 `audio.js`/`play-judgment.js`/`scheduler.js` 실측)
 - **Affects:** src/env, src/game, _plan
 - **Supersedes:** None
-- **Commit:** `(pending)`
+- **Commit:** `3b36c42`
 
 
 ```md
