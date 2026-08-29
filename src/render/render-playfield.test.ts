@@ -4,8 +4,13 @@ import { buildFieldGeometry } from '../core/core-shape.js';
 import { buildTimeline } from '../core/core-timing.js';
 import { computePlayfieldRect, judgeLineY } from './render-layout.js';
 import {
+  computeHitEffectVisual,
   computeNoteHeadRect,
+  drawCombo,
+  drawFastSlow,
+  drawHitEffect,
   drawJudgeTrack,
+  drawJudgmentText,
   drawLaneDividers,
   drawNoteHead,
   drawPlayfield,
@@ -20,9 +25,16 @@ function fakeCtx(): DrawContext & { calls: string[] } {
     fillStyle: '',
     strokeStyle: '',
     lineWidth: 0,
+    globalAlpha: 1,
+    font: '',
+    textAlign: '',
+    textBaseline: '',
     calls,
     fillRect(x, y, w, h) {
       calls.push(`fillRect ${this.fillStyle} ${x},${y},${w},${h}`);
+    },
+    fillText(text, x, y) {
+      calls.push(`fillText ${this.fillStyle} "${text}" ${x},${y}`);
     },
     beginPath() {
       calls.push('beginPath');
@@ -32,6 +44,9 @@ function fakeCtx(): DrawContext & { calls: string[] } {
     },
     lineTo(x, y) {
       calls.push(`lineTo ${x},${y}`);
+    },
+    arc(x, y, radius, startAngle, endAngle) {
+      calls.push(`arc ${x},${y},${radius},${startAngle},${endAngle}`);
     },
     closePath() {
       calls.push('closePath');
@@ -221,5 +236,84 @@ describe('drawPlayfield — 통합', () => {
     );
     expect(bgCalls[0]).toBe('fillRect #000 0,0,1600,900');
     expect(bgCalls[1]).toBe(`fillRect #050508 ${rect.gx},${rect.gy},${rect.gw},${rect.gh}`);
+  });
+});
+
+describe('drawCombo', () => {
+  it('0콤보는 그리지 않는다', () => {
+    const ctx = fakeCtx();
+    drawCombo(ctx, rect, jY, 0);
+    expect(ctx.calls).toHaveLength(0);
+  });
+
+  it('콤보 값을 판정선 위 고정 오프셋에 그린다', () => {
+    const ctx = fakeCtx();
+    drawCombo(ctx, rect, jY, 42);
+    expect(ctx.calls.some((c) => c.includes('"42"'))).toBe(true);
+  });
+});
+
+describe('drawJudgmentText', () => {
+  it('판정 종류를 그 색으로 그린다', () => {
+    const ctx = fakeCtx();
+    drawJudgmentText(ctx, rect, jY, { judgment: 'PERFECT', atMs: 0 });
+    expect(ctx.calls.some((c) => c.startsWith('fillText #ffe44a "PERFECT"'))).toBe(true);
+  });
+});
+
+describe('drawFastSlow', () => {
+  it('flashMs 안에서만 그린다', () => {
+    const ctx = fakeCtx();
+    drawFastSlow(ctx, rect, jY, { side: 'FAST', atMs: 0 }, 499);
+    expect(ctx.calls.some((c) => c.startsWith('fillText'))).toBe(true);
+  });
+
+  it('flashMs가 지나면 그리지 않는다', () => {
+    const ctx = fakeCtx();
+    drawFastSlow(ctx, rect, jY, { side: 'FAST', atMs: 0 }, 500);
+    expect(ctx.calls).toHaveLength(0);
+  });
+});
+
+describe('computeHitEffectVisual · drawHitEffect', () => {
+  it('durationMs가 지나면 null이다', () => {
+    const chart = makeChart({ notes: [{ startTick: 0, duration: 0, lane: 1, isWide: false }] });
+    const geometry = buildFieldGeometry(chart);
+    const visual = computeHitEffectVisual(
+      { note: chart.notes[0]!, judgment: 'SYNC', atMs: 0 },
+      geometry,
+      rect,
+      false,
+      300,
+    );
+    expect(visual).toBeNull();
+  });
+
+  it('wide note는 normal보다 반지름이 크다', () => {
+    const normalChart = makeChart({
+      notes: [{ startTick: 0, duration: 0, lane: 1, isWide: false }],
+    });
+    const wideChart = makeChart({ notes: [{ startTick: 0, duration: 0, lane: 1, isWide: true }] });
+    const normalVisual = computeHitEffectVisual(
+      { note: normalChart.notes[0]!, judgment: 'SYNC', atMs: 0 },
+      buildFieldGeometry(normalChart),
+      rect,
+      false,
+      0,
+    );
+    const wideVisual = computeHitEffectVisual(
+      { note: wideChart.notes[0]!, judgment: 'SYNC', atMs: 0 },
+      buildFieldGeometry(wideChart),
+      rect,
+      false,
+      0,
+    );
+    expect(wideVisual!.radius).toBeGreaterThan(normalVisual!.radius);
+  });
+
+  it('drawHitEffect는 판정선 위쪽 반원(π~2π)을 채운다', () => {
+    const ctx = fakeCtx();
+    drawHitEffect(ctx, jY, { cx: 100, radius: 20, alpha: 0.5, color: '#fff' });
+    expect(ctx.calls).toContain(`arc 100,${jY},20,${Math.PI},${2 * Math.PI}`);
   });
 });

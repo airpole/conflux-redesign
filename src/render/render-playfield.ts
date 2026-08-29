@@ -1,10 +1,14 @@
 /**
- * playfield 렌더 — shape 경계·lane 구분선·note·판정선(idle 트랙).
+ * playfield 렌더 — shape 경계·lane 구분선·note·판정선(idle 트랙)·판정 표시.
  *
  * M2-2 범위: "실측 레이아웃대로 판정선·lane·노트가 그려지고, scrollSpeed
- * 변경이 밀도만 바꾼다"(`_plan/build-order.md` M2-2). 게이지 채색(M2-5),
- * hit effect·sudden·key 빔·text event(M2-4·M2-5)는 없다 — 판정선은 항상
- * "idle" 트랙(빈 게이지)으로 그린다.
+ * 변경이 밀도만 바꾼다"(`_plan/build-order.md` M2-2) — 판정선은 항상 "idle"
+ * 트랙(빈 게이지)으로 그린다(게이지 채색은 M2-5).
+ *
+ * M2-4 범위: 콤보·마지막 판정 텍스트·FAST/SLOW 플래시·hit effect. 카운터·
+ * 정확도·score·pause 버튼·곡정보 띠(전부 `render/theme.md`가 게이지/카운터
+ * 데이터를 요구)는 M2-5·M2-6 — 그 값이 실제로 생기는 시점에 짓는다(D-2026-046과
+ * 같은 이유). sudden·key 빔·text event도 아직 없다.
  *
  * canvas API는 함수 인자로 받는다(`DrawContext` — CanvasRenderingContext2D의
  * 부분집합) — env-*와 같은 이유로, jsdom 없이 Node에서 mock으로 계약을 검사한다.
@@ -14,15 +18,26 @@ import { SCROLL_VIEW_MS } from '../core/core-constants.js';
 import { laneLayoutAt, shapeGeometryAt, type FieldGeometry } from '../core/core-shape.js';
 import { msToTick, scrollProgressAt, tickToMs, type Timeline } from '../core/core-timing.js';
 import type { Note } from '../core/core-chart.js';
+import type { Judgment } from '../core/core-judge.js';
 import {
   CANVAS_BG,
+  FAST_SLOW_COLOR,
+  HIT_EFFECT,
+  HUD_TEXT,
   JUDGE_TRACK,
+  JUDGMENT_COLOR,
   LANE_DIVIDER,
   NOTE_COLOR,
   PLAYFIELD_BG,
   SHAPE_BOUNDARY,
 } from './render-theme.js';
-import { projectLaneLayout, scrollYAt, shapeX, type PlayfieldRect } from './render-layout.js';
+import {
+  JUDGE_LINE_DEFAULT_FRAC,
+  projectLaneLayout,
+  scrollYAt,
+  shapeX,
+  type PlayfieldRect,
+} from './render-layout.js';
 
 /** 노트 가시 구간 밖 여유폭(ms). 경계에 걸친 note가 프레임 경계에서 안 끊기게. */
 const NOTE_VISIBILITY_MARGIN_MS = 300;
@@ -31,10 +46,16 @@ export interface DrawContext {
   fillStyle: string;
   strokeStyle: string;
   lineWidth: number;
+  globalAlpha: number;
+  font: string;
+  textAlign: string;
+  textBaseline: string;
   fillRect(x: number, y: number, w: number, h: number): void;
+  fillText(text: string, x: number, y: number): void;
   beginPath(): void;
   moveTo(x: number, y: number): void;
   lineTo(x: number, y: number): void;
+  arc(x: number, y: number, radius: number, startAngle: number, endAngle: number): void;
   closePath(): void;
   fill(): void;
   stroke(): void;
@@ -272,4 +293,150 @@ export function drawPlayfield(
   }
 
   drawJudgeTrack(ctx, rect, jY);
+}
+
+// ── 판정 표시(M2-4) ─────────────────────────────────────────
+//
+// 이 절의 함수들은 game 레이어(`game-judge-display.ts`)가 만든 상태를
+// 그린다. render는 그 아래층이라(architecture §1) 그 파일을 import하지
+// 않는다 — 구조가 같은 값(judgment·atMs 등)을 인자로 받을 뿐이다.
+
+export interface JudgmentTextView {
+  readonly judgment: Judgment;
+  readonly atMs: number;
+}
+
+export interface FastSlowView {
+  readonly side: 'FAST' | 'SLOW';
+  readonly atMs: number;
+}
+
+export interface HitEffectView {
+  readonly note: Note;
+  readonly judgment: Judgment;
+  readonly atMs: number;
+}
+
+/** `combo > 0`일 때만 그린다 — 0콤보를 화면에 반복해서 띄우지 않는다. */
+export function drawCombo(ctx: DrawContext, rect: PlayfieldRect, jY: number, combo: number): void {
+  if (combo <= 0) return;
+  const comboSz = rect.gw * HUD_TEXT.comboSizeFactor;
+  const comboY = jY - rect.gh * (JUDGE_LINE_DEFAULT_FRAC - HUD_TEXT.comboOffsetFrac);
+  ctx.font = `bold ${Math.round(comboSz)}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = HUD_TEXT.comboColor;
+  ctx.fillText(String(combo), rect.gx + rect.gw / 2, comboY);
+}
+
+/**
+ * 마지막 판정 텍스트. 콤보 블록 바로 아래(`render/theme.md` §3 HUD) — 카운터·
+ * 정확도 행이 아직 없어(M2-5) 그 자리를 당겨 쓴다.
+ */
+export function drawJudgmentText(
+  ctx: DrawContext,
+  rect: PlayfieldRect,
+  jY: number,
+  flash: JudgmentTextView,
+): void {
+  const comboSz = rect.gw * HUD_TEXT.comboSizeFactor;
+  const judgeSz = rect.gw * HUD_TEXT.judgmentSizeFactor;
+  const gap = rect.gw * HUD_TEXT.gapFactor;
+  const comboY = jY - rect.gh * (JUDGE_LINE_DEFAULT_FRAC - HUD_TEXT.comboOffsetFrac);
+  const judgeY = comboY + comboSz / 2 + gap + judgeSz / 2;
+  ctx.font = `bold ${Math.round(judgeSz)}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = JUDGMENT_COLOR[flash.judgment];
+  ctx.fillText(flash.judgment, rect.gx + rect.gw / 2, judgeY);
+}
+
+/** FAST/SLOW 플래시. `HUD_TEXT.fastSlowFlashMs` 안에서만 그린다. */
+export function drawFastSlow(
+  ctx: DrawContext,
+  rect: PlayfieldRect,
+  jY: number,
+  flash: FastSlowView,
+  nowMs: number,
+): void {
+  const age = nowMs - flash.atMs;
+  if (age < 0 || age >= HUD_TEXT.fastSlowFlashMs) return;
+  const comboSz = rect.gw * HUD_TEXT.comboSizeFactor;
+  const judgeSz = rect.gw * HUD_TEXT.judgmentSizeFactor;
+  const fsSz = rect.gw * HUD_TEXT.fastSlowSizeFactor;
+  const gap = rect.gw * HUD_TEXT.gapFactor;
+  const comboY = jY - rect.gh * (JUDGE_LINE_DEFAULT_FRAC - HUD_TEXT.comboOffsetFrac);
+  const judgeY = comboY + comboSz / 2 + gap + judgeSz / 2;
+  const fsY = judgeY + judgeSz / 2 + gap + fsSz / 2;
+  ctx.font = `bold ${Math.round(fsSz)}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = FAST_SLOW_COLOR[flash.side];
+  ctx.fillText(flash.side, rect.gx + rect.gw / 2, fsY);
+}
+
+/**
+ * hit effect(물결 반원) 하나의 중심·반지름·불투명도. `HIT_EFFECT.durationMs`
+ * 지나면 `null` — 판정선 위 반원 하나로 단순화했다(원본은 위/아래를 note 쪽에
+ * 따라 갈랐고 Hold는 tail까지 지속하는 별도 애니메이션이었다 — 배선은 M2-4,
+ * 그 세부 연출은 후속 다듬기로 미룬다).
+ */
+export function computeHitEffectVisual(
+  effect: HitEffectView,
+  geometry: FieldGeometry,
+  rect: PlayfieldRect,
+  mirror: boolean,
+  nowMs: number,
+): {
+  readonly cx: number;
+  readonly radius: number;
+  readonly alpha: number;
+  readonly color: string;
+} | null {
+  const age = nowMs - effect.atMs;
+  if (age < 0 || age >= HIT_EFFECT.durationMs) return null;
+
+  const { blue, red } = shapeGeometryAt(geometry, effect.note.startTick);
+  const leftX = shapeX(rect, Math.min(blue, red), mirror);
+  const rightX = shapeX(rect, Math.max(blue, red), mirror);
+  const loX = Math.min(leftX, rightX);
+  const hiX = Math.max(leftX, rightX);
+
+  let cx: number;
+  if (effect.note.isWide) {
+    cx = (loX + hiX) / 2;
+  } else {
+    const projected = projectLaneLayout(laneLayoutAt(geometry, effect.note.startTick));
+    const segment = laneSegment(loX, hiX, projected, effect.note.lane);
+    cx = segment.x + segment.width / 2;
+  }
+
+  const fixedR = rect.gw * HIT_EFFECT.radiusFactor;
+  const radius = effect.note.isWide ? fixedR * HIT_EFFECT.wideRadiusMultiplier : fixedR;
+
+  const t = age / HIT_EFFECT.durationMs;
+  const alpha = t < 0.4 ? 0.8 : 0.8 * (1 - (t - 0.4) / 0.6);
+  const size = 0.15 + Math.sqrt(t) * 0.85;
+
+  return { cx, radius: radius * size, alpha, color: JUDGMENT_COLOR[effect.judgment] };
+}
+
+/** 판정선 위쪽 반원(above-only, 위 함수 docstring 참조)으로 hit effect를 그린다. */
+export function drawHitEffect(
+  ctx: DrawContext,
+  jY: number,
+  visual: {
+    readonly cx: number;
+    readonly radius: number;
+    readonly alpha: number;
+    readonly color: string;
+  },
+): void {
+  ctx.globalAlpha = visual.alpha;
+  ctx.fillStyle = visual.color;
+  ctx.beginPath();
+  ctx.arc(visual.cx, jY, visual.radius, Math.PI, 2 * Math.PI);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
 }

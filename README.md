@@ -138,9 +138,9 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M2-3 완료 기준(lead-in→tick 0, songEndMs 종료) 충족. 다음은 M2-4(입력→judge 결선 + 판정 표시).
-- **Discussion Scope:** [[build-order]] §5. M2-4 착수.
-- **Change Scope:** M2-4 착수 세션에서 정한다
+- **Active unit:** M2-4 부분 완료 — 입력→judge 결선(`game-judge-input`)과 콤보·판정 텍스트·FAST/SLOW·hit effect 표시(`game-judge-display` + render)는 끝났고 각자 테스트됨. **아직 없는 것**: 세 모듈(engine·judge input·judge display)을 한 세션으로 묶는 host 배선(매 프레임 `judgeAdvance` 호출), autoplay, 히트음 스케줄링.
+- **Discussion Scope:** [[build-order]] §5. M2-4 host 배선 + autoplay.
+- **Change Scope:** M2-4 마무리 세션에서 정한다
 - **Exit:** M1 아홉 step의 골든 테스트가 모두 통과하고, core 어느 모듈도 전역 상태나 브라우저 API를 import하지 않는다
 
 ### Completed
@@ -314,6 +314,28 @@ tick 0에서 음악과 노트가 만난다"를 그 프레임 자체가 보장한
 Resume(되감기 없는 카운트다운 재개)·judge 결선·gauge·HUD는 아직 없다 —
 M2-4·M2-5. 테스트는 707건이다.
 
+M2-4를 부분 구현했다 — **입력→judge 결선과 판정 표시(콤보·판정 텍스트·
+FAST/SLOW·hit effect)까지**다. `game-judge-input.ts`는 env-input의 raw
+keydown/keyup을 물리 `code` → `LaneKeyId` 변환만 해서 `judgeKeyDown`/
+`judgeKeyUp`(M1-4·M1-5)에 그대로 넘긴다 — 판정 계산은 core, 언제 부를지만
+game이라는 원칙 그대로다. `game-judge-display.ts`는 combo를 따로 안 든다 —
+`JudgeState.combo`가 이미 갖고 있어 중복 회계를 만들지 않는다. 대신 judge가
+스스로 못 가진 시각 전용 상태(마지막 판정 플래시·FAST/SLOW·hit effect 큐)만
+담고, `naming` §2가 이미 못박은 `recordFastSlow`를 그 이름 그대로 구현했다.
+render 쪽 hit effect는 판정선 위쪽 반원 하나로 단순화했다 — 원본은 위/아래를
+note 쪽에 따라 가르고 Hold는 tail까지 지속하는 별도 애니메이션이었는데, 그
+세부 연출은 배선(M2-4 본론) 이후로 미뤘다. **레이어 위반을 하나 잡았다** —
+render가 game의 표시 상태 타입을 직접 import하려던 것을 되돌리고, 구조가
+같은 값만 인자로 받는 로컬 타입으로 바꿨다(render는 game보다 아래층).
+
+**아직 없는 것, 그래서 M2-4가 부분 완료다**: engine·judge input·judge
+display 세 모듈을 실제로 한 세션으로 묶는 host 배선(엔진 매 프레임
+`judgeAdvance` 호출 — 안 부르면 MISS가 하나도 안 잡힌다), autoplay(원본은
+`applyJudgment`를 입력 없이 직접 불러 처리했는데, 재설계 core는 그 내부
+경로를 export하지 않는다 — `closeTail`을 공개할지 아니면 타이밍을 맞춘
+합성 keydown/keyup으로 흉내낼지 결정 필요), 히트음 스케줄링(lookahead).
+테스트는 723건이다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
@@ -321,7 +343,7 @@ M2-4·M2-5. 테스트는 707건이다.
 
 ### 다음 후보
 
-- M2-4 (Current Focus) — 입력→judge 결선 + 판정 표시(콤보·판정 텍스트·FAST/SLOW·히트 이펙트)
+- M2-4 마무리 (Current Focus) — host 배선(매 프레임 judgeAdvance), autoplay(closeTail export 여부 결정 필요), 히트음 스케줄링
 - D-2026-021 사이클 (M3 진입 전)
 - UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
 - credits scene 표시 내용 채우기 (소형, M4-2 전)

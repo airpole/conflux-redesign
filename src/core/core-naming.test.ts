@@ -38,7 +38,6 @@ const PENDING_FUNCTIONS: Readonly<Record<string, string>> = {
   noteHeadColorAt: 'M2-2',
   noteSkin: 'M2-2',
   setNoteSkin: 'M2-2',
-  recordFastSlow: 'M2-4',
   // editor (M5)
   normalizeShapeChain: 'M5-4',
   runCommand: 'M5-1',
