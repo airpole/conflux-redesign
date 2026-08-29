@@ -138,7 +138,7 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M2-1 진입 (`env` — canvas·resize·rAF·입력·audio). M1 마감 확인 완료 (D-2026-044)
+- **Active unit:** M2-1 진입 (`env` — canvas·resize·rAF·입력·audio). M1 마감 확인 완료 (D-2026-045, `npm run mutate` 재확인 — 239 mutants 0 survived)
 - **Discussion Scope:** [[build-order]] §5. M2 진입 gate(§3 M2 실측).
 - **Change Scope:** 미정 — M2 진입 결정 사이클에서 정한다
 - **Exit:** M1 아홉 step의 골든 테스트가 모두 통과하고, core 어느 모듈도 전역 상태나 브라우저 API를 import하지 않는다
@@ -232,6 +232,16 @@ M1 마감으로 미커버 가드를 세웠다(D-2026-044). 설계 대장의 `미
 테스트를 전부 지워도 통과했다. 연결을 테스트 제목의 `[ID]` 태그로 옮겨, 테스트를 지우면
 태그도 함께 사라지게 했다. 완료한 step에 배정된 미커버 전원이 태그를 갖는지, 태그된 ID가
 대장에 실재하는지를 가드가 본다.
+
+M1 외부 검토(Fable) 지적 다섯 건을 반영했다(D-2026-045). `tickToMeasure`가 sub를 gridDivisor
+격자로 표현 못 하면 근사 표기 대신 `t{tick}` 원시 표기로 떨어진다 `[수정]` — 왕복이 표기 형태와
+무관하게 항상 성립한다. **절대 tick이 canonical representation**이고 `bar.beat.sub`는 파생
+display라는 방향을 명문화했다(시간 모델 재정리 자체는 M2 에디터 표기 UI 설계 시로 미룸). 첫
+박자표 앞 구간도 같은 `t{tick}` 폴백으로 떨어지며(TM-11, `어긋남`), `timeSignatures[0].startTick`이
+0이 아니면 domain 검증이 flag한다. `_plan/build-order.md`·`REVIEW_CHECKLIST.md`에 milestone
+마감 시 `npm run mutate`를 `src/core` 전체에 돌리고 생존 뮤턴트를 테스트로 죽이거나
+`MUTATION_EQUIVALENTS.md`에 등재하는 gate를 명문화했다 — 이번 복귀 세션에서 그 gate를
+`src/core` 전체(239 mutants)에 대해 재확인했고 생존 뮤턴트는 0건이다.
 
 **`GA-6`·`GA-7`·`GA-8`은 아예 미커버가 아니게 만들었다.** 셋 다 `[보존]`인데 골든이 닿지
 않아 "원본과 같다"는 주장 자체를 확인할 길이 없던 자리다. 원본 `computeResult`를 직접 부르는
