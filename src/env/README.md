@@ -10,3 +10,7 @@
 브라우저 API는 함수 인자로 주입받는다(예: `env-audio`의 `createContext: () => AudioContext`,
 `env-time`의 `TimeLoopHost`) — 전역 `window`/`document`를 직접 읽지 않으므로 jsdom 없이
 Node에서 mock으로 계약을 검사한다. `env-storage`·`env-file`은 M3에서 쓰이므로 아직 없다.
+
+`env-audio`의 히트음(`createHitBuffer`/`playHitSound`)은 asset 파일이 아니라 원본이
+절차적으로 합성하던 소리를 그대로 옮긴 것이다(D-2026-050) — 25ms 지수 감쇠 버퍼를 매
+판정마다 새로 만들어 재생하는 fire-and-forget이다.

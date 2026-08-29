@@ -41,6 +41,13 @@ Resume"). `paused` 동안은 `game-judge-input.ts`가 `judgeKeyDown`/`Up` 대신
 모드 사망) 그 프레임 끝에서 `computeResult`로 `result`를 확정하고 세션을
 멈춘다. 자연 종료(songEnd)도 같은 `finalize`를 거친다.
 
+`game-session.ts`는 판정 성공(tap/hold-head, MISS·tail 닫힘 제외)마다
+`env-audio.playHitSound`를 즉시 호출한다(D-2026-050, `hitSound: HitSoundSource
+| null` 옵션 — null이면 무음). 원본은 manual(즉시)과 autoplay(150ms lookahead
+스케줄러)를 따로 뒀지만, 이 세션은 두 경로가 이미 같은 `applyEvents`를 공유해서
+(사용자 확인: "원본과 같은 경로로 가기") 별도 스케줄러 없이 양쪽 다 즉시
+재생으로 단순화했다 — autoplay 히트음이 최대 한 프레임(~16ms) 늦을 수 있다.
+
 **아직 없는 것**: pause overlay UI(scene/render, 이 파일들은 상태 기계만 다룸),
-quick options 패널(build-order §2 gate — overlay 내부 조작 키가 사전 승인
-필요라 보류), 히트음 스케줄링(env-audio lookahead).
+quick options 패널 UI(scene/render — `core-quick-options.ts`에 조작 로직은
+이미 있다).

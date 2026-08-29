@@ -37,7 +37,17 @@ import {
   type JudgeDisplayState,
 } from './game-judge-display.js';
 import { HIT_EFFECT } from '../render/render-theme.js';
+import { playHitSound } from '../env/env-audio.js';
 import { createJudgeInputHandlers, type JudgeInputHandlers } from './game-judge-input.js';
+
+/**
+ * 히트음 재생에 필요한 것만 추린 입력 — `env-audio.createHitBuffer`로 만든
+ * 버퍼와 그걸 재생할 `AudioContext`. `null`이면 무음(오디오 준비 전 등).
+ */
+export interface HitSoundSource {
+  readonly ctx: AudioContext;
+  readonly buffer: AudioBuffer;
+}
 
 export interface GameSessionOptions {
   readonly ctx: CTX;
@@ -51,6 +61,7 @@ export interface GameSessionOptions {
   readonly startNowMs: number;
   readonly playbackRate: number;
   readonly engineHooks: EngineHooks;
+  readonly hitSound: HitSoundSource | null;
 }
 
 export interface GameSession {
@@ -104,7 +115,13 @@ export function createGameSession(options: GameSessionOptions): GameSession {
   const applyEvents = (events: readonly JudgmentEvent[], atMs: number): void => {
     applyJudgmentEvents(display, events, atMs);
     for (const event of events) {
-      if (event.kind === 'judged') applyGaugeChange(gaugeState, event.judgment, event.units);
+      if (event.kind !== 'judged') continue;
+      applyGaugeChange(gaugeState, event.judgment, event.units);
+      // 원본 `play-judgment.js`: tail 닫힘과 MISS는 소리를 내지 않는다
+      // (`if (!silent) playHit()`은 성공한 tap/hold-head 판정에서만 불린다).
+      if (options.hitSound !== null && event.part !== 'tail' && event.judgment !== 'MISS') {
+        playHitSound(options.hitSound.ctx, options.hitSound.buffer, options.ctx.hitVol);
+      }
     }
   };
 

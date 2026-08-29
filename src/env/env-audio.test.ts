@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createAudioEnv } from './env-audio.js';
+import { createAudioEnv, createHitBuffer, playHitSound } from './env-audio.js';
 
 function fakeGain() {
   return { gain: { value: 1 }, connect: vi.fn() };
@@ -103,5 +103,84 @@ describe('env-audio 계약', () => {
     env.stop();
 
     expect(env.getPositionMs()).toBeNull();
+  });
+});
+
+function fakeBufferCtx(sampleRate: number) {
+  return {
+    sampleRate,
+    createBuffer: vi.fn((_channels: number, length: number, sr: number) => {
+      const data = new Float32Array(length);
+      return {
+        getChannelData: () => data,
+        length,
+        sampleRate: sr,
+      };
+    }),
+  };
+}
+
+describe('createHitBuffer', () => {
+  it('sampleRate × 25ms 길이의 모노 버퍼를 만든다', () => {
+    const ctx = fakeBufferCtx(44100);
+    const buffer = createHitBuffer(ctx as unknown as AudioContext);
+    expect(ctx.createBuffer).toHaveBeenCalledWith(1, Math.floor(44100 * 0.025), 44100);
+    expect(buffer.length).toBe(Math.floor(44100 * 0.025));
+  });
+
+  it('앞쪽 절반이 뒤쪽 절반보다 진폭이 크다(지수 감쇠)', () => {
+    const ctx = fakeBufferCtx(44100);
+    const buffer = createHitBuffer(ctx as unknown as AudioContext);
+    const data = buffer.getChannelData(0) as Float32Array;
+    const half = Math.floor(data.length / 2);
+    const maxOf = (arr: Float32Array) => Math.max(...Array.from(arr, Math.abs));
+    const firstHalfMax = maxOf(data.subarray(0, half));
+    const secondHalfMax = maxOf(data.subarray(half));
+    expect(firstHalfMax).toBeGreaterThan(secondHalfMax);
+  });
+
+  it('무음(전부 0)이 아니다', () => {
+    const ctx = fakeBufferCtx(44100);
+    const buffer = createHitBuffer(ctx as unknown as AudioContext);
+    const data = buffer.getChannelData(0) as Float32Array;
+    expect(data.some((v) => v !== 0)).toBe(true);
+  });
+});
+
+describe('playHitSound', () => {
+  it('gain이 0 이하면 아무 것도 안 한다', () => {
+    const ctx = fakeContext('running');
+    playHitSound(ctx as unknown as AudioContext, {} as AudioBuffer, 0);
+    expect(ctx.createBufferSource).not.toHaveBeenCalled();
+  });
+
+  it('atCtxTime 없으면 즉시(인자 없이) start한다', () => {
+    const ctx = fakeContext('running');
+    playHitSound(ctx as unknown as AudioContext, {} as AudioBuffer, 1);
+    const source = ctx.createBufferSource.mock.results[0]!.value;
+    expect(source.start).toHaveBeenCalledWith(undefined);
+  });
+
+  it('atCtxTime이 미래면 그 시각에 스케줄한다', () => {
+    const ctx = fakeContext('running');
+    ctx.setCurrentTime(5);
+    playHitSound(ctx as unknown as AudioContext, {} as AudioBuffer, 1, 10);
+    const source = ctx.createBufferSource.mock.results[0]!.value;
+    expect(source.start).toHaveBeenCalledWith(10);
+  });
+
+  it('atCtxTime이 과거면 지금 시각으로 당긴다', () => {
+    const ctx = fakeContext('running');
+    ctx.setCurrentTime(5);
+    playHitSound(ctx as unknown as AudioContext, {} as AudioBuffer, 1, 1);
+    const source = ctx.createBufferSource.mock.results[0]!.value;
+    expect(source.start).toHaveBeenCalledWith(5);
+  });
+
+  it('gain 값을 게인 노드에 싣는다', () => {
+    const ctx = fakeContext('running');
+    playHitSound(ctx as unknown as AudioContext, {} as AudioBuffer, 0.7);
+    const gainNode = ctx.createGain.mock.results[0]!.value;
+    expect(gainNode.gain.value).toBe(0.7);
   });
 });

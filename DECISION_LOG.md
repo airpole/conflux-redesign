@@ -531,6 +531,17 @@
 - **Commit:** `a55a543`
 
 
+### D-2026-050 — 히트음 계승(절차적 합성), autoplay는 즉시 재생으로 단순화
+
+- **Status:** Accepted
+- **Decision:** 히트음은 asset 파일이 아니라 **원본이 절차적으로 합성한 소리를 그대로 계승**한다(build-order §2 마지막 gate 해소, 사용자 확인: "히트음 효과음은 계승해서 사용하기"). 원본 `audio.js`의 `AS.hitBuf` 생성식 — 25ms 모노 버퍼, `exp(-t×160)` 지수 감쇠, 2400/4200/1200Hz 세 배음(가중치 0.35/0.15/0.1)의 합 — 을 `env-audio.createHitBuffer`로 그대로 옮겼다 `[보존]`. 재생은 판정 성공(tap/hold-head, MISS·tail 닫힘 제외)마다 `playHitSound`를 즉시 호출한다 — 원본은 수동 판정에서 `playHit()`(즉시)과 autoplay에서 `scheduleHitsounds`(150ms lookahead 포인터 스케줄러)를 따로 뒀지만, 이 재구현은 manual과 autoplay가 이미 같은 `applyEvents` 경로를 공유하므로(사용자 확인: "원본과 같은 경로로 가기") 별도 lookahead 스케줄러를 새로 만들지 않고 **양쪽 다 즉시 재생**으로 단순화했다 `[신규 결정 — 단순화]`. autoplay 히트음이 원본보다 최대 한 프레임(~16ms) 늦게 울릴 수 있다는 차이가 생기지만, 판정 자체(SYNC 확정 시각)는 영향받지 않는다.
+- **Defined in:** `src/env/env-audio.ts`, `src/game/game-session.ts`, `_plan/build-order.md` §2
+- **Rationale:** `_rationale/rationale.md` (사용자 확인: "히트음 효과음은 계승해서 사용하기"; 원본 `audio.js`/`play-judgment.js`/`scheduler.js` 실측)
+- **Affects:** src/env, src/game, _plan
+- **Supersedes:** None
+- **Commit:** `(pending)`
+
+
 ```md
 ### D-YYYY-NNN — <Title>
 

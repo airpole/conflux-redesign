@@ -41,6 +41,7 @@ describe('createGameSession — 수동 입력', () => {
       startNowMs: 0,
       playbackRate: 1,
       engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
     });
 
     session.advance(LEAD_IN_MS);
@@ -70,6 +71,7 @@ describe('createGameSession — 수동 입력', () => {
       startNowMs: 0,
       playbackRate: 1,
       engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
     });
 
     session.advance(LEAD_IN_MS + 1000);
@@ -98,6 +100,7 @@ describe('createGameSession — autoplay', () => {
       startNowMs: 0,
       playbackRate: 1,
       engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
     });
 
     session.advance(LEAD_IN_MS);
@@ -127,6 +130,7 @@ describe('createGameSession — 곡 종료', () => {
       startNowMs: 0,
       playbackRate: 1,
       engineHooks: { onAudioStart: vi.fn(), onSongEnd },
+      hitSound: null,
     });
 
     session.advance(LEAD_IN_MS + songEnd.songEndMs + 1);
@@ -156,6 +160,7 @@ describe('createGameSession — 곡 종료', () => {
       startNowMs: 0,
       playbackRate: 1,
       engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
     });
 
     expect(session.result).toBeNull();
@@ -185,6 +190,7 @@ describe('createGameSession — 게이지', () => {
       startNowMs: 0,
       playbackRate: 1,
       engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
     });
 
     session.advance(LEAD_IN_MS + 1000); // note를 놓쳐 MISS
@@ -220,6 +226,7 @@ describe('createGameSession — 게이지', () => {
       startNowMs: 0,
       playbackRate: 1,
       engineHooks: { onAudioStart: vi.fn(), onSongEnd },
+      hitSound: null,
     });
 
     const lastNoteMs = tickToMs(timeline, notes[notes.length - 1]!.startTick);
@@ -256,6 +263,7 @@ describe('createGameSession — pause·Resume', () => {
       startNowMs: 0,
       playbackRate: 1,
       engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
     });
 
     session.advance(LEAD_IN_MS);
@@ -285,6 +293,7 @@ describe('createGameSession — pause·Resume', () => {
       startNowMs: 0,
       playbackRate: 1,
       engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
     });
 
     session.advance(LEAD_IN_MS + 200);
@@ -317,6 +326,7 @@ describe('createGameSession — pause·Resume', () => {
       startNowMs: 0,
       playbackRate: 1,
       engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
     });
 
     session.advance(LEAD_IN_MS + 100);
@@ -337,6 +347,105 @@ describe('createGameSession — pause·Resume', () => {
     const wallAtNote = resumeCompleteWallMs + (noteMs - anchor);
     session.advance(wallAtNote);
     session.input.onKeyDown(fakeKeyEvent('KeyE', wallAtNote));
+    expect(session.judgeState.hits[0]).toBe('hit');
+  });
+});
+
+describe('createGameSession — 히트음', () => {
+  function fakeHitSound() {
+    const source = { buffer: null, connect: vi.fn(), start: vi.fn() };
+    const gain = { gain: { value: 0 }, connect: vi.fn() };
+    const ctx = {
+      currentTime: 0,
+      destination: {},
+      createBufferSource: vi.fn(() => source),
+      createGain: vi.fn(() => gain),
+    };
+    return { source, ctx: ctx as unknown as AudioContext, buffer: {} as AudioBuffer };
+  }
+
+  it('성공 판정마다 히트음을 재생한다', () => {
+    const chart = makeChart({ notes: [{ startTick: 0, duration: 0, lane: 1, isWide: false }] });
+    const timeline = buildTimeline(chart);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+    const hitSound = fakeHitSound();
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: { ctx: hitSound.ctx, buffer: hitSound.buffer },
+    });
+
+    session.advance(LEAD_IN_MS);
+    session.input.onKeyDown(fakeKeyEvent('KeyE', LEAD_IN_MS));
+
+    expect(session.judgeState.hits[0]).toBe('hit');
+    expect(hitSound.source.start).toHaveBeenCalledTimes(1);
+  });
+
+  it('MISS는 히트음을 재생하지 않는다', () => {
+    const chart = makeChart({ notes: [{ startTick: 0, duration: 0, lane: 1, isWide: false }] });
+    const timeline = buildTimeline(chart);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+    const hitSound = fakeHitSound();
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: { ctx: hitSound.ctx, buffer: hitSound.buffer },
+    });
+
+    // 입력 없이 계속 진행 — note를 놓쳐 MISS가 된다.
+    session.advance(LEAD_IN_MS + 1000);
+
+    expect(session.judgeState.hits[0]).toBe('missed');
+    expect(hitSound.source.start).not.toHaveBeenCalled();
+  });
+
+  it('hitSound가 null이면 재생하지 않고도 판정은 그대로 동작한다', () => {
+    const chart = makeChart({ notes: [{ startTick: 0, duration: 0, lane: 1, isWide: false }] });
+    const timeline = buildTimeline(chart);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+    });
+
+    session.advance(LEAD_IN_MS);
+    session.input.onKeyDown(fakeKeyEvent('KeyE', LEAD_IN_MS));
+
     expect(session.judgeState.hits[0]).toBe('hit');
   });
 });

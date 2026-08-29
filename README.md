@@ -138,9 +138,9 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M2-5 부분 완료 — 게이지·clear/fail 분기·pause/Resume 메커니즘·quick options 조작 로직(D-2026-049)까지 끝났고 전부 테스트됨. **아직 없는 것**: pause overlay·quick options 패널 둘 다 **UI 자체**(scene/render 컴포넌트 — 배치·렌더는 host 몫, M4-7·M5-6), 히트음 스케줄링.
-- **Discussion Scope:** [[build-order]] §5. 히트음·효과음 asset 출처 결정(구 코드 asset 계승 여부) — 남은 마지막 M2-5 전 gate.
-- **Change Scope:** M2-5 마무리 세션에서 정한다
+- **Active unit:** M2-5 완료 — 게이지·clear/fail 분기·pause/Resume 메커니즘·quick options 조작 로직(D-2026-049)·히트음(D-2026-050)까지 끝났고 전부 테스트됨. M2-5 전 gate는 전부 닫혔다. **아직 없는 것**: pause overlay·quick options 패널 둘 다 **UI 자체**(scene/render 컴포넌트 — 배치·렌더는 host 몫, M4-7·M5-6).
+- **Discussion Scope:** [[build-order]] §5. M2-6(result 화면) 진입 전 ui-design 최소본 gate가 남았다.
+- **Change Scope:** M2-6 착수 세션에서 정한다
 - **Exit:** M1 아홉 step의 골든 테스트가 모두 통과하고, core 어느 모듈도 전역 상태나 브라우저 API를 import하지 않는다
 
 ### Completed
@@ -412,6 +412,20 @@ song-select overlay와 editor test embedded panel이 같은 component를
 항목으로 코드·결정 로그에 명시했다. 배치·렌더는 여전히 host 몫이라
 없다. 테스트는 763건이다.
 
+히트음을 계승했다(D-2026-050, build-order §2의 마지막 M2-5 전 gate 해소) —
+`env-audio.createHitBuffer`가 원본 `audio.js`의 `AS.hitBuf` 생성식(25ms 모노,
+`exp(-t×160)` 지수 감쇠, 2400/4200/1200Hz 세 배음)을 그대로 옮겼다. asset
+파일이 아니라 절차적 합성이라, "계승"은 파일을 가져오는 게 아니라 합성
+공식을 옮기는 일이었다. `game-session.ts`의 `applyEvents`가 판정 성공(tap/
+hold-head, MISS·tail 닫힘 제외)마다 `playHitSound`를 즉시 부른다 — 원본은
+manual(즉시)과 autoplay(150ms lookahead 스케줄러)를 나눴지만, 이 세션은 두
+경로가 이미 같은 `applyEvents`를 공유해서(사용자 확인: "원본과 같은 경로로
+가기") 별도 스케줄러를 새로 만들지 않고 양쪽 다 즉시 재생으로 단순화했다 —
+autoplay 히트음이 최대 한 프레임(~16ms) 늦게 울릴 수 있지만 판정 시각
+자체는 영향받지 않는다. `hitSound: HitSoundSource | null` 옵션이 null이면
+무음이다. **M2-5 완료** — 이걸로 M2-5 전 gate가 전부 닫혔다. 테스트는
+774건이다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
@@ -419,7 +433,7 @@ song-select overlay와 editor test embedded panel이 같은 component를
 
 ### 다음 후보
 
-- 히트음·효과음 asset 출처 결정 (Current Focus) — [[build-order]] §2 gate, 구 코드 asset 계승 여부
+- ui-design 최소본(토큰 + result 레이아웃) — [[build-order]] §2 gate, M2-6 진입 전
 - pause overlay·quick options 패널 UI (scene/render 컴포넌트, M4-7·M5-6)
 - D-2026-021 사이클 (M3 진입 전)
 - UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
