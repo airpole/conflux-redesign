@@ -528,7 +528,7 @@
 - **Rationale:** `_rationale/rationale.md` (사용자 확인: "위 아래 화살표로 상하 이동. 값은 그 값으로 바로 점프하는 마우스, 화살표 오른쪽 왼쪽으로 한칸씩, 스크롤은 위 아래로 한칸씩. 바뀐 값은 enter로 confirm.")
 - **Affects:** scene, _plan, src/core
 - **Supersedes:** None
-- **Commit:** (pending)
+- **Commit:** `a55a543`
 
 
 ```md
