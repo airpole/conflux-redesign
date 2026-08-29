@@ -138,9 +138,9 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M2-1 진행 중 (`env` 4파일 — audio·canvas·time·input 완료, storage·file은 M3). 다음은 M2-2(playfield 렌더) — 진입 gate: §3 M2-2 실측 필요.
-- **Discussion Scope:** [[build-order]] §5. M2-2 진입 gate(§3 M2-2 실측 — 렌더 레이아웃 전수).
-- **Change Scope:** M2-1 env 4파일 + mock 계약 테스트(D-2026-047)
+- **Active unit:** M2-2(playfield 렌더) 착수 가능. M2-1(`env` 4파일) 완료. M2-2 실측 gate는 `_extracted/EXTRACTED_FACTS.md` §12로 해소했다 — 단, lane 최소 간격 px는 원본에 대응물이 없어 실측이 아니라 **제품 결정**(사전 승인 필요, [[lane-events]] §7)으로 남는다.
+- **Discussion Scope:** [[build-order]] §5. lane 최소 간격 px 결정.
+- **Change Scope:** M2-2 착수 세션에서 정한다
 - **Exit:** M1 아홉 step의 골든 테스트가 모두 통과하고, core 어느 모듈도 전역 상태나 브라우저 API를 import하지 않는다
 
 ### Completed
@@ -276,6 +276,18 @@ resume을 시도한다 `[보존]`(원본 `audio.js`). `env-canvas`는 폭·높�
 상태(어느 채널이 눌려 있는지)를 아는 정책이라 env가 아니라 이후 step(game)의 몫으로 남겼다.
 `env-storage`·`env-file`은 M3에서 쓰이므로 아직 만들지 않았다. 테스트는 672건이다.
 
+M2-2 실측 gate를 닫았다. `gw`/`gh`는 캔버스를 16:9로 letterbox해서 얻고, 판정선
+`jY = gy + gh * min(8/9, judgeLinePos)`는 **올리는 방향으로만** 움직인다(raise-only).
+lane 구분선 1.5px·shape 경계 3px 등 스타일 상수와 게이지 바(판정선이 겸함)의 75%
+색 반전(`NORMAL_CLEAR_PCT`), 히트 이펙트 반지름(`gw*0.045`, shape 폭이 아니라 field
+전체 폭에서 고정 비율로 떼 shape가 collapse해도 안 사라지게 한 설계)까지 원본에서
+그대로 옮겼다. shape 좌표→px 매핑은 원본의 raw 상수(`/64`)를 쓰지 않는다 — [[shape]]
+§1이 이미 확정한 외부단위 -8~+8에서 새로 유도한 `(value+8)/16`이 맞는 식이다(실측이
+아니라 이미 닫힌 스펙 결정의 산수). 유일하게 못 닫은 것은 **lane 최소 간격 px** —
+원본 코드 전체를 뒤졌지만 이걸 강제하는 로직 자체가 없다. [[lane-events]] §1의
+"투영 시 최소 간격"은 재설계가 새로 넣으려는 개념이지 원본 실측이 아니므로, 이건
+실측 gate가 아니라 **사전 승인이 필요한 제품 결정**으로 넘긴다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
@@ -283,7 +295,7 @@ resume을 시도한다 `[보존]`(원본 `audio.js`). `env-canvas`는 폭·높�
 
 ### 다음 후보
 
-- M2-2 진입 전 원본 렌더 실측 (Current Focus) — §3 M2-2 항목, `_extracted/EXTRACTED_FACTS.md`에 기입
+- lane 최소 간격 px 결정 (Current Focus) — [[lane-events]] §7, 사전 승인 필요
 - D-2026-021 사이클 (M3 진입 전)
 - UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
 - credits scene 표시 내용 채우기 (소형, M4-2 전)
