@@ -138,9 +138,9 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M2-2 완료 기준(레이아웃·note·스크롤) 충족. 다음은 M2-3(engine loop — CTX seam, lead-in, songEndMs 종료). overlap 채색·noteSkin 전환·hit effect·sudden·HUD는 M2-4·M2-5.
-- **Discussion Scope:** [[build-order]] §5. M2-3 착수.
-- **Change Scope:** M2-3 착수 세션에서 정한다
+- **Active unit:** M2-3 완료 기준(lead-in→tick 0, songEndMs 종료) 충족. 다음은 M2-4(입력→judge 결선 + 판정 표시).
+- **Discussion Scope:** [[build-order]] §5. M2-4 착수.
+- **Change Scope:** M2-4 착수 세션에서 정한다
 - **Exit:** M1 아홉 step의 골든 테스트가 모두 통과하고, core 어느 모듈도 전역 상태나 브라우저 API를 import하지 않는다
 
 ### Completed
@@ -300,6 +300,20 @@ M2-2를 구현했다 — playfield 레이아웃 + note 렌더 + 스크롤. `rend
 기반 노트 채색(`noteColor`/`noteHeadColorAt`)과 `noteSkin` 전환은 아직 없다 —
 overlap 검출(M1-8)과 채색을 잇는 자리라 M2-4(판정 결선)로 미뤘다. 테스트는 700건이다.
 
+M2-3(engine loop)을 구현했다. **`curMs`는 항상 wall-clock 기준이다** `[보존]` —
+원본 `play.js` `playLoop`이 `playOffMs + (ts−playT0)×rate`로 매 프레임 계산하고
+오디오는 시작점을 지날 때 한 번만 켤 뿐 이후 재동기화하지 않는 것을 그대로
+따랐다. `game-ctx.ts`가 `_plan/architecture.md` §3의 CTX 정본 seam(데이터
+5개+훅 1개)을 타입으로 세웠고, `game-engine.ts`의 `startEngineSession`이 그
+seam 중 엔진이 실제로 쓰는 유일한 필드 `sharedMs`를 매 프레임 쓴다. lead-in은
+시계를 `-LEAD_IN_MS`(3000)에서 출발시키는 것으로 표현되고, 시계가 0을 넘는
+첫 프레임에 오디오 시작 훅이 정확히 한 번 불린다 — "lead-in 3초 뒤 정확히
+tick 0에서 음악과 노트가 만난다"를 그 프레임 자체가 보장한다. 종료는
+`ctx.contentEndMs + SONG_END_TAIL_MS`(=`songEndOf`와 같은 식, M1-3)를 넘는
+첫 프레임에 `redrawIdle()` + 종료 훅을 한 번 부르고 세션을 멈춘다. mid-start·
+Resume(되감기 없는 카운트다운 재개)·judge 결선·gauge·HUD는 아직 없다 —
+M2-4·M2-5. 테스트는 707건이다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
@@ -307,7 +321,7 @@ overlap 검출(M1-8)과 채색을 잇는 자리라 M2-4(판정 결선)로 미뤘
 
 ### 다음 후보
 
-- M2-3 engine loop (Current Focus) — CTX seam, 3초 lead-in, `songEndMs` 종료
+- M2-4 (Current Focus) — 입력→judge 결선 + 판정 표시(콤보·판정 텍스트·FAST/SLOW·히트 이펙트)
 - D-2026-021 사이클 (M3 진입 전)
 - UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
 - credits scene 표시 내용 채우기 (소형, M4-2 전)
