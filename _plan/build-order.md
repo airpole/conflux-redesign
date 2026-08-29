@@ -72,6 +72,20 @@ Vitest `environment: 'node'`. core 테스트는 DOM 없이 돈다 — [[architec
 - milestone당 5~8개. 시나리오는 해당 milestone Exit에 적는다.
 - 신규 설계 영역(song-select·`.cfx`·editor scene 그래프)은 원본에 대응물이 없으므로 대조 대상이 아니다. spec 준수만 본다.
 
+### env 계약 검사 (M2-1) `[신규]` (D-2026-047)
+
+`env`는 브라우저에 값을 물어보는 층이라 골든 표가 성립하지 않는다 — 소리가
+났는지, 키가 언제 도착했는지는 Node에서 원본을 돌려 뽑을 수 없다. M2-1은
+값 대조 대신 **mock으로 계약(실패 모드별 동작)을 검사**한다.
+
+- `env` README·`architecture` §1이 가른 실패 모드 단위로 mock을 세운다: `env-audio`(AudioContext
+  suspended → resume 경로), `env-canvas`(resize·DPR 변경 시 재계산), `env-time`(rAF 콜백 누락·`frameCap`
+  상한), `env-input`(focus 이탈 시 keydown 무시, timestamp 단조 증가).
+- 검사 대상은 **값이 아니라 동작** — "이 조건에서 이 복구/거부가 일어난다"는 문장 단위. 실제 브라우저
+  값과의 일치는 M2 이후 수동 대조 시나리오(§1 위)가 맡는다.
+- 골든 표·설계 대장(§0 범위)은 M2 이후로 넓히지 않는다 — env 계약 테스트는 `src/env/*.test.ts`에
+  살고 판정자는 스펙 문서 자체다.
+
 ---
 
 ## 2. gate 목록

@@ -497,6 +497,18 @@
 - **Supersedes:** None (build-order §2·§3의 "M2 진입" gate 배치를 대체)
 - **Commit:** `f92786c`
 
+
+### D-2026-047 — M2-1 검증 전략 = mock 계약 검사
+
+- **Status:** Accepted
+- **Decision:** M2-1(`env`)의 "맞게 만들었다"는 **mock 브라우저로 실패 모드별 동작을 검사**하는 것으로 확인한다 — 골든 표·설계 대장 확장은 쓰지 않는다. `env`는 브라우저에 값을 물어보는 층이라 Node에서 원본을 돌려 기대값을 뽑는 방식이 성립하지 않는다(소리가 났는지, 키가 언제 도착했는지는 JSON으로 안 나온다). `architecture` §1이 이미 `env`를 실패 모드 기준 6파일로 갈라놨으므로 그 경계를 그대로 mock 계약의 단위로 쓴다 — `env-audio`(AudioContext suspended → resume), `env-canvas`(resize·DPR 재계산), `env-time`(rAF 콜백 누락·`frameCap` 상한), `env-input`(focus 이탈 시 keydown 무시, timestamp 단조 증가). 검사 대상은 값이 아니라 "이 조건에서 이 복구/거부가 일어난다"는 동작 문장이다. 실제 브라우저 값과의 일치는 M2 이후 수동 대조 시나리오가 맡고, 대장 §0의 범위(골든 표가 있는 core/M1)는 넓히지 않는다.
+- **Defined in:** `_plan/build-order.md` §1
+- **Rationale:** `_rationale/rationale.md` (복귀 로드맵 §4 논의 참조)
+- **Affects:** _plan, src/env (검증 방법론만 — 구현은 아직 없음)
+- **Supersedes:** None
+- **Commit:** (pending)
+
+
 ```md
 ### D-YYYY-NNN — <Title>
 
