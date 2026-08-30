@@ -138,9 +138,9 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M2-6(result 화면) 착수 전. M2-5는 완료(게이지·clear/fail 분기·pause/Resume·quick options 조작 로직·히트음까지). ui-design 최소본(D-2026-051)과 ESC 전체화면 대체키(D-2026-052)가 확정돼 M2-6 전 gate는 닫혔다 — 남은 건 티어 색 대 실패 적색 근접(`ui-design.md` §7-3)과 `scene.md` §9 필드 8개 추가(`ui-design.md` §6)뿐이고 둘 다 별도 gate다.
-- **Discussion Scope:** [[build-order]] §5. `ui-design.md` §6(scene.md §9 필드 확장)·§7-3(티어 색 근접) 두 건.
-- **Change Scope:** M2-6 구현 세션에서 정한다
+- **Active unit:** M2-6(result 화면) 착수. M2-5는 완료(게이지·clear/fail 분기·pause/Resume·quick options 조작 로직·히트음까지). ui-design 최소본(D-2026-051), ESC 전체화면 대체키(D-2026-052), result 필드 5종(D-2026-054), 티어 색 대 실패 적색 근접(D-2026-055)까지 확정돼 M2-6 전 gate가 모두 닫혔다 — 남은 §7-2(티어 색 대 Shape 색)는 M2-6과 무관한 별도 gate.
+- **Discussion Scope:** [[build-order]] §5.
+- **Change Scope:** `PlayResult.tier` 추가·`game-session.ts` 배선 → `scene.md`/`ui-design.md` 반영 필드 CSS·JS 포팅 순서로 M2-6 구현 세션에서 정한다
 - **Exit:** M1 아홉 step의 골든 테스트가 모두 통과하고, core 어느 모듈도 전역 상태나 브라우저 API를 import하지 않는다
 
 ### Completed

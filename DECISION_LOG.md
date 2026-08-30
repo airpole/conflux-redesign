@@ -593,6 +593,21 @@
 - **Commit:** `f4e2298`
 
 
+### D-2026-055 — 티어 색(SURGE) 대 실패 적색 근접 [수용], M2-6 전 gate 완전 해소
+
+- **Status:** Accepted
+- **Decision:** `ui-design.md` §7-3 — SURGE `#ff4d5e`와 `--j-miss` `#ff5f70`이 색상값은 가깝지만 **수용**한다. 두 색이 실제로 만나는 유일한 조건(곡 선택창 실패 기록 표시)은 M3(기록 저장) 이후에나 성립하는데, 지금 정하지 않으면 M3에서 같은 논의가 다시 열리므로 사실 확인이 아니라 지금 확정하는 결정 항목으로 처리했다. 근거는 §7-5(CLEAR 대 FULL COMBO)와 동일한 논리 — 색상값이 가까워도 렌더 형태가 다르면 실제로는 혼동되지 않는다: 티어 칩은 배경이 칠해진 박스, 실패 표시는 작은 글자·아이콘이라 형태로 갈린다. SURGE를 주황으로 옮기는 안(티어 램프 B G R W D의 "R" 근거가 흐려짐)과 실패 표시를 비-색상 수단으로 바꾸는 안은 기각했다 — 후자는 곡 선택창 디자인이 아직 없어 미리 못 박을 필요가 없고, 형태 차이만으로 이미 충분하다.
+
+  이로써 `ui-design.md` §6·§7-3 두 M2-6 전 gate가 모두 닫혔다(§6은 D-2026-054). 남은 §7-2(티어 색 대 Shape 색)는 M2-6과 무관한 별도 gate로 남는다.
+
+  **구현 순서**(합의): `PlayResult.tier` 추가 + `game-session.ts` 필드 배선을 먼저 하고 CSS/JS 포팅을 나중에 한다 — 실데이터로 화면을 보면서 진행해 픽스처로 맞춰놓고 나중에 다시 뜯는 일을 피한다. 포팅 시 주의 두 가지: (1) 원본 `scene-result.js`의 `renderTiming()`은 `r.timingErrors`를 직접 binning하므로 실데이터 배선 전에는 히스토그램이 비어 있는 게 정상이다. (2) `renderGauge()`는 `r.gaugeTrace[length-1]`을 잔량으로, `r.progress`로 가로 폭을 잡는다 — 진행률 200등분 샘플링과는 맞지만, 실패 판에서 배열이 짧게 끝날 때 마지막 값이 0에 가까운지 확인 필요.
+- **Defined in:** `scene/ui-design.md` §7-3
+- **Rationale:** `_rationale/rationale.md` (사용자 확인: 수용 — 형태 차이로 색상 근접을 해소, §7-5와 동일 논리)
+- **Affects:** scene
+- **Supersedes:** None
+- **Commit:** (pending)
+
+
 ```md
 ### D-YYYY-NNN — <Title>
 
