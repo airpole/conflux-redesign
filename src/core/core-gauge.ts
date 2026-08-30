@@ -250,6 +250,8 @@ export interface PlayResult {
   readonly accuracy: number;
   readonly rank: Rank;
   readonly state: PlayState;
+  /** 종료 시점의 살아있는 최고 tier. cascade의 확정 게이지 종류 표시가 이 값을 읽는다. */
+  readonly tier: Tier;
   readonly maxCombo: number;
   readonly counts: Readonly<JudgmentCounts>;
   readonly forceEnded: boolean;
@@ -272,6 +274,7 @@ export function computeResult(state: GaugeState, maxCombo: number): PlayResult {
     accuracy,
     rank: scoreToRank(score),
     state: evaluateState(state),
+    tier: state.tier,
     maxCombo,
     counts: { ...counts },
     forceEnded: state.forceEnded,

@@ -477,6 +477,19 @@ describe('결과 산출 (§5)', () => {
     expect(new Set(results.map((r) => r.state)).size).toBeGreaterThan(1);
   });
 
+  it('result.tier는 종료 시점 GaugeState.tier를 그대로 옮긴다', () => {
+    const state = play('normal', 30, Array<Judgment>(30).fill('SYNC'));
+    const result = computeResult(state, 0);
+    expect(result.tier).toBe(state.tier);
+  });
+
+  it('cascade 강등이 result.tier에 반영된다 — options.settled 대체(D-2026-054 §6.2)', () => {
+    // PERFECT 1개가 as만 깨고 ap로 강등, 나머지는 전부 SYNC라 ap 생존.
+    const sequence: readonly Judgment[] = ['PERFECT', ...Array<Judgment>(29).fill('SYNC')];
+    const result = computeResult(play('cascade', 30, sequence), 0);
+    expect(result.tier).toBe('ap');
+  });
+
   it('올-SYNC는 만점·U·정확도 100이다', () => {
     const result = computeResult(play('normal', 30, Array<Judgment>(30).fill('SYNC')), 0);
     expect(result.score).toBe(1_000_000);
