@@ -1,6 +1,6 @@
 # ui-design (최소본) — tokens + result layout
 
-status: draft (승인 대기) — §7-1 · §7-4 해소됨, ESC 항목 분리됨
+status: Accepted (D-2026-051) — §7-2·§7-3(티어 색 대 Shape/실패 적색)과 §6(scene.md §9 필드 8개 추가)은 별도 게이트로 남는다
 supersedes: D-2026-051 초안 (원본 `play-result.js` 계승안)
 scope: UI 토큰 세트 + result 화면 레이아웃
 
@@ -227,11 +227,15 @@ export const msToPct = ms => ((ms + AXIS) / (AXIS * 2)) * 100
 
 | 키 | 동작 |
 |---|---|
-| ENTER | 확인 / 선택으로 |
-| SPACE | 다시 하기 |
+| ENTER | 확인 / 선택으로(song-select) |
+| SPACE | 다시 하기(Retry) |
+
+**F5가 아니라 Space로 Retry한다** (D-2026-052) — F5는 브라우저 새로고침
+단축키와 겹쳐 `preventDefault()`로 막을 수 있다는 보장이 없다. result는
+gameplay 화면이 아니라 lane 키와 겹치지 않는다.
 
 result 화면은 ESC를 쓰지 않는다. `scene.md`의 기존 ESC 바인딩은 이 문서의
-범위 밖이며 **건드리지 않는다** — §9 참조.
+범위 밖이었으나 D-2026-052로 결정됐다 — §9 참조.
 
 구현 조건:
 - `keydown`에서 `preventDefault()` (Space 스크롤 차단). `keyup`은 늦다
@@ -300,25 +304,20 @@ result 화면은 ESC를 쓰지 않는다. `scene.md`의 기존 ESC 바인딩은 
 
 ---
 
-## 9. ESC — 범위 밖 [별도 게이트]
+## 9. ESC — 결정됨 (D-2026-052)
 
-이 문서는 ESC를 쓰지 않으며 `scene.md`의 기존 바인딩을 변경하지 않는다.
-아래는 별도 결정으로 올릴 사안이다.
+**안 A 채택** — 모든 ESC 바인딩에 비-ESC 대체키를 추가한다. `scene.md`에
+반영됐다.
 
-전체화면을 지원하면 ESC는 전체화면 중 브라우저에 귀속되어 앱에 도달하지
-않는다. `preventDefault()`로 막을 수 없다. 따라서 `scene.md`의 ESC 바인딩
-(`Back/Esc → title`, `Back/Esc → mode-select`, `Esc → pause`,
-song-select `Esc/Space`)은 **창 모드에서만 동작하고 전체화면에서는 동작하지
-않는** 상태가 된다. 아예 못 쓰는 것보다 나쁘다.
-
-선택지:
-
-| 안 | 내용 | 대가 |
+| 위치 | 기존 | 대체키 |
 |---|---|---|
-| A | 모든 ESC 바인딩에 비-ESC 대체키 추가 | 바인딩 4곳 수정 |
-| B | `navigator.keyboard.lock(['Escape'])` | Chromium 전용. Firefox·Safari는 A로 폴백 |
-| C | 전체화면 미지원 | 이미 지원 결정됨 |
+| credits → title | Esc | **Backspace** |
+| song-select → mode-select | Esc | **Backspace** |
+| gameplay → pause overlay | Esc | **Backspace** (다른 화면의 Back과 같은 키로 통일 — gameplay에서도 "뒤로"가 pause를 연다) |
+| song-select quick options 닫기 | Esc/Space | 이미 Space가 있어 추가 불필요 |
 
-부수 확인: song-select가 `Esc/Space`로 닫기를 쓴다. result가 Space를
-재시도에 쓰므로 같은 키가 씬에 따라 닫기/재시도로 갈린다. 씬이 다르므로
-충돌은 아니나 일관성 검토 대상이다.
+B(`navigator.keyboard.lock`)는 Chromium 전용이라 채택하지 않았다 — Firefox·
+Safari에서 결국 A로 폴백해야 해 대체키를 두 벌 유지하는 비용이 더 크다.
+
+부수 확인(해소): song-select `Esc/Space` 닫기와 result `Space` 재시도는
+서로 다른 씬이라 충돌이 아니다.

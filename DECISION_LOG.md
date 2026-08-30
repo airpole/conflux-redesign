@@ -542,6 +542,28 @@
 - **Commit:** `3b36c42`
 
 
+### D-2026-051 — ui-design 최소본 확정(토큰 + result 레이아웃)
+
+- **Status:** Accepted
+- **Decision:** `scene/ui-design.md`를 M2-6(result 화면) 최소 ui-design으로 확정한다(build-order §2 "ui-design 최소본" gate 해소). 원본 `play-result.js` 계승안에서 출발해 반복 수정한 결과다 — UI 표면색·텍스트·괘선 토큰, state·게이지·판정·티어·랭크 색 파생 규칙, result 레이아웃(성적/기록/판정·타이밍/곡 열 4블록)을 정의한다. state 색은 독립 정의하지 않고 판정색·게이지색에서 파생시켜(§1.4) `theme.md`와의 중복을 피한다. 액센트(`--cyan: #4fbcd0`)는 `theme.md`의 `WIDE_COLOR`(`#4AE8FF`)와 완전히 같은 값이었던 초안 시안을 실측으로 확인해 채도·명도를 낮춰 교체했다. 티어 색 대 Shape 편집선 충돌(§7-2 우려)은 `edit`·`game`이 서로 다른 scene 축이라(`_plan/architecture.md`) 같은 화면에 동시 노출될 수 없음을 확인해 기각한다. 티어 색 대 실패 적색 근접(§7-3)과 `scene.md` §9에 없는 8개 필드 추가(§6)는 별도 gate로 남긴다.
+- **Defined in:** `scene/ui-design.md`, `_plan/build-order.md` §2
+- **Rationale:** `_rationale/rationale.md` (사용자 확인: "승인"; 원본 `play-result.js`/`index.html` 실측; `render/theme.md` 색 실측 대조)
+- **Affects:** scene, render, _plan
+- **Supersedes:** None (D-2026-051 초안을 대체 — 같은 번호, 초안이 채택 전까지 임시 참조였다)
+- **Commit:** `(pending)`
+
+
+### D-2026-052 — ESC 전체화면 충돌 대체키, result Retry = Space
+
+- **Status:** Accepted
+- **Decision:** 전체화면 중 ESC는 브라우저의 전체화면 탈출 단축키로 예약되어 `preventDefault()`로 막을 수 없다(`ui-design.md` §9). **안 A 채택** — `scene.md`의 기존 ESC 바인딩 네 곳에 비-ESC 대체키를 더한다: credits→title·song-select→mode-select·gameplay→pause overlay 셋 다 **Backspace**로 통일한다(사용자 확인: "gameplay에서도 backspace를 누르면 back해서 pause되는 것으로 통일하기" — 대체키는 화면마다 다른 키가 아니라 하나의 "뒤로" 키다). song-select의 quick options 닫기(`Esc/Space`)는 이미 Space가 있어 대체키가 불필요하다. `navigator.keyboard.lock`(안 B)는 Chromium 전용이라 기각 — Firefox·Safari에서 결국 안 A로 폴백해야 해 대체키를 두 벌 유지하는 비용이 더 크다. 같은 논의에서 result의 Retry 키도 `scene.md` 기존안 F5에서 **Space**로 바꾼다(사용자 확인: "f5를 누르면 브라우저 새로고침으로 작동하는 것 아닌가?" — F5도 ESC와 같은 종류의 브라우저 예약 단축키 문제를 안고 있어 채택 당시 Space로 논의·결정했었다). result는 gameplay 화면이 아니므로 lane 키와 겹치지 않는다.
+- **Defined in:** `scene/scene.md` §9, `scene/ui-design.md` §4·§9
+- **Rationale:** `_rationale/rationale.md` (사용자 확인: 안 A + Backspace 통일, Retry=Space)
+- **Affects:** scene
+- **Supersedes:** None (scene.md의 Esc-only·F5 서술을 대체)
+- **Commit:** `(pending)`
+
+
 ```md
 ### D-YYYY-NNN — <Title>
 

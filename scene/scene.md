@@ -80,7 +80,7 @@ resetSceneStack()
 - editor → editor start/graph
 - settings → settings graph (진입 scene: `settings-play`)
 - credits → credits scene. 항상 노출, build gate 없음.
-- Back/Esc → title
+- Back/Esc/Backspace → title `[수정]` (D-2026-052 — 전체화면 중 ESC가 브라우저에 귀속돼 앱에 안 닿는 문제의 대체키)
 
 mode 추가의 단일 확장점이다.
 
@@ -137,7 +137,7 @@ song-select와 editor test가 같은 component를 사용한다. no-record 단일
 
 project staff credit scene. chart credit(song-credit)과 별개 — 근거는 [[rationale#song-credit과 credits를 가른 이유]].
 
-- 진입: mode-select. 이탈: Back/Esc → mode-select.
+- 진입: mode-select. 이탈: Back/Esc/Backspace → mode-select. `[수정]` (D-2026-052)
 - 입력·상호작용 없음(스크롤 제외). engine을 사용하지 않는 정적 scene.
 - 표시 내용은 미확정(placeholder) — scene 골격만 확정하고 내용은 후속 결정으로 채운다.
 
@@ -166,13 +166,13 @@ gameplay
   곡 끝(songEndMs 경과) → clear/fail 평가 → result
   force-end(gauge 0 / lock 파기) → result
   autoplay 판은 result 없이 → song-select
-  Esc → pause overlay
+  Esc/Backspace → pause overlay `[수정]` (D-2026-052 — Backspace는 다른 화면의 Back과 같은 키로 통일)
     Resume: 정지 카운트다운 후 pause 지점부터 재개 — 시간 되감기 없음, 기록 유지 (D-2026-022)
     Retry: 처음부터
     Exit: song-select
 
 result
-  Retry(F5): gameplay
+  Retry(Space): gameplay `[수정]` (D-2026-052 — F5는 브라우저 새로고침으로 소비될 수 있어 배제)
   Back(Enter): song-select
 ```
 
@@ -187,6 +187,8 @@ Resume은 **정지 카운트다운 재개**다 `[수정]` (D-2026-022): 화면·
 탭이 백그라운드로 전환되면(`visibilitychange` hidden) gameplay는 자동으로 pause overlay를 연다 `[신규]`. Resume 규칙은 위와 같다. 창 포커스만 잃은 경우(blur)에는 pause하지 않는다.
 
 `.cfx` decode·음원 로드 등 비동기 작업이 [[constants]] `LOADING_INDICATOR_DELAY_MS`를 넘기면 로딩 표시를 낸다 `[신규]`.
+
+**Esc 전체화면 충돌과 대체키** `[수정]` (D-2026-052): 전체화면 중에는 Esc가 브라우저의 전체화면 탈출 단축키로 예약되어 앱에 도달하지 않고 `preventDefault()`로도 막을 수 없다. 위 네 곳(credits→title, song-select→mode-select, gameplay pause, result retry)에 비-Esc 대체키를 더한다 — **Backspace**를 "뒤로/일시정지" 전용 대체키로 통일해서 쓴다(gameplay에서도 Backspace를 누르면 pause가 열린다, title·mode-select와 같은 키). result의 Retry는 F5(브라우저 새로고침 단축키와 겹쳐 `preventDefault()`가 못 막을 수 있음) 대신 **Space**를 쓴다 — result는 gameplay 화면이 아니라 lane 키와 겹치지 않는다. song-select의 quick options overlay(Esc/Space로 닫기)는 이미 Space가 있어 추가 대체키가 필요 없다.
 
 Resume은 mid-start 시드 루틴을 호출하지 않는다 `[번복]` (D-2026-024): pause는 기존 head/tail 결과와 활성 Hold를 그대로 보존하고, 카운트다운 중 눌린 lane 키만 모아 pause anchor에서 `reconcileHeldCapacity`를 실행한다. 과거 노트 재시드는 없다. 판정 모델 단일 출처는 [[judge]] §10.
 
