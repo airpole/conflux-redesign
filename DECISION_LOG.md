@@ -605,7 +605,7 @@
 - **Rationale:** `_rationale/rationale.md` (사용자 확인: 수용 — 형태 차이로 색상 근접을 해소, §7-5와 동일 논리)
 - **Affects:** scene
 - **Supersedes:** None
-- **Commit:** (pending)
+- **Commit:** `14f5cdb`
 
 
 ```md
