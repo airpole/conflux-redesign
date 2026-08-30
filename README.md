@@ -139,7 +139,7 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M2 완료. M2 Exit(수동 대조 시나리오 8종)을 D-2026-058로 충족 판정했다 — 3종은 원본 clone 실측 대조, 2종은 의도된 편차, 3종은 spec 테스트로 잠정 승인하고 `_meta/manual-qa.md`(QA-1~3)에 사람 확인 목록을 남겼다. 다음 단위는 **M3 — persistence + `.cfx`**이지만 **M3 진입 gate(D-2026-021)가 아직 열려 있다** — 라이브 웹 배포 / `.cfx` 보호 수준 / 공개 서비스 기록 위치 세 결정이 미해결이라(`Status: Deferred`) 별도 결정 사이클 없이는 착수할 수 없다.
+- **Active unit:** M3 — persistence + `.cfx`, 착수 가능. M3 진입 gate(D-2026-021)를 D-2026-059로 닫았다 — 라이브 웹 배포는 bundled/static 유지, `.cfx`는 평문, 공개 서비스 기록도 브라우저 로컬 유지(D-2026-019는 별도 보류 그대로). `cfx.md`·`persistence.md`·`records.md` 세 spec 모두 "잔여: 없음" 상태라 M3-1(store 5분리)부터 바로 시작할 수 있다. 라이선스 서드파티 트랙 추출 가능성은 D-2026-060으로 블로킹 아닌 팔로업만 남겼다.
 - **Discussion Scope:** [[build-order]] §5.
 - **Change Scope:** M2-7 구현 세션에서 정한다
 - **Exit:** M1 아홉 step의 골든 테스트가 모두 통과하고, core 어느 모듈도 전역 상태나 브라우저 API를 import하지 않는다
@@ -480,17 +480,30 @@ SYNC·전 MISS·hard 사망 셋은 `airpole/conflux-editor`를 직접 clone해
 수 없다 — spec 테스트로 당분간 충분하다고 승인하고, 실제 확인 절차를
 `_meta/manual-qa.md`(QA-1~3)에 남겼다. **M2 완료.**
 
+**M3 진입 gate(D-2026-021)를 닫았다**(D-2026-059). 세 하위 질문 모두
+현상 유지 방향으로 확정했다 — 라이브 웹 배포는 bundled/static(`안 A`),
+`.cfx` 보호는 평문(암호화 계층 없음), 공개 서비스 기록은 브라우저 로컬
+(`records.md` 현행 계약 재확인). 아키텍처를 순수 정적 client SPA로
+유지하는 대가로 chart·음원 파일의 완전한 추출 가능성과 공개
+리더보드·부정 방지의 봉쇄(보류가 아니라 이 모델에서 성립 자체가 안 됨,
+`records.md`/D-2026-019의 기존 근거)를 명시적으로 수용했다. D-2026-019는
+이 결정으로 강제되지 않아 **Deferred로 유지**한다. 라이선스 서드파티
+트랙의 추출 가능성(계약 위반은 아니나 평판 리스크)은 D-2026-060으로
+블로킹 아닌 팔로업만 남겼다 — 아웃리치 이메일에 고지 문구 추가, 필요시
+서드파티 트랙 한정 경량 암호화 재검토. `cfx.md`·`persistence.md`·
+`records.md` 세 spec 모두 "잔여: 없음"이라 M3-1부터 바로 착수 가능하다.
+
 ### Deferred
 
-- 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
-- 라이브 웹 배포·`.cfx` 보호(암호화)·공개 서비스 기록 위치 — `DECISION_LOG.md` D-2026-021 (**M3 진입 전** 해소)
+- 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019 (D-2026-059로 강제되지 않음, 계속 보류)
 - result 화면 등장 연출(점수 카운트업 → rank/state 스탬프, `ui-design.md` §5) — M2-6 Exit 기준 밖의 순수 시각 효과. 별도 작업, 일정 미배정
 - 로딩 표시를 실제 비동기 호출부(`env-audio.decode()` 등)에 잇기 — `DECISION_LOG.md` D-2026-057. M2-7에서 분리된 별도 미배정 단위, 파일 로드 host가 생기는 시점(M3 이후 유력)에 붙는다
 - 사람 확인 필요(자동화 불가) 백로그 — `_meta/manual-qa.md`. QA-1(Hold 동시 소유)·QA-2(mid-start crossing-Hold)·QA-3(pause/Resume)로 시작, 같은 벽에 부딪히는 항목을 계속 쌓는 자리
+- 라이선스 서드파티 트랙 추출 가능성 팔로업 — `DECISION_LOG.md` D-2026-060. 블로킹 아님. 아웃리치 이메일 고지 문구, 필요시 서드파티 한정 경량 암호화 재검토
 
 ### 다음 후보
 
-- **M3 진입** — D-2026-021 사이클(라이브 웹 배포 / `.cfx` 보호 수준 / 공개 서비스 기록 위치)을 닫아야 착수 가능. 아직 열려 있다
+- **M3-1** — store 5분리([[persistence]] §1) + 쓰기 실패 처리. 다음 순서, 걸린 gate 없음
 - pause overlay·quick options 패널 UI (scene/render 컴포넌트, M4-7·M5-6)
 - credits scene 표시 내용 채우기 (소형, M4-2 전)
 - result 화면 등장 연출 (별도 작업, 일정 미배정)
