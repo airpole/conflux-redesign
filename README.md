@@ -138,9 +138,9 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M2-6(result 화면) 착수. M2-5는 완료(게이지·clear/fail 분기·pause/Resume·quick options 조작 로직·히트음까지). ui-design 최소본(D-2026-051), ESC 전체화면 대체키(D-2026-052), result 필드 5종(D-2026-054), 티어 색 대 실패 적색 근접(D-2026-055)까지 확정돼 M2-6 전 gate가 모두 닫혔다. §7-2(티어 색 대 Shape 색)도 별도 gate가 아니라 scene 축 분리(한 scene만 활성화되므로 Shape 경계와 티어 칩이 동시에 안 뜸)로 해소돼, `ui-design.md`에 열린 미확인 항목이 없다.
+- **Active unit:** M2-7(마감 — 탭 백그라운드 auto-pause·로딩 표시·브라우저 단축키 충돌 처리) 착수 전. M2-6은 완료 — `PlayResult.tier` 추가·result 필드 5종 배선(D-2026-054)·result 화면 CSS/JS 포팅(`scene/ui-design.md` 기준)까지 끝났고 Exit 기준(rank·state·score·accuracy·판정 수·FAST/SLOW·max combo 표시, autoplay는 result 안 거침)을 충족한다. `build-order.md` §2 gate 표에 **M2-7 전 gate는 없다** — 걸린 결정·실측 항목이 없어 바로 착수할 수 있다.
 - **Discussion Scope:** [[build-order]] §5.
-- **Change Scope:** `PlayResult.tier` 추가·`game-session.ts` 배선 → `scene.md`/`ui-design.md` 반영 필드 CSS·JS 포팅 순서로 M2-6 구현 세션에서 정한다
+- **Change Scope:** M2-7 구현 세션에서 정한다
 - **Exit:** M1 아홉 step의 골든 테스트가 모두 통과하고, core 어느 모듈도 전역 상태나 브라우저 API를 import하지 않는다
 
 ### Completed
@@ -426,15 +426,32 @@ autoplay 히트음이 최대 한 프레임(~16ms) 늦게 울릴 수 있지만 �
 무음이다. **M2-5 완료** — 이걸로 M2-5 전 gate가 전부 닫혔다. 테스트는
 774건이다.
 
+M2-6(result 화면)을 구현했다. ui-design 최소본(D-2026-051)·result 필드
+5종(D-2026-054)·티어 색 대 실패 적색 근접(D-2026-055)·표기 누락 2건
+(D-2026-056)까지 M2-6 전 gate가 전부 닫힌 뒤 두 단계로 진행했다. 먼저
+`PlayResult.tier`를 core에 추가해 `options.settled`가 필드가 아니라 전달
+경로 문제였음을 해소하고, `game-session.ts`에 `gaugeTrace`(진행률
+`contentEndMs` 200등분, cascade는 게이지별 기록 후 확정 tier만 유지)·
+`progress`·`timingErrors`(MISS는 `NaN`)·`fastCount`/`slowCount`·`playedAt`
+다섯 필드를 배선했다. 이어 `ui-design.md`를 기준으로 CSS 토큰 전체와
+result 레이아웃을 `src/scene/scene-result.*`에 플랫 ES 모듈 + `data-action`
+패턴으로 포팅했다 — DOM 바인딩(§1·§2)과 키 계약(§4 Backspace=Back/Enter=
+Retry, 진입 400ms 락아웃 + 스킵 소비)이 이번 범위다. **M2-6 완료** — rank·
+state·score·accuracy·판정 수·FAST/SLOW·max combo가 표시되고 autoplay는
+result를 거치지 않는다(Exit 기준 충족). 점수 카운트업·rank/state 스탬프
+등장 연출(§5)은 순수 시각 효과라 Exit 기준에 걸리지 않아 별도 미배정
+작업으로 미뤘다. BPM 표기·곡 길이 표시는 M4-3 전 gate 대상이라 값을
+채우지 않았다. 테스트는 802건이다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
 - 라이브 웹 배포·`.cfx` 보호(암호화)·공개 서비스 기록 위치 — `DECISION_LOG.md` D-2026-021 (**M3 진입 전** 해소)
+- result 화면 등장 연출(점수 카운트업 → rank/state 스탬프, `ui-design.md` §5) — M2-6 Exit 기준 밖의 순수 시각 효과. 별도 작업, 일정 미배정
 
 ### 다음 후보
 
-- ui-design 최소본(토큰 + result 레이아웃) — [[build-order]] §2 gate, M2-6 진입 전
-- pause overlay·quick options 패널 UI (scene/render 컴포넌트, M4-7·M5-6)
+- **M2-7**(마감 — 탭 백그라운드 auto-pause·로딩 표시·브라우저 단축키 충돌 처리) — 다음 순서. 걸린 gate 없음
 - D-2026-021 사이클 (M3 진입 전)
-- UI 디자인 명세 신설 (토큰·금지 목록·scene별 레이아웃·모션) — M2-6 최소본 / M4 전체
 - credits scene 표시 내용 채우기 (소형, M4-2 전)
+- result 화면 등장 연출 (별도 작업, 일정 미배정)
