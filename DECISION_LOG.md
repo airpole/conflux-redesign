@@ -700,6 +700,22 @@
 - **Commit:** `f663ba1`
 
 
+### D-2026-062 — M3-2 첫 저장 version 고정, `env-file` 브라우저 폴백: 지금 결정하지 않음
+
+- **Status:** Accepted (팔로업 기록 — M3-2 완료와 무관, 블로킹 아님)
+- **Decision:** M3-2(`edit-chart-save`/`edit-chart-open`/`env-file`, `_meta/persistence.md` §4·§9) 구현 중 스펙 문면이 명시하지 않은 두 항목을 지금 결정하지 않고 남긴다.
+
+  1. **신규 chart 첫 저장에서 version을 사용자가 바꿀 수 있는가**: §4 "신규 chart 첫 저장"은 "첫 `Ctrl+S`는 version을 올리지 않고 v1로 저장한다"만 말한다 — 저장 창이 첫 저장에서도 version 필드를 보여주고 사용자가 그것을 편집할 수 있는지(예: 처음부터 v3으로 저장을 원하는 경우)는 적혀 있지 않다. `isSaveVersionValid`는 가장 좁은 해석 — **첫 저장은 메모리 `version`(항상 `1`)과 정확히 같아야 유효** — 을 채택했다. 사용자가 저장 창 UI에서 첫 저장 version을 직접 고를 수 있어야 한다면 이 함수의 계약이 바뀌어야 한다.
+  2. **`env-file`의 실제 브라우저 구현**: File System Access API(`showOpenFilePicker`/`showSaveFilePicker`) 모양으로 호스트 인터페이스를 잡았다 — 파일 위치·이름을 사용자가 저장 창에서 고를 수 있어야 한다는 §4 요구("저장 창에서 위치, 파일명, version을 확인·수정할 수 있다")에 가장 직접 맞는 API이기 때문이다. 이 API를 지원하지 않는 브라우저(Safari 구버전 등)에서의 폴백(`<input type=file>` + 다운로드 링크 등)은 다루지 않았다 — 실제 브라우저 호스트 구현체를 붙이는 시점(에디터 scene이 서는 M5, 또는 그 전에 실제 배선이 필요해지는 시점)에 정한다.
+
+  둘 다 milestone·step 번호를 받지 않는다 — ①은 저장 창 UI(M5)가 실제로 서는 시점, ②는 `env-file`의 실제 브라우저 호스트를 붙이는 시점에 그 자리에서 다룬다.
+- **Defined in:** `src/edit/edit-chart-save.ts`, `src/env/env-file.ts`, `_plan/build-order.md` M3-2
+- **Rationale:** Not required (D-2026-057·D-2026-061과 동일 패턴)
+- **Affects:** edit(edit-chart-save), env(env-file), 향후 M5(에디터 저장 창 UI)
+- **Supersedes:** None
+- **Commit:** (pending)
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

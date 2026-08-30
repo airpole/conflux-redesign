@@ -9,8 +9,13 @@
 `env-audio`·`env-canvas`·`env-time`·`env-input` 4파일이 M2-1 범위다(D-2026-047).
 브라우저 API는 함수 인자로 주입받는다(예: `env-audio`의 `createContext: () => AudioContext`,
 `env-time`의 `TimeLoopHost`) — 전역 `window`/`document`를 직접 읽지 않으므로 jsdom 없이
-Node에서 mock으로 계약을 검사한다. `env-file`은 M3-2 이후(파일 열기/저장 창)에서 쓰이므로
-아직 없다.
+Node에서 mock으로 계약을 검사한다.
+
+`env-file`은 M3-2 범위다([[persistence]] §4·§9). `env-storage`와 달리 사용자
+상호작용(취소 가능)이라 실패 모드가 다르다 — 취소는 정상 흐름(`cancelled`)이고
+실제 읽기/쓰기 실패는 던진다. File System Access API 모양(`showOpenFilePicker`/
+`showSaveFilePicker`)으로 호스트를 추상화했다. 실제 브라우저 미지원 시 폴백은
+아직 결정하지 않았다 — Deferred 항목.
 
 `env-storage`는 M3-1 범위다([[persistence]] §1). `workspace/library/records/settings/viewState`
 다섯 store를 IndexedDB object store 다섯 개로 분리해 독립적으로 읽고 쓴다(Blob을 담아야 하는
