@@ -621,7 +621,7 @@
 - **Rationale:** `_rationale/rationale.md` (사용자 확인: "둘다 확정. 그대로 가자")
 - **Affects:** scene
 - **Supersedes:** None (누락 보완이지 번복 아님)
-- **Commit:** (pending)
+- **Commit:** `6662669`
 
 
 ### D-YYYY-NNN — <Title>
