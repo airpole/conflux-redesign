@@ -713,7 +713,7 @@
 - **Rationale:** Not required (D-2026-057·D-2026-061과 동일 패턴)
 - **Affects:** edit(edit-chart-save), env(env-file), 향후 M5(에디터 저장 창 UI)
 - **Supersedes:** None
-- **Commit:** (pending)
+- **Commit:** `a2c366d`
 
 
 ### D-YYYY-NNN — <Title>
