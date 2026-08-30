@@ -15,3 +15,11 @@ dirty 해제 + workspace 삭제"를 구현한다. `edit-session-transition`은 �
 confirm(Save New Version/Discard/Cancel)의 **결정**만 담는다 — 실제 다이얼로그
 UI는 아직 없는 scene 층(M4/M5)의 몫이다. asset(music/jacket) 재연결 자체(파일
 선택 UI)는 M3-3 범위 밖 — Blob은 호출측이 이미 갖고 있다고 가정한다.
+
+`edit-cfx-package`는 M3-4 범위다([[cfx]] §4·§7~§11). 입력 선택 후 `songId`별
+그룹화(`groupBySongId`)·`chartId`별 최고 version 추천(`recommendCandidates`,
+동률은 자동 선택하지 않고 충돌 표시)·전체 검증(`validatePackageGroup`, §10
+체크리스트 전부)·빌드(`buildCfxPackage`, `env-file.createZipArchive` 사용)·
+저장 오케스트레이션(`packageAndSaveCfx`)을 제공한다. chart JSON 구조 검증은
+`edit-chart-open`(M3-2)이 이미 했다고 전제하고 다시 하지 않는다 — 후보로
+들어오는 것은 항상 `Chart`(파싱·structural 검증을 통과한 타입)다.

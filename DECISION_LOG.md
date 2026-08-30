@@ -732,6 +732,22 @@
 - **Commit:** `4d35880`
 
 
+### D-2026-064 — M3-4 `.cfx` ZIP 무압축(store), 폴더 스캔 prefill: 지금 결정하지 않음
+
+- **Status:** Accepted (팔로업 기록 — M3-4 완료와 무관, 블로킹 아님)
+- **Decision:** M3-4(`edit-cfx-package`/`env-file.createZipArchive`, `_meta/cfx.md` §8·§9) 구현 중 스펙 문면이 정하지 않는 두 항목을 지금 결정하지 않고 남긴다.
+
+  1. **ZIP 압축 방식**: `createZipArchive`는 **store(무압축)만** 구현했다 — 이 레포가 런타임 의존성 0을 유지해 온 것과 같은 이유로, deflate 압축을 직접 구현하거나 외부 라이브러리(fflate 등)를 새 런타임 의존성으로 들이는 대신 의존성 없는 최소 ZIP writer를 택했다. `_meta/cfx.md`는 압축 여부를 규정하지 않는다. asset(특히 음원)이 큰 패키지에서 결과물 용량이 커진다는 트레이드오프가 있다 — 실제 사용자 체감(다운로드/저장 시간)이 문제가 되면 그때 deflate로 바꾼다. `createZipArchive`의 시그니처(`ZipEntry[] → Uint8Array`)는 압축 방식이 바뀌어도 유지되므로 나중에 바꿔도 호출측(`edit-cfx-package`)은 손대지 않는다.
+  2. **폴더 스캔 prefill**: `_meta/cfx.md` §9는 "사용자가 작업 폴더 하나를 지정하면 접근 권한 범위에서 chart JSON·asset을 자동 탐색해 선택 목록을 미리 채운다"는 편의 기능을 정의하지만, 패키징 진입점 자체는 다중 파일 선택 하나로 확정돼 있다(D-2026-016). 이번 M3-4는 진입점(다중 파일 선택 → `groupBySongId`/`recommendCandidates`/`validatePackageGroup`/`buildCfxPackage`)만 구현했다 — 폴더 스캔은 그 선택 목록을 미리 채우는 **편의 기능일 뿐**이라 실제 파일시스템 탐색 UI(`showDirectoryPicker` 등)가 필요하고, 이는 패키징 화면 UI 자체가 서는 시점(M4/M5)의 일이다.
+
+  둘 다 milestone·step 번호를 받지 않는다 — ①은 실제 대용량 패키지에서 용량이 문제가 되는 시점, ②는 패키징 화면 UI가 서는 시점에 그 자리에서 다룬다.
+- **Defined in:** `src/env/env-file.ts`(`createZipArchive`), `src/edit/edit-cfx-package.ts`, `_plan/build-order.md` M3-4
+- **Rationale:** Not required (D-2026-057·061·062·063과 동일 패턴)
+- **Affects:** env(env-file), edit(edit-cfx-package), 향후 M4/M5(패키징 화면 UI)
+- **Supersedes:** None
+- **Commit:** (pending)
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

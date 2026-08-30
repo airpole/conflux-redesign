@@ -17,6 +17,13 @@ Node에서 mock으로 계약을 검사한다.
 `showSaveFilePicker`)으로 호스트를 추상화했다. 실제 브라우저 미지원 시 폴백은
 아직 결정하지 않았다 — Deferred 항목.
 
+`createZipArchive`는 M3-4 범위다([[cfx]] §8, `architecture.md` §1: "ZIP
+인코딩·디코딩은 env-file 소관"). store(무압축) 방식만 쓰는 의존성 없는 ZIP
+writer다 — 이 레포가 런타임 의존성 0을 유지하는 것과 같은 이유. `unzip`·
+Python `zipfile`로 실제 왕복 검증을 했다(테스트 자체는 손으로 짠 ZIP 리더로
+한다 — `env-file.test.ts`). `saveFile`의 `contents`는 `.cfx`(binary) 저장을
+위해 `string | Uint8Array`로 넓혔다.
+
 `env-storage`는 M3-1 범위다([[persistence]] §1). `workspace/library/records/settings/viewState`
 다섯 store를 IndexedDB object store 다섯 개로 분리해 독립적으로 읽고 쓴다(Blob을 담아야 하는
 store가 있어 `localStorage`는 쓸 수 없다). 쓰기/삭제 실패는 던지지 않고(편집을 막지 않음)

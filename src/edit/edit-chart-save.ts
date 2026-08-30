@@ -79,20 +79,23 @@ export async function saveChartVersion(
 }
 
 /**
- * 저장 창 기본 파일명. `_meta/cfx.md` §1: `{title}_{musicBy}_{difficulty}[_{subtitle}]_v{n}.json`.
  * 파일시스템에서 문제되는 문자만 최소로 걷어낸다 — 나머지 규칙(길이 제한,
  * 플랫폼별 예약어 등)은 실제 저장 창 구현체(브라우저 File System Access API)가
- * 스스로 처리하므로 여기서 흉내 내지 않는다.
+ * 스스로 처리하므로 여기서 흉내 내지 않는다. `edit-cfx-package`의 `.cfx`
+ * 기본 파일명(`_meta/cfx.md` §8)도 이 sanitizer를 공유한다.
  */
-export function suggestChartFileName(chart: Chart, version: number): string {
-  const sanitize = (s: string): string => s.replace(/[\\/:*?"<>|]/g, '').trim();
+export function sanitizeFileNameSegment(s: string): string {
+  return s.replace(/[\\/:*?"<>|]/g, '').trim();
+}
 
+/** 저장 창 기본 파일명. `_meta/cfx.md` §1: `{title}_{musicBy}_{difficulty}[_{subtitle}]_v{n}.json`. */
+export function suggestChartFileName(chart: Chart, version: number): string {
   const parts = [
-    sanitize(chart.metadata.title),
-    sanitize(chart.metadata.musicBy),
+    sanitizeFileNameSegment(chart.metadata.title),
+    sanitizeFileNameSegment(chart.metadata.musicBy),
     chart.difficulty,
   ];
-  if (chart.subtitle !== '') parts.push(sanitize(chart.subtitle));
+  if (chart.subtitle !== '') parts.push(sanitizeFileNameSegment(chart.subtitle));
 
   return `${parts.filter((p) => p !== '').join('_')}_v${version}.json`;
 }
