@@ -637,6 +637,22 @@
 - **Commit:** `fd70f46`
 
 
+### D-2026-058 — M2 Exit 충족 판정: 3종 실측 대조 + 2종 의도된 편차 + 3종 spec-테스트 잠정 승인
+
+- **Status:** Accepted
+- **Decision:** `_plan/build-order.md` §5 M2 Exit(수동 대조 시나리오 8종)을 아래 근거로 **충족**으로 판정한다.
+  - **실측 대조로 확인(3종)** — 전 SYNC·전 MISS·hard 사망. `airpole/conflux-editor`를 직접 clone해 골든 추출 파이프라인(`npm run golden`, `CONFLUX_EDITOR_DIR`)을 그 위에서 재실행하고, 결과(`result.json`·`gauge.json`)를 커밋된 골든 표와 바이트 단위로 대조했다 — 편차 0, 전체 816개 테스트 통과. 가정이 아니라 실제 원본 실행 결과다.
+  - **원본과 일치가 목표가 아님(2종)** — cascade 강등(`core/gauge.md` §4·`DIVERGENCES.md` GA-4, 원본에 대응물 자체가 없음)·곡 끝 tail(TM-1, `SONG_END_TAIL_MS` 고정값은 원본의 조건부 `+4000/+2000ms`와 다르게 가기로 이미 D-2026-030에서 확정된 의도된 편차). 이 둘은 "원본과 같은가"를 물을 대상이 아니다.
+  - **spec 테스트로 잠정 승인(3종)** — Hold 동시 소유(JD-2)·mid-start crossing-Hold(JD-7)는 `DIVERGENCES.md`가 이미 `미커버`로 등재해 원본 대조 골든이 없다고 밝혀뒀고, 후자는 원본 자체가 그 케이스를 정의하지 않는다. pause/Resume은 원본을 보존한 동작이 아니라 이번에 새로 정한 UX(D-2026-022)라 원본 대조 대상이 아니며, 검증에 실제 wall-clock·키 입력 타이밍이 필요해 headless 테스트로 재현할 수 없다. 셋 다 지금은 `core-judge.test.ts`/`game-engine.test.ts`의 spec 테스트(재설계 모델의 자기 일관성 검증)로 **당분간 충분**하다고 승인한다 — 진짜 원본-대조 수준 검증은 사람이 실제 브라우저에서 두 구현을 나란히 조작해야 하고, 이 세션엔 그 수단이 없다.
+
+  이 승인은 위 세 항목이 "검증 끝"이라는 뜻이 아니다 — `_meta/manual-qa.md`(QA-1~3)에 무엇을 어떻게 확인해야 통과인지 구체적 절차로 남겨, 나중에 실제 QA를 돌릴 근거를 잃지 않는다. 이 파일은 같은 벽(자동화 불가·사람 확인 필요)에 부딪히는 모든 미래 항목을 계속 쌓는 자리다.
+- **Defined in:** `_plan/build-order.md` §5, `_meta/manual-qa.md`
+- **Rationale:** `_rationale/rationale.md` (사용자 확인: "1/2/3은 실측 근거, 4/8은 의도된 편차, 5/6/7은 spec-테스트로 당분간 충분 — 진짜 검증은 브라우저 QA가 필요하며 지금 수단이 없다는 전제로 M2 Exit을 충족 처리한다")
+- **Affects:** _plan, _meta
+- **Supersedes:** None
+- **Commit:** (pending)
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

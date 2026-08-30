@@ -177,6 +177,14 @@ gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한
 
 **Exit**: 같은 chart를 원본과 재구현에서 나란히 플레이해 **판정 열·게이지 곡선·최종 state·rank가 일치**한다. 수동 대조 시나리오 — 전 SYNC / 전 MISS / hard 사망 / cascade 강등 / Hold 동시 소유 / mid-start / pause Resume / 곡 끝 tail.
 
+**충족** (D-2026-058). 전 SYNC·전 MISS·hard 사망 셋은 원본을 직접 clone해
+골든을 재추출한 실측 대조로 확인했다(무편차). cascade 강등·곡 끝 tail
+둘은 원본에 대응물이 없거나(GA-4) 의도된 편차(TM-1, D-2026-030)라 "원본과
+일치"가 애초에 목표가 아니다. 나머지 셋(Hold 동시 소유·mid-start·pause
+Resume)은 원본 미정의 또는 wall-clock 실기기 확인이 필요해 headless로
+실측할 수 없다 — 지금은 spec 테스트로 충분하다고 승인하고, 사람이
+브라우저로 확인할 목록을 `_meta/manual-qa.md`(QA-1~3)에 남긴다.
+
 로딩 표시(`.cfx` decode·음원 로드 등 비동기 작업이 [[constants]]
 `LOADING_INDICATOR_DELAY_MS`를 넘기면 뜨는 표시)는 M2-7에서 분리했다
 (D-2026-057) — 컴포넌트(`src/scene/scene-loading.ts`)는 이미 있지만

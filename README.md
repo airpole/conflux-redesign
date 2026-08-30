@@ -63,6 +63,7 @@
 | [records](_meta/records.md) | chart별 best record·no-record |
 | [persistence](_meta/persistence.md) | workspace·library·autosave·open/save/package |
 | [cfx](_meta/cfx.md) | chart JSON·`.cfx` format·identity·packager/loader |
+| [manual-qa](_meta/manual-qa.md) | 자동 검증 밖 항목(사람이 브라우저로 확인해야 하는 것) 백로그 |
 
 ### `_plan/`·받침 문서
 
@@ -138,7 +139,7 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M2 Exit(원본 대조 수동 시나리오 8종) 진행 전 마지막 단위였던 M2-7 완료. D-2026-057로 로딩 표시를 M2-7에서 분리해 별도 미배정 단위로 옮기고, M2-7을 탭 백그라운드 auto-pause·브라우저 단축키 충돌 처리 두 항목으로 좁혔다 — 둘 다 구현·테스트 완료. 다음은 M2 Exit 검증(§5) 자체다.
+- **Active unit:** M2 완료. M2 Exit(수동 대조 시나리오 8종)을 D-2026-058로 충족 판정했다 — 3종은 원본 clone 실측 대조, 2종은 의도된 편차, 3종은 spec 테스트로 잠정 승인하고 `_meta/manual-qa.md`(QA-1~3)에 사람 확인 목록을 남겼다. 다음 단위는 **M3 — persistence + `.cfx`**이지만 **M3 진입 gate(D-2026-021)가 아직 열려 있다** — 라이브 웹 배포 / `.cfx` 보호 수준 / 공개 서비스 기록 위치 세 결정이 미해결이라(`Status: Deferred`) 별도 결정 사이클 없이는 착수할 수 없다.
 - **Discussion Scope:** [[build-order]] §5.
 - **Change Scope:** M2-7 구현 세션에서 정한다
 - **Exit:** M1 아홉 step의 골든 테스트가 모두 통과하고, core 어느 모듈도 전역 상태나 브라우저 API를 import하지 않는다
@@ -468,17 +469,28 @@ M2-7은 이 배선 부재로 아직 미완료다. 테스트는 816건이다.
 유지한다. **M2-7 완료** — 탭 백그라운드 auto-pause·브라우저 단축키 충돌
 처리 두 항목만 남아 둘 다 충족한다.
 
+**M2 Exit을 충족 판정했다**(D-2026-058). 수동 대조 시나리오 8종 중 전
+SYNC·전 MISS·hard 사망 셋은 `airpole/conflux-editor`를 직접 clone해
+골든 추출 파이프라인을 그 위에서 재실행하고 커밋된 골든 표와 대조했다 —
+편차 0, 816개 테스트 전체 통과. cascade 강등·곡 끝 tail 둘은 원본에
+대응물이 없거나(GA-4) 의도된 편차(TM-1, D-2026-030)라 "원본과 일치"가
+애초에 목표가 아니다. 나머지 Hold 동시 소유(JD-2)·mid-start crossing-Hold
+(JD-7)·pause/Resume(D-2026-022, 재설계 UX) 셋은 원본이 그 케이스를
+정의하지 않거나 wall-clock·실제 입력 타이밍이 필요해 headless로 실측할
+수 없다 — spec 테스트로 당분간 충분하다고 승인하고, 실제 확인 절차를
+`_meta/manual-qa.md`(QA-1~3)에 남겼다. **M2 완료.**
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
 - 라이브 웹 배포·`.cfx` 보호(암호화)·공개 서비스 기록 위치 — `DECISION_LOG.md` D-2026-021 (**M3 진입 전** 해소)
 - result 화면 등장 연출(점수 카운트업 → rank/state 스탬프, `ui-design.md` §5) — M2-6 Exit 기준 밖의 순수 시각 효과. 별도 작업, 일정 미배정
 - 로딩 표시를 실제 비동기 호출부(`env-audio.decode()` 등)에 잇기 — `DECISION_LOG.md` D-2026-057. M2-7에서 분리된 별도 미배정 단위, 파일 로드 host가 생기는 시점(M3 이후 유력)에 붙는다
+- 사람 확인 필요(자동화 불가) 백로그 — `_meta/manual-qa.md`. QA-1(Hold 동시 소유)·QA-2(mid-start crossing-Hold)·QA-3(pause/Resume)로 시작, 같은 벽에 부딪히는 항목을 계속 쌓는 자리
 
 ### 다음 후보
 
-- **M2 Exit** — 원본과 나란히 플레이해 판정 열·게이지 곡선·최종 state·rank 대조(수동 시나리오 8종, [[build-order]] §5)
+- **M3 진입** — D-2026-021 사이클(라이브 웹 배포 / `.cfx` 보호 수준 / 공개 서비스 기록 위치)을 닫아야 착수 가능. 아직 열려 있다
 - pause overlay·quick options 패널 UI (scene/render 컴포넌트, M4-7·M5-6)
-- D-2026-021 사이클 (M3 진입 전)
 - credits scene 표시 내용 채우기 (소형, M4-2 전)
 - result 화면 등장 연출 (별도 작업, 일정 미배정)
