@@ -729,7 +729,7 @@
 - **Rationale:** Not required (D-2026-057·061·062와 동일 패턴)
 - **Affects:** edit(edit-workspace), 향후 M5(에디터 asset 패널)
 - **Supersedes:** None
-- **Commit:** (pending)
+- **Commit:** `4d35880`
 
 
 ### D-YYYY-NNN — <Title>
