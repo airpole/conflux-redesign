@@ -133,7 +133,7 @@ scope: UI 토큰 세트 + result 화면 레이아웃
 │ Gauge/Mods/   │     + 게이지 그래프│ + 분포 + FAST/SLOW   │
 │ Played        │                   │                      │
 ├───────────────┴──────────────────────────────────────────┤
-│                              [선택으로 ENTER] [다시 SPACE] │
+│                        [선택으로 BACKSPACE] [다시 ENTER] │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -227,20 +227,27 @@ export const msToPct = ms => ((ms + AXIS) / (AXIS * 2)) * 100
 
 | 키 | 동작 |
 |---|---|
-| ENTER | 확인 / 선택으로(song-select) |
-| SPACE | 다시 하기(Retry) |
+| BACKSPACE | 선택으로(Back → song-select) |
+| ENTER | 다시 하기(Retry) |
 
-**F5가 아니라 Space로 Retry한다** (D-2026-052) — F5는 브라우저 새로고침
-단축키와 겹쳐 `preventDefault()`로 막을 수 있다는 보장이 없다. result는
-gameplay 화면이 아니라 lane 키와 겹치지 않는다.
+Space는 result에서 쓰지 않는다.
+
+**Back = Backspace, Retry = Enter** (D-2026-053, D-2026-052 정정) — 1차
+근거는 **일관성**이다: D-2026-052가 Backspace를 전 씬 공통 "한 화면 뒤로"로
+통일했으므로, result도 그 의미를 따른다. Back이 Enter였다면 그 통일에
+result만 예외로 남았을 것이다. Backspace를 Back에 두면 예외가 사라지고,
+남은 Enter가 자연스럽게 실행/재시도가 된다. 2차 근거는 반사 입력 차단 —
+곡 종료 직후 손이 아직 lane 키(Space 포함) 위에 있어 마지막 노트에 대한
+연타 관성이 재시작으로 흘러들 수 있다. F5는 브라우저 새로고침 단축키와
+겹쳐 애초에 후보가 아니었다.
 
 result 화면은 ESC를 쓰지 않는다. `scene.md`의 기존 ESC 바인딩은 이 문서의
 범위 밖이었으나 D-2026-052로 결정됐다 — §9 참조.
 
 구현 조건:
-- `keydown`에서 `preventDefault()` (Space 스크롤 차단). `keyup`은 늦다
+- `keydown`에서 `preventDefault()`. `keyup`은 늦다
 - 키 핸들러는 document 레벨, 버튼은 `tabindex="-1"`.
-  포커스된 `<button>`이 Space를 클릭으로 소비하는 것을 막는다
+  포커스된 `<button>`이 Enter를 클릭으로 소비하는 것을 막는다
 - 진입 후 400ms 입력 락아웃 → 첫 입력은 연출 스킵으로 소비 → 두 번째부터 동작.
   마지막 노트 직후의 반사적 연타를 흡수한다
 
@@ -319,5 +326,12 @@ result 화면은 ESC를 쓰지 않는다. `scene.md`의 기존 ESC 바인딩은 
 B(`navigator.keyboard.lock`)는 Chromium 전용이라 채택하지 않았다 — Firefox·
 Safari에서 결국 A로 폴백해야 해 대체키를 두 벌 유지하는 비용이 더 크다.
 
-부수 확인(해소): song-select `Esc/Space` 닫기와 result `Space` 재시도는
-서로 다른 씬이라 충돌이 아니다.
+부수 확인: result가 D-2026-053으로 Space를 완전히 놓으면서(Back=Backspace,
+Retry=Enter) 이 항목은 자동으로 해소됐다 — result에 더 이상 Space가 없다.
+
+song-select의 quick options 닫기(`Esc/Space`)를 Backspace로도 옮길지는
+**이 게이트의 범위 밖**이다(D-2026-053). result의 반사 입력 근거(곡 종료
+직후 손이 lane 키 위)는 song-select에는 없는 조건이라 그대로 옮길 수 없고,
+Backspace-as-back 통일 관점에서 바꾸려면 "오버레이 닫기가 화면 뒤로가기인지
+패널 닫기인지"부터 song-select UX를 보고 정해야 한다. song-select 작업 때
+별도로 처리한다.

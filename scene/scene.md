@@ -172,8 +172,8 @@ gameplay
     Exit: song-select
 
 result
-  Retry(Space): gameplay `[수정]` (D-2026-052 — F5는 브라우저 새로고침으로 소비될 수 있어 배제)
-  Back(Enter): song-select
+  Retry(Enter): gameplay `[수정]` (D-2026-053 — F5는 브라우저 새로고침으로 소비될 수 있어 배제, Space는 곡 종료 직후 반사 입력 위험이 있어 배제)
+  Back(Backspace): song-select `[수정]` (D-2026-053 — D-2026-052가 정한 "Backspace = 전 씬 공통 뒤로" 통일의 예외를 없앤다)
 ```
 
 곡이 끝나는 시각 `songEndMs`의 정의는 [[timing]] §9다.
@@ -188,7 +188,9 @@ Resume은 **정지 카운트다운 재개**다 `[수정]` (D-2026-022): 화면·
 
 `.cfx` decode·음원 로드 등 비동기 작업이 [[constants]] `LOADING_INDICATOR_DELAY_MS`를 넘기면 로딩 표시를 낸다 `[신규]`.
 
-**Esc 전체화면 충돌과 대체키** `[수정]` (D-2026-052): 전체화면 중에는 Esc가 브라우저의 전체화면 탈출 단축키로 예약되어 앱에 도달하지 않고 `preventDefault()`로도 막을 수 없다. 위 네 곳(credits→title, song-select→mode-select, gameplay pause, result retry)에 비-Esc 대체키를 더한다 — **Backspace**를 "뒤로/일시정지" 전용 대체키로 통일해서 쓴다(gameplay에서도 Backspace를 누르면 pause가 열린다, title·mode-select와 같은 키). result의 Retry는 F5(브라우저 새로고침 단축키와 겹쳐 `preventDefault()`가 못 막을 수 있음) 대신 **Space**를 쓴다 — result는 gameplay 화면이 아니라 lane 키와 겹치지 않는다. song-select의 quick options overlay(Esc/Space로 닫기)는 이미 Space가 있어 추가 대체키가 필요 없다.
+**Esc 전체화면 충돌과 대체키** `[수정]` (D-2026-052): 전체화면 중에는 Esc가 브라우저의 전체화면 탈출 단축키로 예약되어 앱에 도달하지 않고 `preventDefault()`로도 막을 수 없다. Esc 바인딩이 있던 세 곳(credits→title, song-select→mode-select, gameplay pause)에 비-Esc 대체키를 더한다 — **Backspace**를 "화면 뒤로/일시정지" 전용 대체키로 통일해서 쓴다(gameplay에서도 Backspace를 누르면 pause가 열린다, title·mode-select와 같은 키). song-select의 quick options overlay(Esc/Space로 닫기)는 이미 Space가 있어 추가 대체키가 필요 없다 — 이 overlay의 Space를 Backspace로 옮길지는 별도 사안으로 남는다(D-2026-053 참조).
+
+result는 원래 Esc를 쓰지 않는 화면이라 이 문제와 무관했지만, `Back(Enter)`이 위 통일에서 유일한 예외로 남는 문제가 있었다 — D-2026-053이 result의 Back/Retry 키 배정을 `Back(Backspace)`/`Retry(Enter)`로 정정해 예외를 없앴다. F5(브라우저 새로고침과 충돌 가능)와 Space(곡 종료 직후 반사 입력 위험)는 Retry에서 배제됐다.
 
 Resume은 mid-start 시드 루틴을 호출하지 않는다 `[번복]` (D-2026-024): pause는 기존 head/tail 결과와 활성 Hold를 그대로 보존하고, 카운트다운 중 눌린 lane 키만 모아 pause anchor에서 `reconcileHeldCapacity`를 실행한다. 과거 노트 재시드는 없다. 판정 모델 단일 출처는 [[judge]] §10.
 

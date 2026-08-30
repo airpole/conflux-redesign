@@ -555,13 +555,26 @@
 
 ### D-2026-052 — ESC 전체화면 충돌 대체키, result Retry = Space
 
-- **Status:** Accepted
+- **Status:** Superseded (D-2026-053 — result의 Retry/Back 키 배정만 정정, 나머지 세 곳의 Backspace 대체키 결정은 유효)
 - **Decision:** 전체화면 중 ESC는 브라우저의 전체화면 탈출 단축키로 예약되어 `preventDefault()`로 막을 수 없다(`ui-design.md` §9). **안 A 채택** — `scene.md`의 기존 ESC 바인딩 네 곳에 비-ESC 대체키를 더한다: credits→title·song-select→mode-select·gameplay→pause overlay 셋 다 **Backspace**로 통일한다(사용자 확인: "gameplay에서도 backspace를 누르면 back해서 pause되는 것으로 통일하기" — 대체키는 화면마다 다른 키가 아니라 하나의 "뒤로" 키다). song-select의 quick options 닫기(`Esc/Space`)는 이미 Space가 있어 대체키가 불필요하다. `navigator.keyboard.lock`(안 B)는 Chromium 전용이라 기각 — Firefox·Safari에서 결국 안 A로 폴백해야 해 대체키를 두 벌 유지하는 비용이 더 크다. 같은 논의에서 result의 Retry 키도 `scene.md` 기존안 F5에서 **Space**로 바꾼다(사용자 확인: "f5를 누르면 브라우저 새로고침으로 작동하는 것 아닌가?" — F5도 ESC와 같은 종류의 브라우저 예약 단축키 문제를 안고 있어 채택 당시 Space로 논의·결정했었다). result는 gameplay 화면이 아니므로 lane 키와 겹치지 않는다.
 - **Defined in:** `scene/scene.md` §9, `scene/ui-design.md` §4·§9
 - **Rationale:** `_rationale/rationale.md` (사용자 확인: 안 A + Backspace 통일, Retry=Space)
 - **Affects:** scene
 - **Supersedes:** None (scene.md의 Esc-only·F5 서술을 대체)
 - **Commit:** `b4059bc`
+
+
+### D-2026-053 — result Back/Retry 키 정정: Back = Backspace, Retry = Enter (Space 미사용)
+
+- **Status:** Accepted
+- **Decision:** D-2026-052가 정한 result의 Retry=Space를 정정한다 — **Back = Backspace, Retry = Enter**, Space는 UI에서 쓰지 않는다. 1차 근거는 **일관성**이다: D-2026-052가 Backspace를 전 씬 공통 "한 화면 뒤로"로 통일했는데, result만 Enter를 Back에 쓰면(기존 `scene.md` "Back(Enter): song-select") 그 통일에 예외가 하나 남는다. Backspace를 Back에 두면 예외가 사라지고, 남은 Enter가 자연스럽게 실행/재시도가 된다. 2차 근거는 반사 입력 차단이다 — 곡이 막 끝난 직후 손이 아직 lane 키(Space 포함) 위에 있어 마지막 노트에 대한 연타 관성이 Retry로 흘러들 수 있다. 부수 효과로 Space가 result에서 완전히 빠지며 lane 키와의 중복도 없어진다. D-2026-052가 세운 "Backspace = 전 씬 공통 뒤로" 원칙을 되돌리는 게 아니라 끝까지 적용하는 쪽이다.
+
+  song-select의 quick options 닫기(`Esc/Space`)는 이번 결정의 범위 밖이다 — result의 반사 입력 문제(곡 종료 직후 손이 lane 키 위)는 song-select에는 없는 조건이라 같은 논리를 그대로 옮길 수 없고, Backspace-as-back 통일 관점에서 바꿀지는 "오버레이 닫기가 화면 뒤로가기인지 패널 닫기인지"부터 song-select UX를 보고 정해야 한다. result 게이트에 끼워 넣지 않고 song-select 작업 때 별도로 처리한다.
+- **Defined in:** `scene/scene.md` §9, `scene/ui-design.md` §4·§9
+- **Rationale:** `_rationale/rationale.md` (사용자 확인: "Retry = Enter, Back = Backspace" — 근거는 Backspace-as-back 통일의 예외 제거가 1차, 반사 입력 차단이 2차. song-select Space는 범위 밖, 이월)
+- **Affects:** scene
+- **Supersedes:** D-2026-052 (result의 Retry=Space 부분만 — 나머지 세 곳 Backspace 대체키 결정은 유효)
+- **Commit:** `(pending)`
 
 
 ```md
