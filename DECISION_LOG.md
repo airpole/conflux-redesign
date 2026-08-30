@@ -590,7 +590,7 @@
 - **Rationale:** `_rationale/rationale.md` (사용자 확인: 5필드 승인, gaugeTrace ms→진행률 간격 정정, Cascade 최고-tier-단일-배열→게이지별 기록 후 확정분만 유지로 정정)
 - **Affects:** scene, core(`PlayResult.tier` 추가는 별도 구현 스텝)
 - **Supersedes:** None (ui-design.md §6 8필드 초안을 대체)
-- **Commit:** (pending)
+- **Commit:** `f4e2298`
 
 
 ```md
