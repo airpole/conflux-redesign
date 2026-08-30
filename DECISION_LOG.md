@@ -745,7 +745,7 @@
 - **Rationale:** Not required (D-2026-057·061·062·063과 동일 패턴)
 - **Affects:** env(env-file), edit(edit-cfx-package), 향후 M4/M5(패키징 화면 UI)
 - **Supersedes:** None
-- **Commit:** (pending)
+- **Commit:** `494a1c1`
 
 
 ### D-YYYY-NNN — <Title>
