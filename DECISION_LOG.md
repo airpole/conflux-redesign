@@ -550,7 +550,7 @@
 - **Rationale:** `_rationale/rationale.md` (사용자 확인: "승인"; 원본 `play-result.js`/`index.html` 실측; `render/theme.md` 색 실측 대조)
 - **Affects:** scene, render, _plan
 - **Supersedes:** None (D-2026-051 초안을 대체 — 같은 번호, 초안이 채택 전까지 임시 참조였다)
-- **Commit:** `(pending)`
+- **Commit:** `b4059bc`
 
 
 ### D-2026-052 — ESC 전체화면 충돌 대체키, result Retry = Space
@@ -561,7 +561,7 @@
 - **Rationale:** `_rationale/rationale.md` (사용자 확인: 안 A + Backspace 통일, Retry=Space)
 - **Affects:** scene
 - **Supersedes:** None (scene.md의 Esc-only·F5 서술을 대체)
-- **Commit:** `(pending)`
+- **Commit:** `b4059bc`
 
 
 ```md
