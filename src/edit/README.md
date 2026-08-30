@@ -23,3 +23,12 @@ UI는 아직 없는 scene 층(M4/M5)의 몫이다. asset(music/jacket) 재연결
 저장 오케스트레이션(`packageAndSaveCfx`)을 제공한다. chart JSON 구조 검증은
 `edit-chart-open`(M3-2)이 이미 했다고 전제하고 다시 하지 않는다 — 후보로
 들어오는 것은 항상 `Chart`(파싱·structural 검증을 통과한 타입)다.
+
+`edit-cfx-load`는 M3-5 범위다([[cfx]] §12·§15). `env-file.readZipArchive`로
+`.cfx` bytes를 풀고, `.json` 항목은 `edit-chart-open`으로, 전체 구조는
+`edit-cfx-package`의 `validatePackageGroup`으로 검증한다 — `.cfx`는 "이미
+충돌이 해소된 최종 배포물"이라 §12.1 체크리스트가 §10과 같아서 재사용했다.
+손상(ZIP 자체·CRC·malformed JSON·미지원 schemaVersion·구조 위반) 중 하나라도
+있으면 부분 로드 없이 전체를 거부한다. game/library import가 요구하는 playable
+music 실제 decode 검증(§12.2)은 여기 없다 — "로드"가 아니라 "등록 가부"의
+정책이라 M3-6 소관이다.

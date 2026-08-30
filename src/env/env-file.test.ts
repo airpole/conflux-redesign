@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createFileEnv,
   createZipArchive,
+  readZipArchive,
   type FileOpenHost,
   type FileSaveHost,
 } from './env-file.js';
@@ -161,5 +162,62 @@ describe('createZipArchive', () => {
     const bytes = createZipArchive([{ name: 'plain.json', data: new Uint8Array([1]) }]);
     const [entry] = readZipEntries(bytes);
     expect(entry!.name).toBe('plain.json');
+  });
+});
+
+/** central directory offset(EOCD 16바이트째, 4바이트 LE)을 읽는다 — 손상 테스트용. */
+function centralDirOffsetOf(bytes: Uint8Array): number {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  return view.getUint32(bytes.length - 22 + 16, true);
+}
+
+describe('readZipArchive — createZipArchive의 짝(왕복)', () => {
+  it('createZipArchive가 만든 빈 아카이브를 되읽으면 빈 배열이다', () => {
+    expect(readZipArchive(createZipArchive([]))).toEqual([]);
+  });
+
+  it('createZipArchive가 만든 아카이브를 되읽으면 이름·내용이 정확히 복원된다', () => {
+    const encoder = new TextEncoder();
+    const original = [
+      { name: 'chart.json', data: encoder.encode('{"a":1}') },
+      { name: 'music.ogg', data: new Uint8Array([0, 1, 2, 255, 254]) },
+    ];
+
+    const decoded = readZipArchive(createZipArchive(original));
+
+    expect(decoded).toHaveLength(2);
+    expect(decoded[0]).toEqual(original[0]);
+    expect(decoded[1]).toEqual(original[1]);
+  });
+
+  it('너무 짧은 바이트열은 던진다', () => {
+    expect(() => readZipArchive(new Uint8Array([1, 2, 3]))).toThrow();
+  });
+
+  it('EOCD 시그니처가 없는 임의 바이트는 던진다 — 손상/구 포맷 거부', () => {
+    const garbage = new Uint8Array(100).fill(0x41); // 'A' 반복, ZIP이 아니다
+    expect(() => readZipArchive(garbage)).toThrow(/EOCD/);
+  });
+
+  it('데이터가 손상되면(CRC-32 불일치) 던진다', () => {
+    const bytes = createZipArchive([
+      { name: 'a.txt', data: new TextEncoder().encode('hello cfx') },
+    ]);
+    const corrupted = bytes.slice();
+    // local header(30바이트) + 파일명("a.txt", 5바이트) 뒤 첫 데이터 바이트를 뒤집는다.
+    const dataStart = 30 + 5;
+    corrupted[dataStart] = (corrupted[dataStart]! ^ 0xff) & 0xff;
+
+    expect(() => readZipArchive(corrupted)).toThrow(/CRC-32/);
+  });
+
+  it('store가 아닌 압축 방식은 던진다 — store만 지원한다', () => {
+    const bytes = createZipArchive([{ name: 'a.txt', data: new Uint8Array([1, 2, 3]) }]);
+    const patched = bytes.slice();
+    const view = new DataView(patched.buffer);
+    const centralOffset = centralDirOffsetOf(patched);
+    view.setUint16(centralOffset + 10, 8, true); // compression method → 8(deflate)
+
+    expect(() => readZipArchive(patched)).toThrow(/압축 방식/);
   });
 });

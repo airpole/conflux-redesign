@@ -24,6 +24,13 @@ Python `zipfile`로 실제 왕복 검증을 했다(테스트 자체는 손으로
 한다 — `env-file.test.ts`). `saveFile`의 `contents`는 `.cfx`(binary) 저장을
 위해 `string | Uint8Array`로 넓혔다.
 
+`readZipArchive`는 M3-4의 짝으로 M3-5에서 추가했다([[cfx]] §12.1 "구조
+검증·decode"). `createZipArchive`가 만든 아카이브뿐 아니라 다른 도구가 만든
+(comment가 있는) ZIP도 읽는다. 손상(EOCD/헤더 시그니처 불일치, 잘린 데이터,
+store 아닌 압축, CRC-32 불일치)은 조용히 넘기지 않고 던진다 — `edit-cfx-load`가
+그 예외를 잡아 `.cfx` 전체 거부로 번역한다. Python `zipfile`로 재압축한
+아카이브도 정확히 읽어냄을 수동으로 확인했다.
+
 `env-storage`는 M3-1 범위다([[persistence]] §1). `workspace/library/records/settings/viewState`
 다섯 store를 IndexedDB object store 다섯 개로 분리해 독립적으로 읽고 쓴다(Blob을 담아야 하는
 store가 있어 `localStorage`는 쓸 수 없다). 쓰기/삭제 실패는 던지지 않고(편집을 막지 않음)

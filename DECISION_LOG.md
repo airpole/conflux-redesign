@@ -748,6 +748,22 @@
 - **Commit:** `494a1c1`
 
 
+### D-2026-065 — M3-5 chart JSON/asset 구별 기준(`.json` 확장자), import decode 게이트 경계: 지금 결정하지 않음
+
+- **Status:** Accepted (팔로업 기록 — M3-5 완료와 무관, 블로킹 아님)
+- **Decision:** M3-5(`edit-cfx-load`, `_meta/cfx.md` §12·§15) 구현 중 스펙 문면이 명시하지 않는 두 항목을 지금 결정하지 않고 남긴다.
+
+  1. **`.cfx` 안에서 chart JSON과 asset을 가르는 기준**: `.cfx`는 하위 폴더 없는 평탄 ZIP이라([[cfx]] §8) chart JSON과 asset을 구조적으로 구별할 신호가 파일명 확장자뿐이다. `loadCfxPackage`는 `.json`으로 끝나는 항목만 chart 후보로 시도하고 나머지는 전부 asset으로 취급한다 — `.cfx` §1의 파일명 관례(`{title}_..._v{n}.json`)를 그대로 따른 것이다. 다른 접근(모든 항목을 일단 파싱 시도해보고 성공하는 것만 chart로 인정)도 가능했지만, 확장자 기준이 더 예측 가능하고 우연히 유효한 Chart 구조를 갖춘 비-chart JSON 자산이 chart로 오인될 여지를 없앤다. `_meta/cfx.md`가 이 구별 기준을 명문화하지 않아 결정 사항으로 남긴다.
+  2. **game/library import의 실제 audio decode 게이트**: `_meta/cfx.md` §12.2 "game/library import·load"는 "모든 playable music을 현재 환경에서 decode 검증한다 ... 하나라도 실패하면 package 전체 거부"를 요구한다. `loadCfxPackage`는 이 결정을 내리지 않는다 — ZIP 압축 해제와 §10/§12.1의 구조 검증까지만 하고, 실제 `env-audio.decode()`를 통한 음원 decode 검증은 하지 않는다. 이유: decode 검증은 "로드했다"가 아니라 "라이브러리에 등록해도 되는가"의 정책이고, `env-audio.AudioEnv`(M2-1)를 주입해야 하는데 그 주입·에러 집계·jacket-실패-시-placeholder-계속 로직은 M3-6(game library 등록)이 자연스러운 자리라고 판단했다. `_meta/cfx.md`는 이 경계를 "M3-5 vs M3-6"으로 명시하지 않으므로(빌드 오더의 step 경계가 이 판단 근거다), 결정 사항으로 남긴다.
+
+  둘 다 milestone·step 번호를 받지 않는다 — ①은 실제로 확장자 없는/다른 확장자의 chart JSON을 다뤄야 하는 사례가 나오는 시점, ②는 M3-6(game library 등록) 구현 시점에 그 자리에서 다룬다.
+- **Defined in:** `src/edit/edit-cfx-load.ts`, `_plan/build-order.md` M3-5·M3-6
+- **Rationale:** Not required (D-2026-057·061·062·063·064와 동일 패턴)
+- **Affects:** edit(edit-cfx-load), 향후 M3-6(game library)
+- **Supersedes:** None
+- **Commit:** (pending)
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

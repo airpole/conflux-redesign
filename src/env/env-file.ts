@@ -146,6 +146,85 @@ export function createZipArchive(entries: readonly ZipEntry[]): Uint8Array {
   return concatBytes([...localChunks, ...centralChunks, new Uint8Array(eocd.buffer)]);
 }
 
+/**
+ * `.cfx` ZIP 아카이브를 되읽는다(`createZipArchive`의 짝, M3-5). EOCD를
+ * 끝에서부터 찾아 central directory → local header 순서로 읽는다 — 다른
+ * 도구가 만든(comment 있는) ZIP도 열 수 있게 `createZipArchive`가 항상
+ * comment 0을 쓰는 것에 기대지 않는다.
+ *
+ * 손상은 **던져서** 명시적으로 거부한다(`_meta/cfx.md` §12.1) — 여기서
+ * 조용히 일부만 읽거나 기본값으로 채우지 않는다: EOCD/central directory/
+ * local header 시그니처 불일치, 잘린 데이터, store가 아닌 압축 방식,
+ * CRC-32 불일치.
+ */
+export function readZipArchive(bytes: Uint8Array): ZipEntry[] {
+  if (bytes.length < 22) throw new Error('ZIP이 너무 짧다 — EOCD를 찾을 수 없다');
+
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const eocdOffset = findEndOfCentralDirectory(bytes, view);
+  const totalRecords = view.getUint16(eocdOffset + 10, true);
+  const centralDirOffset = view.getUint32(eocdOffset + 16, true);
+
+  const decoder = new TextDecoder();
+  const entries: ZipEntry[] = [];
+  let pos = centralDirOffset;
+
+  for (let i = 0; i < totalRecords; i++) {
+    if (pos + 46 > bytes.length || view.getUint32(pos, true) !== 0x02014b50) {
+      throw new Error(`central directory 항목 #${i}이 손상됐다`);
+    }
+    const compressionMethod = view.getUint16(pos + 10, true);
+    const crc = view.getUint32(pos + 16, true);
+    const compressedSize = view.getUint32(pos + 20, true);
+    const nameLength = view.getUint16(pos + 28, true);
+    const extraLength = view.getUint16(pos + 30, true);
+    const commentLength = view.getUint16(pos + 32, true);
+    const localHeaderOffset = view.getUint32(pos + 42, true);
+
+    if (pos + 46 + nameLength > bytes.length)
+      throw new Error(`central directory 항목 #${i}의 파일명이 잘렸다`);
+    const name = decoder.decode(bytes.subarray(pos + 46, pos + 46 + nameLength));
+
+    if (compressionMethod !== 0) {
+      throw new Error(
+        `"${name}"이 지원하지 않는 압축 방식(${compressionMethod})을 쓴다 — store만 지원한다`,
+      );
+    }
+    if (
+      localHeaderOffset + 30 > bytes.length ||
+      view.getUint32(localHeaderOffset, true) !== 0x04034b50
+    ) {
+      throw new Error(`"${name}"의 local header가 손상됐다`);
+    }
+
+    const localNameLength = view.getUint16(localHeaderOffset + 26, true);
+    const localExtraLength = view.getUint16(localHeaderOffset + 28, true);
+    const dataStart = localHeaderOffset + 30 + localNameLength + localExtraLength;
+    if (dataStart + compressedSize > bytes.length) {
+      throw new Error(`"${name}"의 데이터가 잘렸다`);
+    }
+    const data = bytes.slice(dataStart, dataStart + compressedSize); // store 방식 — compressed == raw
+
+    if (crc32(data) !== crc) {
+      throw new Error(`"${name}"의 CRC-32가 일치하지 않는다 — 손상된 파일이다`);
+    }
+
+    entries.push({ name, data });
+    pos += 46 + nameLength + extraLength + commentLength;
+  }
+
+  return entries;
+}
+
+function findEndOfCentralDirectory(bytes: Uint8Array, view: DataView): number {
+  // comment가 있는 ZIP도 열 수 있게 끝에서부터 시그니처를 찾는다(comment 최대 65535바이트).
+  const searchStart = Math.max(0, bytes.length - 22 - 65535);
+  for (let i = bytes.length - 22; i >= searchStart; i--) {
+    if (view.getUint32(i, true) === 0x06054b50) return i;
+  }
+  throw new Error('EOCD(End Of Central Directory)를 찾지 못했다 — 유효한 ZIP이 아니다');
+}
+
 function concatBytes(chunks: readonly Uint8Array[]): Uint8Array {
   const total = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
   const out = new Uint8Array(total);
