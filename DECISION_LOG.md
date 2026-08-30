@@ -624,6 +624,19 @@
 - **Commit:** `6662669`
 
 
+### D-2026-057 — M2-7에서 로딩 표시를 분리, 별도 미배정 단위로
+
+- **Status:** Accepted
+- **Decision:** `_plan/build-order.md` §5의 M2-7("마감 — 탭 백그라운드 auto-pause, 로딩 표시, 브라우저 단축키 충돌 처리")에서 **로딩 표시**를 떼어낸다. M2-7은 이제 탭 백그라운드 auto-pause·브라우저 단축키 충돌 처리 두 항목만 남는다 — 둘 다 구현·테스트를 마쳤다. 로딩 표시는 실제 비동기 호출부(`env-audio.decode()` 등)에 잇는 배선이 있어야 관찰 가능한데, M2는 §5 목표("scene 그래프·파일 층은 아직 없고 chart는 고정 입력")상 그 배선을 붙일 파일 로드 host 자체가 없다 — Exit 기준("지연이 임계를 넘으면 로딩 표시가 뜬다")이 M2 안에서는 관찰될 길이 없는 항목을 억지로 M2-7에 두면 "못 짓는 게 아니라 순서 문제"인 자리에 gate 아닌 할 일을 방치하는 것과 같은 부류의 문제다(D-2026-046과 같은 논리, 대상만 gate가 아니라 step 항목).
+
+  분리된 로딩 표시는 milestone·step 번호를 받지 않는다 — 파일 로드 host를 짓는 step이 정해질 때(M3 이후 유력) 그 자리에 붙인다. 컴포넌트 자체(`src/scene/scene-loading.ts`, 임계 300ms 뜨고/숨는 계약)는 이미 구현·테스트됐고 그대로 유지한다 — 남는 것은 배선뿐이다.
+- **Defined in:** `_plan/build-order.md` §5, `README.md` 다음 후보
+- **Rationale:** `_rationale/rationale.md` (사용자 확인: "로딩-인디케이터 항목을 별도의, 일정 미배정 milestone/unit으로 분리하고... M2-7 범위를 이미 끝난 두 항목으로 좁혀라")
+- **Affects:** _plan, scene
+- **Supersedes:** None (M2-7 범위를 좁히는 것이지 이전 결정을 뒤집는 게 아니다)
+- **Commit:** (pending)
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

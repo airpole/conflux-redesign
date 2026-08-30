@@ -138,7 +138,7 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M2-7(마감 — 탭 백그라운드 auto-pause·로딩 표시·브라우저 단축키 충돌 처리) 진행 중. 탭 백그라운드 auto-pause(`game-visibility.ts`, blur 제외)·Esc/Backspace pause 바인딩(`game-pause-keys.ts`, D-2026-052)·로딩 표시 컴포넌트(`scene-loading.ts`, `LOADING_INDICATOR_DELAY_MS`)까지 구현했다. 로딩 표시를 실제 비동기 호출부(`env-audio.decode()` 등)에 잇는 배선은 M2에 파일 로드 host가 없어 대기 중이다.
+- **Active unit:** M2 Exit(원본 대조 수동 시나리오 8종) 진행 전 마지막 단위였던 M2-7 완료. D-2026-057로 로딩 표시를 M2-7에서 분리해 별도 미배정 단위로 옮기고, M2-7을 탭 백그라운드 auto-pause·브라우저 단축키 충돌 처리 두 항목으로 좁혔다 — 둘 다 구현·테스트 완료. 다음은 M2 Exit 검증(§5) 자체다.
 - **Discussion Scope:** [[build-order]] §5.
 - **Change Scope:** M2-7 구현 세션에서 정한다
 - **Exit:** M1 아홉 step의 골든 테스트가 모두 통과하고, core 어느 모듈도 전역 상태나 브라우저 API를 import하지 않는다
@@ -460,15 +460,24 @@ host가 없어(chart가 고정 입력, [[build-order]] §5) 이 컴포넌트를 
 비동기 호출부(`env-audio.decode()` 등)에 잇는 배선은 아직 없다 —
 M2-7은 이 배선 부재로 아직 미완료다. 테스트는 816건이다.
 
+**M2-7 범위를 좁혔다**(D-2026-057). 로딩 표시는 실제 비동기 호출부에 잇는
+배선이 있어야 관찰 가능한데, M2엔 그 배선을 붙일 파일 로드 host 자체가
+없다(§5 목표 — chart는 고정 입력) — 못 짓는 게 아니라 host가 생길 때까지
+순서상 붙일 자리가 없는 항목이라, M2-7의 Exit 기준에 억지로 걸어두지
+않고 별도 미배정 단위로 뗐다. 컴포넌트(`scene-loading.ts`)는 그대로
+유지한다. **M2-7 완료** — 탭 백그라운드 auto-pause·브라우저 단축키 충돌
+처리 두 항목만 남아 둘 다 충족한다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
 - 라이브 웹 배포·`.cfx` 보호(암호화)·공개 서비스 기록 위치 — `DECISION_LOG.md` D-2026-021 (**M3 진입 전** 해소)
 - result 화면 등장 연출(점수 카운트업 → rank/state 스탬프, `ui-design.md` §5) — M2-6 Exit 기준 밖의 순수 시각 효과. 별도 작업, 일정 미배정
+- 로딩 표시를 실제 비동기 호출부(`env-audio.decode()` 등)에 잇기 — `DECISION_LOG.md` D-2026-057. M2-7에서 분리된 별도 미배정 단위, 파일 로드 host가 생기는 시점(M3 이후 유력)에 붙는다
 
 ### 다음 후보
 
-- **M2-7 마무리** — 로딩 표시 컴포넌트를 실제 비동기 호출부(`env-audio.decode()` 등)에 잇기. 파일 로드 host가 생기는 시점(M3 이후 유력)에 자연스럽게 붙는다
+- **M2 Exit** — 원본과 나란히 플레이해 판정 열·게이지 곡선·최종 state·rank 대조(수동 시나리오 8종, [[build-order]] §5)
 - pause overlay·quick options 패널 UI (scene/render 컴포넌트, M4-7·M5-6)
 - D-2026-021 사이클 (M3 진입 전)
 - credits scene 표시 내용 채우기 (소형, M4-2 전)

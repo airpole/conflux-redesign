@@ -173,9 +173,17 @@ gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한
 | M2-4 | 입력 → judge 결선 + 판정 표시(콤보·판정 텍스트·FAST/SLOW·히트 이펙트) | 친 노트가 원본과 같은 판정을 받고 화면에 뜬다. autoplay가 정확한 타이밍에 자동 판정하고 히트음을 낸다. |
 | M2-5 | gauge HUD + clear/fail 분기 + pause overlay + quick options 패널 | 게이지가 판정에 따라 증감하고 75% 경계 표시가 바뀐다. terminate 모드에서 0 도달이 즉시 판을 끝낸다. Esc가 pause를 열고 Resume이 되감기 없이 카운트다운 후 그 지점에서 재개한다. |
 | M2-6 | result 화면 + Retry/Back | 판이 끝나면 result가 뜨고 rank·state·score·accuracy·판정 수·FAST/SLOW·max combo가 표시된다. autoplay 판은 result를 거치지 않는다. |
-| M2-7 | 마감 — 탭 백그라운드 auto-pause, 로딩 표시, 브라우저 단축키 충돌 처리 | 탭을 숨기면 pause가 열리고 blur만으로는 열리지 않는다. 지연이 임계를 넘으면 로딩 표시가 뜬다. |
+| M2-7 | 마감 — 탭 백그라운드 auto-pause, 브라우저 단축키 충돌 처리 `[수정]` (D-2026-057, 로딩 표시 분리) | 탭을 숨기면 pause가 열리고 blur만으로는 열리지 않는다. |
 
 **Exit**: 같은 chart를 원본과 재구현에서 나란히 플레이해 **판정 열·게이지 곡선·최종 state·rank가 일치**한다. 수동 대조 시나리오 — 전 SYNC / 전 MISS / hard 사망 / cascade 강등 / Hold 동시 소유 / mid-start / pause Resume / 곡 끝 tail.
+
+로딩 표시(`.cfx` decode·음원 로드 등 비동기 작업이 [[constants]]
+`LOADING_INDICATOR_DELAY_MS`를 넘기면 뜨는 표시)는 M2-7에서 분리했다
+(D-2026-057) — 컴포넌트(`src/scene/scene-loading.ts`)는 이미 있지만
+실제 비동기 호출부에 잇는 배선은 파일 로드 host가 있어야 성립하고, M2는
+"scene 그래프·파일 층은 아직 없고 chart는 고정 입력"이 전제다(§5 목표).
+호스트가 생기는 시점(M3 이후 유력)에 붙일 미배정 단위로 남긴다 —
+milestone·step 번호는 그 host를 짓는 step이 정해질 때 붙인다.
 
 ---
 
