@@ -11,6 +11,11 @@
  * 호출측(scene/app)이 이 상태를 구독해 그린다. 다음 쓰기가 그대로 재시도이며,
  * 성공하면 상태가 풀린다. `write`/`remove`는 실패해도 던지지 않는다 — 편집을
  * 차단하지 않는다는 계약을 호출측이 try/catch 없이 지킬 수 있게 한다.
+ *
+ * 값이 바뀌지 않아도 재시도할 수 있어야 하는 경우(실패 표시 옆 재시도
+ * 버튼)를 위해 `retryWrite`도 둔다 — 해당 store에 마지막으로 시도한
+ * 변경(write 또는 remove)을 같은 key·값으로 다시 시도한다. 시도 이력이
+ * 없으면 아무 것도 하지 않는다.
  */
 
 export const STORE_NAMES = ['workspace', 'library', 'records', 'settings', 'viewState'] as const;
@@ -36,13 +41,24 @@ export interface StorageEnv {
   /** 실패해도 던지지 않는다 — 실패는 `getWriteStatus`/`onWriteStatusChange`로 관찰한다. */
   write(store: StoreName, key: string, value: unknown): Promise<void>;
   remove(store: StoreName, key: string): Promise<void>;
+  /**
+   * 해당 store에 마지막으로 시도한 변경(write 또는 remove)을 값 변경 없이
+   * 다시 시도한다. 그 store에 시도 이력이 없으면 아무 것도 하지 않는다
+   * (성공도 실패도 아니므로 상태·구독자에 영향 없음).
+   */
+  retryWrite(store: StoreName): Promise<void>;
   keys(store: StoreName): Promise<string[]>;
   getWriteStatus(store: StoreName): StoreWriteStatus;
   onWriteStatusChange(listener: (store: StoreName, status: StoreWriteStatus) => void): () => void;
 }
 
+type LastAttempt =
+  | { readonly kind: 'write'; readonly key: string; readonly value: unknown }
+  | { readonly kind: 'remove'; readonly key: string };
+
 export function createStorageEnv(backend: StorageBackend): StorageEnv {
   const status = new Map<StoreName, StoreWriteStatus>(STORE_NAMES.map((s) => [s, CLEAR_STATUS]));
+  const lastAttempt = new Map<StoreName, LastAttempt>();
   const listeners = new Set<(store: StoreName, status: StoreWriteStatus) => void>();
 
   function setStatus(store: StoreName, next: StoreWriteStatus): void {
@@ -50,7 +66,16 @@ export function createStorageEnv(backend: StorageBackend): StorageEnv {
     for (const listener of listeners) listener(store, next);
   }
 
-  async function guardedWrite(store: StoreName, attempt: () => Promise<void>): Promise<void> {
+  function runAttempt(store: StoreName, attempt: LastAttempt): Promise<void> {
+    lastAttempt.set(store, attempt);
+    const run =
+      attempt.kind === 'write'
+        ? () => backend.set(store, attempt.key, attempt.value)
+        : () => backend.delete(store, attempt.key);
+    return guardedRun(store, run);
+  }
+
+  async function guardedRun(store: StoreName, attempt: () => Promise<void>): Promise<void> {
     try {
       await attempt();
       setStatus(store, CLEAR_STATUS);
@@ -65,11 +90,17 @@ export function createStorageEnv(backend: StorageBackend): StorageEnv {
     },
 
     write(store, key, value) {
-      return guardedWrite(store, () => backend.set(store, key, value));
+      return runAttempt(store, { kind: 'write', key, value });
     },
 
     remove(store, key) {
-      return guardedWrite(store, () => backend.delete(store, key));
+      return runAttempt(store, { kind: 'remove', key });
+    },
+
+    retryWrite(store) {
+      const attempt = lastAttempt.get(store);
+      if (!attempt) return Promise.resolve();
+      return runAttempt(store, attempt);
     },
 
     keys(store) {

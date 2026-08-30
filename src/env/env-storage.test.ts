@@ -128,6 +128,79 @@ describe('createStorageEnv — 쓰기 실패 처리', () => {
     expect(env.getWriteStatus('library').failed).toBe(true);
   });
 
+  it('retryWrite는 값 변경 없이 마지막 시도를 재실행해 성공하면 실패 표시를 지운다', async () => {
+    const backend = fakeBackend();
+    const original = backend.set.bind(backend);
+    let shouldFail = true;
+    backend.set = vi.fn(async (store, key, value) => {
+      if (shouldFail) throw new Error('일시 실패');
+      return original(store, key, value);
+    });
+    const env = createStorageEnv(backend);
+
+    await env.write('settings', 'k', { v: 1 });
+    expect(env.getWriteStatus('settings').failed).toBe(true);
+
+    shouldFail = false;
+    await env.retryWrite('settings');
+
+    expect(env.getWriteStatus('settings')).toEqual({ failed: false, lastError: undefined });
+    expect(await env.read('settings', 'k')).toEqual({ v: 1 });
+    // 재시도는 write() 시점의 값을 그대로 다시 보낸다 — 새 값을 요구하지 않는다.
+    expect(backend.set).toHaveBeenLastCalledWith('settings', 'k', { v: 1 });
+  });
+
+  it('retryWrite가 다시 실패하면 실패 표시가 계속 남는다', async () => {
+    const backend = fakeBackend();
+    const error = new Error('여전히 실패');
+    backend.set = vi.fn(async () => {
+      throw error;
+    });
+    const env = createStorageEnv(backend);
+
+    await env.write('records', 'song1:normal', { cleared: true });
+    await env.retryWrite('records');
+
+    expect(env.getWriteStatus('records')).toEqual({ failed: true, lastError: error });
+    expect(backend.set).toHaveBeenCalledTimes(2);
+  });
+
+  it('실패 이력이 없는 store에 retryWrite를 불러도 아무 일도 일어나지 않는다', async () => {
+    const backend = fakeBackend();
+    backend.set = vi.fn(backend.set);
+    const env = createStorageEnv(backend);
+    const events: Array<[StoreName, boolean]> = [];
+    env.onWriteStatusChange((store, s) => events.push([store, s.failed]));
+
+    await expect(env.retryWrite('library')).resolves.toBeUndefined();
+
+    expect(backend.set).not.toHaveBeenCalled();
+    expect(events).toEqual([]);
+    expect(env.getWriteStatus('library')).toEqual({ failed: false, lastError: undefined });
+  });
+
+  it('retryWrite는 마지막 시도가 remove였다면 remove를 재시도한다', async () => {
+    const backend = fakeBackend();
+    await backend.set('library', 'song1', { blob: 'a' });
+    const original = backend.delete.bind(backend);
+    let shouldFail = true;
+    backend.delete = vi.fn(async (store, key) => {
+      if (shouldFail) throw new Error('삭제 실패');
+      return original(store, key);
+    });
+    const env = createStorageEnv(backend);
+
+    await env.remove('library', 'song1');
+    expect(env.getWriteStatus('library').failed).toBe(true);
+
+    shouldFail = false;
+    await env.retryWrite('library');
+
+    expect(env.getWriteStatus('library')).toEqual({ failed: false, lastError: undefined });
+    expect(await env.read('library', 'song1')).toBeUndefined();
+    expect(backend.delete).toHaveBeenCalledTimes(2);
+  });
+
   it('onWriteStatusChange 구독자가 실패/복구를 store와 함께 통지받는다', async () => {
     const backend = fakeBackend();
     const original = backend.set.bind(backend);

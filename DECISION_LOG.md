@@ -684,6 +684,22 @@
 - **Commit:** `7d62200`
 
 
+### D-2026-061 — M3-1 쓰기 실패 UI 배선·IndexedDB 마이그레이션 정책: 지금 결정하지 않음
+
+- **Status:** Accepted (팔로업 기록 — M3-1 완료와 무관, 블로킹 아님)
+- **Decision:** M3-1(`env-storage`, `_meta/persistence.md` §1) 구현 중 나온 두 항목을 지금 결정하지 않고 후속 항목으로만 남긴다. 둘 다 "못 짓는 게 아니라 순서 문제"라 D-2026-057(로딩 표시 분리)과 같은 논리다 — 필요해지는 시점이 오면 그 자리에서 자연히 결정된다.
+
+  1. **쓰기 실패 지속 표시 UI**: `env-storage`는 `getWriteStatus`/`onWriteStatusChange`(및 이번에 추가한 `retryWrite`)로 실패를 관찰 가능하게만 만든다. 실제 화면 표시(토스트·배너 등)는 `architecture.md` §1 레이어 규율상 scene/app 소관이라 env가 만들 수 없고, 그걸 배선할 파일 저장/워크스페이스 호스트 자체가 아직 없다(M3-2·M3-3에서 생김). 호스트가 생기는 step에서 자연히 배선하면 된다 — 지금 결정할 제품 질문이 없다.
+  2. **IndexedDB 데이터베이스/버전 마이그레이션 정책**: 현재 데이터베이스명 `conflux`, version 1 고정, `onupgradeneeded`는 5개 object store를 만들기만 하고 실제 마이그레이션 로직은 없다. 각 store의 실제 스키마(library value 구조, records 필드 등)는 아직 M3-1 범위 밖(M3-6·M3-7 등 이후 step)이라 스키마가 실제로 바뀌는 시점 전에는 마이그레이션 정책을 정할 근거 자체가 없다. 스키마 변경이 실제로 생기는 step에서 다룬다.
+
+  둘 다 milestone·step 번호를 받지 않는다 — 필요해지는 시점(①은 M3-2/M3-3 유력, ②는 store 스키마가 실제로 바뀌는 첫 시점)에 그 자리에서 다룬다.
+- **Defined in:** `src/env/env-storage.ts`, `_plan/build-order.md` M3-1
+- **Rationale:** Not required (D-2026-057과 동일 패턴 — 순서 문제를 지금의 제품 결정으로 위장하지 않는다)
+- **Affects:** env(env-storage), 향후 M3-2/M3-3/M3-6/M3-7
+- **Supersedes:** None
+- **Commit:** (pending)
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred
