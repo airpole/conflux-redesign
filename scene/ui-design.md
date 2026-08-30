@@ -88,8 +88,12 @@ scope: UI 토큰 세트 + result 화면 레이아웃
 | S+, S | `#ffd23f` |
 | A+, A | `#ececf4` |
 | B | `#b0b0c8` |
-| C, D | `#8a8aa4` |
+| C, D, E | `#8a8aa4` |
 | F | `var(--j-miss)` |
+
+`E`는 초안에 없었다(`RANK_TABLE`엔 있음) — 표가 이미 인접 랭크를 그룹으로
+묶는 구조라(S+/S, A+/A) 그 패턴을 한 칸 더 밀어 `C`/`D` 그룹에 넣었다
+`[정정]` (D-2026-056).
 
 ### 1.7 FAST / SLOW
 
@@ -141,7 +145,8 @@ scope: UI 토큰 세트 + result 화면 레이아웃
 
 - `score` · `rank` · `state` 세 요소가 **같은 폰트 크기**(3.7cqw)로 한 줄.
   색으로만 구분한다. state는 테두리 박스 없이 풀네임(FULL COMBO, ALL SYNC,
-  HARD CLEAR, CLEAR, FAILED)으로 표기한다. 약어(FC/AS)는 곡 선택창 전용.
+  ALL PERFECT, HARD CLEAR, CLEAR, FAILED)으로 표기한다 `[정정 — 초안에 AP
+  누락]` (D-2026-056, `ALL SYNC`와 동형). 약어(FC/AS)는 곡 선택창 전용.
 - `accuracy`는 그 아래 2.1cqw, 라벨 없이 값만. 색 `--dim`.
 - 명칭은 **Accuracy**. Sync%가 아니다. SYNC는 판정 이름으로만 쓴다.
 

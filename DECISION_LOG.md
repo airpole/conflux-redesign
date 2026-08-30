@@ -609,6 +609,21 @@
 
 
 ```md
+### D-2026-056 — ui-design.md 표기 누락 2건 확정: AP 풀네임, rank E 색
+
+- **Status:** Accepted
+- **Decision:** M2-6 CSS/JS 포팅 중 발견된 `ui-design.md` 표기 누락 두 건을 인접 패턴으로 추론한 값 그대로 확정한다.
+  - **`AP`(ALL PERFECT) 풀네임**: §2.1의 state 풀네임 목록(FULL COMBO, ALL SYNC, HARD CLEAR, CLEAR, FAILED)에 `AP`가 빠져 있었다 — `PlayState` 6종 중 유일하게 누락. `AS`→`ALL SYNC`와 동일하게 "ALL " + 판정 이름 패턴을 그대로 적용해 `ALL PERFECT`로 확정한다.
+  - **rank `E` 색**: §1.6 랭크 색 표가 `RANK_TABLE`(`core-constants.ts`, U/S+/S/A+/A/B/C/D/E/F 10종)의 `E`를 누락했다. 표가 이미 인접 랭크를 그룹으로 묶는 구조(S+/S, A+/A, C/D)이므로 그 패턴을 한 칸 더 밀어 `C`/`D` 그룹(`#8a8aa4`)에 합류시킨다.
+
+  둘 다 기존 표의 구조적 패턴을 그대로 연장한 값이라 새 미학적 판단을 넣지 않았다.
+- **Defined in:** `scene/ui-design.md` §1.6, §2.1
+- **Rationale:** `_rationale/rationale.md` (사용자 확인: "둘다 확정. 그대로 가자")
+- **Affects:** scene
+- **Supersedes:** None (누락 보완이지 번복 아님)
+- **Commit:** (pending)
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

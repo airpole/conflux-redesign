@@ -105,8 +105,8 @@ export function stateColorVar(state: PlayState): string {
 
 /**
  * §2.1 "약어(FC/AS)는 곡 선택창 전용" — result는 풀네임을 쓴다.
- * `AP`(ALL PERFECT)의 정확한 표기는 `ui-design.md`가 명시하지 않는다 —
- * `ALL SYNC`와 동형으로 추정한 값이다(Deferred Finding, 확인 필요).
+ * `AP`(ALL PERFECT)는 `ui-design.md`가 직접 표기하지 않아 `ALL SYNC`와
+ * 동형으로 추정했고 D-2026-056으로 확정됐다.
  */
 const STATE_LABEL: Readonly<Record<PlayState, string>> = {
   AS: 'ALL SYNC',
@@ -123,8 +123,9 @@ export function stateLabel(state: PlayState): string {
 
 // ── §1.6 랭크 색 ────────────────────────────────────────────
 
-// `ui-design.md` §1.6은 `E`를 언급하지 않는다(`RANK_TABLE`엔 있음) — `C`/`D`와
-// 같은 그룹으로 묶어 추정한다(Deferred Finding, 확인 필요).
+// `ui-design.md` §1.6은 `E`를 언급하지 않는다(`RANK_TABLE`엔 있음) — 표가 이미
+// 인접 랭크를 그룹으로 묶는 구조라(S+/S, A+/A, C/D) 그 패턴을 한 칸 더 밀어
+// `C`/`D` 그룹에 넣었고 D-2026-056으로 확정됐다.
 const RANK_COLOR_VAR: Readonly<Record<Rank, string>> = {
   U: 'var(--cyan)',
   'S+': '#ffd23f',
