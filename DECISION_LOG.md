@@ -716,6 +716,22 @@
 - **Commit:** `a2c366d`
 
 
+### D-2026-063 — M3-3 복구 세션의 autosave 재개 시점, asset 재선택 UI: 지금 결정하지 않음
+
+- **Status:** Accepted (팔로업 기록 — M3-3 완료와 무관, 블로킹 아님)
+- **Decision:** M3-3(`edit-workspace`/`edit-session-transition`, `_meta/persistence.md` §5·§6) 구현 중 스펙 문면이 다루지 않는 두 항목을 지금 결정하지 않고 남긴다.
+
+  1. **복구된 세션의 autosave 재개 시점**: §6은 "복구된 세션은 dirty 상태로 시작한다"만 말하고, 복구 직후 autosave 타이머를 바로 예약할지(이미 dirty이므로) 아니면 다음 실제 변경까지 기다릴지는 적지 않는다. `createWorkspaceSession({ recovered: true })`는 후자 — **다음 변경까지 autosave를 예약하지 않는다** — 를 택했다. 방금 읽어들인 내용이 이미 디스크의 workspace와 같으므로 즉시 재기록이 불필요하다는 것이 근거이지만, "혹시 모를 비정상 종료 대비 재확인"을 원한다면 반대 선택이 맞을 수 있다.
+  2. **asset(music/jacket) 재선택 UI**: `WorkspaceSession.updateMusicBlob`/`updateJacketBlob`는 자리만 만들었다 — 실제로 사용자가 파일을 다시 골라 Blob을 주는 흐름(`_meta/persistence.md` §10 "필요한 경우 사용자가 asset을 다시 선택한다")은 파일 선택 UI가 있는 층(M5)의 몫이라 아직 배선하지 않았다.
+
+  둘 다 milestone·step 번호를 받지 않는다 — ①은 실제 비정상 종료 재현 테스트(수동 QA 또는 이후 milestone)가 필요해지는 시점, ②는 M5 asset 패널이 서는 시점에 그 자리에서 다룬다.
+- **Defined in:** `src/edit/edit-workspace.ts`, `_plan/build-order.md` M3-3
+- **Rationale:** Not required (D-2026-057·061·062와 동일 패턴)
+- **Affects:** edit(edit-workspace), 향후 M5(에디터 asset 패널)
+- **Supersedes:** None
+- **Commit:** (pending)
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred
