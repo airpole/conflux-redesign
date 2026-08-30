@@ -452,6 +452,7 @@ result를 거치지 않는다(Exit 기준 충족). 점수 카운트업·rank/sta
 ### 다음 후보
 
 - **M2-7**(마감 — 탭 백그라운드 auto-pause·로딩 표시·브라우저 단축키 충돌 처리) — 다음 순서. 걸린 gate 없음
+- pause overlay·quick options 패널 UI (scene/render 컴포넌트, M4-7·M5-6)
 - D-2026-021 사이클 (M3 진입 전)
 - credits scene 표시 내용 채우기 (소형, M4-2 전)
 - result 화면 등장 연출 (별도 작업, 일정 미배정)
