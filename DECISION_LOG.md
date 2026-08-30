@@ -577,6 +577,22 @@
 - **Commit:** `8ca8842`
 
 
+### D-2026-054 — result 데이터 필드 5종 확정: gaugeTrace·progress·timingErrors·fastCount/slowCount·playedAt
+
+- **Status:** Accepted
+- **Decision:** `ui-design.md` §6의 8개 후보 중 실제로 빠진 다섯 필드만 `scene.md` §9에 추가한다. `chart.subtitle`·`fast`/`slow`(표시)·`prevBest`(표시 자체)는 이미 §9 result 표시 줄에 있어 제외한다. `options.settled`는 새 필드가 아니라 **전달 경로 문제**로 확인됐다 — `PlayResult`(`src/core/core-gauge.ts:246`)에 `tier`가 없어 `evaluateState`가 소비하고 버린다; `PlayResult.tier: Tier`를 core에 추가하고 `game-session.ts` 호출부를 고친다.
+  - `progress`: 0~1. clear 시 항상 `1`, `forceEnded` 시 `종료 tick / songEnd tick`. 화면은 실패 시에만 쓴다.
+  - `prevBest`: `null`이 정상 값이다(M3 이전·이후 최초 플레이 공통) — result는 `null`을 `0`/`0.00%` 기준선으로 다룬다. M3(기록 저장)를 기다릴 필요 없이 지금 붙인다.
+  - `timingErrors`: `Float32Array`, 판정마다 1개 push. MISS는 `NaN`(0을 넣으면 분포 중앙에 가짜 봉우리가 생긴다) — 히스토그램·σ 계산은 `NaN`을 표본에서 제외한다. 원본 `histogram()`/`timingStats()`를 그대로 포팅하면 `NaN`을 거르지 않아 인덱스·평균이 깨지므로, 재구현 두 함수 모두 진입부에 `Number.isFinite()` 필터를 추가한다.
+  - `fastCount`/`slowCount`: 신규 필드 아님 — 이미 `playState.fastCount`/`slowCount`(D-2026-039)이고 §9 "FAST·SLOW" 표시가 이 값을 읽는다고 명시만 한다. SYNC·MISS·wide·autoplay 제외 규칙은 기존 `[[glossary]]` §2 그대로다.
+  - `gaugeTrace`: 고정 200포인트, **진행률(songEnd 200등분) 간격**이다 — ms 간격은 고정 개수와 양립하지 않고(곡 길이로 나누면 그게 곧 진행률 간격) 실패 조기 종료 시 `progress` 기반 가로 폭 계산과 어긋난다. Cascade는 게이지 종류별로 각각 기록하다가 세션 종료 시 **확정된 tier의 배열만 남긴다** — "매 샘플 최고 tier 하나"로 이어붙이면 확정 단색 라인(§1) 아래 서로 다른 게이지 구간이 섞이고 값이 도약한다.
+- **Defined in:** `scene/ui-design.md` §6, `scene/scene.md` §9(후속 반영)
+- **Rationale:** `_rationale/rationale.md` (사용자 확인: 5필드 승인, gaugeTrace ms→진행률 간격 정정, Cascade 최고-tier-단일-배열→게이지별 기록 후 확정분만 유지로 정정)
+- **Affects:** scene, core(`PlayResult.tier` 추가는 별도 구현 스텝)
+- **Supersedes:** None (ui-design.md §6 8필드 초안을 대체)
+- **Commit:** (pending)
+
+
 ```md
 ### D-YYYY-NNN — <Title>
 

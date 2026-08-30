@@ -1,6 +1,6 @@
 # ui-design (최소본) — tokens + result layout
 
-status: Accepted (D-2026-051) — §7-2·§7-3(티어 색 대 Shape/실패 적색)과 §6(scene.md §9 필드 8개 추가)은 별도 게이트로 남는다
+status: Accepted (D-2026-051) — §7-2·§7-3(티어 색 대 Shape/실패 적색)은 별도 게이트로 남는다. §6(scene.md §9 필드 추가)은 D-2026-054로 닫혔다
 supersedes: D-2026-051 초안 (원본 `play-result.js` 계승안)
 scope: UI 토큰 세트 + result 화면 레이아웃
 
@@ -264,20 +264,72 @@ result 화면은 ESC를 쓰지 않는다. `scene.md`의 기존 ESC 바인딩은 
 
 ---
 
-## 6. scene.md §9 개정 필요 [보류]
+## 6. scene.md §9 개정 필요 [계획]
 
-§9 필드 목록에 없으나 이 레이아웃이 요구하는 항목. 별도 게이트로 처리한다.
+§9 `result` 표시 목록과 대조해 실제로 빠진 다섯 필드만 남긴다(재검토 경과는
+DECISION_LOG D-2026-0xx). `chart.subtitle`·`fast`/`slow`(표시)·`prevBest`(표시
+자체)는 이미 §9 "result 표시" 줄에 있어 제외했다 — `prevBest`는 필드 추가가
+아니라 §9 문면에 **null 허용과 0 기준선 동작**을 명시하는 문제로 남는다(§6.1).
+`options.settled`는 §6.2에서 확인한 대로 `tier` 전달 경로 문제이지 result의
+표시 필드 문제가 아니다.
 
-| 필드 | 용도 |
-|---|---|
-| `gaugeTrace: number[]` | 게이지 궤적 그래프 |
-| `progress: number` | 실패 시 중단 지점 (0~1) |
-| `timing: { mean, sigma }` | 타이밍 분포 |
-| `fast`, `slow` | 균형 바 |
-| `chart.subtitle?: string` | 난이도 부제 |
-| `options.settled?: GaugeType` | Cascade 확정 게이지 |
-| `prevBest: {...} \| null` | 갱신 전 기록. null이면 0 기준선 |
-| `playedAt` | 플레이 시각 |
+| 필드 | 타입 | 용도 | 수집 시점 / 보관 위치 |
+|---|---|---|---|
+| `gaugeTrace` | `number[]` | 게이지 궤적 그래프 | §6.3 |
+| `progress` | `number` (0~1) | 실패 시 중단 지점. clear 시 항상 `1` | 세션 종료(`finalize`) 시 1회 계산 — `forceEnded ? (종료 tick / songEnd tick) : 1` |
+| `timingErrors` | `Float32Array` | 타이밍 오차 분포 원자료(§6.4) — 통계(`mean`/`sigma`)는 result 화면이 계산한다 | 판정마다 1개 push, `playState`에 노트 수만큼 누적 |
+| `fastCount` / `slowCount` | `number` | 균형 바 | 이미 `playState.fastCount`/`slowCount`([[naming]] §4, D-2026-039) — **신규 필드 아님**, §9 result 표시 줄의 "FAST·SLOW"가 이 값을 읽는다고 명시만 하면 된다 |
+| `playedAt` | `number` (epoch ms) | 플레이 시각 | 세션 종료 시 1회, `Date.now()` |
+
+### 6.1 `prevBest` — null 기준선 [계획]
+
+기록이 없는 chart(M3 이전 전부, M3 이후에도 최초 플레이)는 `prevBest: null`을
+정상 값으로 받는다. result 화면은 `prevBest == null`일 때 `0`/`0.00%`를
+기준선으로 NEW BEST 델타를 계산한다 — M3(기록 저장)를 기다릴 필요 없이 지금
+붙여도 동작한다. §9 "best record" 줄에 이 문장을 추가한다.
+
+### 6.2 `options.settled` — 필드 아닌 전달 경로 문제 [확인 완료]
+
+`PlayResult`(`src/core/core-gauge.ts:246`)에 `tier`가 없다. `evaluateState`가
+`GaugeState.tier`를 내부에서 소비해 `state`를 산출하지만 `tier` 자체는
+`computeResult` 반환값에서 버려진다 — result가 필요한 것은 `state`(마크)가
+아니라 게이지 종류(`Tier`) 자체이므로 지금은 정말로 얻을 방법이 없다.
+
+→ **새 result 필드가 아니라 `PlayResult.tier: Tier`를 core에 추가하는
+문제**다. `render/theme.md`의 `--gauge-{tier}` 토큰과 옵션 패널의 게이지
+이름 표시가 이 값을 그대로 쓴다. `game-session.ts`에서 `computeResult`
+호출부 수정이 필요하다 — Change Scope에 포함한다.
+
+### 6.3 `gaugeTrace` — 샘플링과 Cascade 범위 [계획]
+
+- **샘플 개수·간격**: 고정 200포인트, **진행률(songEnd 200등분) 간격**이다
+  `[번복 — 초안의 ms 간격 폐기]`. 고정 개수와 ms 간격은 같이 성립하지 않는다
+  — ms 간격을 쓰려면 곡 길이로 나눠 정해야 하는데 그게 곧 진행률 간격이고,
+  실패로 중간에 끊기면 ms 간격은 200개가 안 차 화면이 `progress`로 가로
+  폭을 잡는 방식과 어긋난다. 진행률 간격은 곡이 끝나면 정확히 200개, 실패
+  시 앞쪽 일부만 차 `progress` 폭 계산과 그대로 맞는다. pause·카운트다운은
+  tick이 안 흐르므로 애초에 샘플이 밀리지 않는다 — ms 간격을 골랐던 이유
+  자체가 사라진다.
+- **Cascade 범위**: 게이지 종류별로 각각 200포인트 배열을 기록하다가, 세션
+  종료 시 **확정된 tier의 배열만 남기고 나머지는 버린다** `[번복 — 초안의
+  "매 샘플 최고 tier 하나" 폐기]`. "매 샘플 시점의 최고 tier"를 한 배열에
+  이어붙이면 HARD 구간과 NORMAL 구간이 한 선으로 이어지며 확정색(하나) 아래
+  값이 도약한다 — 화면은 단색 라인으로 확정돼 있어(§1) 전환 지점을 데이터로
+  얹는 쪽(색이 중간에 바뀌는 안)은 그 레이아웃을 다시 여는 것이라 채택하지
+  않는다. 메모리는 200 × 게이지 종류 수로 여전히 사소하다.
+
+### 6.4 `timingErrors` — MISS 처리 [계획]
+
+MISS는 오차 없는 판정이라 `NaN`으로 push한다. `0`으로 넣으면 분포 정가운데
+가짜 봉우리가 생긴다 — result 화면의 히스토그램/σ 계산은 `NaN`을 표본에서
+제외한다(개수 자체는 judgment count 쪽에 이미 집계됨, `fastCount`/`slowCount`와
+동일하게 SYNC·MISS·wide·autoplay는 여기서도 제외 대상 — [[glossary]] §2 규칙과
+정합).
+
+**소비 쪽 주의 — 그대로 포팅하면 걸린다.** 원본 `js/judgment.js`의
+`histogram()`은 범위 검사만 하고 `NaN`을 그대로 통과시켜 인덱스가 `NaN`이
+되고, `timingStats()`는 평균이 통째로 `NaN`이 된다. 재구현하는 두 함수 모두
+진입부에서 `Number.isFinite()`로 걸러야 한다 — Change Scope에 포함한다.
 
 ---
 
