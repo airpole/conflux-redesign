@@ -1,6 +1,6 @@
 # ui-design (최소본) — tokens + result layout
 
-status: Accepted (D-2026-051) — §7-2(티어 색 대 Shape 색)는 별도 게이트로 남는다. §6(scene.md §9 필드 추가)은 D-2026-054로, §7-3(티어 색 대 실패 적색)은 D-2026-055로 닫혔다
+status: Accepted (D-2026-051) — §6(scene.md §9 필드 추가)은 D-2026-054, §7-3(티어 색 대 실패 적색)은 D-2026-055로 닫혔다. §7-2(티어 색 대 Shape 색)는 결정이 아니라 scene 축 분리 확인으로 해소— 별도 D-log 없음
 supersedes: D-2026-051 초안 (원본 `play-result.js` 계승안)
 scope: UI 토큰 세트 + result 화면 레이아웃
 
@@ -338,9 +338,13 @@ MISS는 오차 없는 판정이라 `NaN`으로 push한다. `0`으로 넣으면 �
 1. ~~note 팔레트 충돌~~ **해소.** `#4ae8ff`가 `WIDE_COLOR`와 완전히 같은
    값임이 확인되어 `#4fbcd0`으로 교체했다. `--gauge-NORMAL`도 `#5ad1ff`가
    `TEXT_COLOR`와 가까워 초록 계열 `#4aa870`으로 옮겼다.
-2. **티어 색 대 Shape 색 [미확인].** DRIFT `#4a9eff` / SURGE `#ff4d5e`가
-   Shape의 Blue/Red 계열과 겹칠 수 있다. 티어 칩은 곡 선택창에도 노출된다.
-   `shape.md` / `theme.md`와 대조 필요.
+2. **티어 색 대 Shape 색 [해소].** DRIFT `#4a9eff` / SURGE `#ff4d5e`가 Shape의
+   Blue/Red 계열(`theme.md` §2 `#6bb5ff`/`#ff6b8a`)과 색상 계열은 겹치지만,
+   Shape 경계는 `drawGameFrame`(gameplay 캔버스, editor test-play 공유)에서만
+   그려지고 티어 칩은 song-select·result 두 scene에서만 노출된다 — `scene.md`
+   §9 mode graph가 한 번에 한 scene만 활성화하므로 두 색이 같은 화면에
+   동시에 뜨는 경로 자체가 없다(scene 축 분리). 코드로 확인됨 — `theme.md`
+   §2 draw order·`scene.md` §9 mode graph 대조.
 3. **SURGE 대 실패 적색 [수용]** (D-2026-055). `#ff4d5e`와 `--j-miss`
    `#ff5f70`이 가깝지만 렌더 형태가 다르다 — 티어 칩은 배경이 칠해진 박스,
    실패 표시는 작은 글자·아이콘이라 나란히 놓여도 형태로 갈린다. §7-5(CLEAR
