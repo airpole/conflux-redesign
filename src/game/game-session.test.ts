@@ -351,6 +351,124 @@ describe('createGameSession — pause·Resume', () => {
   });
 });
 
+describe('createGameSession — result 필드 (D-2026-054)', () => {
+  it('자연 종료(clear) 시 gaugeTrace가 정확히 200개, progress는 1이다', () => {
+    const chart = makeChart({ notes: [{ startTick: 0, duration: 0, lane: 1, isWide: false }] });
+    const timeline = buildTimeline(chart);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: true,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+    });
+
+    const before = Date.now();
+    session.advance(LEAD_IN_MS);
+    session.advance(LEAD_IN_MS + songEnd.songEndMs + 1);
+
+    expect(session.result!.gaugeTrace).toHaveLength(200);
+    expect(session.result!.progress).toBe(1);
+    expect(session.result!.playedAt).toBeGreaterThanOrEqual(before);
+  });
+
+  it('forceEnded 시 gaugeTrace가 앞쪽 일부만 차고 progress는 종료 지점의 진행률이다', () => {
+    // hard MISS delta = -5, 시작 100 — 21개를 한 박씩 띄워 전부 미스시켜 죽인다.
+    // 훨씬 뒤(tick 480*200)에 note를 하나 더 둬 contentEndMs를 늘린다 — 죽는
+    // 시점이 곡 진행률의 앞쪽 일부가 되게 하는 장치일 뿐, 판정까지 가지 않는다.
+    const notes = [
+      ...Array.from({ length: 21 }, (_, i) => ({
+        startTick: i * 480,
+        duration: 0,
+        lane: 1 as const,
+        isWide: false,
+      })),
+      { startTick: 480 * 200, duration: 0, lane: 2 as const, isWide: false },
+    ];
+    const chart = makeChart({ notes });
+    const timeline = buildTimeline(chart);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'hard',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+    });
+
+    const lastMissNoteMs = tickToMs(timeline, notes[20]!.startTick); // 21번째(죽는 순간) — 꼬리 note 아님.
+    session.advance(LEAD_IN_MS + lastMissNoteMs + 500);
+
+    expect(session.gaugeState.forceEnded).toBe(true);
+    expect(session.result!.gaugeTrace.length).toBeLessThan(200);
+    expect(session.result!.progress).toBeGreaterThan(0);
+    expect(session.result!.progress).toBeLessThan(1);
+    expect(session.result!.progress).toBeCloseTo(ctx.sharedMs / songEnd.contentEndMs, 5);
+  });
+
+  it('fastCount/slowCount는 fastSlow 이벤트만 세고, timingErrors는 MISS를 NaN으로 넣는다', () => {
+    const chart = makeChart({
+      notes: [
+        { startTick: 0, duration: 0, lane: 1, isWide: false },
+        { startTick: 480, duration: 0, lane: 2, isWide: false },
+      ],
+    });
+    const timeline = buildTimeline(chart);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+    const note2Ms = tickToMs(timeline, 480);
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+    });
+
+    session.advance(LEAD_IN_MS);
+    // 40ms 일찍 쳐서 PERFECT+FAST를 낸다(WINDOW_PERFECT_MS=50 안, SYNC=25 밖).
+    session.input.onKeyDown(fakeKeyEvent('KeyE', LEAD_IN_MS - 40));
+    expect(session.display.lastJudgment?.judgment).toBe('PERFECT');
+
+    // 두 번째 note는 놓쳐 MISS.
+    session.advance(LEAD_IN_MS + note2Ms + 1000);
+    session.advance(LEAD_IN_MS + songEnd.songEndMs + 1);
+
+    expect(session.result!.fastCount).toBe(1);
+    expect(session.result!.slowCount).toBe(0);
+    expect(session.result!.timingErrors).toHaveLength(2);
+    expect(session.result!.timingErrors[0]).toBeCloseTo(-40, 5);
+    expect(Number.isNaN(session.result!.timingErrors[1])).toBe(true);
+  });
+});
+
 describe('createGameSession — 히트음', () => {
   function fakeHitSound() {
     const source = { buffer: null, connect: vi.fn(), start: vi.fn() };

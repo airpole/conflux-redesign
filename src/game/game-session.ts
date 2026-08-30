@@ -64,6 +64,26 @@ export interface GameSessionOptions {
   readonly hitSound: HitSoundSource | null;
 }
 
+/**
+ * result 화면 전용 필드. core `PlayResult`에 host(진행률·벽시계)만 아는
+ * 값을 얹는다 — core는 wall-clock이나 songEnd 진행률을 모른다(D-2026-054).
+ */
+export interface ResultData extends PlayResult {
+  /** 진행률(`GAUGE_TRACE_SAMPLES`) 등분 시점의 확정 tier 값 궤적. */
+  readonly gaugeTrace: readonly number[];
+  /** 0~1. clear 시 항상 1, forceEnded 시 종료 지점의 진행률. */
+  readonly progress: number;
+  /** 판정마다 1개. MISS는 `NaN`(히스토그램·σ 계산에서 제외 — D-2026-054 §6.4). */
+  readonly timingErrors: Float32Array;
+  readonly fastCount: number;
+  readonly slowCount: number;
+  /** epoch ms. */
+  readonly playedAt: number;
+}
+
+/** 게이지 궤적 그래프의 고정 샘플 개수(D-2026-054 §6.3). */
+export const GAUGE_TRACE_SAMPLES = 200;
+
 export interface GameSession {
   readonly ctx: CTX;
   readonly engine: EngineSession;
@@ -72,7 +92,7 @@ export interface GameSession {
   readonly display: JudgeDisplayState;
   readonly gaugeState: GaugeState;
   /** 곡이 끝났거나(자연 종료) terminate로 강제 종료된 뒤에만 값이 있다. */
-  readonly result: PlayResult | null;
+  readonly result: ResultData | null;
   /**
    * 수동 입력 핸들러. autoplay 세션에도 만들어지지만, 호출측이 env-input에
    * 이걸 실제로 물릴지는 별개다 — autoplay면 물리 입력을 물리지 않는 것으로
@@ -97,11 +117,61 @@ export function createGameSession(options: GameSessionOptions): GameSession {
   const display = createJudgeDisplayState();
   const gaugeState = resetGauge(options.gaugeMode, context.notes.totalUnits);
 
-  let result: PlayResult | null = null;
+  let result: ResultData | null = null;
+
+  // ── result 전용 누적 (D-2026-054) ──────────────────────────
+  let lastCurMs = options.startNowMs;
+  let fastCount = 0;
+  let slowCount = 0;
+  const timingErrorsBuf: number[] = [];
+  const hardTrace: number[] = [];
+  const normalTrace: number[] = [];
+  let nextSampleIdx = 0;
+
+  /** 진행률 200등분 경계를 지날 때마다 hard·normal 값을 함께 찍는다(§6.3). */
+  const sampleGaugeTrace = (curMs: number): void => {
+    const contentEndMs = options.ctx.contentEndMs;
+    while (
+      nextSampleIdx < GAUGE_TRACE_SAMPLES &&
+      curMs >= ((nextSampleIdx + 1) * contentEndMs) / GAUGE_TRACE_SAMPLES
+    ) {
+      hardTrace.push(gaugeState.gauge.hardPct);
+      normalTrace.push(gaugeState.gauge.normalPct);
+      nextSampleIdx++;
+    }
+  };
 
   const finalize = (): void => {
     if (result !== null) return; // 이미 끝났다 — 두 번 계산하지 않는다.
-    result = computeResult(gaugeState, judgeState.maxCombo);
+
+    // clear는 정확히 200개로 채운다 — forceEnded만 앞쪽 일부로 남는다(§6.3).
+    if (!gaugeState.forceEnded) {
+      while (nextSampleIdx < GAUGE_TRACE_SAMPLES) {
+        hardTrace.push(gaugeState.gauge.hardPct);
+        normalTrace.push(gaugeState.gauge.normalPct);
+        nextSampleIdx++;
+      }
+    }
+
+    const gaugeTrace =
+      gaugeState.tier === 'hard'
+        ? hardTrace
+        : gaugeState.tier === 'normal'
+          ? normalTrace
+          : hardTrace.map(() => 100);
+    const progress = gaugeState.forceEnded
+      ? Math.max(0, Math.min(1, lastCurMs / options.ctx.contentEndMs))
+      : 1;
+
+    result = {
+      ...computeResult(gaugeState, judgeState.maxCombo),
+      gaugeTrace,
+      progress,
+      timingErrors: Float32Array.from(timingErrorsBuf),
+      fastCount,
+      slowCount,
+      playedAt: Date.now(),
+    };
   };
 
   const engine = startEngineSession(options.ctx, options.startNowMs, options.playbackRate, {
@@ -114,15 +184,23 @@ export function createGameSession(options: GameSessionOptions): GameSession {
 
   const applyEvents = (events: readonly JudgmentEvent[], atMs: number): void => {
     applyJudgmentEvents(display, events, atMs);
+    lastCurMs = atMs;
     for (const event of events) {
+      if (event.kind === 'fastSlow') {
+        if (event.side === 'FAST') fastCount++;
+        else slowCount++;
+        continue;
+      }
       if (event.kind !== 'judged') continue;
       applyGaugeChange(gaugeState, event.judgment, event.units);
+      timingErrorsBuf.push(event.judgment === 'MISS' ? NaN : event.diff);
       // 원본 `play-judgment.js`: tail 닫힘과 MISS는 소리를 내지 않는다
       // (`if (!silent) playHit()`은 성공한 tap/hold-head 판정에서만 불린다).
       if (options.hitSound !== null && event.part !== 'tail' && event.judgment !== 'MISS') {
         playHitSound(options.hitSound.ctx, options.hitSound.buffer, options.ctx.hitVol);
       }
     }
+    sampleGaugeTrace(atMs);
   };
 
   const input = createJudgeInputHandlers(

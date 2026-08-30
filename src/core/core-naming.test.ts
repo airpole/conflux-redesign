@@ -58,8 +58,6 @@ const PENDING_FUNCTIONS: Readonly<Record<string, string>> = {
 
 /** §4의 상태 필드 중 아직 짓지 않은 것. 같은 규칙 — 지으면 여기서 지운다. */
 const PENDING_FIELDS: Readonly<Record<string, string>> = {
-  fastCount: 'M2',
-  slowCount: 'M2',
   flashTiming: 'M2',
   laneGridDivisor: 'M5',
 };
