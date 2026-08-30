@@ -48,6 +48,16 @@ Resume"). `paused` 동안은 `game-judge-input.ts`가 `judgeKeyDown`/`Up` 대신
 (사용자 확인: "원본과 같은 경로로 가기") 별도 스케줄러 없이 양쪽 다 즉시
 재생으로 단순화했다 — autoplay 히트음이 최대 한 프레임(~16ms) 늦을 수 있다.
 
+M2-7: `game-visibility.ts`(`attachAutoPause`)·`game-pause-keys.ts`
+(`attachPauseKeys`)가 붙었다 — 둘 다 `session.pause()`(멱등, 이미 pause
+상태거나 끝난 세션엔 아무 일도 안 함)를 호출만 하는 얇은 이벤트 배선이다.
+전자는 `visibilitychange`의 `document.hidden`만 보고 `blur`는 무시한다
+(`scene.md` §9). 후자는 Escape/Backspace `keydown`에서 `preventDefault()`
+후 pause한다 — 전체화면 중 Esc는 브라우저에 예약돼 있어(D-2026-052)
+Backspace가 실제 대체키다.
+
 **아직 없는 것**: pause overlay UI(scene/render, 이 파일들은 상태 기계만 다룸),
 quick options 패널 UI(scene/render — `core-quick-options.ts`에 조작 로직은
-이미 있다).
+이미 있다). 로딩 표시 컴포넌트는 `src/scene/scene-loading.ts`에 있지만
+`env-audio.decode()` 등 실제 비동기 호출부에 붙이는 배선은 아직 없다 —
+M2는 chart를 고정 입력으로 받아 파일 로드 host 자체가 없다.

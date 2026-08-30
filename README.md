@@ -138,7 +138,7 @@ core → env → render → edit/game → scene → app
 
 ### Current Focus
 
-- **Active unit:** M2-7(마감 — 탭 백그라운드 auto-pause·로딩 표시·브라우저 단축키 충돌 처리) 착수 전. M2-6은 완료 — `PlayResult.tier` 추가·result 필드 5종 배선(D-2026-054)·result 화면 CSS/JS 포팅(`scene/ui-design.md` 기준)까지 끝났고 Exit 기준(rank·state·score·accuracy·판정 수·FAST/SLOW·max combo 표시, autoplay는 result 안 거침)을 충족한다. `build-order.md` §2 gate 표에 **M2-7 전 gate는 없다** — 걸린 결정·실측 항목이 없어 바로 착수할 수 있다.
+- **Active unit:** M2-7(마감 — 탭 백그라운드 auto-pause·로딩 표시·브라우저 단축키 충돌 처리) 진행 중. 탭 백그라운드 auto-pause(`game-visibility.ts`, blur 제외)·Esc/Backspace pause 바인딩(`game-pause-keys.ts`, D-2026-052)·로딩 표시 컴포넌트(`scene-loading.ts`, `LOADING_INDICATOR_DELAY_MS`)까지 구현했다. 로딩 표시를 실제 비동기 호출부(`env-audio.decode()` 등)에 잇는 배선은 M2에 파일 로드 host가 없어 대기 중이다.
 - **Discussion Scope:** [[build-order]] §5.
 - **Change Scope:** M2-7 구현 세션에서 정한다
 - **Exit:** M1 아홉 step의 골든 테스트가 모두 통과하고, core 어느 모듈도 전역 상태나 브라우저 API를 import하지 않는다
@@ -443,6 +443,23 @@ result를 거치지 않는다(Exit 기준 충족). 점수 카운트업·rank/sta
 작업으로 미뤘다. BPM 표기·곡 길이 표시는 M4-3 전 gate 대상이라 값을
 채우지 않았다. 테스트는 802건이다.
 
+M2-7(마감)의 세 항목 중 auto-pause와 브라우저 단축키 충돌 처리를
+구현했다. `scene.md` §9가 "탭이 백그라운드로 전환되면(`visibilitychange`
+hidden) gameplay는 자동으로 pause overlay를 연다... 창 포커스만 잃은
+경우(blur)에는 pause하지 않는다"고 못박아 `game-visibility.ts`의
+`attachAutoPause`가 `visibilitychange`만 듣고 `blur`는 무시한다 —
+`session.pause()`가 이미 멱등이라(이미 pause거나 끝난 세션엔 무시) 얇은
+이벤트 배선 하나로 끝난다. `game-pause-keys.ts`의 `attachPauseKeys`가
+Escape/Backspace `keydown`에서 `preventDefault()` 후 pause한다 — D-2026-052가
+전체화면 중 Esc는 브라우저 예약이라 Backspace가 실제 대체키라고 이미
+정해둔 것을 그대로 배선했을 뿐, 새 결정은 없었다. 로딩 표시는
+`core/constants.md` §8의 `LOADING_INDICATOR_DELAY_MS`(300ms, 이미 확정)를
+쓰는 `scene-loading.ts`(`mountLoadingIndicator`)를 만들었다 — 임계 전엔
+숨고 넘으면 뜨고 `stop()`으로 다시 숨는 계약만 검증했다. M2엔 파일 로드
+host가 없어(chart가 고정 입력, [[build-order]] §5) 이 컴포넌트를 실제
+비동기 호출부(`env-audio.decode()` 등)에 잇는 배선은 아직 없다 —
+M2-7은 이 배선 부재로 아직 미완료다. 테스트는 816건이다.
+
 ### Deferred
 
 - 서버 기반 기록(조작 방지·전체 유저 기록·리더보드) — `DECISION_LOG.md` D-2026-019
@@ -451,7 +468,7 @@ result를 거치지 않는다(Exit 기준 충족). 점수 카운트업·rank/sta
 
 ### 다음 후보
 
-- **M2-7**(마감 — 탭 백그라운드 auto-pause·로딩 표시·브라우저 단축키 충돌 처리) — 다음 순서. 걸린 gate 없음
+- **M2-7 마무리** — 로딩 표시 컴포넌트를 실제 비동기 호출부(`env-audio.decode()` 등)에 잇기. 파일 로드 host가 생기는 시점(M3 이후 유력)에 자연스럽게 붙는다
 - pause overlay·quick options 패널 UI (scene/render 컴포넌트, M4-7·M5-6)
 - D-2026-021 사이클 (M3 진입 전)
 - credits scene 표시 내용 채우기 (소형, M4-2 전)
