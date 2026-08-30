@@ -666,7 +666,7 @@
 - **Rationale:** `_rationale/rationale.md` (사용자 확인: "1=A(bundled), 2=평문, 3=로컬 유지 — 순수 정적 SPA 유지가 목적, 트레이드오프는 명시적으로 수용")
 - **Affects:** _plan, _meta(persistence, records), game-public 곡 공급
 - **Supersedes:** D-2026-021
-- **Commit:** (pending)
+- **Commit:** `7d62200`
 
 
 ### D-2026-060 — 라이선스 서드파티 트랙 추출 가능성: 후속 팔로업 (블로킹 아님)
@@ -681,7 +681,7 @@
 - **Rationale:** `_rationale/rationale.md` (사용자 확인: "라이선스 트랙은 자체 제작과 다른 우려 — 지금 안 하고 팔로업으로만 기록")
 - **Affects:** _meta(persistence 곡 공급 정책), 아웃리치 프로세스(레포 밖)
 - **Supersedes:** None
-- **Commit:** (pending)
+- **Commit:** `7d62200`
 
 
 ### D-YYYY-NNN — <Title>
