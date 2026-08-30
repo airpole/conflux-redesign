@@ -650,7 +650,7 @@
 - **Rationale:** `_rationale/rationale.md` (사용자 확인: "1/2/3은 실측 근거, 4/8은 의도된 편차, 5/6/7은 spec-테스트로 당분간 충분 — 진짜 검증은 브라우저 QA가 필요하며 지금 수단이 없다는 전제로 M2 Exit을 충족 처리한다")
 - **Affects:** _plan, _meta
 - **Supersedes:** None
-- **Commit:** (pending)
+- **Commit:** `bbe178c`
 
 
 ### D-YYYY-NNN — <Title>
