@@ -634,7 +634,7 @@
 - **Rationale:** `_rationale/rationale.md` (사용자 확인: "로딩-인디케이터 항목을 별도의, 일정 미배정 milestone/unit으로 분리하고... M2-7 범위를 이미 끝난 두 항목으로 좁혀라")
 - **Affects:** _plan, scene
 - **Supersedes:** None (M2-7 범위를 좁히는 것이지 이전 결정을 뒤집는 게 아니다)
-- **Commit:** (pending)
+- **Commit:** `fd70f46`
 
 
 ### D-YYYY-NNN — <Title>
