@@ -761,7 +761,7 @@
 - **Rationale:** Not required (D-2026-057·061·062·063·064와 동일 패턴)
 - **Affects:** edit(edit-cfx-load), 향후 M3-6(game library)
 - **Supersedes:** None
-- **Commit:** (pending)
+- **Commit:** `c19e05a`
 
 
 ### D-YYYY-NNN — <Title>
