@@ -697,7 +697,7 @@
 - **Rationale:** Not required (D-2026-057과 동일 패턴 — 순서 문제를 지금의 제품 결정으로 위장하지 않는다)
 - **Affects:** env(env-storage), 향후 M3-2/M3-3/M3-6/M3-7
 - **Supersedes:** None
-- **Commit:** (pending)
+- **Commit:** `f663ba1`
 
 
 ### D-YYYY-NNN — <Title>
