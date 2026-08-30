@@ -574,7 +574,7 @@
 - **Rationale:** `_rationale/rationale.md` (사용자 확인: "Retry = Enter, Back = Backspace" — 근거는 Backspace-as-back 통일의 예외 제거가 1차, 반사 입력 차단이 2차. song-select Space는 범위 밖, 이월)
 - **Affects:** scene
 - **Supersedes:** D-2026-052 (result의 Retry=Space 부분만 — 나머지 세 곳 Backspace 대체키 결정은 유효)
-- **Commit:** `(pending)`
+- **Commit:** `8ca8842`
 
 
 ```md
