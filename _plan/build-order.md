@@ -213,6 +213,24 @@ milestone·step 번호는 그 host를 짓는 step이 정해질 때 붙인다.
 
 **Exit**: 에디터에서 만든 chart를 저장 → `.cfx`로 묶기 → 다른 프로필에서 열기 → 플레이 → 기록 저장 → 같은 songId reimport 후에도 기록 유지가 한 줄로 이어진다.
 
+**충족** (D-2026-068). M3에는 아직 scene/UI가 없어(M4/M5) 사람이 브라우저로
+누를 수 없다 — M2 Exit이 헤드리스 엔진 테스트로 검증된 것과 같은 방식으로,
+`tests/integration/m3-persistence-chain.test.ts`가 M3-1~M3-7의 실제 함수를
+그대로 한 줄로 이어 붙여 검증한다: `saveChartVersion`(M3-2) → `buildCfxPackage`
+(M3-4) → 별도 `StorageEnv` 인스턴스("다른 프로필")에서 `loadCfxPackage`
+(M3-5) → `validateCfxForImport`+`planLibraryRegistration`+
+`commitLibraryRegistration`(M3-6, `add`) → `saveRecordIfEligible`(M3-7) →
+trace를 v2로 올린 새 `.cfx`로 다시 `validateCfxForImport`+
+`planLibraryRegistration`(`reimport-confirm-needed`, `upgraded` 확인)+
+`commitLibraryRegistration` → `readRecord`로 기록이 그대로 유지됨을 확인.
+workspace(M3-3)는 이 체인에 직접 걸리지 않아(에디터 세션 상태 복구는 파일
+저장 경로와 별개) 별도 통합 지점이 필요 없다 — M3-3 자체 테스트가 이미
+"새로고침해도 chart와 asset이 복구된다"를 검증했다.
+
+실제 브라우저 조작(파일 다이얼로그 클릭, `.cfx` 다운로드, 다른 프로필
+디렉토리 전환)으로 사람이 다시 확인하는 것은 M4/M5가 서서 실제 UI가 생긴
+뒤의 일이다 — 지금은 메커니즘 수준의 검증이 목표다.
+
 ---
 
 ## 7. M4 — game graph

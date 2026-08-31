@@ -61,3 +61,11 @@ quick options 패널 UI(scene/render — `core-quick-options.ts`에 조작 로�
 이미 있다). 로딩 표시 컴포넌트는 `src/scene/scene-loading.ts`에 있지만
 `env-audio.decode()` 등 실제 비동기 호출부에 붙이는 배선은 아직 없다 —
 M2는 chart를 고정 입력으로 받아 파일 로드 host 자체가 없다.
+
+`game-records.ts`는 M3-7 범위다([[records]]). `core-records.ts`의 순수
+병합·no-record gate를 `env-storage`의 `records` store(M3-1, key=
+`songId:chartId`)에 잇는다 — `saveRecordIfEligible`이 init(`chartId 0`)과
+no-record 조건을 걸러 store를 건드리지 않는다. `game-session.ts`의
+`finalize`에서 실제로 이 함수를 부르는 배선과, no-record 4조건 중
+`midStart`·`editorOrigin`을 실제로 판별하는 로직(editor test scene·게임
+진입 경로가 있어야 안다)은 아직 없다 — 그 host들이 아직 없다(M4/M5).

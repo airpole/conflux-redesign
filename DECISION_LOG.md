@@ -781,6 +781,38 @@
 - **Commit:** `9b71d20`
 
 
+### D-2026-067 — M3-7 "이번 판의 파생 score" 자기완결 해석, game-session 배선·records 초기화 UI 미결: 지금 결정하지 않음
+
+- **Status:** Accepted (팔로업 기록 — M3-7·M3 milestone 완료와 무관, 블로킹 아님)
+- **Decision:** M3-7(`core-records.ts`/`game-records.ts`, `_meta/records.md`) 구현 중 나온 항목들을 지금 결정하지 않고 남긴다.
+
+  1. **"이번 판의 파생 score" 자기완결 해석**: `_meta/records.md` §2는 "총 노트 수는 `bestJudgments`의 합이다. 저장 당시 기준으로 자기완결이다"라고 말하고, §3은 "이번 판의 파생 score가 저장된 파생 score보다 크면 교체"라고 말한다. 이 둘을 조합할 때, §3의 "이번 판의 파생 score"를 (a) 그 판이 실제로 낸 `PlayResult.score`(chart의 진짜 `totalUnits`를 분모로 쓴, `core-gauge.computeResult`의 값 — terminate로 일찍 끝나면 낮게 나온다)로 읽을 수도, (b) §2와 같은 자기완결 공식(그 판의 판정 분포 합만을 분모로 쓴 값)으로 읽을 수도 있다. `mergeRecord`는 **(b)를 채택**했다 — "저장된 파생 score"(항상 자기완결 공식으로만 계산 가능, 원 chart 정보가 없으므로)와 비교 기준을 통일해야 두 계산이 같은 잣대를 쓴다는 것이 이유다. 이 선택은 종료 전 대비 완주 여부에 따라 미묘하게 다른 비교 결과를 낼 수 있다 — 예: terminate로 절반만 치고 SYNC만 있던 판(자기완결 분모=판정한 절반)은 (b) 기준으로 매우 높은 score를 받지만 (a) 기준(전체 chart 분모)으로는 낮다. `game-session.ts`의 `finalize`를 실제로 여기 연결하는 시점(아래 2번)에 이 해석이 실전에서 맞는지 재확인이 필요하다.
+  2. **`game-session.finalize` → `saveRecordIfEligible` 배선 부재**: `game-records.ts`의 함수들은 만들었지만, 실제 판이 끝나는 지점(`game-session.ts`의 `finalize`)에서 이걸 호출하는 배선은 없다. `midStart`·`editorOrigin`을 실제로 판별하는 로직(CTX가 그 정보를 어떻게 실어 나를지)도 아직 없다 — song-select→game 진입 경로(M4)와 editor test 진입 경로(M5)가 서야 안다.
+  3. **기록 초기화(§4) 진입 UI**: `resetRecord` 함수는 만들었지만 confirm 다이얼로그·`FEATURES.recordReset` 게이팅 진입점은 song-select scene(M4)의 몫이라 아직 없다.
+
+  셋 다 milestone·step 번호를 받지 않는다 — ①은 실제 배선(②) 시점에 재확인, ②·③은 M4/M5가 서는 시점에 그 자리에서 다룬다.
+- **Defined in:** `src/core/core-records.ts`, `src/game/game-records.ts`, `_plan/build-order.md` M3-7·M4·M5
+- **Rationale:** Not required (D-2026-057·061·062·063·064·065·066과 동일 패턴, ①만 해석 근거를 남긴다는 점에서 다르다)
+- **Affects:** core(core-records), game(game-records), 향후 M4·M5
+- **Supersedes:** None
+- **Commit:** (pending)
+
+
+### D-2026-068 — M3 milestone Exit 충족 판정: 헤드리스 통합 테스트로 확인
+
+- **Status:** Accepted
+- **Decision:** `_plan/build-order.md` §6 M3 Exit("에디터에서 만든 chart를 저장 → `.cfx`로 묶기 → 다른 프로필에서 열기 → 플레이 → 기록 저장 → 같은 songId reimport 후에도 기록 유지가 한 줄로 이어진다")을 **충족**으로 판정한다. M3에는 아직 scene/UI가 없어(M4/M5가 그것을 세운다) 사람이 브라우저로 이 흐름을 직접 눌러볼 수 없다 — M2 Exit이 원본 대조 대신 헤드리스 엔진 테스트로 판정된 것(D-2026-058)과 같은 논리를 M3에 적용한다.
+
+  `tests/integration/m3-persistence-chain.test.ts` 하나가 M3-1~M3-7이 만든 실제 함수를 새 로직 없이 그대로 이어 붙여 검증한다: `saveChartVersion`(M3-2, 첫 저장이 version을 안 올리는 것까지 포함) → `buildCfxPackage`(M3-4) → 완전히 별도인 `StorageEnv` 인스턴스("다른 프로필")에서 `loadCfxPackage`(M3-5) → `validateCfxForImport`+`planLibraryRegistration`(`add`)+`commitLibraryRegistration`(M3-6) → `saveRecordIfEligible`(M3-7) → trace를 v2로 올린 새 `.cfx`를 다시 검증·`planLibraryRegistration`(`reimport-confirm-needed`, `upgraded` 확인)·`commitLibraryRegistration` → `readRecord`로 기록이 reimport와 무관하게 그대로 유지됨을 확인. M3-3(workspace)은 파일 저장 경로와 별개(에디터 세션 복구용)라 이 체인에 직접 걸리지 않는다 — M3-3 자체 테스트("새로고침해도 chart와 asset이 복구된다")가 이미 그 조각을 검증했다.
+
+  실제 브라우저 파일 다이얼로그·다른 프로필 디렉토리 전환으로 사람이 다시 확인하는 것은 M4/M5가 서서 UI가 생긴 뒤의 일이며, 지금은 메커니즘 수준 검증으로 충분하다고 승인한다.
+- **Defined in:** `_plan/build-order.md` §6, `tests/integration/m3-persistence-chain.test.ts`
+- **Rationale:** Not required (D-2026-058과 동일 논리의 재적용)
+- **Affects:** _plan, tests(integration)
+- **Supersedes:** None
+- **Commit:** (pending)
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

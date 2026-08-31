@@ -222,11 +222,21 @@ function judgedUnits(state: GaugeState): number {
   return SYNC + PERFECT + GOOD + MISS;
 }
 
-/** score·accuracy의 판정별 가중치. → `constants.md` §3 */
-const SCORE_WEIGHT: Readonly<JudgmentCounts> = { SYNC: 1, PERFECT: 1, GOOD: 0.5, MISS: 0 };
-const ACCURACY_WEIGHT: Readonly<JudgmentCounts> = { SYNC: 1, PERFECT: 0.7, GOOD: 0.3, MISS: 0 };
+/**
+ * score·accuracy의 판정별 가중치. → `constants.md` §3
+ *
+ * `core-records.ts`(M3-7)가 저장된 `bestJudgments`에서 같은 공식으로 score·
+ * accuracy를 다시 파생시키려고 재사용한다 — 가중치 표를 두 곳에 두지 않는다.
+ */
+export const SCORE_WEIGHT: Readonly<JudgmentCounts> = { SYNC: 1, PERFECT: 1, GOOD: 0.5, MISS: 0 };
+export const ACCURACY_WEIGHT: Readonly<JudgmentCounts> = {
+  SYNC: 1,
+  PERFECT: 0.7,
+  GOOD: 0.3,
+  MISS: 0,
+};
 
-function weighted(counts: JudgmentCounts, weight: Readonly<JudgmentCounts>): number {
+export function weighted(counts: JudgmentCounts, weight: Readonly<JudgmentCounts>): number {
   return (
     counts.SYNC * weight.SYNC +
     counts.PERFECT * weight.PERFECT +
