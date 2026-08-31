@@ -872,7 +872,7 @@
 - **Rationale:** Not required
 - **Affects:** _plan
 - **Supersedes:** None
-- **Commit:** (pending)
+- **Commit:** `8d92bc1`
 
 
 ### D-YYYY-NNN — <Title>
