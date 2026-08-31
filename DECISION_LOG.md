@@ -764,6 +764,23 @@
 - **Commit:** `c19e05a`
 
 
+### D-2026-066 — M3-6 jacket 이미지 decode host 부재, records 경계, reimport 확인 UI: 지금 결정하지 않음
+
+- **Status:** Accepted (팔로업 기록 — M3-6 완료와 무관, 블로킹 아님)
+- **Decision:** M3-6(`edit-cfx-library`, `_meta/persistence.md` §12·D-2026-018) 구현 중 나온 세 항목을 지금 결정하지 않고 남긴다.
+
+  1. **jacket 이미지 decode host 부재**: `_meta/cfx.md` §12.2·`_meta/persistence.md` §12는 "jacket decode 실패는 placeholder와 경고"를 요구하지만, 이 레포에는 아직 이미지 decode를 실제로 수행하는 env 계층이 없다(`env-canvas`는 canvas 획득·resize·DPR·fullscreen만 다룬다, `_plan/architecture.md` §1). `validateCfxForImport`의 `decodeJacket`은 **선택적** 주입으로 남겨뒀다 — 주지 않으면 jacket decode 검증 자체를 건너뛴다(차단도 경고도 없음). 실제 이미지 decode host(어떤 API로 만들지 — `createImageBitmap`, `<img>` 로드 등)는 아직 결정하지 않았다.
+  2. **records 경계**: `_meta/persistence.md` §12 "삭제"는 "records 삭제 여부는 records의 고아 기록 정책을 따른다"고 명시한다. `deleteLibraryEntry`는 library blob만 지우고 records는 전혀 건드리지 않는다 — records 모듈 자체가 아직 없다(M3-7). 고아 기록 정책이 실제로 무엇을 삭제/보존할지는 M3-7이 정한다.
+  3. **reimport 확인 UI**: `planLibraryRegistration`이 비교(추가·삭제·upgrade·downgrade)를 내지만, 그것을 사용자에게 실제로 보여주고 선택(진행/취소)을 받는 UI는 song-select scene(M4)이 서는 시점의 일이다. `commitLibraryRegistration`은 "확인을 이미 거쳤다"는 **호출 규율**로만 다운그레이드 허용(D-2026-018)을 지킨다 — 함수 자체가 확인 여부를 검증하지 않는다.
+
+  셋 다 milestone·step 번호를 받지 않는다 — ①은 실제 jacket 렌더링이 필요해지는 시점(M4/M5), ②는 M3-7(records) 구현 시점, ③은 song-select UI(M4)가 서는 시점에 그 자리에서 다룬다.
+- **Defined in:** `src/edit/edit-cfx-library.ts`, `_plan/build-order.md` M3-6·M3-7
+- **Rationale:** Not required (D-2026-057·061·062·063·064·065와 동일 패턴)
+- **Affects:** edit(edit-cfx-library), 향후 M3-7(records)·M4(song-select)
+- **Supersedes:** None
+- **Commit:** (pending)
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

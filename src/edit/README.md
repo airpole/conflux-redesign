@@ -32,3 +32,13 @@ UI는 아직 없는 scene 층(M4/M5)의 몫이다. asset(music/jacket) 재연결
 있으면 부분 로드 없이 전체를 거부한다. game/library import가 요구하는 playable
 music 실제 decode 검증(§12.2)은 여기 없다 — "로드"가 아니라 "등록 가부"의
 정책이라 M3-6 소관이다.
+
+`edit-cfx-library`는 M3-6 범위다([[persistence]] §12, D-2026-018). library
+store(`env-storage`, key=`songId`, value=`.cfx` blob 통째)의 원시 CRUD와,
+`loadCfxPackage`(M3-5) 위에 §12.2가 요구하는 playable music decode 게이트를
+더한 `validateCfxForImport`(하나라도 실패하면 전체 거부, jacket decode 실패는
+경고만)를 제공한다. 같은 songId reimport는 비교(`compareReimport`, init 제외,
+added/removed/upgraded/downgraded)와 실행(`commitLibraryRegistration`, blob
+전체 교체·부분 병합 없음·다운그레이드도 그대로 허용)을 나눈다 — 확인 UI는
+scene 층(M4/M5)의 몫이라 여기 없다. records 고아 기록 정책은 건드리지 않는다
+(M3-7 소관).
