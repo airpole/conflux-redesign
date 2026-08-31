@@ -857,7 +857,7 @@
 - **Rationale:** Not required (근거는 이 Decision 항목 자체에 있다)
 - **Affects:** core(core-records), game(game-records), _meta(records)
 - **Supersedes:** D-2026-069
-- **Commit:** (pending)
+- **Commit:** `34a43af`
 
 
 ### D-YYYY-NNN — <Title>
