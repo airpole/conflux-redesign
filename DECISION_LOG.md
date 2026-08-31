@@ -860,6 +860,21 @@
 - **Commit:** `34a43af`
 
 
+### D-2026-071 — M3.5 milestone 신설: ui-design 전체(song-select·settings·title·credits)
+
+- **Status:** Accepted
+- **Decision:** `_plan/build-order.md`에 M3와 M4 사이 M3.5를 신설한다(§6.5). 목표는 M4 진입 gate("ui-design 전체")가 요구하는 네 화면(song-select·settings·title·credits)의 레이아웃을 `ui-design.md`에 확정하는 것뿐이다 — 코드 산출물은 없다. `ui-design.md` 현재본(D-2026-051)은 스스로 "최소본 — tokens + result layout"이라 밝히고 있고, `song-select.md` §14도 "레이아웃·치수·모션·램프 색: ui-design 소관"이라 명시적으로 위임해 뒀다 — 이 gate는 실제로 열려 있으며 아직 아무 문서도 닫지 않았다(M2-6 gate들과 달리 build-order.md §2 표에 취소선/닫힘 표기가 없다).
+
+  역할 분담을 명확히 한다: 레이아웃 구조·강조점·색과 간격의 구체값 같은 시각/제품 디자인 판단은 사용자 몫이다. Claude Code(구현자)는 각 화면이 이미 확정한 spec(scene.md·song-select.md·settings.md 등)에서 레이아웃이 담아야 할 내용·동작을 정리해 초안을 제안하고, 사용자 검토·확정 후 `ui-design.md`에 반영한다 — 제품 디자인을 임의로 확정하지 않는다(`CLAUDE.md` §1 "구현자" 역할 경계).
+
+  M4 자체는 이 milestone이 끝나기 전까지 진입하지 않는다.
+- **Defined in:** `_plan/build-order.md` §6.5·§2(M4 진입 gate 행)
+- **Rationale:** Not required
+- **Affects:** _plan
+- **Supersedes:** None
+- **Commit:** (pending)
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

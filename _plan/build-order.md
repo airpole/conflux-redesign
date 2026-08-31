@@ -101,7 +101,7 @@ Vitest `environment: 'node'`. core 테스트는 DOM 없이 돈다 — [[architec
 | ~~M2-6 전~~ | ~~결정~~ | ~~티어 색 대 실패 적색 근접(`ui-design.md` §7-3)~~ — **닫힘** (D-2026-055, 형태 차이로 수용) |
 | ~~M2-6 전~~ | ~~결정~~ | ~~`scene.md` §9 필드 8개 추가(`ui-design.md` §6)~~ — **닫힘** (D-2026-054, 실제 5필드로 확정) |
 | ~~M3 진입~~ | ~~결정~~ | ~~**D-2026-021** — 라이브 웹 배포 / `.cfx` 보호 / 공개 서비스 기록 위치~~ — **닫힘** (D-2026-059: bundled 유지·평문·records 로컬 유지, D-2026-019는 별도 보류 유지) |
-| M4 진입 | 결정 | **ui-design 전체** — song-select·settings·title·credits 레이아웃 |
+| M4 진입 | 결정 | **ui-design 전체** — song-select·settings·title·credits 레이아웃 → §6.5 M3.5 |
 | M4-3 전 | 결정 | 목록 옵션 overlay 진입 키 · `sortDir` 단축 전환 키 · 가속 스크롤 수치(초기 지연·반복 간격·가속 곡선) |
 | M4-3 전 | 결정 | song row 대표값 출처(title·jacket) · 정보 패널 BPM 표기 방식 · 곡 길이 표시 |
 | M4-6 전 | 결정 | key rebinding UI · volume 슬라이더 조작 단위 — 기본값·범위는 `[보존]`으로 확정됨([[settings]] §4) |
@@ -230,6 +230,35 @@ workspace(M3-3)는 이 체인에 직접 걸리지 않아(에디터 세션 상태
 실제 브라우저 조작(파일 다이얼로그 클릭, `.cfx` 다운로드, 다른 프로필
 디렉토리 전환)으로 사람이 다시 확인하는 것은 M4/M5가 서서 실제 UI가 생긴
 뒤의 일이다 — 지금은 메커니즘 수준의 검증이 목표다.
+
+---
+
+## 6.5. M3.5 — ui-design 전체
+
+**목표**: M4 진입 gate("ui-design 전체")가 기다리는 네 화면(song-select·
+settings·title·credits)의 레이아웃을 `ui-design.md`에 확정한다. `ui-design.md`
+현재본(D-2026-051)은 제목 그대로 "최소본 — tokens + result layout"이라
+이 네 화면을 다루지 않는다 — `song-select.md` §14도 "레이아웃·치수·모션·
+램프 색: ui-design 소관"이라고 명시적으로 위임해 뒀다. 코드 구현은 없다 —
+이 milestone은 문서(spec) 산출물만 낸다.
+
+**진입 gate**: 없음 — M3 종료 직후 바로 연다.
+
+| step | 범위 | 완료 기준 |
+|---|---|---|
+| M3.5-1 | song-select 레이아웃 — category 탭·row/slot·folder·정보 패널·검색창·quick options overlay 배치 | `ui-design.md`가 `song-select.md` §1~§13의 각 요소(층 구성, slot 표시값 3종, folder 헤더, 기록 2×2 패널, 검색 진입 등)에 대응하는 구체 레이아웃·치수·색 참조를 제공하고 사용자 승인을 받는다. |
+| M3.5-2 | settings 레이아웃 — PLAY/VISUAL/GAUGE/OPTION 4 scene 공통 틀 + key rebinding UI | `ui-design.md`가 4 category scene의 공통 틀(탭/네비게이션)과 각 필드 유형(슬라이더·토글·선택·키 바인딩)의 표현을 정의하고 사용자 승인을 받는다. |
+| M3.5-3 | title 레이아웃 | `ui-design.md`가 title scene(로고/타이틀 표시, "아무 입력 → mode-select" 유도)의 레이아웃을 정의하고 사용자 승인을 받는다. |
+| M3.5-4 | credits 레이아웃 | `ui-design.md`가 credits scene의 레이아웃 골격을 정의한다 — 표시 **내용** 자체는 별도 gate(M4-2 전 결정)라 이 step은 골격(스크롤 목록 형태 등)만 다룬다. |
+
+**Exit**: `ui-design.md`가 네 화면 전부를 커버해 M4 진입 gate("ui-design
+전체")가 닫힌다.
+
+역할 분담: 시각/제품 디자인 판단(레이아웃 구조, 무엇을 강조할지, 색·간격의
+구체값)은 사용자 몫이다. Claude Code는 각 화면이 이미 확정한 spec
+(scene.md·song-select.md·settings.md 등)에서 무엇을 담아야 하는지 정리해
+레이아웃 초안을 제안하고, 사용자 검토 후 `ui-design.md`에 반영한다 — 여기서
+제품 디자인 결정을 임의로 확정하지 않는다.
 
 ---
 
