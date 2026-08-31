@@ -23,6 +23,7 @@ import {
   readLibraryEntry,
   validateCfxForImport,
 } from '../../src/edit/edit-cfx-library.js';
+import { deriveScore } from '../../src/core/core-records.js';
 import { readRecord, saveRecordIfEligible } from '../../src/game/game-records.js';
 import {
   createStorageEnv,
@@ -115,15 +116,19 @@ describe('M3 milestone Exit — 저장 → .cfx → 다른 프로필 → 플레�
     expect(await readLibraryEntry(profileB, songId)).toEqual(built.bytes);
 
     // ── 4. 플레이한다 — judge/gauge는 core 영역이라 이미 M1~M2에서 검증됐다.
-    // 여기서는 "판이 끝나 판정 분포가 나왔다"는 결과만 있으면 된다. ──
+    // 여기서는 "판이 끝나 판정 분포가 나왔다"는 결과만 있으면 된다. 10단위를
+    // 전부 완주했으므로 실제 score(core-gauge.computeResult 기준)와 자기완결
+    // 근사(deriveScore)가 정확히 같다 — D-2026-069가 다루는 갈림은 미완주
+    // 판에서만 벌어진다. ──
     const judgments: JudgmentCounts = { SYNC: 8, PERFECT: 1, GOOD: 1, MISS: 0 };
+    const score = deriveScore(judgments); // 완주 판이므로 실제 PlayResult.score와 동일하다.
 
     // ── 5. 기록을 저장한다(M3-7 saveRecordIfEligible). ──
     const saveOutcome = await saveRecordIfEligible(
       profileB,
       songId,
       1,
-      { judgments, state: 'FC', maxCombo: 10 },
+      { judgments, score, state: 'FC', maxCombo: 10 },
       { autoplay: false, staticShape: false, midStart: false, editorOrigin: false },
     );
     expect(saveOutcome.kind).toBe('saved');

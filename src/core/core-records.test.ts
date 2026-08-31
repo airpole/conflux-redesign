@@ -44,12 +44,26 @@ describe('deriveScore / deriveAccuracy', () => {
     expect(deriveAccuracy(j)).toBe(0);
   });
 
-  it('총 노트 수는 judgments의 합이다 — chart의 totalUnits를 몰라도 자기완결이다', () => {
-    // 절반만 SYNC고 나머지 절반은 아예 기록에 없는(합계에 안 잡히는) 상황은
-    // 있을 수 없다 — judgments 자체가 이미 "판정된 것들의 분포"이므로
-    // 합계가 곧 그 판의 전체 단위 수다.
+  it('자기완결 근사(§2) — 판정된 것만의 합을 분모로 쓴다, chart의 진짜 totalUnits와 무관하게', () => {
+    // 이 함수는 "저장된 기록을 chart 없이 다시 읽을 때"만 쓴다(D-2026-069) —
+    // 그래서 판정된 4단위만 갖고도 계산이 되고, 실제 chart가 몇 단위였는지는
+    // 몰라도 된다.
     const j = counts({ SYNC: 3, GOOD: 1 });
     expect(deriveScore(j)).toBe(Math.round(((3 * 1 + 1 * 0.5) / 4) * 1_000_000));
+  });
+
+  it('미완주 판의 판정 분포에 적용하면 실제 score보다 후하게(높게) 나온다', () => {
+    // chart가 총 10단위인데 앞의 4단위만 전부 SYNC로 치고 죽었다고 하자.
+    // 자기완결 근사(분모=4)는 만점을 주지만, 진짜 chart 기준 score
+    // (core-gauge.computeResult, 분모=10)는 400,000에 그친다 —
+    // D-2026-069가 이 함수를 "이번 판" 비교에 쓰지 않는 이유다.
+    const partial = counts({ SYNC: 4 });
+    const selfContained = deriveScore(partial);
+    const realScoreAgainstFullChart = Math.round((4 / 10) * 1_000_000);
+
+    expect(selfContained).toBe(1_000_000);
+    expect(realScoreAgainstFullChart).toBe(400_000);
+    expect(selfContained).toBeGreaterThan(realScoreAgainstFullChart);
   });
 });
 
@@ -72,6 +86,7 @@ describe('mergeRecord', () => {
   it('기존 기록이 없으면(null) 이번 판 값으로 그대로 시작한다', () => {
     const candidate: RecordCandidate = {
       judgments: counts({ SYNC: 5 }),
+      score: 500_000,
       state: 'FC',
       maxCombo: 20,
     };
@@ -82,7 +97,7 @@ describe('mergeRecord', () => {
     expect(judgmentsImproved).toBe(true);
   });
 
-  it('이번 판의 파생 score가 더 높으면 bestJudgments를 교체한다', () => {
+  it('이번 판의 실제 score(candidate.score)가 저장된 파생 score보다 높으면 bestJudgments를 교체한다', () => {
     const existing: ChartRecord = {
       bestJudgments: counts({ SYNC: 5, MISS: 5 }),
       bestState: 'F',
@@ -90,6 +105,7 @@ describe('mergeRecord', () => {
     };
     const candidate: RecordCandidate = {
       judgments: counts({ SYNC: 10 }),
+      score: 1_000_000,
       state: 'AS',
       maxCombo: 10,
     };
@@ -100,7 +116,7 @@ describe('mergeRecord', () => {
     expect(judgmentsImproved).toBe(true);
   });
 
-  it('이번 판의 파생 score가 더 낮거나 같으면 bestJudgments를 유지한다', () => {
+  it('이번 판의 score가 더 낮거나 같으면 bestJudgments를 유지한다', () => {
     const existing: ChartRecord = {
       bestJudgments: counts({ SYNC: 10 }),
       bestState: 'AS',
@@ -108,6 +124,7 @@ describe('mergeRecord', () => {
     };
     const candidate: RecordCandidate = {
       judgments: counts({ SYNC: 5, MISS: 5 }),
+      score: 500_000,
       state: 'F',
       maxCombo: 1,
     };
@@ -118,16 +135,41 @@ describe('mergeRecord', () => {
     expect(judgmentsImproved).toBe(false);
   });
 
+  it('비교는 candidate.score를 그대로 쓴다 — judgments만으로 다시 계산하지 않는다(D-2026-069)', () => {
+    // judgments 분포만 보면 자기완결 score가 낮게 보일 수 있는 판이어도,
+    // 진짜 chart 기준 score(candidate.score)가 저장된 값보다 높다면 교체된다.
+    // 여기서는 judgments 자체의 자기완결 파생값(1,000,000, 전부 SYNC 2개)이
+    // 기존 기록(500,000)보다 이미 높아 그 경로로도 교체되지만, 핵심은
+    // mergeRecord가 judgments를 다시 파생하지 않고 candidate.score를
+    // 그대로 비교에 쓴다는 것 — candidate.score를 낮게 주면 judgments가
+    // 아무리 좋아 보여도 교체되지 않아야 한다.
+    const existing: ChartRecord = {
+      bestJudgments: counts({ SYNC: 5, MISS: 5 }),
+      bestState: 'F',
+      maxCombo: 0,
+    };
+    const candidate: RecordCandidate = {
+      judgments: counts({ SYNC: 2 }), // 자기완결로 보면 1,000,000(만점)처럼 보인다.
+      score: 100, // 하지만 진짜 chart 기준 score는 아주 낮다(미완주).
+      state: 'F',
+      maxCombo: 0,
+    };
+
+    const { judgmentsImproved } = mergeRecord(existing, candidate);
+
+    expect(judgmentsImproved).toBe(false); // candidate.score(100) < deriveScore(existing)(500,000).
+  });
+
   it('bestState는 우선순위가 더 높은 쪽으로 병합된다(AS > AP > FC > H > C > F)', () => {
     const existing: ChartRecord = { bestJudgments: counts(), bestState: 'C', maxCombo: 0 };
-    const candidate: RecordCandidate = { judgments: counts(), state: 'AP', maxCombo: 0 };
+    const candidate: RecordCandidate = { judgments: counts(), score: 0, state: 'AP', maxCombo: 0 };
 
     expect(mergeRecord(existing, candidate).record.bestState).toBe('AP');
   });
 
   it('bestState는 더 나쁜 값이 와도 내려가지 않는다', () => {
     const existing: ChartRecord = { bestJudgments: counts(), bestState: 'AS', maxCombo: 0 };
-    const candidate: RecordCandidate = { judgments: counts(), state: 'F', maxCombo: 0 };
+    const candidate: RecordCandidate = { judgments: counts(), score: 0, state: 'F', maxCombo: 0 };
 
     expect(mergeRecord(existing, candidate).record.bestState).toBe('AS');
   });
@@ -140,6 +182,7 @@ describe('mergeRecord', () => {
     };
     const candidate: RecordCandidate = {
       judgments: counts({ SYNC: 1 }),
+      score: 100_000,
       state: 'F',
       maxCombo: 100,
     };
@@ -155,12 +198,14 @@ describe('mergeRecord', () => {
     // 1판: 낮은 score, 낮은 state, 높은 combo.
     record = mergeRecord(record, {
       judgments: counts({ GOOD: 4 }),
+      score: 200_000,
       state: 'F',
       maxCombo: 50,
     }).record;
     // 2판: 높은 score, 높은 state, 낮은 combo.
     record = mergeRecord(record, {
       judgments: counts({ SYNC: 4 }),
+      score: 1_000_000,
       state: 'AS',
       maxCombo: 3,
     }).record;

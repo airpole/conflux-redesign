@@ -786,7 +786,7 @@
 - **Status:** Accepted (팔로업 기록 — M3-7·M3 milestone 완료와 무관, 블로킹 아님)
 - **Decision:** M3-7(`core-records.ts`/`game-records.ts`, `_meta/records.md`) 구현 중 나온 항목들을 지금 결정하지 않고 남긴다.
 
-  1. **"이번 판의 파생 score" 자기완결 해석**: `_meta/records.md` §2는 "총 노트 수는 `bestJudgments`의 합이다. 저장 당시 기준으로 자기완결이다"라고 말하고, §3은 "이번 판의 파생 score가 저장된 파생 score보다 크면 교체"라고 말한다. 이 둘을 조합할 때, §3의 "이번 판의 파생 score"를 (a) 그 판이 실제로 낸 `PlayResult.score`(chart의 진짜 `totalUnits`를 분모로 쓴, `core-gauge.computeResult`의 값 — terminate로 일찍 끝나면 낮게 나온다)로 읽을 수도, (b) §2와 같은 자기완결 공식(그 판의 판정 분포 합만을 분모로 쓴 값)으로 읽을 수도 있다. `mergeRecord`는 **(b)를 채택**했다 — "저장된 파생 score"(항상 자기완결 공식으로만 계산 가능, 원 chart 정보가 없으므로)와 비교 기준을 통일해야 두 계산이 같은 잣대를 쓴다는 것이 이유다. 이 선택은 종료 전 대비 완주 여부에 따라 미묘하게 다른 비교 결과를 낼 수 있다 — 예: terminate로 절반만 치고 SYNC만 있던 판(자기완결 분모=판정한 절반)은 (b) 기준으로 매우 높은 score를 받지만 (a) 기준(전체 chart 분모)으로는 낮다. `game-session.ts`의 `finalize`를 실제로 여기 연결하는 시점(아래 2번)에 이 해석이 실전에서 맞는지 재확인이 필요하다.
+  1. ~~**"이번 판의 파생 score" 자기완결 해석**~~ — **해소** (D-2026-069). "이번 판"은 실제 `PlayResult.score`(chart 진짜 `totalUnits` 기준)를 쓰고, "저장된 판"은 자기완결 근사로 재계산하는 비대칭 비교로 정리했다.
   2. **`game-session.finalize` → `saveRecordIfEligible` 배선 부재**: `game-records.ts`의 함수들은 만들었지만, 실제 판이 끝나는 지점(`game-session.ts`의 `finalize`)에서 이걸 호출하는 배선은 없다. `midStart`·`editorOrigin`을 실제로 판별하는 로직(CTX가 그 정보를 어떻게 실어 나를지)도 아직 없다 — song-select→game 진입 경로(M4)와 editor test 진입 경로(M5)가 서야 안다.
   3. **기록 초기화(§4) 진입 UI**: `resetRecord` 함수는 만들었지만 confirm 다이얼로그·`FEATURES.recordReset` 게이팅 진입점은 song-select scene(M4)의 몫이라 아직 없다.
 
@@ -811,6 +811,34 @@
 - **Affects:** _plan, tests(integration)
 - **Supersedes:** None
 - **Commit:** `803a893`
+
+
+### D-2026-069 — "이번 판의 파생 score" 비교 확정: 비대칭(실제 score vs 자기완결 근사), 미완주 최고기록 잔여 약점 별도 보고
+
+- **Status:** Accepted — D-2026-067 항목 1을 해소한다.
+- **Decision:** `_meta/records.md` §2("총 노트 수는 `bestJudgments`의 합이다. 저장 당시 기준으로 자기완결이다")와 §3("이번 판의 파생 score가 저장된 파생 score보다 크면 교체")을 재검토해 다음으로 확정한다.
+
+  **두 읽기와 수치 차이.** chart가 총 10단위이고 어떤 판이 앞 4단위를 전부 SYNC로 친 뒤 hard-mode terminate로 죽었다고 하자.
+  - **(a) 실제 score** — `core-gauge.computeResult`가 그 순간 결과 화면에 실제로 띄웠을 값. 분모는 chart의 진짜 `totalUnits`(10). `score = round(4/10 × 1,000,000) = 400,000`.
+  - **(b) 자기완결 근사** — §2의 "합이 곧 총 노트 수"를 이번 판에도 그대로 적용한 값. 분모는 판정된 것만의 합(4). `score = round(4/4 × 1,000,000) = 1,000,000`(만점).
+
+  이 둘은 **2.5배** 차이 나고, (b)를 택하면 `bestState`는 `evaluateState`상 `forceEnded`라 항상 `F`(최하)로 잡히는데 `bestJudgments`가 파생하는 score/rank는 만점 근처로 나오는 모순된 조합이 저장될 수 있다 — 플레이어가 결과 화면에서 본 점수와 나중에 "내 최고 기록"이 보여줄 점수가 어긋난다.
+
+  **확정: 비교는 (a)를 쓴다, 단 저장된 쪽은 어쩔 수 없이 (b)로 재계산한다.** `RecordCandidate`에 `score: number` 필드를 추가해 호출측(`game-records.ts`, 방금 끝난 세션이 이미 계산해 둔 `PlayResult.score`)이 그대로 넘긴다 — `mergeRecord`는 `judgments`에서 score를 다시 파생하지 않는다. "저장된 판"의 score는 여전히 `deriveScore(existing.bestJudgments)`(자기완결)로만 계산한다 — 과거 기록은 원 chart에 다시 접근할 방법이 없어 이 근사가 유일한 선택지이기 때문이다.
+
+  **근거:**
+  - 결과 화면에 이미 보여준 점수와 나중에 "최고 기록"이 보여줄 점수가 어긋나면 안 된다 — §2의 "자기완결"은 **읽기 시점**(오래된 기록을 chart 없이 다시 표시할 때) 편의를 위한 것이지, **쓰기 시점**(방금 끝난 판은 실제 chart 정보에 접근 가능하다)의 계산 규칙으로 확대 해석할 근거가 약하다.
+  - 완주한 판이라면 (a)와 (b)가 정확히 같은 값이다 — 정상 케이스(완주)에서는 비대칭이 전혀 드러나지 않고, 갈리는 것은 미완주 판뿐이다.
+  - `records.md`가 명시적으로 다루는 "부작용 수용"(D-2026-017, 리차팅으로 `maxCombo`·`bestState`가 새 내용 기준 재현 불가능해질 수 있음)과 같은 계열의 트레이드오프이지, 정합성을 아예 포기하는 것과는 다르다.
+
+  **잔여 약점(별도 보고, 이번 결정으로 완전히 없어지지 않음):** 자기완결 근사는 판정 안 된 노트가 분모에서 빠져 실제보다 **후하게**(높게) 나온다. 그래서 과거에 **미완주** 판이 최고 기록으로 저장돼 있었다면(예: 첫 시도가 곧바로 terminate), 그 부풀려진 저장 값이 이후의 정직한 완주 판보다 더 높게 잡혀 정당한 교체가 늦어질 수 있다 — `core-records.test.ts`("미완주 판의 판정 분포에 적용하면 실제 score보다 후하게 나온다")로 수치까지 확인했다. 이 잔여 약점은 이번 결정의 범위 밖으로 남긴다: 근본 해결(예: 미완주 판을 애초에 `bestJudgments` 비교 후보에서 제외)은 `records.md`의 갱신 규칙 자체를 바꾸는 문제라 별도 승인이 필요하다.
+
+  **"unit"/"totalUnits" 용어 확인.** 별도로 요청받은 "unit 계열 용어가 폐기됐다"는 전제를 `core/naming.md`·`core/glossary.md`·`DECISION_LOG`(D-2026-024, D-2026-041/GA-5)에서 확인했으나 **근거를 찾지 못했다** — 세 문서 모두 "judgment unit"/`totalUnits`/"단위"를 현재의 의도된 단일 용어로 명시하고 있다(`naming.md`의 "판정별 **단위 수**"는 `[신규]`로 표시돼 있다). 이 전제가 사실이 아니라고 판단해 **용어를 바꾸지 않았다** — 다른 근거(이 세션이 접근할 수 없는 별도 논의 등)가 있다면 그 출처를 알려주면 재검토한다.
+- **Defined in:** `src/core/core-records.ts`, `src/game/game-records.ts`, `_meta/records.md` §2·§3
+- **Rationale:** Not required (근거는 이 Decision 항목 자체에 있다)
+- **Affects:** core(core-records), game(game-records)
+- **Supersedes:** D-2026-067 (항목 1만 — 항목 2·3은 그대로 유지)
+- **Commit:** (pending)
 
 
 ### D-YYYY-NNN — <Title>
