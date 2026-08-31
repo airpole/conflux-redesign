@@ -815,7 +815,7 @@
 
 ### D-2026-069 — "이번 판의 파생 score" 비교 확정: 비대칭(실제 score vs 자기완결 근사), 미완주 최고기록 잔여 약점 별도 보고
 
-- **Status:** Accepted — D-2026-067 항목 1을 해소한다.
+- **Status:** Superseded by D-2026-070 — 이 결정이 "별도 보고"로 남긴 잔여 약점을 D-2026-070이 스키마 변경(`ChartRecord`에 `totalUnits` 저장)으로 근본 해결했다. 아래 내용은 그 경로를 기록으로 남긴다.
 - **Decision:** `_meta/records.md` §2("총 노트 수는 `bestJudgments`의 합이다. 저장 당시 기준으로 자기완결이다")와 §3("이번 판의 파생 score가 저장된 파생 score보다 크면 교체")을 재검토해 다음으로 확정한다.
 
   **두 읽기와 수치 차이.** chart가 총 10단위이고 어떤 판이 앞 4단위를 전부 SYNC로 친 뒤 hard-mode terminate로 죽었다고 하자.
@@ -839,6 +839,25 @@
 - **Affects:** core(core-records), game(game-records)
 - **Supersedes:** D-2026-067 (항목 1만 — 항목 2·3은 그대로 유지)
 - **Commit:** `22c1c0a`
+
+
+### D-2026-070 — 자기완결 score 근사 폐기: `ChartRecord`에 `totalUnits` 저장, "unit" 용어 확인(재확인)
+
+- **Status:** Accepted — D-2026-069가 "별도 보고"로 남긴 잔여 약점을 근본 해결한다(D-2026-069를 대체).
+- **Decision:** D-2026-069는 쓰기 시점("이번 판")의 비대칭 비교로 가장 심각한 모순(미완주 판이 accuracy 100%로 보이는 것)을 막았지만, **저장된 쪽**은 여전히 자기완결 근사(`bestJudgments`의 합을 분모로 씀)에 의존했다 — 그 근사는 판정 안 된 노트가 분모에서 빠져 실제보다 후하게 나오므로, 과거에 미완주 판이 최고 기록으로 저장돼 있으면 이후의 정직한 완주 판이 그 부풀려진 값을 못 넘어 교체가 늦어질 수 있었다. 이번 결정으로 **자기완결 근사를 완전히 제거**한다 — 쓰기 시점이든 읽기 시점이든 예외 없이 실제 `totalUnits`를 쓴다.
+
+  **스키마 변경**: `ChartRecord`에 `totalUnits: number`를 추가한다 — `bestJudgments`를 낸 바로 그 판의 chart 실제 판정 단위 수이며, `bestJudgments`와 항상 같이 갱신된다(둘 중 하나만 바뀌는 일이 없다). `deriveScore`/`deriveAccuracy`는 이제 `(judgments, totalUnits)`를 받는다 — `totalUnits`를 판정 분포 자신에서 다시 계산하는 내부 함수(`totalUnitsOf`)를 삭제했다. `RecordCandidate.score`(D-2026-069가 추가한 필드)도 없앴다 — `deriveScore`가 이제 항상 정확하므로 `mergeRecord`가 `deriveScore(candidate.judgments, candidate.totalUnits)`로 직접 계산해도 `core-gauge.computeResult`의 실제 score와 정확히 같다(같은 가중치·같은 분모). 중복 필드로 두면 호출측이 서로 다른 값을 실수로 넣을 드리프트 위험만 남긴다.
+
+  **`_meta/records.md` §2·§3 개정**: 스키마에 `totalUnits` 필드를 추가하고, "총 노트 수는 bestJudgments의 합이다. 저장 당시 기준으로 자기완결이다" 문장을 제거했다 — 더 이상 사실이 아니다(자기완결 경로 자체가 없다).
+
+  **1a. "unit 폐기" 근거 재확인**: 이 레포의 git 이력은 단일 squash 커밋(`0890dc5`)에서 시작해 그 이전 이력이 없다 — naming.md·glossary.md·DECISION_LOG(508줄)가 전부 그 커밋에 이미 완성된 형태로 들어있어, "unit 이전에 다른 용어(예: note)를 쓰다가 바뀐" 흔적을 이 레포 안에서는 찾을 수 없다. D-2026-024(Hold 2단위 확정)·D-2026-041(GA-5 "단일 누산기") 원문도 "note" 계열 용어를 폐기했다는 언급이 없다 — `hits`를 "note별 판정 상태"로 되돌린다는 문구가 있지만 이는 `hits` 필드(노트별 상태 배열) 얘기지 score 회계 단위 얘기가 아니다. 폐기 근거를 찾지 못했다는 D-2026-069의 결론을 재확인한다.
+
+  **1b. `totalUnits` vs note 수**: `core-judge.ts`의 `unitsOf(note) = note.duration > 0 ? 2 : 1`로 코드까지 확인했다 — Tap 1단위, Hold는 head+tail 2단위(`core/judge.md` §8 "Hold head MISS — 2단위 회계"). Hold가 하나라도 있는 chart는 `totalUnits > notes.length`다(예: tap 5 + hold 3이면 note 8개, totalUnits 5+6=11). **`totalUnits`를 `totalNotes`로 부르면 틀린 이름이 된다** — 그래서 이번 스키마 변경도 필드명을 `totalUnits`로 유지했다.
+- **Defined in:** `src/core/core-records.ts`, `src/game/game-records.ts`, `_meta/records.md` §2·§3, `src/core/README.md`
+- **Rationale:** Not required (근거는 이 Decision 항목 자체에 있다)
+- **Affects:** core(core-records), game(game-records), _meta(records)
+- **Supersedes:** D-2026-069
+- **Commit:** (pending)
 
 
 ### D-YYYY-NNN — <Title>

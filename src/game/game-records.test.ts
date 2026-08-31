@@ -44,7 +44,7 @@ const eligible: NoRecordConditions = {
 
 const candidate = (overrides: Partial<RecordCandidate> = {}): RecordCandidate => ({
   judgments: counts({ SYNC: 10 }),
-  score: 1_000_000,
+  totalUnits: 10,
   state: 'AS',
   maxCombo: 10,
   ...overrides,
@@ -106,7 +106,7 @@ describe('saveRecordIfEligible', () => {
       1,
       candidate({
         judgments: counts({ SYNC: 1, MISS: 9 }),
-        score: 100_000,
+        totalUnits: 10,
         state: 'F',
         maxCombo: 0,
       }),

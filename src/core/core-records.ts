@@ -11,6 +11,19 @@
  * 타입 이름을 `ChartRecord`로 짓는다 — `Record`는 `core-gauge.ts`의
  * `JudgmentCounts = Record<Judgment, number>`가 이미 쓰는 TS 내장 유틸리티
  * 타입 이름과 겹쳐 혼동을 만든다.
+ *
+ * **자기완결(self-contained) 근사식은 두지 않는다** (D-2026-070, records.md
+ * §2 개정). `bestJudgments`의 합을 분모로 대신 쓰는 이전 방식은 미완주 판이
+ * "판정된 몫만 봤을 때 만점"으로 계산되면서 `bestState`(항상 `F`)와 모순되는
+ * 조합을 만들 수 있었다 — 4/10단위를 전부 SYNC로 치고 죽은 판이 accuracy
+ * 100%로 나오는 식. `ChartRecord`가 그 판의 chart 실제 `totalUnits`를
+ * `bestJudgments`와 짝지어 직접 저장하므로, score·accuracy·rank 파생은
+ * 쓰기 시점이든 읽기 시점이든 **항상** 진짜 분모를 쓴다.
+ *
+ * `totalUnits`(구 `note` 아님)는 판정 **단위** 수다 — Tap 1단위, Hold는
+ * head+tail 2단위(`core-judge.ts` `unitsOf`, `core/judge.md` §8,
+ * `core/glossary.md` "judgment unit"). Hold가 있는 chart는 `totalUnits`가
+ * `notes.length`보다 크다 — 그래서 이 필드를 "note 수"로 부르지 않는다.
  */
 import {
   ACCURACY_WEIGHT,
@@ -23,11 +36,18 @@ import {
 } from './core-gauge.js';
 
 /**
- * 저장 스키마(§2). `score`·`accuracy`·`rank`는 필드가 아니라
+ * 저장 스키마(§2, D-2026-070). `score`·`accuracy`·`rank`는 필드가 아니라
  * `deriveRecordSummary`의 파생값이다.
+ *
+ * `totalUnits`는 `bestJudgments`를 낸 바로 그 판의 chart 실제 판정 단위
+ * 수다 — 둘은 항상 같이 갱신된다(`mergeRecord`). 리차팅으로 chart의
+ * `totalUnits`가 바뀌어도 이미 저장된 record는 갱신하지 않는다(D-2026-017과
+ * 같은 "내용 변경 무판별" 원칙) — 다음에 그 chart로 적격 판을 치러 다시
+ * best를 갱신할 때만 새 `totalUnits`가 들어온다.
  */
 export interface ChartRecord {
   readonly bestJudgments: JudgmentCounts;
+  readonly totalUnits: number;
   readonly bestState: PlayState;
   readonly maxCombo: number;
 }
@@ -37,36 +57,16 @@ export function recordKey(songId: string, chartId: number): string {
   return `${songId}:${chartId}`;
 }
 
-/**
- * 총 노트 수는 `bestJudgments`의 합이다 — 저장 당시 기준으로 자기완결이다
- * (§2). chart의 실제 `totalUnits`를 참조하지 않는다.
- */
-function totalUnitsOf(judgments: JudgmentCounts): number {
-  return judgments.SYNC + judgments.PERFECT + judgments.GOOD + judgments.MISS;
-}
-
-/**
- * **오래된(이미 저장된) `bestJudgments`를 chart 없이 다시 읽을 때만** 쓰는
- * 자기완결 근사식이다(§2 "저장 당시 기준으로 자기완결이다") — 원 chart의
- * `totalUnits`를 모르는 상태에서 쓸 수 있는 유일한 분모가 그 판정 분포 자신의
- * 합이기 때문이다. 완주한 판이라면 이 합이 곧 그 판의 실제 `totalUnits`와
- * 같아 `core-gauge.computeResult`의 `score`와 정확히 일치한다.
- *
- * **`mergeRecord`가 "이번 판"의 score 비교에 이 함수를 쓰지 않는다** —
- * D-2026-069 참조. 방금 끝난 판은 실제 `PlayResult.score`(진짜
- * `totalUnits` 기준)를 이미 갖고 있으므로 그걸 그대로 쓴다. 이 함수는
- * `deriveRecordSummary`(과거 기록 재조회)와, 병합 비교의 **저장된 쪽**
- * (과거 기록은 그 자체 말고는 정보가 없다)에만 쓰인다.
- */
-export function deriveScore(judgments: JudgmentCounts): number {
-  const total = totalUnitsOf(judgments);
-  return total > 0 ? Math.round((weighted(judgments, SCORE_WEIGHT) / total) * 1_000_000) : 0;
+/** `core-gauge.computeResult`와 같은 공식 — 가중치를 그대로 재사용한다(공식을 두 곳에 두지 않는다). */
+export function deriveScore(judgments: JudgmentCounts, totalUnits: number): number {
+  return totalUnits > 0
+    ? Math.round((weighted(judgments, SCORE_WEIGHT) / totalUnits) * 1_000_000)
+    : 0;
 }
 
 /** 0~100. score와 가중이 달라 별개 지표다(`core-gauge.PlayResult.accuracy`와 동일 공식). */
-export function deriveAccuracy(judgments: JudgmentCounts): number {
-  const total = totalUnitsOf(judgments);
-  return total > 0 ? (weighted(judgments, ACCURACY_WEIGHT) / total) * 100 : 0;
+export function deriveAccuracy(judgments: JudgmentCounts, totalUnits: number): number {
+  return totalUnits > 0 ? (weighted(judgments, ACCURACY_WEIGHT) / totalUnits) * 100 : 0;
 }
 
 export interface RecordSummary {
@@ -77,8 +77,12 @@ export interface RecordSummary {
 
 /** 저장된 record에서 score·accuracy·rank를 파생한다(§2 "score·accuracy·rank는 파생") — 저장 필드가 아니다. */
 export function deriveRecordSummary(record: ChartRecord): RecordSummary {
-  const score = deriveScore(record.bestJudgments);
-  return { score, accuracy: deriveAccuracy(record.bestJudgments), rank: scoreToRank(score) };
+  const score = deriveScore(record.bestJudgments, record.totalUnits);
+  return {
+    score,
+    accuracy: deriveAccuracy(record.bestJudgments, record.totalUnits),
+    rank: scoreToRank(score),
+  };
 }
 
 /** 엄격 → 관대. bestState 병합 우선순위(§3 "AS > AP > FC > H > C > F"). */
@@ -91,14 +95,13 @@ function higherPriorityState(a: PlayState, b: PlayState): PlayState {
 /**
  * 적격 판 하나가 record 갱신에 제출하는 값.
  *
- * `score`는 그 판의 **실제** `core-gauge.computeResult().score`다(chart의
- * 진짜 `totalUnits` 기준) — 호출측(`game-records.ts`, 방금 끝난 세션의
- * `PlayResult`를 이미 갖고 있다)이 그대로 넘긴다. `judgments`만으로 다시
- * 파생하지 않는다 — D-2026-069 참조.
+ * `totalUnits`는 그 판이 실제로 친 chart의 판정 단위 수다(방금 끝난 세션의
+ * `GaugeState.totalUnits`를 호출측이 그대로 넘긴다) — `judgments`와 함께
+ * 있어야 score를 정확히 파생할 수 있다.
  */
 export interface RecordCandidate {
   readonly judgments: JudgmentCounts;
-  readonly score: number;
+  readonly totalUnits: number;
   readonly state: PlayState;
   readonly maxCombo: number;
 }
@@ -114,36 +117,31 @@ export interface MergeRecordResult {
  * `bestJudgments`와 무관하게 갱신되므로 세 필드가 같은 판에서 나온 값일
  * 필요가 없다.
  *
- * - `bestJudgments`: 이번 판의 score가 저장된 파생 score보다 크면 교체.
+ * - `bestJudgments`(+ 짝인 `totalUnits`): 이번 판의 score가 저장된 score보다
+ *   크면 함께 교체.
  * - `bestState`: 우선순위가 더 높은 쪽으로 병합.
  * - `maxCombo`: 독립 max.
  *
- * `existing`이 `null`이면(첫 기록) 무조건 이번 판 값으로 시작한다.
- *
- * **비교가 비대칭이다** — "이번 판"은 `candidate.score`(실제 `PlayResult.score`,
- * 진짜 chart `totalUnits` 기준)를 그대로 쓰고, "저장된 판"은 `deriveScore`
- * (그 기록의 `bestJudgments` 합만을 분모로 쓰는 자기완결 근사, chart에 다시
- * 접근할 수 없으므로 유일한 선택지)로 다시 계산한다. 완주한 판이 저장돼
- * 있었다면 이 둘은 같은 값이다 — 갈리는 것은 과거에 **미완주** 판이 최고
- * 기록으로 저장돼 있던 드문 경우뿐이다. 그 근사는 판정 안 된 노트가
- * 분모에서 빠져 실제보다 **후하게**(높게) 나온다 — 그래서 이후의 정직한
- * 완주 판이 그 부풀려진 옛 기록을 못 넘어 교체가 늦어질 수 있다는 것이
- * 이 비대칭의 알려진 약점이다(D-2026-069, 별도 보고).
+ * `existing`이 `null`이면(첫 기록) 무조건 이번 판 값으로 시작한다. 양쪽
+ * score 모두 진짜 `totalUnits` 기준으로 계산되므로(D-2026-070) 근사가
+ * 섞이지 않는다 — 완주 여부와 무관하게 항상 같은 잣대다.
  */
 export function mergeRecord(
   existing: ChartRecord | null,
   candidate: RecordCandidate,
 ): MergeRecordResult {
+  const candidateScore = deriveScore(candidate.judgments, candidate.totalUnits);
   const judgmentsImproved =
-    existing === null || candidate.score > deriveScore(existing.bestJudgments);
+    existing === null || candidateScore > deriveScore(existing.bestJudgments, existing.totalUnits);
   const bestJudgments = judgmentsImproved ? candidate.judgments : existing!.bestJudgments;
+  const totalUnits = judgmentsImproved ? candidate.totalUnits : existing!.totalUnits;
 
   const bestState =
     existing === null ? candidate.state : higherPriorityState(existing.bestState, candidate.state);
   const maxCombo =
     existing === null ? candidate.maxCombo : Math.max(existing.maxCombo, candidate.maxCombo);
 
-  return { record: { bestJudgments, bestState, maxCombo }, judgmentsImproved };
+  return { record: { bestJudgments, totalUnits, bestState, maxCombo }, judgmentsImproved };
 }
 
 // ── no-record gate — `_meta/settings.md` §2 단일 출처 ──────────────

@@ -27,34 +27,37 @@
 
 ---
 
-## 2. 스키마
+## 2. 스키마 `[번복]` (D-2026-070)
 
 ```js
 record = {
   bestJudgments: { sync, perfect, good, miss },  // 최고 점수 판의 판정 분포
+  totalUnits,     // bestJudgments를 낸 그 판의 chart 실제 판정 단위 수
   bestState,
   maxCombo,
 }
 ```
 
 - `score`·`accuracy`·`rank`는 `bestJudgments`에서 파생한다. 공식 단일 출처는 [[constants]] §3 `[번복]`.
-- 총 노트 수는 `bestJudgments`의 합이다. 저장 당시 기준으로 자기완결이다.
+- **분모는 항상 `totalUnits`다 — 자기완결 근사(bestJudgments 자신의 합을 분모로 쓰는 방식)는 두지 않는다** `[번복]` (D-2026-070). 그 방식은 미완주 판(예: 10단위 중 4단위만 SYNC로 치고 hard 사망)이 판정된 몫만으로 accuracy 100%가 나오면서 `bestState`(항상 `F`)와 모순되는 조합을 만들 수 있었다. `totalUnits`를 `bestJudgments`와 함께 저장해 그 문제를 없앤다 — 둘은 항상 같이 갱신된다(§3).
+- `totalUnits`는 **판정 단위 수**이지 note 수가 아니다 — Tap 1단위, Hold는 head+tail 2단위([[judge]] §8, [[glossary]] "judgment unit"). Hold가 있는 chart는 `totalUnits`가 note 수보다 크다.
+- 리차팅으로 chart의 `totalUnits`가 바뀌어도 이미 저장된 record는 갱신하지 않는다 — §1 "내용 변경과 기록"의 무판별 원칙과 같다. 다음에 그 chart로 적격 판을 쳐 다시 best가 갱신될 때만 새 `totalUnits`가 들어온다.
 - `playCount`는 저장하지 않는다 `[번복]`.
 - FAST/SLOW는 그 판 result 표시값이며 저장하지 않는다.
 
 ---
 
-## 3. 갱신 규칙
+## 3. 갱신 규칙 `[번복]` (D-2026-070)
 
 적격 판이 끝날 때마다:
 
 | 필드 | 규칙 |
 |---|---|
-| bestJudgments | 이번 판의 파생 score가 저장된 파생 score보다 크면 이번 판 분포로 교체 |
+| bestJudgments + totalUnits | 이번 판의 score(항상 그 판의 실제 `totalUnits` 기준)가 저장된 score(항상 저장된 `totalUnits` 기준)보다 크면 **둘을 함께** 이번 판 값으로 교체 |
 | bestState | `AS > AP > FC > H > C > F > N` 우선순위 병합 |
 | maxCombo | 독립 `max` |
 
-bestState·maxCombo는 bestJudgments와 독립적으로 갱신한다. 좋은 값만 모으는 것이 목적이므로 세 필드가 같은 판에서 나온 값일 필요는 없다.
+bestState·maxCombo는 bestJudgments(+totalUnits)와 독립적으로 갱신한다. 좋은 값만 모으는 것이 목적이므로 세 필드가 같은 판에서 나온 값일 필요는 없다. `totalUnits`는 별도 필드가 아니라 `bestJudgments`에 붙는 짝 — `bestJudgments`가 교체될 때만 함께 바뀐다.
 
 ---
 
@@ -94,7 +97,7 @@ no-record = autoplay OR staticShape OR 중간시작 OR editorOrigin
 
 확정:
 - [x] playable chart당 1기록, gaugeMode 통합
-- [x] 3필드 스키마·독립 갱신 — score·rank·accuracy는 파생 `[번복]`
+- [x] 4필드 스키마(bestJudgments·totalUnits·bestState·maxCombo)·독립 갱신 — score·rank·accuracy는 항상 실제 totalUnits 기준 파생, 자기완결 근사 없음 `[번복]` (D-2026-070)
 - [x] no-record 판은 표시만
 - [x] init 제외
 - [x] chartId migration/rename 감지 폐기 `[번복]`

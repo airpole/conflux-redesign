@@ -13,10 +13,10 @@
  * 채우는지가 정해져야 판별 가능하다(둘 다 아직 없는 scene/editor 층 몫).
  * 이 파일은 그 값들이 이미 정해졌다는 전제로 store 갱신 메커니즘만 만든다.
  *
- * `RecordCandidate.score`는 그 배선이 붙을 때 `PlayResult.score`
- * (`core-gauge.computeResult`, `game-session.ts`의 `finalize`가 이미
- * 계산해 둔 값)를 그대로 넘기면 된다 — `judgments`에서 다시 파생하지
- * 않는다(D-2026-069, `core-records.ts` 참조).
+ * `RecordCandidate.totalUnits`는 그 배선이 붙을 때 `GaugeState.totalUnits`
+ * (방금 끝난 세션이 이미 갖고 있는 값)를 그대로 넘기면 된다 — score 파생은
+ * 항상 이 진짜 값을 쓰고 자기완결 근사로 빠지지 않는다(D-2026-070,
+ * `core-records.ts` 참조).
  */
 import {
   isNoRecord,
