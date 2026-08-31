@@ -838,7 +838,7 @@
 - **Rationale:** Not required (근거는 이 Decision 항목 자체에 있다)
 - **Affects:** core(core-records), game(game-records)
 - **Supersedes:** D-2026-067 (항목 1만 — 항목 2·3은 그대로 유지)
-- **Commit:** (pending)
+- **Commit:** `22c1c0a`
 
 
 ### D-YYYY-NNN — <Title>
