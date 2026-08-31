@@ -875,6 +875,25 @@
 - **Commit:** `8d92bc1`
 
 
+### D-2026-072 — M3.5-1 곡 선택 레이아웃 확정: `ui-design.md` §2.5
+
+- **Status:** Accepted
+- **Decision:** 사용자의 디자인 리뷰로 확정된 곡 선택 화면 레이아웃을 `ui-design.md` §2.5로 문서화했다 — 상단 category pill 탭 + 3-상태 검색, 정렬·그룹 클릭+휠 순환 바, 좌 정보 패널(40%, 자켓을 패널 높이 기준 60%+로 확대)/우 목록(60%, BMS급 밀도의 단일 행 row, 5개 난이도 slot에 tier 색 박스 + state 색 세로 막대), 하단 키 힌트 바. §2 result 레이아웃의 16:9 컨테이너 쿼리·780px 스택 폴백 메커니즘을 그대로 재사용하며 새 메커니즘을 만들지 않았다. 필요한 색은 §1의 기존 토큰(표면/텍스트, state 파생, tier, `--cyan`)으로 전부 커버돼 새 토큰을 추가하지 않았다.
+
+  색약 접근성을 위한 slot 막대 높이 차등 안은 검토됐으나 시각적 단순함을 우선해 채택하지 않았다 — §2.5.3에 트레이드오프만 기록하고 별도 결정 항목을 만들지 않는다.
+
+  `--cyan`의 이 화면 용법(활성 탭·검색 활성 상태·선택 row 강조·정렬/그룹 바·SCORE 텍스트·folder 헤브론)을 state 파생 색(§1.4)과 대조했다 — `C` state는 `--gauge-NORMAL`을 참조하고 `--cyan`을 쓰는 state 값이 없어 충돌 없음을 확인했다.
+
+  두 가지는 이 결정으로 닫지 않고 별도로 남긴다: (1) [[settings]] §2의 "목록 옵션 overlay 진입 키·`sortDir` 단축 전환 키·가속 스크롤 수치" gate가 아직 키보드만 전제하고 있어, 이 레이아웃이 요구하는 마우스 클릭+휠 스크롤을 1급 입력으로 포함하도록 그 gate가 닫힐 때 확장해야 한다 — 지금 여기서 확장하지 않는다. (2) 빈 library 상태의 레이아웃은 이번 리뷰 목업에 없었다 — `ui-design.md` §2.5.7-2에 공백으로 남기고 사용자 방향 확인 후 별도로 반영한다. 이 두 항목이 해결되기 전에는 M3.5-1(곡 선택)을 완전히 닫힌 것으로 보지 않는다.
+
+  "tutorial 탭 제거"가 잠재 충돌 예시로 언급됐으나 `song-select.md` 전문에 tutorial 탭 언급이 없어 해당사항 없음으로 확인했다.
+- **Defined in:** `scene/ui-design.md` §2.5
+- **Rationale:** Not required
+- **Affects:** scene
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred
