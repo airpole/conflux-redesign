@@ -795,7 +795,7 @@
 - **Rationale:** Not required (D-2026-057·061·062·063·064·065·066과 동일 패턴, ①만 해석 근거를 남긴다는 점에서 다르다)
 - **Affects:** core(core-records), game(game-records), 향후 M4·M5
 - **Supersedes:** None
-- **Commit:** (pending)
+- **Commit:** `803a893`
 
 
 ### D-2026-068 — M3 milestone Exit 충족 판정: 헤드리스 통합 테스트로 확인
@@ -810,7 +810,7 @@
 - **Rationale:** Not required (D-2026-058과 동일 논리의 재적용)
 - **Affects:** _plan, tests(integration)
 - **Supersedes:** None
-- **Commit:** (pending)
+- **Commit:** `803a893`
 
 
 ### D-YYYY-NNN — <Title>
