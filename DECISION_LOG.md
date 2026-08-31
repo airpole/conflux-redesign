@@ -778,7 +778,7 @@
 - **Rationale:** Not required (D-2026-057·061·062·063·064·065와 동일 패턴)
 - **Affects:** edit(edit-cfx-library), 향후 M3-7(records)·M4(song-select)
 - **Supersedes:** None
-- **Commit:** (pending)
+- **Commit:** `9b71d20`
 
 
 ### D-YYYY-NNN — <Title>
