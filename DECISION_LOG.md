@@ -1056,6 +1056,25 @@
 - **Commit:** `bf3fcff`
 
 
+### D-2026-082 — mode-select 레이아웃 확정: `ui-design.md` §2.9 (M4-2 선행 공백 해소)
+
+- **Status:** Accepted
+- **Decision:** M4-2 구현 직전 `ui-design.md`에 mode-select 레이아웃이 없다는 공백을 발견했다 — M3.5의 네 화면 목록(song-select·settings·title·credits, `build-order.md` M4 진입 gate 행)에 mode-select가 애초에 없었다. 별도 디자인 리뷰로 §2.9를 확정했다.
+
+  **구조**: 세로 목록 하나(Play/Editor/Settings/Credits) — 정확히 4칸 고정 그리드가 아니라 [[scene]] §4의 "mode 추가의 단일 확장점"을 반영해 항목이 늘어도 그대로 늘어나는 리스트로 그린다. 라벨은 공용 영어(D-2026-077).
+
+  **Editor 항목 가시성**: `FEATURES.editor`가 꺼지면 reflow한다 — 빈 자리를 남기지 않고 나머지 3개가 채운다. `Credits`는 반대로 항상 노출이라 이 규칙의 대상이 아니다.
+
+  **배경**: wave·bubble 둘 다 두지 않는다(§2.7 title과 다른 선택) — mode-select는 song-select·settings·credits에서 D-2026-052의 통일 Back 키가 계속 돌려보내는 허브라, 매번 재생되는 앰비언트 배경이 반복 방문에서 피로를 만들 위험이 첫인상 연출의 이점보다 크다고 판단했다. title·mode-select가 같은 공용 root([[scene]] §1)라는 시각적 연속성 논거보다 방문 빈도 차이를 더 중요한 기준으로 삼았다.
+
+  새 색 토큰 없음 — `--bg`/`--text`/`--cyan` 전부 §1 기존 토큰.
+- **Defined in:** `scene/ui-design.md` §2.9
+- **Rationale:** Not required
+- **Affects:** scene
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred
