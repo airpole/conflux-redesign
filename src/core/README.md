@@ -6,6 +6,14 @@
 
 정의·의존 규칙 → `_plan/architecture.md` §1·§2
 
+`core-i18n.ts`는 **real per-locale content**(이해가 목적인 에러/안내 문장 등)만
+다루는 최소 조회 테이블이다 — 짧은 UI 라벨(버튼·필드·nav·판정/state/tier/rank
+이름·고유명사)은 locale과 무관한 canonical English를 화면 코드에 직접 쓰고 이
+테이블을 거치지 않는다(`ui-design.md` §2.5/§2.6이 그 구분의 단일 출처).
+plural rule·RTL 같은 전체 i18n 런타임은 없다 — 지금 번역 대상 표면이 그 정도로
+작다. locale 감지(브라우저 locale)는 env 레이어 몫이며 여기는 아직 배선하지
+않는다.
+
 `core-records.ts`는 M3-7 범위다([[records]], [[settings]] §2). 기록 스키마
 (`ChartRecord` — `bestJudgments`·`totalUnits`·`bestState`·`maxCombo`)·병합
 규칙(`mergeRecord` — bestJudgments+totalUnits/bestState/maxCombo 독립

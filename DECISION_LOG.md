@@ -954,6 +954,32 @@
 - **Commit:** `90cb826`
 
 
+### D-2026-077 — UI 텍스트 i18n 방침 채택: 공용 영어 vs 실제 번역, `ui-design.md` §2.5·§2.6 소급 재정리
+
+- **Status:** Accepted
+- **Decision:** UI 문자열을 두 범주로 나누는 방침을 채택하고 이미 확정된 §2.5(곡 선택)·§2.6(settings) 레이아웃에 소급 적용한다.
+
+  **공용 영어(canonical, 번역 대상 아님)**: 한 번 익히면 언어와 무관하게 패턴으로 읽는 짧은 UI 라벨 — 버튼·필드·nav/메뉴 이름(Sort/Group/Rank/Score/Effect 등), 판정·state·tier·rank 이름과 고유명사(Conflux/Shape/Line/Tap/Hold/Wide, 이미 전 프로젝트에서 영어 고정 — 이번 결정이 만든 선례가 아니라 기존 선례를 UI 텍스트 전반으로 넓힌 것)는 locale과 무관하게 코드에 직접 쓴다. 조회 테이블을 거치지 않는다 — 값이 하나뿐이고 절대 안 바뀌므로 간접화가 비용만 늘린다.
+
+  **실제 번역 대상**: 목적이 이해인 문자열 — 에러 메시지, 안내 문장, 향후 라이선스/약관, 온보딩 툴팁. 이런 문자열만 `src/core/core-i18n.ts`의 `translate(key, locale)` 조회를 거친다.
+
+  전체 i18n 런타임(plural rule·RTL·날짜/숫자 포맷)은 두지 않는다 — 실제 번역 대상 표면이 지금 그 기계장치를 정당화할 만큼 크지 않다(에러/안내 문장 몇 개뿐). 필요해지면 별도로 재검토한다. locale 설정은 v1에서 사용자 노출 없이 브라우저 locale 자동 감지로 두고, `settings.md`에 `locale` 필드를 지금 추가하지 않는다 — 번역 대상이 실제로 늘어나면 그때 추가한다.
+
+  **경계 판정 사례** (기계적으로 "한국어면 다 바꾼다"가 아니라 기능으로 갈랐다):
+  - 검색 매치 수(`fo · 2개` → `fo · 2`)·folder count(`전체 128곡` → `All 128`): 카운터 단어("개")를 아예 없애 숫자만 남겼다 — plural 규칙을 아예 안 타므로 별도 locale 분기 없이 어느 언어에서도 그대로 맞는다.
+  - 하단 키 힌트 바(`↑↓ 곡 이동` 등)는 문장이 아니라 짧은 패턴 라벨이라 공용 영어로 분류했다 — 다른 리듬 게임들의 키 힌트 바가 UI locale과 무관하게 영어 단문을 쓰는 관행과 같다.
+  - 검색 결과 없음 안내("검색 결과가 없습니다")와 OPTION scene의 no-record 안내 문장("autoplay·staticShape는 기록에 반영되지 않습니다")은 완결된 문장이고 사용자가 내용을 실제로 이해해야 하므로 실제 번역 대상으로 분류했다 — `songSelect.search.noResults`·`settings.option.noRecordNotice` 두 키로 `core-i18n.ts`에 en/ko 값을 채웠다.
+
+  **구현**: `src/core/core-i18n.ts` 신설 — `LocaleCode`(`'en'|'ko'`)·`StringKey` 타입과 `translate()` 조회 함수만 둔다(실제 브라우저 locale 감지 배선은 env 레이어 몫, 아직 하지 않음). `DEFAULT_LOCALE = 'en'`이며 다른 locale에 키가 비면 en으로 fallback하고 그 사실을 `usedFallback`으로 알린다(`settings.md` §4 "되돌림은 보고한다"와 같은 원칙). `src/core/core-i18n.test.ts` 5 테스트 추가.
+
+  이 결정은 `ui-design.md` §2.5(D-2026-072)·§2.6(D-2026-076)이 이미 확정한 레이아웃의 **텍스트 표기만** 소급 수정한다 — 구조·배치·색·컴포넌트 결정은 그대로다.
+- **Defined in:** `src/core/core-i18n.ts`, `scene/ui-design.md` §2.5·§2.6
+- **Rationale:** Not required
+- **Affects:** scene, core (신규 모듈), 향후 모든 UI 텍스트 작성 방침
+- **Supersedes:** None — D-2026-072·D-2026-076을 무효화하지 않고 텍스트 표기만 개정
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred
