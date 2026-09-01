@@ -1035,6 +1035,27 @@
 - **Commit:** `cbd2015`
 
 
+### D-2026-081 — M4-1 scene-manager: 단일 스택 엔진, FEATURES 필터링은 app 레이어 몫
+
+- **Status:** Accepted
+- **Decision:** `src/scene/scene-manager.ts`로 `scene.md` §2의 mechanism(`goScene`/`goScene(id,'replace')`/`goBack`/`resetSceneStack`, lazy mount)을 구현했다.
+
+  **축별로 엔진을 가르지 않는다.** §2가 "game은 stack형, editor/settings는 평면형"이라 부르지만, 이는 엔진이 두 가지로 동작해야 한다는 뜻이 아니다 — editor/settings의 실제 전환은 형제 scene 사이를 `goScene(id)`로 직접 건너뛰는 것뿐이라 그 축에서는 스택이 실질적으로 깊어질 일이 없다. "평면형"은 축이 스택을 쓰는 방식에서 저절로 나오는 결과이지 엔진의 별도 모드가 아니다 — 하나의 스택 mechanism으로 충분하다.
+
+  **FEATURES 기반 build gate 필터링은 이 모듈이 하지 않는다.** `architecture.md` §1의 단방향 의존(`… → scene → app`, app이 scene보다 위)을 지키려면 scene 레이어가 app의 `FEATURES`를 import할 수 없다. `createSceneManager`는 이미 걸러진 scene 목록을 받는 설계로, 꺼진 축의 scene은 그 목록에 없어 `mount()`가 호출될 방법이 구조적으로 없다(M4-1 Exit 기준 충족). 실제 필터링 호출(어떤 scene을 넘길지)은 app 레이어 몫이며, title/mode-select/credits 등 실제 root graph scene 모듈이 아직 없어(M4-2 범위) 그 배선 자체는 `app-main.ts`에 아직 없다 — `scene-manager.ts` 엔진만 이번 step의 산출물이다.
+
+  **스펙이 이름 이상으로 정의하지 않은 두 지점을 가장 단순하게 채웠다** (Deferred — 실제 배선 시 재확인):
+  - `goBack()`을 스택에 1개만 남았을 때 부르면 **no-op**으로 뒀다 — 크래시보다 안전한 기본값. 이 경계에 실제로 닿는 시나리오(예: 어느 scene에서 잘못 호출되는가)가 나오면 재검토한다.
+  - `resetSceneStack()`은 **현재 scene은 유지하고 그 아래 history만 비운다**로 구현했다 — 함수 이름이 스펙에 나열만 돼 있고 정확한 사용처·파라미터가 없어 이름 그대로 가장 단순하게 읽었다.
+
+  테스트 11개(`scene-manager.test.ts`) — lazy mount 1회, no-op 재전환, onExit→onEnter 순서, goBack pop, replace 통과점 제거, resetSceneStack 동작, 미등록 id 예외, 꺼진 축 scene 접근 불가.
+- **Defined in:** `src/scene/scene-manager.ts`
+- **Rationale:** Not required
+- **Affects:** scene (신규 모듈), app (향후 M4-2 배선 지점)
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred
