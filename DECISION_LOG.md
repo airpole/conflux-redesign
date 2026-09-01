@@ -1032,7 +1032,7 @@
 - **Rationale:** Not required
 - **Affects:** scene, _plan (M4 진입 gate 충족)
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `cbd2015`
 
 
 ### D-YYYY-NNN — <Title>
