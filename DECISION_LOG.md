@@ -1072,7 +1072,7 @@
 - **Rationale:** Not required
 - **Affects:** scene
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `18373b5`
 
 
 ### D-YYYY-NNN — <Title>
