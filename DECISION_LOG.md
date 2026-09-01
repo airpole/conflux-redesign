@@ -1139,7 +1139,7 @@
 - **Rationale:** Not required
 - **Affects:** _plan(레이어 모델), core/naming, format(신설), edit, game, app — M4-3 완료
 - **Supersedes:** None — D-2026-084의 "결정 필요 2"를 해소
-- **Commit:** `PENDING`
+- **Commit:** `eb2974a`
 
 
 ### D-YYYY-NNN — <Title>
