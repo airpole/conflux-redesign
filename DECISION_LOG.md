@@ -990,7 +990,7 @@
 - **Rationale:** Not required
 - **Affects:** scene (title 입력 처리)
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `41cc5b2`
 
 
 ### D-2026-079 — M3.5-3 title 레이아웃 확정: `ui-design.md` §2.7
@@ -1007,7 +1007,7 @@
 - **Rationale:** Not required
 - **Affects:** scene
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `41cc5b2`
 
 
 ### D-YYYY-NNN — <Title>
