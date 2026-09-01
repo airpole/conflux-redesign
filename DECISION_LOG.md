@@ -1053,7 +1053,7 @@
 - **Rationale:** Not required
 - **Affects:** scene (신규 모듈), app (향후 M4-2 배선 지점)
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `bf3fcff`
 
 
 ### D-YYYY-NNN — <Title>
