@@ -1093,7 +1093,7 @@
 - **Rationale:** Not required
 - **Affects:** scene, app, ui-design(§2.8.4 정정)
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `5518d7a`
 
 
 ### D-YYYY-NNN — <Title>
