@@ -31,6 +31,38 @@ export interface SongSelectLoadResult {
   readonly warnings: readonly string[];
 }
 
+export interface PreviewAsset {
+  readonly bytes: Uint8Array;
+  readonly previewStartMs: number;
+}
+
+/**
+ * cursor가 멈춘 chart 하나의 preview 음원을 얻는다([[song-select]] §10).
+ * `loadSongSelectRows`는 row를 만들고 나면 asset bytes를 들고 있지 않으므로
+ * (모든 곡의 음원을 메모리에 올려두지 않는다) preview가 필요해진 chart만
+ * 그때 다시 읽어 decode한다 — `loadSongSelectRows`와 같은 "필요할 때 다시
+ * 읽는다" 관례.
+ */
+export async function loadPreviewAsset(
+  storage: StorageEnv,
+  songId: string,
+  chartId: number,
+): Promise<PreviewAsset | null> {
+  const bytes = (await storage.read('library', songId)) as Uint8Array | undefined;
+  if (bytes === undefined) return null;
+
+  const loaded = loadCfxPackage(bytes);
+  if (!loaded.ok) return null;
+
+  const found = loaded.charts.find(({ chart }) => chart.chartId === chartId);
+  if (found === undefined || found.chart.musicFile === null) return null;
+
+  const asset = loaded.assets.find((a) => a.name === found.chart.musicFile);
+  if (asset === undefined) return null;
+
+  return { bytes: asset.bytes, previewStartMs: found.chart.metadata.previewStartMs };
+}
+
 export async function loadSongSelectRows(storage: StorageEnv): Promise<SongSelectLoadResult> {
   const songIds = await storage.keys('library');
   const warnings: string[] = [];

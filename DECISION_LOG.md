@@ -1142,6 +1142,33 @@
 - **Commit:** `eb2974a`
 
 
+### D-2026-086 — M4-4: song-select 커서·검색·preview·viewState·기록 초기화 구현
+
+- **Status:** Accepted (구현분) / 하위 항목들은 Deferred — 아래 참조
+- **Decision:** `core-song-select.ts`(커서 `CursorTarget`/`locateCursor`/`cursorTarget`/`moveCursorHorizontal`/`moveCursorVertical`, 검색 `matchesSearch`/`filterBySearch`), `game-viewstate.ts`(`viewState` store 영속), `game-song-preview.ts`(preview 재생 오케스트레이션), `scene-song-select.ts`(커서 하이라이트·검색 UI·정보 패널·기록 초기화 버튼), `app-main.ts`(전체 배선 — `AudioEnv`+`createPreviewController`로 실제 preview 재생, `readSongSelectViewState`/`writeSongSelectViewState`로 재진입 복원, `FEATURES.recordReset` 게이팅)를 구현했다. M4-4 Exit 기준("타이핑 즉시 검색되고, 정렬을 바꿔도 커서가 유지된다. 커서가 멈춘 뒤 preview가 지연 재생된다. 재진입 시 `lastSelected`가 복원된다")을 충족한다.
+
+  **커서 식별을 `{songId, chartId}`로 뒀다**(row/slot 좌표가 아니다) — 정렬·필터가 바뀌어도 같은 chart를 계속 가리키게 하려는 것([[song-select]] §8 "축을 바꿔도 커서는 같은 chart를 유지"). `locateCursor`가 좌표로 변환하며, 가리키던 chart가 사라지면 첫 항목으로 대체한다(§8 fallback). column affinity(같은 열 → 더 낮은 열 → 더 높은 열, 직전 열은 기억 안 함)를 `moveCursorVertical`에 그대로 구현했다(§7) — 테스트로 "기억 안 함" 규칙을 직접 확인했다.
+
+  **M4-3 前 게이트 재확인**: "목록 옵션 overlay 진입 키"·"가속 스크롤 수치"는 여전히 안 닫혀 정렬·그룹 바 클릭 인터랙션과 long-press 가속 스크롤은 이번에도 없다(표시만). "정보 패널 BPM 표기 방식·곡 길이 표시"는 M4-3 때는 정보 패널 자체가 없어 막지 않았지만, M4-4에서 커서가 생겨 정보 패널이 실제로 들어오므로 이제 진짜로 막는다 — BPM·길이 칸은 비워 뒀다. D-2026-084의 groupBy 4축 미결 항목은 커서 로직과 무관함을 확인했다(커서는 `groupRows()`가 이미 만든 결과 위에서만 움직인다 — 몇 개 축이 구현됐는지와 독립적).
+
+  **[결정 필요 1] 아코디언(folder 접힘/펼침) 미구현**: [[song-select]] §4가 요구하는 "진입 시 전부 접힘, 최근 선택 folder만 펼침"은 별도 인터랙션 설계(접힘 상태를 어디서 들고 있는지, 커서가 접힌 folder로 이동하면 자동으로 펼치는지 등)가 필요해 미룬다 — 모든 folder가 항상 펼쳐진 채로 렌더된다(M4-3부터의 임시 상태 유지).
+
+  **[결정 필요 2] PageUp/PageDown·Home/End 미구현**: Exit 기준에 명시되지 않아 이번 범위에서 뺐다.
+
+  **[결정 필요 3] 기록 칸 judge 모드 미완성**: `recordCellMode`가 `judge`일 때 우하단 칸에 표시할 4값 breakdown이 `SlotView`에 판정 카운트 필드 자체가 없어 아직 못 채운다(현재 `—`로 빈 값) — `SlotView`에 필드를 추가할지, 다른 경로로 가져올지는 별도 결정.
+
+  **preview fade 근사**: `AudioEnv.setVolume`이 즉시 값을 바꾸는 API라(WebAudio 램프 예약 API 없음) fade는 100ms 간격 계단식 근사다 — 매끄러운 램프가 필요해지면 `env-audio.ts`에 램프 API를 추가하는 별도 작업.
+
+  **기록 초기화 확인 UI**: 스펙에 확인 인터랙션이 정해져 있지 않아 `confirm()`(브라우저 기본 대화상자)으로 막았다 — 되돌릴 수 없는 동작에 대한 가장 단순한 방어. 전용 확인 모달이 필요하면 별도 결정.
+
+  테스트 신규/확장: `core-song-select.test.ts` +22(커서·검색), `game-viewstate.test.ts` 5, `game-song-preview.test.ts` 7, `scene-song-select.test.ts` 21(M4-3의 7에서 확장) — 전체 1091/1091 통과.
+- **Defined in:** `src/core/core-song-select.ts`, `src/game/game-viewstate.ts`, `src/game/game-song-preview.ts`, `src/game/game-song-select.ts`(`loadPreviewAsset` 추가), `src/scene/scene-song-select.ts`, `src/app/app-main.ts`
+- **Rationale:** Not required
+- **Affects:** core, game, scene, app — M4-4 완료
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

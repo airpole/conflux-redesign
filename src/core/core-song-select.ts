@@ -305,3 +305,161 @@ export function groupRows(rows: readonly SongRow[], axis: GroupByAxis): readonly
     return { label: key, rows: bucketRows, clearedCount: cleared, totalCount: total };
   });
 }
+
+// ── cursor 이동 ([[song-select]] §7) ────────────────────────────────────
+//
+// 이 절은 M4-3 헤더 주석이 "cursor·page 상태가 있어야 의미가 생겨 M4-4
+// 범위"라 미뤘던 chartId 6+ 페이지네이션은 여전히 다루지 않는다 — 가속
+// 스크롤 수치와 함께 아직 열려 있는 M4-3 前 게이트("가속 스크롤 수치")가
+// 페이지 전환 조작(마지막 slot에서 Right → 다음 페이지)의 세부까지
+// 묶고 있어, 고정 슬롯 1~5(chartId 1~5)만 다룬다.
+
+/** 화면에 보이는 row 배열(현재 category·sort·groupBy 적용 후) 안에서의
+ *  좌표. `rowIndex`는 folder 구분과 무관하게 **평평하게 이어붙인** row
+ *  목록 기준이다 — folder 접힘/펼침(아코디언, §4)은 이 파일이 다루지
+ *  않는다: M4-3의 렌더가 애초에 접힘 상태를 구현하지 않아(커서가 없어
+ *  의미가 없었음) 전체 row가 항상 펼쳐진 채로 렌더된다는 전제 위에서만
+ *  좌표가 유효하다 — 아코디언 자체의 구현은 결정 필요 항목으로 별도
+ *  보고한다. */
+export interface CursorPosition {
+  readonly rowIndex: number;
+  readonly slotIndex: number;
+}
+
+/** 재정렬·재필터 후에도 살아남는 커서의 **정체성** — 좌표가 아니라
+ *  chart다(§8 "변경 전 커서의 chart를 그대로 유지"). */
+export interface CursorTarget {
+  readonly songId: string;
+  readonly chartId: number;
+}
+
+/** `[[song-select]]` §12 `viewState`의 전체 모양 — `game-viewstate.ts`(영속)와
+ *  `scene-song-select.ts`(렌더) 둘 다 이 타입 하나를 쓴다(중복 정의 금지,
+ *  `CLAUDE.md` §7). */
+export type RecordCellMode = 'percent' | 'judge';
+
+export interface SongSelectViewState {
+  readonly category: string;
+  readonly groupBy: GroupByAxis;
+  readonly sortKey: SortKey;
+  readonly sortDir: SortDir;
+  readonly recordCellMode: RecordCellMode;
+  readonly lastSelected: CursorTarget | null;
+}
+
+function firstFilledSlot(row: SongRow): number {
+  return row.slots.findIndex((slot) => slot !== null);
+}
+
+/** 현재 row 목록에서 `target`이 가리키는 chart를 다시 찾는다. 못 찾으면
+ *  (정렬·필터로 사라졌거나 `target`이 `null`) 목록 첫 항목으로 간다
+ *  (§8 "그 chart가 현재 조건에서 사라지면 목록 첫 항목으로 간다"). row가
+ *  아예 없으면 `null`. */
+export function locateCursor(
+  rows: readonly SongRow[],
+  target: CursorTarget | null,
+): CursorPosition | null {
+  if (rows.length === 0) return null;
+
+  if (target !== null) {
+    const rowIndex = rows.findIndex((row) => row.songId === target.songId);
+    if (rowIndex !== -1) {
+      const slotIndex = rows[rowIndex]!.slots.findIndex((s) => s?.chartId === target.chartId);
+      if (slotIndex !== -1) return { rowIndex, slotIndex };
+    }
+  }
+
+  const slotIndex = firstFilledSlot(rows[0]!);
+  return slotIndex === -1 ? null : { rowIndex: 0, slotIndex };
+}
+
+/** 좌표를 다시 chart 정체성으로 되돌린다 — 위치가 가리키는 slot이 비어
+ *  있거나(있어선 안 되지만 방어적으로) row 범위를 벗어나면 `null`. */
+export function cursorTarget(
+  rows: readonly SongRow[],
+  position: CursorPosition,
+): CursorTarget | null {
+  const row = rows[position.rowIndex];
+  const slot = row?.slots[position.slotIndex];
+  if (row === undefined || slot === undefined || slot === null) return null;
+  return { songId: row.songId, chartId: slot.chartId };
+}
+
+/** 같은 row 안에서 slot을 좌우로 옮긴다. 빈 슬롯에는 커서가 들어갈 수
+ *  없어(§3) 다음 채워진 슬롯까지 건너뛴다. row 끝에서는 그대로 멈춘다 —
+ *  다음 페이지로 넘어가는 동작(§3)은 페이지네이션과 함께 미룬다(파일
+ *  머리말 참조). */
+export function moveCursorHorizontal(
+  rows: readonly SongRow[],
+  position: CursorPosition,
+  direction: -1 | 1,
+): CursorPosition {
+  const slots = rows[position.rowIndex]?.slots;
+  if (slots === undefined) return position;
+
+  for (let i = position.slotIndex + direction; i >= 0 && i < slots.length; i += direction) {
+    if (slots[i] !== null) return { rowIndex: position.rowIndex, slotIndex: i };
+  }
+  return position;
+}
+
+/** 이웃 row로 옮긴다. 열 대응 규칙(§7): (1) 같은 열에 chart가 있으면
+ *  그 slot, (2) 없으면 더 낮은 열 중 가장 가까운 slot, (3) 그것도
+ *  없으면 더 높은 열 중 가장 가까운 slot. 직전 열을 따로 기억하지
+ *  않는다 — 이동 결과 열이 곧 다음 이동의 기준이다. 목록 끝에서는
+ *  그대로 멈춘다. */
+export function moveCursorVertical(
+  rows: readonly SongRow[],
+  position: CursorPosition,
+  direction: -1 | 1,
+): CursorPosition {
+  const targetRow = position.rowIndex + direction;
+  if (targetRow < 0 || targetRow >= rows.length) return position;
+
+  const slots = rows[targetRow]!.slots;
+  if (slots[position.slotIndex] !== null) {
+    return { rowIndex: targetRow, slotIndex: position.slotIndex };
+  }
+  for (let i = position.slotIndex - 1; i >= 0; i--) {
+    if (slots[i] !== null) return { rowIndex: targetRow, slotIndex: i };
+  }
+  for (let i = position.slotIndex + 1; i < slots.length; i++) {
+    if (slots[i] !== null) return { rowIndex: targetRow, slotIndex: i };
+  }
+  return { rowIndex: targetRow, slotIndex: position.slotIndex }; // 방어적 — 유효한 row는 slot이 최소 1개.
+}
+
+// ── search ([[song-select]] §6) ─────────────────────────────────────────
+//
+// 대상 필드는 `title`·`musicBy`만이다 — 스펙(§6)은 `subtitle`도 대상으로
+// 넣지만, `subtitle`은 chart(slot) 필드지 song(row) 필드가 아니고 M4-3의
+// row 모델은 chartId 6+(subtitle이 있는 추가 chart, [[cfx]] §4)를 아예
+// 싣지 않는다(파일 머리말 — 페이지네이션과 함께 미룸). `subtitle` 매칭은
+// 그 작업이 들어올 때 같이 추가한다 — 결정 필요 항목으로 별도 보고.
+
+function normalizeForSearch(text: string): string {
+  return text.normalize('NFC').toLowerCase();
+}
+
+/** §6 매칭 규칙: 대소문자 무시, NFC 정규화 후 (1) 공백으로 나눈 모든
+ *  낱말이 각각 어느 대상 필드에든 포함되거나(AND, 낱말마다 다른 필드여도
+ *  됨), (2) 공백을 제거한 검색어가 공백을 제거한 대상 필드에 포함되면
+ *  매치. 빈 검색어는 전부 매치(idle 상태). */
+export function matchesSearch(row: SongRow, rawQuery: string): boolean {
+  const query = normalizeForSearch(rawQuery).trim();
+  if (query === '') return true;
+
+  const fields = [row.title, row.musicBy].map(normalizeForSearch);
+
+  const words = query.split(/\s+/).filter((w) => w.length > 0);
+  const allWordsMatchSomeField = words.every((w) => fields.some((f) => f.includes(w)));
+
+  const strippedQuery = query.replace(/\s+/g, '');
+  const strippedFieldMatch = fields.some((f) => f.replace(/\s+/g, '').includes(strippedQuery));
+
+  return allWordsMatchSomeField || strippedFieldMatch;
+}
+
+export function filterBySearch(rows: readonly SongRow[], query: string): readonly SongRow[] {
+  return rows.filter((row) => matchesSearch(row, query));
+}

@@ -1,12 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildSongRow,
+  cursorTarget,
   deriveCategoryTabs,
   filterByCategory,
+  filterBySearch,
   groupRows,
+  locateCursor,
+  matchesSearch,
+  moveCursorHorizontal,
+  moveCursorVertical,
   sortRows,
   UNCATEGORIZED,
   ALL_CATEGORY,
+  type CursorPosition,
   type SongChartInput,
   type SongRow,
 } from './core-song-select.js';
@@ -197,5 +204,154 @@ describe('groupRows', () => {
     const folders = groupRows([row('a', 'A', '')], 'none');
     expect(folders[0]!.totalCount).toBe(1);
     expect(folders[0]!.clearedCount).toBe(1); // FC는 클리어로 친다
+  });
+});
+
+function slot(chartId: number, level = 1): SongRow['slots'][number] {
+  return { chartId, difficulty: 'Trace', level, state: 'N', score: null, rank: null };
+}
+
+function cursorRow(songId: string, slots: SongRow['slots']): SongRow {
+  return { songId, title: songId, musicBy: '', category: '', slots, updatedAt: '' };
+}
+
+describe('locateCursor / cursorTarget', () => {
+  it('row가 없으면 null이다', () => {
+    expect(locateCursor([], null)).toBeNull();
+  });
+
+  it('target이 null이면 첫 row의 첫 채워진 slot으로 간다', () => {
+    const rows = [cursorRow('a', [null, slot(2), null, null, null])];
+    expect(locateCursor(rows, null)).toEqual({ rowIndex: 0, slotIndex: 1 });
+  });
+
+  it('target이 현재 목록에 있으면 그 위치를 찾는다', () => {
+    const rows = [cursorRow('a', [slot(1)]), cursorRow('b', [slot(1), slot(2)])];
+    expect(locateCursor(rows, { songId: 'b', chartId: 2 })).toEqual({ rowIndex: 1, slotIndex: 1 });
+  });
+
+  it('target이 사라졌으면(정렬·필터로) 첫 항목으로 돌아간다(§8)', () => {
+    const rows = [cursorRow('a', [slot(1)])];
+    expect(locateCursor(rows, { songId: 'gone', chartId: 9 })).toEqual({
+      rowIndex: 0,
+      slotIndex: 0,
+    });
+  });
+
+  it('cursorTarget이 좌표를 chart 정체성으로 되돌린다', () => {
+    const rows = [cursorRow('a', [slot(1), slot(2)])];
+    expect(cursorTarget(rows, { rowIndex: 0, slotIndex: 1 })).toEqual({
+      songId: 'a',
+      chartId: 2,
+    });
+  });
+
+  it('빈 슬롯을 가리키면 cursorTarget이 null이다', () => {
+    const rows = [cursorRow('a', [null, slot(2)])];
+    expect(cursorTarget(rows, { rowIndex: 0, slotIndex: 0 })).toBeNull();
+  });
+});
+
+describe('moveCursorHorizontal', () => {
+  it('오른쪽으로 다음 채워진 슬롯까지 건너뛴다', () => {
+    const rows = [cursorRow('a', [slot(1), null, slot(3), null, null])];
+    const pos: CursorPosition = { rowIndex: 0, slotIndex: 0 };
+    expect(moveCursorHorizontal(rows, pos, 1)).toEqual({ rowIndex: 0, slotIndex: 2 });
+  });
+
+  it('마지막 채워진 슬롯에서 더 오른쪽으로 가면 멈춘다(페이지네이션은 미룸)', () => {
+    const rows = [cursorRow('a', [slot(1), slot(2), null, null, null])];
+    const pos: CursorPosition = { rowIndex: 0, slotIndex: 1 };
+    expect(moveCursorHorizontal(rows, pos, 1)).toEqual(pos);
+  });
+
+  it('왼쪽으로도 같은 규칙을 따른다', () => {
+    const rows = [cursorRow('a', [null, slot(2), null, slot(4), null])];
+    const pos: CursorPosition = { rowIndex: 0, slotIndex: 3 };
+    expect(moveCursorHorizontal(rows, pos, -1)).toEqual({ rowIndex: 0, slotIndex: 1 });
+  });
+});
+
+describe('moveCursorVertical — 열 대응 규칙(§7)', () => {
+  it('같은 열에 chart가 있으면 그 slot으로 간다', () => {
+    const rows = [cursorRow('a', [slot(1), slot(2)]), cursorRow('b', [slot(1), slot(2)])];
+    const pos: CursorPosition = { rowIndex: 0, slotIndex: 1 };
+    expect(moveCursorVertical(rows, pos, 1)).toEqual({ rowIndex: 1, slotIndex: 1 });
+  });
+
+  it('같은 열이 비어 있으면 더 낮은 열 중 가장 가까운 slot', () => {
+    const rows = [cursorRow('a', [null, null, slot(3)]), cursorRow('b', [slot(1), slot(2), null])];
+    const pos: CursorPosition = { rowIndex: 0, slotIndex: 2 };
+    expect(moveCursorVertical(rows, pos, 1)).toEqual({ rowIndex: 1, slotIndex: 1 });
+  });
+
+  it('낮은 열도 없으면 더 높은 열 중 가장 가까운 slot', () => {
+    const rows = [
+      cursorRow('a', [null, null, slot(3)]),
+      cursorRow('b', [null, null, null, slot(4)]),
+    ];
+    const pos: CursorPosition = { rowIndex: 0, slotIndex: 2 };
+    expect(moveCursorVertical(rows, pos, 1)).toEqual({ rowIndex: 1, slotIndex: 3 });
+  });
+
+  it('목록 끝에서는 멈춘다', () => {
+    const rows = [cursorRow('a', [slot(1)])];
+    const pos: CursorPosition = { rowIndex: 0, slotIndex: 0 };
+    expect(moveCursorVertical(rows, pos, 1)).toEqual(pos);
+    expect(moveCursorVertical(rows, pos, -1)).toEqual(pos);
+  });
+
+  it('직전 열을 기억하지 않는다 — 이동 결과 열이 다음 이동의 기준이다', () => {
+    const rows = [
+      cursorRow('a', [slot(1), null, slot(3)]),
+      cursorRow('b', [slot(1), null, null]), // 2행: col2 없음 → col1로 이동(낮은 열)
+      cursorRow('c', [slot(1), slot(2), null]), // 3행: col1에 chart 있음 — 원래 col2를 기억했다면 여기서 col2로 안 감
+    ];
+    let pos: CursorPosition = { rowIndex: 0, slotIndex: 2 };
+    pos = moveCursorVertical(rows, pos, 1); // → row1, col1(낮은 열로 이동)
+    expect(pos).toEqual({ rowIndex: 1, slotIndex: 0 });
+    pos = moveCursorVertical(rows, pos, 1); // → row2, 지금 col(col0)에 chart 있음 → 그대로 col0
+    expect(pos).toEqual({ rowIndex: 2, slotIndex: 0 });
+  });
+});
+
+describe('matchesSearch / filterBySearch (§6)', () => {
+  const song = cursorRow('a', [slot(1)]);
+  const withNames = { ...song, title: 'Foo Bar', musicBy: 'Some Artist' };
+
+  it('빈 검색어는 전부 매치한다', () => {
+    expect(matchesSearch(withNames, '')).toBe(true);
+  });
+
+  it('대소문자를 무시한다', () => {
+    expect(matchesSearch(withNames, 'FOO')).toBe(true);
+  });
+
+  it('부분 문자열로 매치한다', () => {
+    expect(matchesSearch(withNames, 'oo Ba')).toBe(true);
+  });
+
+  it('공백으로 나눈 낱말이 각각 다른 필드에 있어도 매치한다(AND)', () => {
+    expect(matchesSearch(withNames, 'Foo Artist')).toBe(true);
+  });
+
+  it('낱말 중 하나라도 어느 필드에도 없으면 매치하지 않는다', () => {
+    expect(matchesSearch(withNames, 'Foo Nope')).toBe(false);
+  });
+
+  it('공백을 제거한 검색어가 공백 제거한 필드에 포함되면 매치한다', () => {
+    expect(matchesSearch(withNames, 'oobar')).toBe(true);
+  });
+
+  it('NFC 정규화 후 비교한다', () => {
+    // 'é'를 combining form(e + ́)으로 구성 — NFC 정규화 없인 안 맞는다.
+    const decomposed = 'Café';
+    const row = { ...song, title: 'Café', musicBy: '' };
+    expect(matchesSearch(row, decomposed)).toBe(true);
+  });
+
+  it('filterBySearch가 매치하는 row만 남긴다', () => {
+    const other = { ...song, songId: 'b', title: 'Nothing', musicBy: '' };
+    expect(filterBySearch([withNames, other], 'Foo').map((r) => r.songId)).toEqual(['a']);
   });
 });

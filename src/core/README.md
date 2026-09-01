@@ -47,3 +47,16 @@ head+tail 2단위(`core-judge.ts` `unitsOf`, `core/judge.md` §8). Hold가
 없어 결정 필요 항목으로 미뤘다(D-2026-084). `chartId 6+`(추가 chart)도
 cursor·페이지 상태가 있어야 의미가 생겨 M4-4로 미룬다 — 고정 슬롯 1~5만
 채운다.
+
+M4-4가 여기에 커서(`CursorTarget`/`CursorPosition`/`locateCursor`/
+`cursorTarget`/`moveCursorHorizontal`/`moveCursorVertical`)와 검색
+(`matchesSearch`/`filterBySearch`, NFC+대소문자 무시, 공백 분리 AND,
+`title`/`musicBy`/`subtitle` 대상)을 더했다([[song-select]] §6·§7).
+`SongSelectViewState`/`RecordCellMode`/`CursorTarget`은 여기가 단일 출처다
+— `game-viewstate.ts`·`scene-song-select.ts` 둘 다 여기서 import한다
+(처음엔 각자 로컬 정의를 뒀다가 타입 불일치가 나 여기로 모았다). 커서는
+`{songId, chartId}`로 식별한다(row/slot 좌표가 아니다) — 정렬·필터가
+바뀌어도 같은 chart를 계속 가리키게 하려는 것이며, 가리키던 chart가
+사라지면 `locateCursor`가 첫 항목으로 대체한다(§8 fallback). column
+affinity(같은 열 → 더 낮은 열 → 더 높은 열, 직전 열은 기억하지 않음)는
+`moveCursorVertical`에 그대로 구현했다(§7).

@@ -12,12 +12,27 @@
  * M4-6 범위) — 가짜 scene을 만들어 억지로 연결하지 않고, 선택 시 콘솔
  * 로그만 남긴다. `play`는 M4-3부터 `song-select`로 연결된다.
  *
- * song-select의 axis 상태(category/groupBy/sortKey/sortDir)는 여기서
- * 가장 단순한 기본값(`All`/`none`/`default`/`asc`)으로 고정해 둔다 — 실제
- * 조작(정렬·그룹 바 클릭, 검색, 커서)은 M4-4 범위라 아직 UI가 없다. row
- * 목록은 매 `onEnter`마다 다시 로드한다 — library가 바뀌었을 수 있는데
- * song-select는 재진입마다 갱신돼야 자연스럽다([[song-select]] §11 로딩
- * 표시 전제와도 맞는다. 로딩 표시 자체는 M4-4 범위).
+ * song-select의 axis 상태(category/groupBy/sortKey/sortDir/recordCellMode/
+ * lastSelected)는 M4-4부터 `game-viewstate.ts`(`env-storage`의 `viewState`
+ * store)로 영속한다([[song-select]] §12) — 실제 조작(정렬·그룹 바 *클릭*
+ * 으로 바꾸는 것)은 여전히 없다(overlay 진입 키가 M4-3 前 게이트로 아직
+ * 안 닫혔다, `scene-song-select.ts` 헤더 참조) — 카테고리 탭·커서(방향키·
+ * 클릭)·검색·기록 칸 토글·기록 초기화만 이번 범위다. row 목록은 매
+ * `onEnter`마다 다시 로드한다 — library가 바뀌었을 수 있는데 song-select는
+ * 재진입마다 갱신돼야 자연스럽다([[song-select]] §11 로딩 표시 전제와도
+ * 맞는다. 로딩 표시 자체는 M4-4 범위 밖).
+ *
+ * preview 재생은 `game-song-preview.ts`의 `createPreviewController`를 실제
+ * `AudioEnv`(`env-audio.ts`)로 연결한다 — `onCursorChange`마다
+ * `controller.onCursorSettle()`을 부르고, `game-song-select.ts`의
+ * `loadPreviewAsset`으로 그 chart의 음원을 필요할 때만 다시 읽어 decode한다.
+ *
+ * 기록 초기화(`onResetRecord`)는 `FEATURES.recordReset`이 켜졌을 때만
+ * 핸들러를 넘긴다 — `scene-song-select.ts`가 이 핸들러의 유무로 버튼 노출을
+ * 결정한다(§13 "FEATURES.recordReset에서만 노출"). 초기화 확정 UI는
+ * `confirm()`을 쓴다 — 스펙에 별도 확인 인터랙션이 정해져 있지 않아 되돌릴
+ * 수 없는 동작에 대한 가장 단순한 방어로 골랐다(결정 필요 항목으로 별도
+ * 보고).
  */
 import { BUILD_PROFILE, FEATURES } from './app-features.js';
 import { createSceneManager, type Scene, type SceneManager } from '../scene/scene-manager.js';
@@ -26,20 +41,18 @@ import { mountModeSelectScene, type ModeSelectSceneHandle } from '../scene/scene
 import { mountCreditsScene, type CreditsSceneHandle } from '../scene/scene-credits.js';
 import {
   mountSongSelectScene,
+  type SongSelectHandlers,
   type SongSelectSceneHandle,
-  type SongSelectViewState,
 } from '../scene/scene-song-select.js';
-import { loadSongSelectRows } from '../game/game-song-select.js';
+import type { CursorTarget } from '../core/core-song-select.js';
+import { loadPreviewAsset, loadSongSelectRows } from '../game/game-song-select.js';
+import { resetRecord } from '../game/game-records.js';
+import { readSongSelectViewState, writeSongSelectViewState } from '../game/game-viewstate.js';
+import { createPreviewController } from '../game/game-song-preview.js';
+import { createAudioEnv } from '../env/env-audio.js';
 import { createIndexedDbBackend, createStorageEnv, type StorageEnv } from '../env/env-storage.js';
 
 console.info(`Conflux — build profile: ${BUILD_PROFILE}`);
-
-const DEFAULT_SONG_SELECT_VIEW: SongSelectViewState = {
-  category: 'All',
-  groupBy: 'none',
-  sortKey: 'default',
-  sortDir: 'asc',
-};
 
 function boot(root: HTMLElement, storage: StorageEnv): void {
   let titleHandle: TitleSceneHandle | undefined;
@@ -99,29 +112,83 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
     },
   };
 
+  const audioEnv = createAudioEnv(() => new AudioContext());
+  const previewController = createPreviewController(audioEnv);
+
   let songSelectHandle: SongSelectSceneHandle | undefined;
   const songSelectScene: Scene = {
     id: 'song-select',
     mount(): void {
-      songSelectHandle = mountSongSelectScene(root, {
+      const handlers: SongSelectHandlers = {
         onCategoryChange(category): void {
-          void refreshSongSelect({ ...DEFAULT_SONG_SELECT_VIEW, category });
+          void (async () => {
+            const view = { ...(await readSongSelectViewState(storage)), category };
+            await writeSongSelectViewState(storage, view);
+            await refreshSongSelect(view);
+          })();
         },
         onBack(): void {
+          previewController.stop();
           manager.goScene('mode-select');
         },
+        onCursorChange(target): void {
+          void (async () => {
+            const view = { ...(await readSongSelectViewState(storage)), lastSelected: target };
+            await writeSongSelectViewState(storage, view);
+          })();
+
+          if (target === null) {
+            previewController.stop();
+            return;
+          }
+          previewController.onCursorSettle(async () => {
+            const asset = await loadPreviewAsset(storage, target.songId, target.chartId);
+            if (asset === null) return null;
+            const buffer = await audioEnv.decode(asset.bytes.buffer as ArrayBuffer);
+            return { buffer, startMs: asset.previewStartMs };
+          });
+        },
+        onSelect(target): void {
+          console.info(`song-select: '${target.songId}:${target.chartId}' 선택됨 (M4-5 범위)`);
+        },
+        onRecordCellModeChange(mode): void {
+          void (async () => {
+            const view = { ...(await readSongSelectViewState(storage)), recordCellMode: mode };
+            await writeSongSelectViewState(storage, view);
+            await refreshSongSelect(view);
+          })();
+        },
+      };
+      songSelectHandle = mountSongSelectScene(root, {
+        ...handlers,
+        ...(FEATURES.recordReset
+          ? {
+              onResetRecord(target: CursorTarget): void {
+                if (!confirm('이 chart의 기록을 초기화할까요?')) return;
+                void (async () => {
+                  await resetRecord(storage, target.songId, target.chartId);
+                  await refreshSongSelect(await readSongSelectViewState(storage));
+                })();
+              },
+            }
+          : {}),
       });
     },
     onEnter(): void {
       songSelectHandle!.show();
-      void refreshSongSelect(DEFAULT_SONG_SELECT_VIEW);
+      void (async () => {
+        await refreshSongSelect(await readSongSelectViewState(storage));
+      })();
     },
     onExit(): void {
+      previewController.stop();
       songSelectHandle!.hide();
     },
   };
 
-  async function refreshSongSelect(view: SongSelectViewState): Promise<void> {
+  async function refreshSongSelect(
+    view: Awaited<ReturnType<typeof readSongSelectViewState>>,
+  ): Promise<void> {
     const { rows, warnings } = await loadSongSelectRows(storage);
     if (warnings.length > 0) {
       console.warn(`song-select: decode 실패한 library entry — ${warnings.join(', ')}`);

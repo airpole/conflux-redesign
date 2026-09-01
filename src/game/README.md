@@ -78,3 +78,26 @@ no-record 조건을 걸러 store를 건드리지 않는다. `game-session.ts`의
 직접 부른다 — 그 래퍼들은 한 줄짜리 pass-through라 옮길 실익이 없었다(D-2026-085).
 `.cfx` decode 로직 자체가 `edit`↔`game` 형제 제약(`architecture.md` §1)에
 걸려 있었던 문제는 `format/` 신설로 풀었다 — 자세한 경위는 `src/format/README.md`.
+M4-4가 `loadPreviewAsset`을 더했다 — 커서가 멈춘 chart 하나의 음원 bytes+
+`previewStartMs`만 그때 다시 읽어 decode한다(`loadSongSelectRows`는 row를
+만들고 나면 asset bytes를 들고 있지 않는다 — 모든 곡 음원을 한꺼번에
+메모리에 올리지 않으려는 것).
+
+`game-viewstate.ts`는 M4-4 범위다([[song-select]] §12). `env-storage`의
+`viewState` store(M3-1, `edit-workspace.ts`의 고정 key 패턴을 따라 key=
+`'song-select'`)에 `category`/`groupBy`/`sortKey`/`sortDir`/`recordCellMode`/
+`lastSelected`(이 6개만 — 검색어·folder 접힘·페이지 인덱스는 영속 안 함,
+§12)를 잇는다. `SongSelectViewState`/`RecordCellMode`/`CursorTarget` 타입은
+여기서 재정의하지 않고 `core-song-select.ts`에서 그대로 가져온다(단일
+출처). 병합 규칙(알 수 없는 키 폐기, 필드 단위 기본값 복귀)은 `settings.md`
+§4 원칙을 유추 적용한 것이지 §12에 직접 명시된 건 아니다 — 필요하면
+재검토.
+
+`game-song-preview.ts`는 M4-4 범위다([[song-select]] §10). 커서가 멈춘 뒤
+`PREVIEW_DELAY_MS` 지나야 재생 시작(그 전에 커서가 다시 움직이면 취소),
+`metadata.previewStartMs`부터 재생, `PREVIEW_LOOP_MS`마다 루프, 마지막
+`PREVIEW_FADE_OUT_MS` 동안 fade out. `AudioEnv.setVolume`이 즉시 값을
+바꾸는 API라(램프 예약 API 없음) fade는 짧은 간격(`FADE_STEP_MS=100ms`)
+마다 volume을 계단식으로 낮추는 근사다 — 매끄러운 WebAudio 램프가
+필요해지면 `env-audio.ts`에 램프 API를 추가하는 별도 작업(결정 필요
+항목으로 보고).

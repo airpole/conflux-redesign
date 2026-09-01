@@ -52,3 +52,18 @@ category 탭(클릭 전환), groupBy folder 헤더(count+진척), sortKey/sortDi
 걸려 되돌렸다 — 그 로직을 `format/`(D-2026-085, M4-3)으로 재분류해 문제를
 풀었다. `app-main.ts`가 `game-song-select.ts`의 `loadSongSelectRows`로 얻은
 row를 `update()`에 넘겨 실제로 부팅한다.
+
+M4-4가 커서 이동(방향키, 클릭)·하이라이트, 검색(타이핑 즉시 시작,
+idle/typing/no-results 3상태 — 검색 중엔 folder 헤더 없이 평평한 목록),
+정보 패널(§2.5.4, jacket·title/artist·2×2 기록 격자, BPM·곡 길이는 M4-3
+前 게이트가 아직 안 닫혀 빈 칸), 기록 초기화 버튼(`onResetRecord`가
+있을 때만 노출, §13 `FEATURES.recordReset` 게이팅)을 더했다. 정렬·그룹
+바는 여전히 표시만 한다("목록 옵션 overlay 진입 키" 게이트가 아직
+그대로다). 아코디언(folder 접힘/펼침)·PageUp/PageDown/Home/End·가속
+스크롤은 이번 범위에도 없다(결정 필요 항목으로 미룸, `scene-song-select.ts`
+헤더 주석 참조).
+
+`SongSelectViewState`/`CursorTarget`은 `core-song-select.ts`에서 그대로
+가져와 재수출한다(로컬 재정의 아님) — 처음엔 이 파일이 자체 정의를 뒀다가
+`game-viewstate.ts`/`app-main.ts`와 타입이 어긋나 `core-song-select.ts`로
+모았다.
