@@ -977,7 +977,7 @@
 - **Rationale:** Not required
 - **Affects:** scene, core (신규 모듈), 향후 모든 UI 텍스트 작성 방침
 - **Supersedes:** None — D-2026-072·D-2026-076을 무효화하지 않고 텍스트 표기만 개정
-- **Commit:** `PENDING`
+- **Commit:** `0bda292`
 
 
 ### D-YYYY-NNN — <Title>
