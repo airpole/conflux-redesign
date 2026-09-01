@@ -56,7 +56,7 @@ resetSceneStack()
 
 - game: `song-select → song-credit → gameplay → result`.
 - editor: `notes ↔ shapes ↔ test ↔ meta` + start scene. 상세 [[editor-graph]].
-- settings: `play ↔ visual ↔ option` 3 scene 평면 graph `[수정]` — 구 단일 scene + 4 tab을 editor와 같은 scene mechanism으로 통일. `option` scene은 GAUGE·OPTION 두 category를 함께 표시한다(`[[settings]]` §2의 4-category 분류 자체는 그대로 유지, scene 경계만 접힌 것 — 근거는 `ui-design.md` §2.6, D-2026-074). category·값 정의는 [[settings]] §2.
+- settings: `play ↔ visual ↔ sound ↔ option` 4 scene 평면 graph `[수정]` — 구 단일 scene + 4 tab을 editor와 같은 scene mechanism으로 통일. `option` scene은 GAUGE·OPTION 두 category를 함께 표시하고(D-2026-074), `sound` scene은 구 PLAY 소속이던 볼륨 3필드(`volMaster`/`volMusic`/`volEffect`)를 분리한 신규 category다(D-2026-075) — `[[settings]]` §2가 category 정의의 단일 출처. 이 4-scene은 D-2026-020이 원래 정한 4-scene(play/visual/gauge/option)과 **다른 구성**이다 — 근거는 `ui-design.md` §2.6.
 - credits: mode graph가 아닌 root 소속 단일 scene(§7).
 
 | id | 화면 |
@@ -67,7 +67,7 @@ resetSceneStack()
 | song-credit | 선택 chart credit 자동 표시 |
 | gameplay | active chart gameplay |
 | result | result·best 표시 |
-| settings-play/-visual/-option | player settings 3 scene (option = GAUGE + OPTION category) |
+| settings-play/-visual/-sound/-option | player settings 4 scene (option = GAUGE + OPTION category) |
 | credits | project staff credit `[신규]` |
 
 `song-select`의 song은 persisted 객체가 아니라 같은 `songId` chart들의 파생 group이다([[data-model]]).
@@ -240,7 +240,7 @@ CTX 상세 → [[architecture]].
 - [x] build gate
 - [x] 기록 초기화 진입점 — song-select, `FEATURES.recordReset` internal 게이트 (D-2026-017)
 - [x] song-credit fade 연출 — 수치는 [[constants]] `CREDIT_*` (D-2026-020)
-- [x] settings graph = play/visual/option 3 scene, option scene이 GAUGE+OPTION 두 category를 함께 표시 (D-2026-020, scene 경계는 D-2026-074로 수정 — M3.5-2)
+- [x] settings graph = play/visual/sound/option 4 scene(D-2026-020이 정한 원래 4-scene과는 다른 구성), option scene이 GAUGE+OPTION 두 category를 함께 표시 (D-2026-020, scene 경계는 D-2026-074(GAUGE→OPTION)·D-2026-075(SOUND 분리)로 수정 — M3.5-2)
 - [x] credits = root 소속 단일 scene, mode-select 진입 (D-2026-020)
 - [x] quick options 배치 = host 소유 — song-select overlay / test embedded panel (D-2026-020)
 - [x] pause Resume은 mid-start 시드를 호출하지 않음 — 보존된 활성 Hold를 pause anchor에서 재조정 (D-2026-024)

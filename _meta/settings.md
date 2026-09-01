@@ -23,8 +23,18 @@ settings는 사람의 환경·취향이다. 같은 chart를 누가 치든 달라
 - `scrollSpeed` — note visual scroll density. 범위 [[constants]] `SCROLL_SPEED_*`.
 - `audioOffset`(ms) — player device audio output compensation. active chart의 `metadata.offset`과 다른 축.
 - `visualOffset`(ms) — judgment clock compensation. press/release input timestamp에 적용 `[보존]`.
-- `volMaster / volMusic / volEffect`.
 - key mapping도 PLAY 소속.
+
+### SOUND `[신규]` (M3.5-2, D-2026-075)
+
+- `volMaster / volMusic / volEffect` — 구 PLAY 소속에서 분리한 독립 category. 볼륨 3필드가
+  input·key mapping과 성격이 달라 PLAY 아래 묶여 있을 근거가 약했다.
+- `volEffect`가 정확히 무엇의 볼륨인지는 이 문서에 텍스트로 정의된 적이 없다 — 실제
+  오디오 배선은 아직 없다(env-audio는 M4/M5 이후). 이름만으로 "hitsound(판정 사운드)"를
+  뜻한다고 단정하지 않는다 — `render/theme.md`의 "hit effect"(판정선의 시각 물결 효과,
+  VISUAL의 `hitEffect` 토글이 그 on/off)와 용어가 겹쳐 혼동 소지가 있다는 점만 여기
+  기록해 둔다. 표시 라벨을 "Hitsound"로 할지 "Effect"로 둘지는 `ui-design.md`
+  레이아웃 단계에서 별도 확인한다.
 
 `DEFAULT_LANE_KEYS` — 물리 6키와 lane 매핑 `[보존]`:
 
@@ -151,7 +161,8 @@ player settings와 별도로 editor에서만 쓰는 persistent aid. `.cfx`에 �
 - [x] measureLabelOffset editor setting
 - [x] no-record gate single source
 - [x] `laneOf(key)` 매핑을 DEFAULT_LANE_KEYS 표로 승격 — judge는 링크 (D-2026-031)
-- [x] settings graph = 3 scene(play/visual/option), option scene이 GAUGE+OPTION 두 category를 함께 표시 — category 분류(§2, 4종)는 그대로, scene 경계만 접힘. 정의는 [[scene]] §3 (D-2026-020, scene 경계 수정은 D-2026-074 — M3.5-2)
+- [x] settings graph = 4 scene(play/visual/sound/option), option scene이 GAUGE+OPTION 두 category를 함께 표시 — 정의는 [[scene]] §3 (D-2026-020, scene 경계 첫 수정은 D-2026-074 — GAUGE→OPTION 병합)
+- [x] volMaster/volMusic/volEffect를 PLAY에서 분리해 SOUND category 신설 — §2 (D-2026-075 — M3.5-2)
 - [x] 기본값 표와 병합 규칙 — 알 수 없는 키 폐기·필드 단위 되돌림 §4 (D-2026-036)
 
 잔여:

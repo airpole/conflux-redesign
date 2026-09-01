@@ -922,6 +922,21 @@
 - **Commit:** `d77d6e4`
 
 
+### D-2026-075 — M3.5-2 SOUND scene 신설: volMaster/volMusic/volEffect를 PLAY에서 분리
+
+- **Status:** Accepted
+- **Decision:** `volMaster`/`volMusic`/`volEffect`(구 PLAY 소속)를 새 SOUND category/scene으로 분리한다 — 결과: settings graph는 `play ↔ visual ↔ sound ↔ option` 4-scene이 된다. 이 4-scene은 D-2026-020이 원래 정한 4-scene(play/visual/gauge/option, 이후 D-2026-074가 3-scene으로 접음)과는 **다른 구성**이다 — 우연히 다시 4개가 된 것뿐, 원래대로 돌아간 게 아니다.
+
+  볼륨 3필드가 input·key mapping(PLAY의 나머지 필드 성격)과 축이 달라 PLAY 아래 묶여 있을 근거가 약했다는 것이 분리 근거다.
+
+  `volEffect`가 정확히 무엇의 볼륨인지는 조사했으나 이 레포 어디에도 텍스트로 정의돼 있지 않다 — 실제 오디오 배선(env-audio)이 아직 없다(M4/M5 이후). 이름만으로 "hitsound(판정 사운드)"라고 단정하지 않았다 — 오히려 `render/theme.md`의 "hit effect"(판정선의 시각 물결 효과, `settings.md` VISUAL의 `hitEffect` 토글이 그 on/off)와 "effect"라는 용어가 겹쳐, `volEffect`(SOUND, 볼륨)와 `hitEffect`(VISUAL, 시각 토글)를 헷갈릴 소지가 있다는 점을 기록해 둔다. SOUND scene에서 이 필드를 "Hitsound"로 표시할지 "Effect"로 표시할지는 `ui-design.md` 레이아웃에서 별도 확정한다 — 필드명(`volEffect`) 자체는 이 결정으로 바꾸지 않는다.
+- **Defined in:** `_meta/settings.md` §2·§5, `scene/scene.md` §3·§11
+- **Rationale:** Not required
+- **Affects:** settings 구조, settings UI (M3.5-2 레이아웃의 전제)
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred
