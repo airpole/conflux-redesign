@@ -1110,7 +1110,7 @@
 - **Rationale:** Not required
 - **Affects:** core, scene, 향후 game/edit 레이어 재검토
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `8e7ca55`
 
 
 ### D-YYYY-NNN — <Title>
