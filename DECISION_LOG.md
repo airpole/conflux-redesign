@@ -1010,6 +1010,31 @@
 - **Commit:** `41cc5b2`
 
 
+### D-2026-080 — M3.5-4 credits 레이아웃 골격 확정: `ui-design.md` §2.8, M3.5 milestone 전체 완료
+
+- **Status:** Accepted
+- **Decision:** credits scene의 레이아웃 **골격**을 `ui-design.md` §2.8로 문서화했다 — 표시 내용 자체는 여전히 범위 밖(M4-2 前 게이트)이며, 이 절은 섹션 구조·스크롤 형태·배경만 정의한다.
+
+  **구조**: role-category 섹션 4개 고정 — `Project Staff`(원래 scope), `Music`/`Chart`/`Jacket`. 뒤 세 섹션은 song이나 chart로 나뉘지 않고 **library 전체를 스캔해 해당 필드(`musicBy`/`chartBy`/`jacketBy`, [[data-model]] §2·§4) 값을 필드별로 중복 제거한 평평한 이름 목록**으로 보여준다. 이 구조는 검토 과정에서 발견한 문제 — 같은 `songId` 그룹 안에서도 chart마다 `musicBy`/`jacketBy`/`chartBy`가 다를 수 있어([[data-model]] §1) "song당 한 섹션"이 어느 chart 값을 대표로 쓸지 정할 수 없었던 문제 — 를 애초에 song/chart로 묶지 않음으로써 우회한다. 한 사람이 여러 역할을 겸하면 겸하는 각 역할 섹션에 각각 나타난다(하나로 합치지 않음).
+
+  "Illust by"라는 표현이 리뷰 중 나왔으나 프로젝트의 실제 필드/라벨은 `jacketBy`/"Jacket by"뿐이라([[data-model]] §2, [[naming]]) 그 이름을 채택하지 않았다.
+
+  **heading·스크롤**: `Credits` 헤딩은 스크롤 콘텐츠와 함께 움직인다(고정 아님). 스크롤바·fade-edge 등 chrome 없음 — 순수 기능 스크롤.
+
+  **배경**: §2.7(title)의 bubble 메커니즘을 재사용하되 큰 폭으로 축소(개수 30~35→10~15, 크기 3~24px→2~8px, 속도 감소)하고 wave field는 두지 않는다. 저밀도 baseline과 §2.7과 같은 중앙 텍스트 감쇠 둘 다 적용(양자택일 아님). `--cyan` 액센트는 쓰지 않는다 — 클릭 가능 요소가 없어 강조할 대상이 없다.
+
+  **placeholder**: Project Staff 더미 행 몇 개, Music/Chart/Jacket 아래 겹치는 이름을 포함한 더미 이름 목록 — 겸직이 각 섹션에 각각 나타나는 규칙을 시연한다. 골격 시연용이며 실제 내용이 아니다.
+
+  **M4-2 前 게이트를 위한 의도 기록**: `Project Staff`는 수작업 유지, `Music`/`Chart`/`Jacket`은 library 스캔 기반 자동 수집·필드별 dedupe(song/chart 그룹 없음)라는 방향을 `ui-design.md` §2.8.5와 `build-order.md`의 M4-2 前 행에 남겼다 — 실제 배선은 그 게이트가 열릴 때 결정한다. `scene`(credits) → `game`(library 접근) 방향의 읽기는 `architecture.md`의 단방향 의존을 어기지 않음을 확인했다 — engine 미사용은 렌더/판정 루프 얘기지 store 조회를 막지 않는다.
+
+  **M3.5 milestone 전체가 이로써 완료된다** — M3.5-1(D-2026-072/073)·M3.5-2(D-2026-074/075/076)·M3.5-3(D-2026-078/079)·M3.5-4(이 결정) 4단계 모두 닫혔다. M4 진입 gate("ui-design 전체")가 충족된다.
+- **Defined in:** `scene/ui-design.md` §2.8, `_plan/build-order.md` M4-2 前 행
+- **Rationale:** Not required
+- **Affects:** scene, _plan (M4 진입 gate 충족)
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

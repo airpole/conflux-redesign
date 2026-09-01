@@ -101,11 +101,11 @@ Vitest `environment: 'node'`. core 테스트는 DOM 없이 돈다 — [[architec
 | ~~M2-6 전~~ | ~~결정~~ | ~~티어 색 대 실패 적색 근접(`ui-design.md` §7-3)~~ — **닫힘** (D-2026-055, 형태 차이로 수용) |
 | ~~M2-6 전~~ | ~~결정~~ | ~~`scene.md` §9 필드 8개 추가(`ui-design.md` §6)~~ — **닫힘** (D-2026-054, 실제 5필드로 확정) |
 | ~~M3 진입~~ | ~~결정~~ | ~~**D-2026-021** — 라이브 웹 배포 / `.cfx` 보호 / 공개 서비스 기록 위치~~ — **닫힘** (D-2026-059: bundled 유지·평문·records 로컬 유지, D-2026-019는 별도 보류 유지) |
-| M4 진입 | 결정 | **ui-design 전체** — song-select·settings·title·credits 레이아웃 → §6.5 M3.5 |
+| ~~M4 진입~~ | ~~결정~~ | ~~**ui-design 전체** — song-select·settings·title·credits 레이아웃 → §6.5 M3.5~~ — **닫힘** (D-2026-080, M3.5-1~4 전부 완료: D-2026-072/073·074/075/076·078/079·080) |
 | M4-3 전 | 결정 | 목록 옵션 overlay 진입 키 · `sortDir` 단축 전환 키 · 가속 스크롤 수치(초기 지연·반복 간격·가속 곡선) |
 | M4-3 전 | 결정 | song row 대표값 출처(title·jacket) · 정보 패널 BPM 표기 방식 · 곡 길이 표시 |
 | M4-6 전 | 결정 | key rebinding UI · volume 슬라이더 조작 단위 — 기본값·범위는 `[보존]`으로 확정됨([[settings]] §4) |
-| M4-2 전 | 결정 | credits scene 표시 내용 |
+| M4-2 전 | 결정 | credits scene 표시 내용 — `ui-design.md` §2.8.5가 남긴 방향: `Project Staff`는 수작업 유지 목록, `Music`/`Chart`/`Jacket` 세 섹션은 library 전체의 `musicBy`/`chartBy`/`jacketBy`를 필드별로 자동 스캔·중복 제거(song/chart로 묶지 않음) — 배선 자체는 이 게이트가 열릴 때 결정 |
 | M5 진입 | 실측 | §3 M5 항목 |
 
 gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한 뒤 진입한다. build-order는 gate의 **위치**만 갖고 내용은 갖지 않는다.
@@ -253,6 +253,12 @@ settings·title·credits)의 레이아웃을 `ui-design.md`에 확정한다. `ui
 
 **Exit**: `ui-design.md`가 네 화면 전부를 커버해 M4 진입 gate("ui-design
 전체")가 닫힌다.
+
+**충족** (D-2026-080). 네 step 전부 사용자 승인을 받아 `ui-design.md`에
+반영됐다 — §2.5(M3.5-1, D-2026-072/073) · §2.6(M3.5-2, D-2026-074/075/076)
+· §2.7(M3.5-3, D-2026-078/079) · §2.8(M3.5-4 골격, D-2026-080). M4-2 前
+게이트(credits 표시 내용)만 별도로 열려 있으며 M3.5 자체의 완료를
+막지 않는다.
 
 역할 분담: 시각/제품 디자인 판단(레이아웃 구조, 무엇을 강조할지, 색·간격의
 구체값)은 사용자 몫이다. Claude Code는 각 화면이 이미 확정한 spec

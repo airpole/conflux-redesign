@@ -1,8 +1,8 @@
-# ui-design — tokens + result·song-select·settings·title 레이아웃
+# ui-design — tokens + result·song-select·settings·title·credits 레이아웃
 
-status: Accepted (D-2026-051) — §6(scene.md §9 필드 추가)은 D-2026-054, §7-3(티어 색 대 실패 적색)은 D-2026-055로 닫혔다. §7-2(티어 색 대 Shape 색)는 결정이 아니라 scene 축 분리 확인으로 해소— 별도 D-log 없음. §2.5(곡 선택 레이아웃)는 D-2026-072(M3.5-1)로 확정, 빈 library 항목은 D-2026-073으로 해소 — M3.5-1은 §2.5.7-1(overlay 진입 키 게이트의 마우스+휠 확장)만 남기고 닫혔다. §2.6(settings 레이아웃)은 D-2026-076(M3.5-2)으로 확정 — scene 구조 변경(GAUGE→OPTION 병합, SOUND 신설)은 D-2026-074·D-2026-075. M3.5-2는 완전히 닫혔다 — 남은 항목(key rebinding UI 캡처 흐름, volume 조작 단위, `volEffect` 실제 의미)은 모두 이 레이아웃 범위 밖의 별도 게이트(M4-6 前 등)로 이미 분리돼 있다. §2.5·§2.6의 화면 텍스트는 D-2026-077로 "공용 영어 vs 실제 번역" 구분에 맞춰 소급 재정리됐다 — `src/core/core-i18n.ts` 참조. §2.7(title 레이아웃)은 D-2026-079(M3.5-3)로 확정 — 클릭 포함 입력 규칙은 `scene.md` §3에 D-2026-078로 반영, `prefers-reduced-motion` 대응(정지 최종 프레임, 별도 D-log 없이 §2.7.5-2에 해소로 기록)까지 정리돼 M3.5-3은 완전히 닫혔다
+status: Accepted (D-2026-051) — §6(scene.md §9 필드 추가)은 D-2026-054, §7-3(티어 색 대 실패 적색)은 D-2026-055로 닫혔다. §7-2(티어 색 대 Shape 색)는 결정이 아니라 scene 축 분리 확인으로 해소— 별도 D-log 없음. §2.5(곡 선택 레이아웃)는 D-2026-072(M3.5-1)로 확정, 빈 library 항목은 D-2026-073으로 해소 — M3.5-1은 §2.5.7-1(overlay 진입 키 게이트의 마우스+휠 확장)만 남기고 닫혔다. §2.6(settings 레이아웃)은 D-2026-076(M3.5-2)으로 확정 — scene 구조 변경(GAUGE→OPTION 병합, SOUND 신설)은 D-2026-074·D-2026-075. M3.5-2는 완전히 닫혔다 — 남은 항목(key rebinding UI 캡처 흐름, volume 조작 단위, `volEffect` 실제 의미)은 모두 이 레이아웃 범위 밖의 별도 게이트(M4-6 前 등)로 이미 분리돼 있다. §2.5·§2.6의 화면 텍스트는 D-2026-077로 "공용 영어 vs 실제 번역" 구분에 맞춰 소급 재정리됐다 — `src/core/core-i18n.ts` 참조. §2.7(title 레이아웃)은 D-2026-079(M3.5-3)로 확정 — 클릭 포함 입력 규칙은 `scene.md` §3에 D-2026-078로 반영, `prefers-reduced-motion` 대응(정지 최종 프레임, 별도 D-log 없이 §2.7.5-2에 해소로 기록)까지 정리돼 M3.5-3은 완전히 닫혔다. §2.8(credits 레이아웃 골격)은 D-2026-080(M3.5-4)으로 확정 — 표시 내용 자체(M4-2 前 게이트)는 범위 밖, 골격은 완전히 닫혔다. **이로써 M3.5(§6.5) 4단계 전부 닫혔다**
 supersedes: D-2026-051 초안 (원본 `play-result.js` 계승안)
-scope: UI 토큰 세트 + result 화면 레이아웃 + 곡 선택 화면 레이아웃(§2.5, M3.5-1) + settings 화면 레이아웃(§2.6, M3.5-2) + title 화면 레이아웃(§2.7, M3.5-3). credits는 범위 밖(M3.5-4)
+scope: UI 토큰 세트 + result 화면 레이아웃 + 곡 선택 화면 레이아웃(§2.5, M3.5-1) + settings 화면 레이아웃(§2.6, M3.5-2) + title 화면 레이아웃(§2.7, M3.5-3) + credits 화면 레이아웃 골격(§2.8, M3.5-4, 표시 내용은 M4-2 前)
 
 원본 계승안에서 출발해 반복 수정한 결과물. 그룹 순서·토큰·타이포·간격이
 모두 바뀌었으므로 원본과의 diff가 아니라 이 문서를 기준으로 구현한다.
@@ -680,6 +680,156 @@ amplitude·opacity·개수·크기 값은 색 토큰이 아니라 이 절 고유
    애니메이션을 그대로 끈 **정지 최종 프레임**으로 둔다(힌트 텍스트는
    최대 opacity 고정, wave·bubble은 움직임 없이 정지). 새 레이아웃
    설계가 아니라 애니메이션 유무만 가르는 스위치다.
+
+---
+
+## 2.8 credits 레이아웃 골격 (M3.5-4)
+
+디자인 리뷰로 확정된 방향이다 — 아래는 재설계 대상이 아니라 그 결과의
+문서화다. **표시 내용 자체는 이 절의 범위 밖**이다 — `scene.md` §7·
+`build-order.md` M3.5-4 행이 이미 못박은 대로, credits scene의 실제
+내용(project staff 명단·값)은 별도 gate(M4-2 前 "credits scene 표시
+내용")에서 결정한다. 이 절은 **골격**(섹션 구조·스크롤 형태·배경)만
+정의하고, 아래 placeholder 행은 골격을 시연하기 위한 가짜 값이지
+실제 내용이 아니다.
+
+행동 규칙(입력·상호작용 없음, 스크롤만, engine 없는 정적 scene,
+mode-select 진입/이탈)의 단일 출처는 [[scene]] §7이며 여기서 새로
+정의하지 않는다.
+
+스테이지는 §2/§2.5/§2.6/§2.7과 같은 16:9 + `container-type: size` +
+`cqw` 단위를 재사용한다.
+
+### 2.8.1 구조 — role-category 섹션, song/chart 단위 아님
+
+```
+┌──────────────────────────────────────────────┐
+│  Credits                                       │
+│  ─ Project Staff ─────────────────────────────│
+│    Direction        [Placeholder Name]         │
+│    Development      [Placeholder Name]         │
+│  ─ Music ──────────────────────────────────────│
+│    [Placeholder Name A]                        │
+│    [Placeholder Name B]                        │
+│  ─ Chart ──────────────────────────────────────│
+│    [Placeholder Name A]                        │
+│    [Placeholder Name C]                        │
+│  ─ Jacket ─────────────────────────────────────│
+│    [Placeholder Name D]                        │
+│                                                 │
+│         (배경: 저밀도 bubble, 중앙 감쇠)         │
+└──────────────────────────────────────────────┘
+```
+
+- 섹션은 **role category** 4개 고정: `Project Staff`(원래 scope인 제작진
+  — Direction/Development 등, 실제 역할 목록은 M4-2 前 내용 결정 몫),
+  `Music`, `Chart`, `Jacket`.
+- `Music`/`Chart`/`Jacket` 세 섹션은 **song이나 chart로 나뉘지 않는다**
+  — library 전체를 스캔해 그 필드(`musicBy`/`chartBy`/`jacketBy`,
+  [[data-model]] §2·§4)에 등장하는 값을 **필드별로 중복 제거한 평평한
+  이름 목록**으로 보여준다. 같은 이름이 같은 song 안의 여러 chart에
+  걸쳐 반복 등장해도 그 섹션에는 한 번만 나온다.
+  - 이 구조는 §2.7 검토 단계에서 지적했던 문제(같은 songId 그룹 안에서도
+    chart마다 `musicBy`/`jacketBy`/`chartBy`가 다를 수 있다,
+    [[data-model]] §1 — "같은 그룹 안에서도 metadata·timing·music·jacket은
+    chart마다 다를 수 있다")를 **song/chart 단위로 나누지 않음으로써
+    아예 우회**한다 — 나눌 단위 자체가 없으므로 어느 chart 값을
+    "그 song의 대표"로 쓸지 고를 필요가 없다.
+  - 한 사람이 여러 역할을 겸하면(예: 같은 이름이 `musicBy`와 `chartBy`
+    둘 다에 등장) **그 사람이 실제로 갖는 각 역할 섹션에 각각** 나타난다
+    — 한 섹션으로 합치지 않는다. 아래 placeholder도 이 규칙을 그대로
+    보여준다.
+- `jacketBy`는 project 필드명이자 표시 라벨이 "Jacket by"다
+  ([[data-model]] §2, [[naming]]) — "Illust"라는 이름은 스펙 어디에도
+  없어 쓰지 않는다.
+
+### 2.8.2 heading·스크롤
+
+- `Credits` 헤딩은 **스크롤 콘텐츠와 함께 움직인다** — 상단 고정이 아니다
+  (chrome 최소화 방향과 일관). 공용 영어 라벨(D-2026-077) — 고정
+  브랜드/화면 이름이라 `translate()`를 거치지 않는다.
+  섹션 헤더(`Project Staff`/`Music`/`Chart`/`Jacket`)도 같은 분류 —
+  공용 영어, 조회 테이블 없음.
+- 스크롤은 **순수 기능**이다 — 스크롤바·fade-edge·"더 보기" 힌트 등
+  어떤 chrome도 없다. 입력이 스크롤뿐이라는 [[scene]] §7의 제약을
+  시각적으로도 그대로 반영한다(추가 안내가 필요 없을 만큼 단순하게).
+- 섹션 헤더는 `--rule` 헤어라인으로 구분한다(§2.5의 folder 헤더 구분과
+  같은 토큰, 새 색 아님). 행 텍스트는 `--text`, 역할 라벨(`Direction`
+  등)은 `--dim` — result/song-select의 라벨/값 색 구분(§2.2 등)과 같은
+  원칙.
+
+### 2.8.3 배경 — bubble만, `--cyan` 없음
+
+- **wave field 레이어는 두지 않는다** — §2.7과 달리 credits는 강조할
+  대상(액션 유도)이 없어 파도의 "깊이감" 연출이 필요하지 않다.
+- **bubble만** §2.7의 임의 방향·4면 wrap 메커니즘을 그대로 재사용하되
+  title보다 훨씬 낮은 밀도로 축소한다:
+  - 입자 수: title의 30~35개 대비 대폭 축소, ~10~15개.
+  - 크기: title의 3~24px 대비 축소, ~2~8px.
+  - 속도: title보다 느리게 — "차분함"이 목적이라 눈에 띄는 움직임을
+    피한다.
+- **저밀도 baseline + 중앙 감쇠 둘 다 적용**한다(양자택일이 아니다) —
+  전체적으로 이미 sparse한 입자가, §2.7과 같은 방식으로 텍스트 영역
+  근처에서 한 번 더 옅어지는 타원형 감쇠를 추가로 받는다. 텍스트가
+  화면 대부분을 차지하는 credits 특성상 감쇠 구역은 §2.7보다 넓게
+  잡아야 할 수 있다 — 정확한 치수는 §2.7.5-1과 같은 이유로 구현 시점
+  재량.
+- **`--cyan` 액센트를 쓰지 않는다** — 클릭 가능한 요소가 없어 강조할
+  대상이 없다(§2.6.7의 OPTION scene이 toggle에 `--cyan`을 쓰는 것과
+  대비되는, "상호작용 없음"이 색에도 그대로 반영된 사례).
+- 배경 `--bg`(검정), 텍스트 `--text`(흰색) — §1 기존 토큰, 새 색 없음.
+
+### 2.8.4 placeholder 콘텐츠 (골격 시연용, 실제 내용 아님)
+
+```
+Project Staff
+  Direction        [Placeholder A]
+  Development       [Placeholder B]
+
+Music
+  [Placeholder A]
+  [Placeholder C]
+
+Chart
+  [Placeholder A]
+  [Placeholder D]
+
+Jacket
+  [Placeholder E]
+```
+
+`[Placeholder A]`가 `Music`과 `Chart` 둘 다에 등장하는 것은 §2.8.1의
+"겸직은 각 역할 섹션에 각각" 규칙을 보여주기 위함이다 — 한 항목으로
+합치지 않는다.
+
+### 2.8.5 M4-2 前 게이트를 위한 의도 기록
+
+`scene.md` §11 잔여 "credits scene 표시 내용"·`build-order.md` M4-2 前
+"credits scene 표시 내용" 게이트가 실제로 닫힐 때를 위해 이 레이아웃
+리뷰에서 나온 의도를 남긴다 — **이 게이트는 지금 결정하지 않는다**:
+
+- `Project Staff` 섹션 값은 손으로 유지하는 고정 목록으로 예상된다
+  (인원이 바뀔 때만 갱신).
+- `Music`/`Chart`/`Jacket` 세 섹션은 **library 전체를 스캔해
+  `musicBy`/`chartBy`/`jacketBy` 값을 필드별로 자동 수집·중복 제거**
+  하는 방식을 의도한다 — 손으로 유지하지 않는다. song이나 chart로
+  묶지 않고 필드값 단위로만 dedupe한다(§2.8.1).
+- 실제 배선(어느 시점에 스캔하는지, library가 비어 있을 때 섹션을
+  숨기는지 빈 상태로 두는지 등)은 여기서 정하지 않는다 — M4-2 前
+  게이트가 열릴 때 다룬다. 이 레이아웃이 남기는 것은 "자동 수집,
+  수작업 아님"이라는 방향뿐이다.
+- 데이터 접근 경로에 아키텍처적 문제는 없다 — credits(`scene` 레이어)가
+  `game` 레이어(library 접근을 가진 계층)의 함수를 통해 값을 읽는 것은
+  `architecture.md`의 단방향 의존(`… → game → scene → app`)을 어기지
+  않는다. engine을 안 쓰는 정적 scene이라는 점([[scene]] §7)과 데이터를
+  읽는 것은 별개다 — engine 미사용은 렌더/판정 루프 얘기지 store
+  조회를 막지 않는다.
+
+### 2.8.6 재사용 토큰 vs 신규
+
+`--bg`·`--text`·`--dim`·`--rule` 전부 §1 기존 토큰. 새 색 토큰 없음.
+bubble의 개수·크기·속도·감쇠 범위는 §2.7과 같은 이유로 장식 파라미터라
+`constants.md`에 올리지 않는다.
 
 ---
 
