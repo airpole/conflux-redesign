@@ -1187,7 +1187,7 @@
 - **Rationale:** Not required
 - **Affects:** core, scene, app
 - **Supersedes:** None — D-2026-086의 Deferred Findings 세 항목을 닫음
-- **Commit:** `PENDING`
+- **Commit:** `0a41ea8`
 
 
 ### D-YYYY-NNN — <Title>
