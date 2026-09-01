@@ -132,10 +132,16 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
           manager.goScene('mode-select');
         },
         onCursorChange(target): void {
-          void (async () => {
-            const view = { ...(await readSongSelectViewState(storage)), lastSelected: target };
-            await writeSongSelectViewState(storage, view);
-          })();
+          // target이 null이면 커서가 folder 헤더에 있다는 뜻이다(M4-4,
+          // scene-song-select.ts) — chart 정체성이 없어 lastSelected를
+          // 지울 게 아니라 마지막으로 실제 chart에 있었던 값을 그대로
+          // 둔다.
+          if (target !== null) {
+            void (async () => {
+              const view = { ...(await readSongSelectViewState(storage)), lastSelected: target };
+              await writeSongSelectViewState(storage, view);
+            })();
+          }
 
           if (target === null) {
             previewController.stop();

@@ -21,7 +21,7 @@
 import { RANK_TABLE, SLOTS_PER_ROW } from './core-constants.js';
 import { deriveRecordSummary, type ChartRecord } from './core-records.js';
 import type { Difficulty } from './core-chart.js';
-import type { PlayState, Rank } from './core-gauge.js';
+import type { JudgmentCounts, PlayState, Rank } from './core-gauge.js';
 
 /** 기록 없음(`N`)까지 포함한 song-select 전용 state — core-gauge의
  *  `PlayState`에는 없다(records/UI 개념, [[glossary]]). */
@@ -35,6 +35,9 @@ export interface SlotView {
   /** 기록 없으면 `null`. */
   readonly score: number | null;
   readonly rank: Rank | null;
+  /** 정보 패널 §9 기록 격자의 `judge`(sync/perfect/good/miss 4값) 표시용
+   *  — `ChartRecord.bestJudgments`를 그대로 옮긴다. 기록 없으면 `null`. */
+  readonly judgments: JudgmentCounts | null;
 }
 
 export interface SongRow {
@@ -85,6 +88,7 @@ export function buildSongRow(
       state: record?.bestState ?? 'N',
       score: summary?.score ?? null,
       rank: summary?.rank ?? null,
+      judgments: record?.bestJudgments ?? null,
     };
     if (chart.updatedAt > updatedAt) updatedAt = chart.updatedAt;
   }
@@ -313,16 +317,66 @@ export function groupRows(rows: readonly SongRow[], axis: GroupByAxis): readonly
 // 스크롤 수치와 함께 아직 열려 있는 M4-3 前 게이트("가속 스크롤 수치")가
 // 페이지 전환 조작(마지막 slot에서 Right → 다음 페이지)의 세부까지
 // 묶고 있어, 고정 슬롯 1~5(chartId 1~5)만 다룬다.
+//
+// **folder 헤더는 커서가 상하 이동으로 통과하는 정지점이다**(§4 아코디언,
+// M4-4). row만 나열하던 M4-3의 평평한 좌표계로는 헤더를 표현할 수 없어,
+// "정지점(stop)" 배열(row 또는 header)과 그 안의 인덱스로 좌표계를
+// 바꿨다 — `CursorStop`/`buildCursorStops`. 헤더 자체는 chart 정체성이
+// 없어(`CursorTarget`은 songId+chartId뿐) 헤더에 커서가 있는 동안은
+// `cursorTarget()`이 `null`을 돌려준다 — 호출측(scene)이 이 경우를
+// "헤더에 있음"으로 따로 들고 있어야 한다.
 
-/** 화면에 보이는 row 배열(현재 category·sort·groupBy 적용 후) 안에서의
- *  좌표. `rowIndex`는 folder 구분과 무관하게 **평평하게 이어붙인** row
- *  목록 기준이다 — folder 접힘/펼침(아코디언, §4)은 이 파일이 다루지
- *  않는다: M4-3의 렌더가 애초에 접힘 상태를 구현하지 않아(커서가 없어
- *  의미가 없었음) 전체 row가 항상 펼쳐진 채로 렌더된다는 전제 위에서만
- *  좌표가 유효하다 — 아코디언 자체의 구현은 결정 필요 항목으로 별도
- *  보고한다. */
+/** groupBy 축이 만든 folder 하나의 헤더, 또는 펼쳐진 folder 안의 song row
+ *  하나 — 상하 이동이 순서대로 밟는 정지점. `buildCursorStops`가
+ *  `Folder[]`+펼침 상태로부터 만든다. */
+export type CursorStop =
+  | { readonly kind: 'header'; readonly folderIndex: number }
+  | { readonly kind: 'row'; readonly folderIndex: number; readonly row: SongRow };
+
+/**
+ * `folders`(이미 `groupRows`를 거친 것)와 아코디언 펼침 상태로부터 정지점
+ * 배열을 만든다. `hasHeaders`가 `false`면(검색 중이거나 `groupBy: 'none'`,
+ * §4·§6) 헤더 자체가 없어 모든 row가 정지점이 된다 — 검색 중 folder를
+ * 무시하고 평평하게 보여주는 §6 규칙과 자연히 맞아떨어진다. `hasHeaders`가
+ * `true`면 접힌 folder는 헤더 정지점만 남기고 그 row는 건너뛴다(§4 "folder는
+ * 접힘 단위다") — 아코디언이라 `expandedFolderIndex` 하나만 펼쳐진다.
+ */
+export function buildCursorStops(
+  folders: readonly Folder[],
+  hasHeaders: boolean,
+  expandedFolderIndex: number | null,
+): readonly CursorStop[] {
+  const stops: CursorStop[] = [];
+  folders.forEach((folder, folderIndex) => {
+    if (hasHeaders) stops.push({ kind: 'header', folderIndex });
+    const expanded = !hasHeaders || folderIndex === expandedFolderIndex;
+    if (expanded) {
+      for (const row of folder.rows) stops.push({ kind: 'row', folderIndex, row });
+    }
+  });
+  return stops;
+}
+
+/** `folders` 중 `target`이 가리키는 chart가 속한 folder의 인덱스. 없으면
+ *  `null` — 진입 시 "마지막으로 선택한 chart가 속한 folder 하나만 펼친
+ *  채 진입한다"(§4)의 기준을 찾는 데 쓴다. */
+export function folderIndexOf(
+  folders: readonly Folder[],
+  target: CursorTarget | null,
+): number | null {
+  if (target === null) return null;
+  const index = folders.findIndex((folder) =>
+    folder.rows.some((row) => row.songId === target.songId),
+  );
+  return index === -1 ? null : index;
+}
+
+/** 정지점 배열 안에서의 좌표. `slotIndex`는 `stops[stopIndex]`가
+ *  `kind: 'row'`일 때만 의미가 있다 — header 정지점 위에서는 마지막으로
+ *  있던 열 값을 그대로 들고 있을 뿐이다(다음 row 정지점에 도착했을 때
+ *  column-affinity 기준으로 다시 쓴다, §7). */
 export interface CursorPosition {
-  readonly rowIndex: number;
+  readonly stopIndex: number;
   readonly slotIndex: number;
 }
 
@@ -351,82 +405,147 @@ function firstFilledSlot(row: SongRow): number {
   return row.slots.findIndex((slot) => slot !== null);
 }
 
-/** 현재 row 목록에서 `target`이 가리키는 chart를 다시 찾는다. 못 찾으면
- *  (정렬·필터로 사라졌거나 `target`이 `null`) 목록 첫 항목으로 간다
- *  (§8 "그 chart가 현재 조건에서 사라지면 목록 첫 항목으로 간다"). row가
- *  아예 없으면 `null`. */
+function lastFilledSlot(row: SongRow): number {
+  for (let i = row.slots.length - 1; i >= 0; i--) {
+    if (row.slots[i] !== null) return i;
+  }
+  return -1;
+}
+
+/** 정지점 배열의 첫 정지점 위치 — header면 열 0, row면 첫 채워진 slot. */
+function firstStopPosition(stops: readonly CursorStop[]): CursorPosition | null {
+  const stop = stops[0];
+  if (stop === undefined) return null;
+  if (stop.kind === 'header') return { stopIndex: 0, slotIndex: 0 };
+  const slotIndex = firstFilledSlot(stop.row);
+  return { stopIndex: 0, slotIndex: slotIndex === -1 ? 0 : slotIndex };
+}
+
+/** 현재 정지점 배열에서 `target`이 가리키는 chart를 다시 찾는다. 못
+ *  찾으면(정렬·필터로 사라졌거나, 접힌 folder 안에 있거나, `target`이
+ *  `null`) 목록 첫 정지점으로 간다(§8 "그 chart가 현재 조건에서 사라지면
+ *  목록 첫 항목으로 간다"). 정지점이 아예 없으면 `null`. */
 export function locateCursor(
-  rows: readonly SongRow[],
+  stops: readonly CursorStop[],
   target: CursorTarget | null,
 ): CursorPosition | null {
-  if (rows.length === 0) return null;
+  if (stops.length === 0) return null;
 
   if (target !== null) {
-    const rowIndex = rows.findIndex((row) => row.songId === target.songId);
-    if (rowIndex !== -1) {
-      const slotIndex = rows[rowIndex]!.slots.findIndex((s) => s?.chartId === target.chartId);
-      if (slotIndex !== -1) return { rowIndex, slotIndex };
+    const stopIndex = stops.findIndex((s) => s.kind === 'row' && s.row.songId === target.songId);
+    if (stopIndex !== -1) {
+      const stop = stops[stopIndex] as { kind: 'row'; folderIndex: number; row: SongRow };
+      const slotIndex = stop.row.slots.findIndex((s) => s?.chartId === target.chartId);
+      if (slotIndex !== -1) return { stopIndex, slotIndex };
     }
   }
 
-  const slotIndex = firstFilledSlot(rows[0]!);
-  return slotIndex === -1 ? null : { rowIndex: 0, slotIndex };
+  return firstStopPosition(stops);
 }
 
-/** 좌표를 다시 chart 정체성으로 되돌린다 — 위치가 가리키는 slot이 비어
- *  있거나(있어선 안 되지만 방어적으로) row 범위를 벗어나면 `null`. */
+/** 좌표를 다시 chart 정체성으로 되돌린다. 정지점이 header이거나, 가리키는
+ *  slot이 비어 있거나(있어선 안 되지만 방어적으로) 범위를 벗어나면
+ *  `null` — "header에 커서가 있다"는 상태 자체는 호출측(scene)이 이
+ *  `null`과 별도로 들고 있어야 한다. */
 export function cursorTarget(
-  rows: readonly SongRow[],
+  stops: readonly CursorStop[],
   position: CursorPosition,
 ): CursorTarget | null {
-  const row = rows[position.rowIndex];
-  const slot = row?.slots[position.slotIndex];
-  if (row === undefined || slot === undefined || slot === null) return null;
-  return { songId: row.songId, chartId: slot.chartId };
+  const stop = stops[position.stopIndex];
+  if (stop === undefined || stop.kind === 'header') return null;
+  const slot = stop.row.slots[position.slotIndex];
+  if (slot === undefined || slot === null) return null;
+  return { songId: stop.row.songId, chartId: slot.chartId };
 }
 
 /** 같은 row 안에서 slot을 좌우로 옮긴다. 빈 슬롯에는 커서가 들어갈 수
  *  없어(§3) 다음 채워진 슬롯까지 건너뛴다. row 끝에서는 그대로 멈춘다 —
  *  다음 페이지로 넘어가는 동작(§3)은 페이지네이션과 함께 미룬다(파일
- *  머리말 참조). */
+ *  머리말 참조). 현재 정지점이 header면 좌우 이동은 정의돼 있지 않아
+ *  아무 일도 하지 않는다(§7은 헤더의 좌우 이동을 다루지 않는다). */
 export function moveCursorHorizontal(
-  rows: readonly SongRow[],
+  stops: readonly CursorStop[],
   position: CursorPosition,
   direction: -1 | 1,
 ): CursorPosition {
-  const slots = rows[position.rowIndex]?.slots;
-  if (slots === undefined) return position;
+  const stop = stops[position.stopIndex];
+  if (stop === undefined || stop.kind === 'header') return position;
 
+  const slots = stop.row.slots;
   for (let i = position.slotIndex + direction; i >= 0 && i < slots.length; i += direction) {
-    if (slots[i] !== null) return { rowIndex: position.rowIndex, slotIndex: i };
+    if (slots[i] !== null) return { stopIndex: position.stopIndex, slotIndex: i };
   }
   return position;
 }
 
-/** 이웃 row로 옮긴다. 열 대응 규칙(§7): (1) 같은 열에 chart가 있으면
- *  그 slot, (2) 없으면 더 낮은 열 중 가장 가까운 slot, (3) 그것도
- *  없으면 더 높은 열 중 가장 가까운 slot. 직전 열을 따로 기억하지
- *  않는다 — 이동 결과 열이 곧 다음 이동의 기준이다. 목록 끝에서는
- *  그대로 멈춘다. */
+/** 이웃 정지점(row 또는 header)으로 옮긴다 — folder 헤더도 row와 같은
+ *  메커니즘으로 지나가는 정지점이다(§4 아코디언, M4-4). row에 도착하면
+ *  열 대응 규칙(§7): (1) 같은 열에 chart가 있으면 그 slot, (2) 없으면
+ *  더 낮은 열 중 가장 가까운 slot, (3) 그것도 없으면 더 높은 열 중
+ *  가장 가까운 slot을 고른다. header에 도착하면 열 값은 그대로 들고
+ *  간다(다음 row 도착 때 다시 기준으로 쓴다) — 직전 열을 따로 기억하지
+ *  않는다는 규칙은 row 사이 이동에서만 적용되고, header를 지나는 동안은
+ *  그 값을 잃지 않게 캐리할 뿐이다. 정지점 배열 끝에서는 그대로 멈춘다. */
 export function moveCursorVertical(
-  rows: readonly SongRow[],
+  stops: readonly CursorStop[],
   position: CursorPosition,
   direction: -1 | 1,
 ): CursorPosition {
-  const targetRow = position.rowIndex + direction;
-  if (targetRow < 0 || targetRow >= rows.length) return position;
+  const nextIndex = position.stopIndex + direction;
+  if (nextIndex < 0 || nextIndex >= stops.length) return position;
 
-  const slots = rows[targetRow]!.slots;
+  const nextStop = stops[nextIndex]!;
+  if (nextStop.kind === 'header') return { stopIndex: nextIndex, slotIndex: position.slotIndex };
+
+  const slots = nextStop.row.slots;
   if (slots[position.slotIndex] !== null) {
-    return { rowIndex: targetRow, slotIndex: position.slotIndex };
+    return { stopIndex: nextIndex, slotIndex: position.slotIndex };
   }
   for (let i = position.slotIndex - 1; i >= 0; i--) {
-    if (slots[i] !== null) return { rowIndex: targetRow, slotIndex: i };
+    if (slots[i] !== null) return { stopIndex: nextIndex, slotIndex: i };
   }
   for (let i = position.slotIndex + 1; i < slots.length; i++) {
-    if (slots[i] !== null) return { rowIndex: targetRow, slotIndex: i };
+    if (slots[i] !== null) return { stopIndex: nextIndex, slotIndex: i };
   }
-  return { rowIndex: targetRow, slotIndex: position.slotIndex }; // 방어적 — 유효한 row는 slot이 최소 1개.
+  return { stopIndex: nextIndex, slotIndex: position.slotIndex }; // 방어적 — 유효한 row는 slot이 최소 1개.
+}
+
+/**
+ * `PageUp`/`PageDown`(§7 "한 화면 단위 이동")을 `moveCursorVertical`
+ * 반복으로 구현한다 — 같은 메커니즘(정지점 단위 이동, 열 대응 규칙)을
+ * 그대로 타므로 한 걸음씩 밟을 때와 결과가 어긋나지 않는다. `pageSize`는
+ * "한 화면"에 해당하는 정지점 수인데, 실제 화면에 몇 row가 보이는지는
+ * 이 파일(순수 계산, DOM 없음)이 알 수 없는 렌더 시점 정보라 호출측
+ * (scene)이 넘겨줘야 한다 — 상수로 못박지 않는다. 배열 끝에 닿으면
+ * 그 지점에서 멈춘다(더 못 가는 나머지 걸음은 버려진다). */
+export function moveCursorByPage(
+  stops: readonly CursorStop[],
+  position: CursorPosition,
+  direction: -1 | 1,
+  pageSize: number,
+): CursorPosition {
+  let pos = position;
+  for (let i = 0; i < pageSize; i++) {
+    const next = moveCursorVertical(stops, pos, direction);
+    if (next.stopIndex === pos.stopIndex && next.slotIndex === pos.slotIndex) break;
+    pos = next;
+  }
+  return pos;
+}
+
+/** `Home`(§7 "목록의 처음") — 첫 정지점으로. */
+export function moveCursorHome(stops: readonly CursorStop[]): CursorPosition {
+  return firstStopPosition(stops) ?? { stopIndex: 0, slotIndex: 0 };
+}
+
+/** `End`(§7 "목록의 끝") — 마지막 정지점으로. */
+export function moveCursorEnd(stops: readonly CursorStop[]): CursorPosition {
+  const lastIndex = stops.length - 1;
+  const stop = stops[lastIndex];
+  if (stop === undefined) return { stopIndex: 0, slotIndex: 0 };
+  if (stop.kind === 'header') return { stopIndex: lastIndex, slotIndex: 0 };
+  const slotIndex = lastFilledSlot(stop.row);
+  return { stopIndex: lastIndex, slotIndex: slotIndex === -1 ? 0 : slotIndex };
 }
 
 // ── search ([[song-select]] §6) ─────────────────────────────────────────

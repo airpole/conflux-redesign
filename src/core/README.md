@@ -60,3 +60,22 @@ M4-4가 여기에 커서(`CursorTarget`/`CursorPosition`/`locateCursor`/
 사라지면 `locateCursor`가 첫 항목으로 대체한다(§8 fallback). column
 affinity(같은 열 → 더 낮은 열 → 더 높은 열, 직전 열은 기억하지 않음)는
 `moveCursorVertical`에 그대로 구현했다(§7).
+
+**M4-4 후속(같은 스프린트, 아코디언·PageUp/PageDown/Home/End 추가)**: 정지점
+좌표계로 확장했다 — `CursorStop`(`{kind:'header', folderIndex}` 또는
+`{kind:'row', folderIndex, row}`)와 `buildCursorStops(folders, hasHeaders,
+expandedFolderIndex)`가 folder 헤더까지 포함한 상하 이동 대상을 만든다(§4
+"folder는 접힘 단위다" — 접힌 folder는 헤더 정지점만 남고 row는 빠진다).
+`CursorPosition`이 `{rowIndex, slotIndex}`에서 `{stopIndex, slotIndex}`로
+바뀌었다. `folderIndexOf`는 진입 시 lastSelected가 속한 folder를 찾아
+펼치는 데 쓴다(§4 "마지막으로 선택한 chart가 속한 folder 하나만 펼친 채
+진입"). `moveCursorByPage`(`PageUp`/`PageDown`)는 `moveCursorVertical`을
+`pageSize`번 반복한 것뿐이다 — "한 화면 단위"(§7)가 실제 몇 row인지는 DOM
+렌더 시점 정보라 이 파일(순수 계산)이 알 수 없어 `pageSize`를 호출측이
+넘긴다(`scene-song-select.ts`가 고정 근사값을 쓴다). `moveCursorHome`/
+`moveCursorEnd`는 각각 첫/마지막 정지점으로 간다.
+
+`SlotView.judgments`(`ChartRecord.bestJudgments` 그대로)도 이때 추가했다
+— 정보 패널 §9의 기록 격자 `judge` 모드(sync/perfect/good/miss 4값)가
+쓸 데이터가 `SlotView`에 없었을 뿐 `records`(M3-7)에는 이미 있었다 —
+새 결정이 아니라 배선 보완이다.

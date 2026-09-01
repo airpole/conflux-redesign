@@ -8,7 +8,15 @@ function row(
   title: string,
   category: string,
   slots: SongRow['slots'] = [
-    { chartId: 1, difficulty: 'Trace', level: 5, state: 'FC', score: 900000, rank: 'A' },
+    {
+      chartId: 1,
+      difficulty: 'Trace',
+      level: 5,
+      state: 'FC',
+      score: 900000,
+      rank: 'A',
+      judgments: null,
+    },
     null,
     null,
     null,
@@ -153,9 +161,25 @@ describe('scene-song-select', () => {
 
   it('ArrowRight/Left로 같은 row 안에서 슬롯을 옮긴다', () => {
     const multiSlotRow = row('a', 'A', '', [
-      { chartId: 1, difficulty: 'Trace', level: 1, state: 'N', score: null, rank: null },
+      {
+        chartId: 1,
+        difficulty: 'Trace',
+        level: 1,
+        state: 'N',
+        score: null,
+        rank: null,
+        judgments: null,
+      },
       null,
-      { chartId: 3, difficulty: 'Surge', level: 3, state: 'N', score: null, rank: null },
+      {
+        chartId: 3,
+        difficulty: 'Surge',
+        level: 3,
+        state: 'N',
+        score: null,
+        rank: null,
+        judgments: null,
+      },
       null,
       null,
     ]);
@@ -172,7 +196,15 @@ describe('scene-song-select', () => {
 
   it('ArrowDown이 열 대응 규칙으로 이웃 row로 옮긴다', () => {
     const rowA = row('a', 'A', '', [
-      { chartId: 1, difficulty: 'Trace', level: 1, state: 'N', score: null, rank: null },
+      {
+        chartId: 1,
+        difficulty: 'Trace',
+        level: 1,
+        state: 'N',
+        score: null,
+        rank: null,
+        judgments: null,
+      },
       null,
       null,
       null,
@@ -180,7 +212,15 @@ describe('scene-song-select', () => {
     ]);
     const rowB = row('b', 'B', '', [
       null,
-      { chartId: 2, difficulty: 'Drift', level: 2, state: 'N', score: null, rank: null },
+      {
+        chartId: 2,
+        difficulty: 'Drift',
+        level: 2,
+        state: 'N',
+        score: null,
+        rank: null,
+        judgments: null,
+      },
       null,
       null,
       null,
@@ -283,7 +323,15 @@ describe('scene-song-select', () => {
 
   it('기록 없는 chart에는 Reset Record 버튼이 없다', () => {
     const noRecordRow = row('a', 'A', '', [
-      { chartId: 1, difficulty: 'Trace', level: 1, state: 'N', score: null, rank: null },
+      {
+        chartId: 1,
+        difficulty: 'Trace',
+        level: 1,
+        state: 'N',
+        score: null,
+        rank: null,
+        judgments: null,
+      },
       null,
       null,
       null,
@@ -292,5 +340,111 @@ describe('scene-song-select', () => {
     const { target, handle } = setup();
     handle.update([noRecordRow], defaultView);
     expect(target.querySelector('.reset-record-btn')).toBeNull();
+  });
+
+  it('recordCellMode가 judge면 sync/perfect/good/miss 4값을 보여준다', () => {
+    const judgeRow = row('a', 'A', '', [
+      {
+        chartId: 1,
+        difficulty: 'Trace',
+        level: 5,
+        state: 'FC',
+        score: 900000,
+        rank: 'A',
+        judgments: { SYNC: 8, PERFECT: 1, GOOD: 1, MISS: 0 },
+      },
+      null,
+      null,
+      null,
+      null,
+    ]);
+    const { target, handle } = setup();
+    handle.update([judgeRow], { ...defaultView, recordCellMode: 'judge' });
+    expect(target.querySelector('.record-cell-toggle')?.textContent).toBe('8 / 1 / 1 / 0');
+  });
+
+  it('folder 헤더는 상하 이동이 지나가는 정지점이고 Enter로 펼침/접힘을 토글한다(§4)', () => {
+    const rows = [row('a', 'Apple', ''), row('b', 'Banana', '')];
+    const { target, handle } = setup();
+    handle.update(rows, {
+      ...defaultView,
+      groupBy: 'title',
+      lastSelected: { songId: 'a', chartId: 1 },
+    });
+    handle.show();
+
+    // 진입 시 lastSelected('a')가 속한 folder('A')만 펼쳐져 있다 — 'B'는 헤더뿐.
+    expect(target.querySelectorAll('.song-row')).toHaveLength(1);
+    expect(target.querySelector('.folder-header')?.classList.contains('cursor')).toBe(false);
+
+    // 커서를 'A' folder의 유일한 row에서 Up으로 올리면 'A' 헤더에 도착한다.
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp' }));
+    const headers = target.querySelectorAll('.folder-header');
+    expect(headers[0]?.classList.contains('cursor')).toBe(true);
+
+    // 헤더에서 Enter — 펼쳐져 있던 'A'를 접는다(아코디언, 다시 누르면 접힘).
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(target.querySelectorAll('.song-row')).toHaveLength(0);
+
+    // 다시 Enter — 'A'를 펼친다.
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(target.querySelectorAll('.song-row')).toHaveLength(1);
+  });
+
+  it('folder 헤더 클릭도 Enter와 동등하게 펼침/접힘을 토글한다(§7 마우스)', () => {
+    const rows = [row('a', 'Apple', '')];
+    const { target, handle } = setup();
+    handle.update(rows, { ...defaultView, groupBy: 'title' });
+    expect(target.querySelectorAll('.song-row')).toHaveLength(1);
+
+    (target.querySelector('.folder-header') as HTMLElement).click();
+    expect(target.querySelectorAll('.song-row')).toHaveLength(0);
+
+    (target.querySelector('.folder-header') as HTMLElement).click();
+    expect(target.querySelectorAll('.song-row')).toHaveLength(1);
+  });
+
+  it('펼치면 다른 folder는 자동으로 접힌다(아코디언, 한 번에 하나만)', () => {
+    const rows = [row('a', 'Apple', ''), row('b', 'Banana', '')];
+    const { target, handle } = setup();
+    handle.update(rows, {
+      ...defaultView,
+      groupBy: 'title',
+      lastSelected: { songId: 'a', chartId: 1 },
+    });
+    expect(
+      target.querySelectorAll('.song-row').item(0)?.querySelector('.row-title')?.textContent,
+    ).toBe('Apple');
+
+    const headers = target.querySelectorAll('.folder-header');
+    (headers[1] as HTMLElement).click(); // 'B'를 펼친다
+    expect(target.querySelectorAll('.song-row')).toHaveLength(1);
+    expect(target.querySelector('.row-title')?.textContent).toBe('Banana'); // 'A'는 접혔다
+  });
+
+  it('Home/End가 목록의 처음/끝으로 간다(§7)', () => {
+    const rows = [row('a', 'A', ''), row('b', 'B', ''), row('c', 'C', '')];
+    const { handle, onCursorChange } = setup();
+    handle.update(rows, { ...defaultView, lastSelected: { songId: 'b', chartId: 1 } });
+    handle.show();
+    onCursorChange.mockClear();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' }));
+    expect(onCursorChange).toHaveBeenLastCalledWith({ songId: 'c', chartId: 1 });
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home' }));
+    expect(onCursorChange).toHaveBeenLastCalledWith({ songId: 'a', chartId: 1 });
+  });
+
+  it('PageDown/PageUp이 여러 row를 한 번에 건너뛴다(§7 "한 화면 단위")', () => {
+    const rows = Array.from({ length: 10 }, (_, i) => row(String(i), String(i), ''));
+    const { handle, onCursorChange } = setup();
+    handle.update(rows, defaultView);
+    handle.show();
+    onCursorChange.mockClear();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown' }));
+    const firstCall = onCursorChange.mock.calls[0]![0] as { songId: string };
+    expect(Number(firstCall.songId)).toBeGreaterThan(1); // 한 칸(ArrowDown)보다 더 간다.
   });
 });

@@ -1169,6 +1169,27 @@
 - **Commit:** `87d6f14`
 
 
+### D-2026-087 — M4-4 후속: folder 아코디언·PageUp/PageDown/Home/End·기록 격자 judge 모드
+
+- **Status:** Accepted
+- **Decision:** D-2026-086이 남긴 Deferred Findings 세 항목을 닫는다 — 사용자가 세 항목 모두 이미 확정된 설계/스펙임을 확인해 결정 필요 항목이 아니라 구현 완료로 처리했다.
+
+  **1) folder 아코디언(§4)**: folder 헤더를 row와 같은 메커니즘으로 상하 이동이 지나가는 정지점으로 뒀다 — 새 입력 어휘를 만들지 않고, 커서가 헤더에 있을 때 기존 `Enter`(다른 곳에서도 확정/토글 역할)와 기존 클릭 입력(sort/group 칩의 클릭+휠 patterns과 같은 클릭+기존 입력 병행 패턴)으로 펼침/접힘을 토글한다. 펼치면 다른 folder는 자동으로 접힌다(한 번에 하나, §4 "아코디언이다"). 진입 시 `lastSelected`가 속한 folder만 펼친 채 시작한다(§4). 접힘 상태는 영속하지 않는다(scene 내부 상태일 뿐 `viewState`에 없다).
+
+  `core-song-select.ts`의 좌표계를 `{rowIndex, slotIndex}`(row만 나열)에서 `CursorStop`(header 또는 row) 배열 + `{stopIndex, slotIndex}`로 바꿨다 — header는 chart 정체성이 없어(`CursorTarget`은 songId+chartId뿐) 커서가 헤더에 있는 동안 `cursorTarget()`은 `null`을 돌려주고, `scene-song-select.ts`가 `headerFocusFolderIndex`로 이 상태를 별도로 들고 있다(`onCursorChange`도 이때 `null`을 받는다 — preview는 멈추고 `lastSelected`는 마지막 실제 chart 값을 그대로 유지한다, `app-main.ts`).
+
+  **2) `PageUp`/`PageDown`/`Home`/`End`(§7)**: `song-select.md` §7에 이미 명시돼 있던 항목이라(M4-4 Exit 기준 문구에만 안 들어갔을 뿐 범위 판단이 아니었다) 그대로 구현했다. `Home`/`End`는 첫/마지막 정지점으로 가는 단순 이동이라 모호함이 없다. `PageUp`/`PageDown`의 "한 화면 단위"는 실제 viewport에 몇 row가 보이는지에 달려 있는데, 그 값은 DOM 렌더 시점 정보라 순수 계산인 `core-song-select.ts`가 알 수 없다 — `moveCursorByPage(stops, position, direction, pageSize)`가 `pageSize`를 인자로 받게 하고, `scene-song-select.ts`가 실제 viewport 측정 없이 고정 근사값(`PAGE_STOP_COUNT = 5`)을 넘긴다. 실제 DOM 측정 기반 페이지 크기 설계는 이번 범위 밖 — 결정 필요 항목으로 별도 보고.
+
+  **3) 기록 격자 judge 모드(§9)**: `ChartRecord.bestJudgments`(M3-7, `core-records.ts`)가 이미 있는 데이터였다 — `SlotView`에 그 필드가 없었을 뿐이라 새 결정이 아니라 배선 보완이다. `SlotView.judgments: JudgmentCounts | null`을 추가하고 `buildSongRow`가 `record.bestJudgments`를 그대로 옮긴다. `scene-song-select.ts`의 기록 칸이 `recordCellMode: 'judge'`일 때 `sync / perfect / good / miss` 순서로 표시한다(§9 "judge: sync/perfect/good/miss 순의 네 값").
+
+  테스트 신규: `core-song-select.test.ts`에 `buildCursorStops`/`folderIndexOf`/`moveCursorByPage`/`moveCursorHome`/`moveCursorEnd` describe 블록(기존 cursor 테스트는 새 정지점 좌표계로 전환), `scene-song-select.test.ts`에 아코디언 토글(Enter·클릭)·PageDown·Home/End·judge 모드 표시 테스트 6개 추가 — 전체 1107/1107 통과.
+- **Defined in:** `src/core/core-song-select.ts`, `src/scene/scene-song-select.ts`, `src/app/app-main.ts`
+- **Rationale:** Not required
+- **Affects:** core, scene, app
+- **Supersedes:** None — D-2026-086의 Deferred Findings 세 항목을 닫음
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

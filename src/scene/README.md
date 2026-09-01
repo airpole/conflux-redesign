@@ -67,3 +67,12 @@ idle/typing/no-results 3상태 — 검색 중엔 folder 헤더 없이 평평한 
 가져와 재수출한다(로컬 재정의 아님) — 처음엔 이 파일이 자체 정의를 뒀다가
 `game-viewstate.ts`/`app-main.ts`와 타입이 어긋나 `core-song-select.ts`로
 모았다.
+
+**M4-4 후속(같은 스프린트)**: folder 아코디언(§4)·`PageUp`/`PageDown`/
+`Home`/`End`(§7)·기록 격자 judge 모드(§9)를 더했다. 아코디언은 새 입력
+어휘를 만들지 않고 커서가 folder 헤더 정지점에 있을 때 기존 `Enter`(선택
+확정 역할)와 기존 클릭 입력을 재사용해 펼침/접힘을 토글한다 — 펼치면
+다른 folder는 자동으로 접힌다(한 번에 하나, §4). 접힘 상태는 scene 내부
+상태일 뿐 영속하지 않는다. `PageUp`/`PageDown`의 "한 화면 단위"는 실제
+viewport 측정이 없어 `PAGE_STOP_COUNT`(고정 근사값) — 결정 필요 항목으로
+별도 보고, 실제 DOM 측정 기반 페이지 크기가 필요해지면 갱신한다.

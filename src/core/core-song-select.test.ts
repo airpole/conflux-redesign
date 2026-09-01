@@ -1,23 +1,35 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildCursorStops,
   buildSongRow,
   cursorTarget,
   deriveCategoryTabs,
   filterByCategory,
   filterBySearch,
+  folderIndexOf,
   groupRows,
   locateCursor,
   matchesSearch,
+  moveCursorByPage,
+  moveCursorEnd,
+  moveCursorHome,
   moveCursorHorizontal,
   moveCursorVertical,
   sortRows,
   UNCATEGORIZED,
   ALL_CATEGORY,
   type CursorPosition,
+  type CursorStop,
   type SongChartInput,
   type SongRow,
 } from './core-song-select.js';
 import type { ChartRecord } from './core-records.js';
+
+/** row 목록을 header 없는 정지점 배열로 감싼다 — groupBy/아코디언과 무관한
+ *  순수 row-단위 이동 테스트용. */
+function stopsOf(rows: readonly SongRow[]): readonly CursorStop[] {
+  return buildCursorStops([{ label: '', rows, clearedCount: 0, totalCount: 0 }], false, null);
+}
 
 function chart(overrides: Partial<SongChartInput> & { chartId: number }): SongChartInput {
   return {
@@ -144,10 +156,26 @@ describe('sortRows', () => {
 
   it('score 축에서 기록 없는 row는 sortDir 무관 항상 최하단이다', () => {
     const withRecord = row('a', 'A', [
-      { chartId: 1, difficulty: 'Trace', level: 1, state: 'FC', score: 900000, rank: 'A' },
+      {
+        chartId: 1,
+        difficulty: 'Trace',
+        level: 1,
+        state: 'FC',
+        score: 900000,
+        rank: 'A',
+        judgments: null,
+      },
     ]);
     const noRecord = row('b', 'B', [
-      { chartId: 1, difficulty: 'Trace', level: 1, state: 'N', score: null, rank: null },
+      {
+        chartId: 1,
+        difficulty: 'Trace',
+        level: 1,
+        state: 'N',
+        score: null,
+        rank: null,
+        judgments: null,
+      },
     ]);
     expect(sortRows([noRecord, withRecord], 'score', 'asc').map((r) => r.songId)).toEqual([
       'a',
@@ -162,11 +190,35 @@ describe('sortRows', () => {
   it('level 축은 row가 표시하는 slot 중 최상위 값을 쓴다', () => {
     const rows = [
       row('a', 'A', [
-        { chartId: 1, difficulty: 'Trace', level: 3, state: 'N', score: null, rank: null },
-        { chartId: 2, difficulty: 'Drift', level: 9, state: 'N', score: null, rank: null },
+        {
+          chartId: 1,
+          difficulty: 'Trace',
+          level: 3,
+          state: 'N',
+          score: null,
+          rank: null,
+          judgments: null,
+        },
+        {
+          chartId: 2,
+          difficulty: 'Drift',
+          level: 9,
+          state: 'N',
+          score: null,
+          rank: null,
+          judgments: null,
+        },
       ]),
       row('b', 'B', [
-        { chartId: 1, difficulty: 'Trace', level: 5, state: 'N', score: null, rank: null },
+        {
+          chartId: 1,
+          difficulty: 'Trace',
+          level: 5,
+          state: 'N',
+          score: null,
+          rank: null,
+          judgments: null,
+        },
       ]),
     ];
     // a의 최상위 level=9 > b의 5
@@ -181,7 +233,17 @@ describe('groupRows', () => {
       title,
       musicBy: '',
       category: '',
-      slots: [{ chartId: 1, difficulty: 'Trace', level: 1, state: 'FC', score: 1, rank: 'A' }],
+      slots: [
+        {
+          chartId: 1,
+          difficulty: 'Trace',
+          level: 1,
+          state: 'FC',
+          score: 1,
+          rank: 'A',
+          judgments: null,
+        },
+      ],
       updatedAt,
     };
   }
@@ -208,7 +270,15 @@ describe('groupRows', () => {
 });
 
 function slot(chartId: number, level = 1): SongRow['slots'][number] {
-  return { chartId, difficulty: 'Trace', level, state: 'N', score: null, rank: null };
+  return {
+    chartId,
+    difficulty: 'Trace',
+    level,
+    state: 'N',
+    score: null,
+    rank: null,
+    judgments: null,
+  };
 }
 
 function cursorRow(songId: string, slots: SongRow['slots']): SongRow {
@@ -216,102 +286,187 @@ function cursorRow(songId: string, slots: SongRow['slots']): SongRow {
 }
 
 describe('locateCursor / cursorTarget', () => {
-  it('row가 없으면 null이다', () => {
+  it('정지점이 없으면 null이다', () => {
     expect(locateCursor([], null)).toBeNull();
   });
 
   it('target이 null이면 첫 row의 첫 채워진 slot으로 간다', () => {
-    const rows = [cursorRow('a', [null, slot(2), null, null, null])];
-    expect(locateCursor(rows, null)).toEqual({ rowIndex: 0, slotIndex: 1 });
+    const stops = stopsOf([cursorRow('a', [null, slot(2), null, null, null])]);
+    expect(locateCursor(stops, null)).toEqual({ stopIndex: 0, slotIndex: 1 });
   });
 
   it('target이 현재 목록에 있으면 그 위치를 찾는다', () => {
-    const rows = [cursorRow('a', [slot(1)]), cursorRow('b', [slot(1), slot(2)])];
-    expect(locateCursor(rows, { songId: 'b', chartId: 2 })).toEqual({ rowIndex: 1, slotIndex: 1 });
+    const stops = stopsOf([cursorRow('a', [slot(1)]), cursorRow('b', [slot(1), slot(2)])]);
+    expect(locateCursor(stops, { songId: 'b', chartId: 2 })).toEqual({
+      stopIndex: 1,
+      slotIndex: 1,
+    });
   });
 
   it('target이 사라졌으면(정렬·필터로) 첫 항목으로 돌아간다(§8)', () => {
-    const rows = [cursorRow('a', [slot(1)])];
-    expect(locateCursor(rows, { songId: 'gone', chartId: 9 })).toEqual({
-      rowIndex: 0,
+    const stops = stopsOf([cursorRow('a', [slot(1)])]);
+    expect(locateCursor(stops, { songId: 'gone', chartId: 9 })).toEqual({
+      stopIndex: 0,
       slotIndex: 0,
     });
   });
 
   it('cursorTarget이 좌표를 chart 정체성으로 되돌린다', () => {
-    const rows = [cursorRow('a', [slot(1), slot(2)])];
-    expect(cursorTarget(rows, { rowIndex: 0, slotIndex: 1 })).toEqual({
+    const stops = stopsOf([cursorRow('a', [slot(1), slot(2)])]);
+    expect(cursorTarget(stops, { stopIndex: 0, slotIndex: 1 })).toEqual({
       songId: 'a',
       chartId: 2,
     });
   });
 
   it('빈 슬롯을 가리키면 cursorTarget이 null이다', () => {
-    const rows = [cursorRow('a', [null, slot(2)])];
-    expect(cursorTarget(rows, { rowIndex: 0, slotIndex: 0 })).toBeNull();
+    const stops = stopsOf([cursorRow('a', [null, slot(2)])]);
+    expect(cursorTarget(stops, { stopIndex: 0, slotIndex: 0 })).toBeNull();
   });
 });
 
 describe('moveCursorHorizontal', () => {
   it('오른쪽으로 다음 채워진 슬롯까지 건너뛴다', () => {
-    const rows = [cursorRow('a', [slot(1), null, slot(3), null, null])];
-    const pos: CursorPosition = { rowIndex: 0, slotIndex: 0 };
-    expect(moveCursorHorizontal(rows, pos, 1)).toEqual({ rowIndex: 0, slotIndex: 2 });
+    const stops = stopsOf([cursorRow('a', [slot(1), null, slot(3), null, null])]);
+    const pos: CursorPosition = { stopIndex: 0, slotIndex: 0 };
+    expect(moveCursorHorizontal(stops, pos, 1)).toEqual({ stopIndex: 0, slotIndex: 2 });
   });
 
   it('마지막 채워진 슬롯에서 더 오른쪽으로 가면 멈춘다(페이지네이션은 미룸)', () => {
-    const rows = [cursorRow('a', [slot(1), slot(2), null, null, null])];
-    const pos: CursorPosition = { rowIndex: 0, slotIndex: 1 };
-    expect(moveCursorHorizontal(rows, pos, 1)).toEqual(pos);
+    const stops = stopsOf([cursorRow('a', [slot(1), slot(2), null, null, null])]);
+    const pos: CursorPosition = { stopIndex: 0, slotIndex: 1 };
+    expect(moveCursorHorizontal(stops, pos, 1)).toEqual(pos);
   });
 
   it('왼쪽으로도 같은 규칙을 따른다', () => {
-    const rows = [cursorRow('a', [null, slot(2), null, slot(4), null])];
-    const pos: CursorPosition = { rowIndex: 0, slotIndex: 3 };
-    expect(moveCursorHorizontal(rows, pos, -1)).toEqual({ rowIndex: 0, slotIndex: 1 });
+    const stops = stopsOf([cursorRow('a', [null, slot(2), null, slot(4), null])]);
+    const pos: CursorPosition = { stopIndex: 0, slotIndex: 3 };
+    expect(moveCursorHorizontal(stops, pos, -1)).toEqual({ stopIndex: 0, slotIndex: 1 });
   });
 });
 
 describe('moveCursorVertical — 열 대응 규칙(§7)', () => {
   it('같은 열에 chart가 있으면 그 slot으로 간다', () => {
-    const rows = [cursorRow('a', [slot(1), slot(2)]), cursorRow('b', [slot(1), slot(2)])];
-    const pos: CursorPosition = { rowIndex: 0, slotIndex: 1 };
-    expect(moveCursorVertical(rows, pos, 1)).toEqual({ rowIndex: 1, slotIndex: 1 });
+    const stops = stopsOf([cursorRow('a', [slot(1), slot(2)]), cursorRow('b', [slot(1), slot(2)])]);
+    const pos: CursorPosition = { stopIndex: 0, slotIndex: 1 };
+    expect(moveCursorVertical(stops, pos, 1)).toEqual({ stopIndex: 1, slotIndex: 1 });
   });
 
   it('같은 열이 비어 있으면 더 낮은 열 중 가장 가까운 slot', () => {
-    const rows = [cursorRow('a', [null, null, slot(3)]), cursorRow('b', [slot(1), slot(2), null])];
-    const pos: CursorPosition = { rowIndex: 0, slotIndex: 2 };
-    expect(moveCursorVertical(rows, pos, 1)).toEqual({ rowIndex: 1, slotIndex: 1 });
+    const stops = stopsOf([
+      cursorRow('a', [null, null, slot(3)]),
+      cursorRow('b', [slot(1), slot(2), null]),
+    ]);
+    const pos: CursorPosition = { stopIndex: 0, slotIndex: 2 };
+    expect(moveCursorVertical(stops, pos, 1)).toEqual({ stopIndex: 1, slotIndex: 1 });
   });
 
   it('낮은 열도 없으면 더 높은 열 중 가장 가까운 slot', () => {
-    const rows = [
+    const stops = stopsOf([
       cursorRow('a', [null, null, slot(3)]),
       cursorRow('b', [null, null, null, slot(4)]),
-    ];
-    const pos: CursorPosition = { rowIndex: 0, slotIndex: 2 };
-    expect(moveCursorVertical(rows, pos, 1)).toEqual({ rowIndex: 1, slotIndex: 3 });
+    ]);
+    const pos: CursorPosition = { stopIndex: 0, slotIndex: 2 };
+    expect(moveCursorVertical(stops, pos, 1)).toEqual({ stopIndex: 1, slotIndex: 3 });
   });
 
   it('목록 끝에서는 멈춘다', () => {
-    const rows = [cursorRow('a', [slot(1)])];
-    const pos: CursorPosition = { rowIndex: 0, slotIndex: 0 };
-    expect(moveCursorVertical(rows, pos, 1)).toEqual(pos);
-    expect(moveCursorVertical(rows, pos, -1)).toEqual(pos);
+    const stops = stopsOf([cursorRow('a', [slot(1)])]);
+    const pos: CursorPosition = { stopIndex: 0, slotIndex: 0 };
+    expect(moveCursorVertical(stops, pos, 1)).toEqual(pos);
+    expect(moveCursorVertical(stops, pos, -1)).toEqual(pos);
   });
 
   it('직전 열을 기억하지 않는다 — 이동 결과 열이 다음 이동의 기준이다', () => {
-    const rows = [
+    const stops = stopsOf([
       cursorRow('a', [slot(1), null, slot(3)]),
       cursorRow('b', [slot(1), null, null]), // 2행: col2 없음 → col1로 이동(낮은 열)
       cursorRow('c', [slot(1), slot(2), null]), // 3행: col1에 chart 있음 — 원래 col2를 기억했다면 여기서 col2로 안 감
-    ];
-    let pos: CursorPosition = { rowIndex: 0, slotIndex: 2 };
-    pos = moveCursorVertical(rows, pos, 1); // → row1, col1(낮은 열로 이동)
-    expect(pos).toEqual({ rowIndex: 1, slotIndex: 0 });
-    pos = moveCursorVertical(rows, pos, 1); // → row2, 지금 col(col0)에 chart 있음 → 그대로 col0
-    expect(pos).toEqual({ rowIndex: 2, slotIndex: 0 });
+    ]);
+    let pos: CursorPosition = { stopIndex: 0, slotIndex: 2 };
+    pos = moveCursorVertical(stops, pos, 1); // → row1, col1(낮은 열로 이동)
+    expect(pos).toEqual({ stopIndex: 1, slotIndex: 0 });
+    pos = moveCursorVertical(stops, pos, 1); // → row2, 지금 col(col0)에 chart 있음 → 그대로 col0
+    expect(pos).toEqual({ stopIndex: 2, slotIndex: 0 });
+  });
+});
+
+describe('folder 헤더 — 아코디언(§4, M4-4)', () => {
+  const folders = [
+    { label: 'A', rows: [cursorRow('a', [slot(1)])], clearedCount: 0, totalCount: 1 },
+    {
+      label: 'B',
+      rows: [cursorRow('b', [slot(1)]), cursorRow('c', [slot(1)])],
+      clearedCount: 0,
+      totalCount: 2,
+    },
+  ];
+
+  it('헤더가 있으면 접힌 folder는 row 없이 헤더 정지점만 남는다', () => {
+    const stops = buildCursorStops(folders, true, 0);
+    expect(stops).toEqual([
+      { kind: 'header', folderIndex: 0 },
+      { kind: 'row', folderIndex: 0, row: folders[0]!.rows[0] },
+      { kind: 'header', folderIndex: 1 },
+    ]);
+  });
+
+  it('펼친 folder를 바꾸면 그 folder의 row가 정지점에 나타난다', () => {
+    const stops = buildCursorStops(folders, true, 1);
+    expect(stops.filter((s) => s.kind === 'row')).toHaveLength(2);
+  });
+
+  it('아무 folder도 안 펼치면(null) 헤더만 남는다', () => {
+    const stops = buildCursorStops(folders, true, null);
+    expect(stops.every((s) => s.kind === 'header')).toBe(true);
+  });
+
+  it('헤더 없음(검색 중·groupBy none)이면 모든 row가 정지점이다', () => {
+    const stops = buildCursorStops(folders, false, null);
+    expect(stops.filter((s) => s.kind === 'row')).toHaveLength(3);
+    expect(stops.some((s) => s.kind === 'header')).toBe(false);
+  });
+
+  it('상하 이동이 헤더를 정지점으로 통과한다', () => {
+    const stops = buildCursorStops(folders, true, 0);
+    let pos: CursorPosition = { stopIndex: 0, slotIndex: 0 }; // A 헤더
+    pos = moveCursorVertical(stops, pos, 1);
+    expect(stops[pos.stopIndex]).toEqual({ kind: 'row', folderIndex: 0, row: folders[0]!.rows[0] });
+    pos = moveCursorVertical(stops, pos, 1);
+    expect(stops[pos.stopIndex]).toEqual({ kind: 'header', folderIndex: 1 }); // B 헤더(접혀 있어 row는 안 보임)
+  });
+
+  it('folderIndexOf가 target이 속한 folder를 찾는다', () => {
+    expect(folderIndexOf(folders, { songId: 'c', chartId: 1 })).toBe(1);
+    expect(folderIndexOf(folders, { songId: 'gone', chartId: 1 })).toBeNull();
+    expect(folderIndexOf(folders, null)).toBeNull();
+  });
+});
+
+describe('moveCursorByPage / moveCursorHome / moveCursorEnd (§7)', () => {
+  const stops = stopsOf([
+    cursorRow('a', [slot(1)]),
+    cursorRow('b', [slot(1)]),
+    cursorRow('c', [slot(1)]),
+    cursorRow('d', [slot(1)]),
+  ]);
+
+  it('moveCursorByPage가 pageSize만큼 아래로 이동한다', () => {
+    const pos = moveCursorByPage(stops, { stopIndex: 0, slotIndex: 0 }, 1, 2);
+    expect(pos).toEqual({ stopIndex: 2, slotIndex: 0 });
+  });
+
+  it('moveCursorByPage가 배열 끝에 닿으면 그 자리에서 멈춘다', () => {
+    const pos = moveCursorByPage(stops, { stopIndex: 0, slotIndex: 0 }, 1, 100);
+    expect(pos).toEqual({ stopIndex: 3, slotIndex: 0 });
+  });
+
+  it('moveCursorHome이 첫 정지점으로 간다', () => {
+    expect(moveCursorHome(stops)).toEqual({ stopIndex: 0, slotIndex: 0 });
+  });
+
+  it('moveCursorEnd가 마지막 정지점으로 간다', () => {
+    expect(moveCursorEnd(stops)).toEqual({ stopIndex: 3, slotIndex: 0 });
   });
 });
 
