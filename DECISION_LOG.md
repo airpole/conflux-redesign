@@ -980,6 +980,36 @@
 - **Commit:** `0bda292`
 
 
+### D-2026-078 — title 입력 규칙 명확화: 키보드 아무 키 OR 마우스 클릭 둘 다 mode-select로 전환
+
+- **Status:** Accepted
+- **Decision:** `scene.md` §3 id 표의 title 행 "아무 입력 → mode-select"가 클릭을 포함하는지 명시하지 않았다 — `scene.md` 전문을 확인한 결과 title 화면 자체의 입력 규칙은 그 한 줄이 전부였고 다른 어디서도 보완되지 않았다. M3.5-3 title 레이아웃(D-2026-079)의 확정된 하단 힌트 문구 "Press anywhere to start"가 클릭이 유효 입력임을 전제하므로, 이 공백을 실제 스펙으로 닫는다 — **키보드 아무 키 OR 마우스 클릭 모두** title → mode-select를 트리거한다.
+
+  단순 표기 정리가 아니라 이전에 미정이던 입력 종류(클릭 포함 여부)를 처음으로 확정하는 행동 변경이라 별도 항목으로 남긴다.
+- **Defined in:** `scene/scene.md` §3
+- **Rationale:** Not required
+- **Affects:** scene (title 입력 처리)
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
+### D-2026-079 — M3.5-3 title 레이아웃 확정: `ui-design.md` §2.7
+
+- **Status:** Accepted
+- **Decision:** title scene의 레이아웃을 `ui-design.md` §2.7로 문서화했다 — 16:9 프레임(§2/§2.5/§2.6과 같은 컨테이너 메커니즘 재사용, title은 정적 단일 프레임이라 780px 스택 폴백 대상이 없음) 중앙에 wordmark("Conflux", 첫 글자만 대문자, ~8cqw) + tagline("Two movements to One.", ~1.8cqw, `--dim`) + 하단 힌트("Press anywhere to start", ~1.7cqw, opacity 0.45↔1.0 약 2.6초 ease-in-out 무한 pulse). 세 텍스트 전부 D-2026-077의 공용 영어 분류(고유명사·고정 브랜드 문구·짧은 패턴 라벨)라 `translate()`를 거치지 않는다.
+
+  배경은 두 겹의 물 컨셉 애니메이션 — (1) 5개 수평 wave 밴드, 위(약함·저opacity)→아래(강함·고opacity)로 깊이감을 주며 각자 독립 위상으로 움직인다, (2) ~30-35개 bubble 입자가 임의 방향·속도로 4면 wrap하며 떠다니고 크기가 작을수록 느리고 투명해 "멀다"로 읽힌다. 중앙 텍스트 풋프린트에 맞춘 타원 감쇠 구역으로 입자가 텍스트를 가리지 않는다. 둘 다 `--cyan`(§1.1, §2.5 cyan 사용처 목록과 같은 토큰) 재사용 — 새 색 토큰 없음. wave/bubble의 정확한 보간 곡선·분포는 색 토큰이 아니라 장식 파라미터라 `constants.md`에 올리지 않고 이 절에 근사값으로만 남겼다(§2.3의 hit effect 반지름이 `render/theme.md`에 남는 것과 같은 분류).
+
+  입력 규칙(클릭 포함 확정)은 D-2026-078로 `scene.md` §3에 반영했다 — 레이아웃 문서가 아니라 행동 스펙이 단일 출처이므로 분리해 로그했다.
+
+  M3.5-3은 `prefers-reduced-motion` 대응 여부(§2.7.5-2)만 남기고 닫혔다 — result 화면(§5)에 이미 있는 같은 원칙이 title의 pulse·wave·bubble에도 적용돼야 하는지는 제품 판단이 필요해 임의로 정하지 않았다.
+- **Defined in:** `scene/ui-design.md` §2.7
+- **Rationale:** Not required
+- **Affects:** scene
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

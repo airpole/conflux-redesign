@@ -61,7 +61,7 @@ resetSceneStack()
 
 | id | 화면 |
 |---|---|
-| title | 아무 입력 → mode-select |
+| title | 아무 키보드 입력 또는 마우스 클릭 → mode-select `[수정]` (D-2026-078 — "아무 입력"이 클릭을 포함하는지 미명시였다) |
 | mode-select | play/editor/settings/credits hub |
 | song-select | derived song group + playable chart 선택 |
 | song-credit | 선택 chart credit 자동 표시 |
