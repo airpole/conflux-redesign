@@ -934,7 +934,7 @@
 - **Rationale:** Not required
 - **Affects:** settings 구조, settings UI (M3.5-2 레이아웃의 전제)
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `6fae4d8`
 
 
 ### D-YYYY-NNN — <Title>
