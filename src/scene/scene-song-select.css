@@ -1,0 +1,203 @@
+/* song-select 화면 — 단일 출처 `scene/ui-design.md` §1·§2.5.
+   M4-3 범위: row/slot/탭/folder/정렬-그룹 표시만. 커서·검색·preview·
+   정보 패널은 M4-4(scene-song-select.ts 주석 참조). */
+
+.song-select-scene {
+  --bg: #050508;
+  --text: #ececf4;
+  --dim: #9a9ab4;
+  --rule: #1e1e30;
+  --rule-strong: #3a3a54;
+  --cyan: #4fbcd0;
+  --on-accent: #04040a;
+
+  --j-sync: #ffffff;
+  --j-perfect: #ffd23f;
+  --j-good: #5cff96;
+  --j-miss: #ff5f70;
+
+  --gauge-normal: #4aa870;
+  --gauge-hard: #ffa63d;
+
+  --tier-trace: #4a9eff;
+  --ink-trace: #050508;
+  --tier-drift: #4ade80;
+  --ink-drift: #050508;
+  --tier-surge: #ff4d5e;
+  --ink-surge: #050508;
+  --tier-flux: #ffffff;
+  --ink-flux: #050508;
+  --tier-phase: #22222e;
+  --ink-phase: #ececf4;
+
+  --sans:
+    'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', 'Roboto Mono',
+    monospace;
+
+  container-type: size;
+  aspect-ratio: 16 / 9;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+}
+
+.song-select-scene .tab-bar {
+  display: flex;
+  gap: 0.6cqw;
+  padding: 1cqw 2cqw;
+  border-bottom: 1px solid var(--rule);
+}
+
+.song-select-scene .tab-pill {
+  font-family: var(--sans);
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  color: var(--dim);
+  padding: 0.3cqw 1cqw;
+  font-size: 1cqw;
+  cursor: pointer;
+}
+
+.song-select-scene .tab-pill.active {
+  color: var(--cyan);
+  border-color: var(--cyan);
+}
+
+.song-select-scene .list-options-bar {
+  display: flex;
+  gap: 1.2cqw;
+  padding: 0.6cqw 2cqw;
+  border-bottom: 1px solid var(--rule);
+}
+
+.song-select-scene .chip {
+  font-family: var(--mono);
+  font-size: 0.95cqw;
+  color: var(--dim);
+}
+
+.song-select-scene .song-select-body {
+  display: grid;
+  grid-template-columns: 4fr 6fr;
+  min-height: 0;
+}
+
+.song-select-scene .list-col {
+  grid-column: 1 / -1;
+  overflow-y: auto;
+  padding: 0.6cqw 0;
+}
+
+.song-select-scene .folder-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5cqw 2cqw;
+  color: var(--dim);
+  font-size: 0.9cqw;
+  border-bottom: 1px solid var(--rule);
+}
+
+.song-select-scene .song-row {
+  display: flex;
+  align-items: center;
+  gap: 1cqw;
+  padding: 0.5cqw 2cqw;
+  border-bottom: 1px solid var(--rule);
+}
+
+.song-select-scene .jacket-thumb {
+  width: 2.4cqw;
+  height: 2.4cqw;
+  background: var(--rule-strong);
+  flex-shrink: 0;
+}
+
+.song-select-scene .row-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 12cqw;
+}
+
+.song-select-scene .row-title,
+.song-select-scene .row-artist {
+  color: var(--text);
+  font-size: 1cqw;
+}
+
+.song-select-scene .row-slots {
+  display: flex;
+  gap: 0.4cqw;
+  margin-left: auto;
+}
+
+.song-select-scene .slot {
+  position: relative;
+  width: 2cqw;
+  height: 1.6cqw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 0.9cqw;
+}
+
+.song-select-scene .slot.empty {
+  color: var(--dim);
+}
+
+.song-select-scene .slot.tier-Trace {
+  background: var(--tier-trace);
+  color: var(--ink-trace);
+}
+.song-select-scene .slot.tier-Drift {
+  background: var(--tier-drift);
+  color: var(--ink-drift);
+}
+.song-select-scene .slot.tier-Surge {
+  background: var(--tier-surge);
+  color: var(--ink-surge);
+}
+.song-select-scene .slot.tier-Flux {
+  background: var(--tier-flux);
+  color: var(--ink-flux);
+}
+.song-select-scene .slot.tier-Phase {
+  background: var(--tier-phase);
+  color: var(--ink-phase);
+}
+
+.song-select-scene .state-bar {
+  position: absolute;
+  right: -0.3cqw;
+  top: 0;
+  bottom: 0;
+  width: 0.25cqw;
+}
+
+.song-select-scene .state-bar.state-AS {
+  background: var(--j-sync);
+}
+.song-select-scene .state-bar.state-AP {
+  background: var(--j-perfect);
+}
+.song-select-scene .state-bar.state-FC {
+  background: var(--j-good);
+}
+.song-select-scene .state-bar.state-H {
+  background: var(--gauge-hard);
+}
+.song-select-scene .state-bar.state-C {
+  background: var(--gauge-normal);
+}
+.song-select-scene .state-bar.state-F {
+  background: var(--j-miss);
+}
+.song-select-scene .state-bar.state-N {
+  display: none;
+}

@@ -38,3 +38,12 @@ head+tail 2단위(`core-judge.ts` `unitsOf`, `core/judge.md` §8). Hold가
 "note 수"라고 부르지 않는다. "unit" 계열 용어가 폐기됐다는 근거는
 `core/naming.md`·`core/glossary.md`·DECISION_LOG 어디에서도 찾지 못했다
 (D-2026-069가 이미 확인) — 오히려 현재의 의도된 단일 용어로 명시돼 있다.
+
+`core-song-select.ts`는 M4-3 범위다([[song-select]] §1~§5, `ui-design.md`
+§2.5). row/slot 구성(Representative Chart의 title/musicBy를 row 대표값으로
+— [[cfx]] §6), category 필터, sort 9축 전부를 구현한다. **groupBy는 3축뿐이다**
+(`none`/`updated`/`title`, song 공통 축) — `level`/`difficulty`/`state`/`rank`
+(chart 분기 축)는 "기록 없는 chart가 그 축의 folder에 들어가는지"가 스펙에
+없어 결정 필요 항목으로 미뤘다(D-2026-084). `chartId 6+`(추가 chart)도
+cursor·페이지 상태가 있어야 의미가 생겨 M4-4로 미룬다 — 고정 슬롯 1~5만
+채운다.

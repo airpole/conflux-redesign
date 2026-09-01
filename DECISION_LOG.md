@@ -1096,6 +1096,23 @@
 - **Commit:** `5518d7a`
 
 
+### D-2026-084 — M4-3: song-select 목록 모델·렌더 구현, groupBy 4축·데이터 로딩 배선은 결정 필요로 분리
+
+- **Status:** Accepted (구현분) / 하위 두 항목은 Deferred — 아래 참조
+- **Decision:** `core-song-select.ts`(row/slot 구성, category 필터, sort 9축 전부)와 `scene-song-select.ts`(row+slot 렌더, category 탭 클릭 전환, groupBy folder 헤더, 세 축 변경 시 목록 재구성)를 구현했다. M4-3 Exit 기준("library의 chart가 song row + chart slot으로 뜬다. 세 축을 바꾸면 목록이 그에 맞게 재구성된다. folder 헤더에 클리어 진척이 뜬다. slot에 level·difficulty·state 램프가 함께 뜬다")을 렌더 레이어에서 충족한다.
+
+  row 대표값(title/musicBy)은 Representative Chart(chartId 0/init)에서 가져온다 — `_meta/cfx.md` §6이 이미 "chart 선택 전 song/library 목록의 title·musicBy·jacket·preview music"을 Representative Chart의 표시 기본값으로 명시하고 있어, 이건 새 결정이 아니라 기존 스펙 적용이다. M4-3 前 게이트의 "song row 대표값 출처(title·jacket)" 항목은 이걸로 해소된다. 같은 게이트의 "정보 패널 BPM 표기 방식·곡 길이 표시"는 정보 패널 자체가 커서 의존([[song-select]] §9 "커서가 놓인 slot의 chart를 기준으로 한다")이라 M4-3 Exit 기준에 없다 — M4-4(정보 패널이 처음 등장하는 step)로 자연히 넘어간다.
+
+  **[결정 필요 1] groupBy 4축 보류**: [[song-select]] §4의 chart 분기 축(`level`/`difficulty`/`state`/`rank`)에서, 기록 없는(`N`) chart가 그 축의 folder에 아예 안 들어가는지 별도 "미기록" folder를 만드는지 스펙에 없다 — sort의 "기록 기반 축은 미기록이 항상 최하단"(§5)과 같은 처리를 groupBy에도 적용해도 되는지 확인이 필요하다. `none`/`updated`/`title`(song 공통 축, 모호함 없음) 3축만 구현했다.
+
+  **[결정 필요 2] 데이터 로딩 배선 — edit/game 레이어 경계 문제**: song-select(game 레이어)가 library를 렌더하려면 `.cfx` decode(`loadCfxPackage`)가 필요한데, 이 로직이 전부 `edit/`(edit-cfx-load.ts·edit-cfx-package.ts)에 있다 — `game-song-select.ts`를 만들어 import했더니 `import/no-restricted-paths`(architecture.md §1 "edit=에디터, game=플레이. 둘은 서로를 모른다")에 걸렸다. `openChartJson`(edit-chart-open.ts)·`loadCfxPackage`·`groupBySongId`·`validatePackageGroup` 전부 브라우저 API를 직접 안 쓰는 순수 로직이지만(`env-file`의 `readZipArchive`만 호출, 그 함수 자체도 실측상 순수 바이트 연산 — jsdom 없이 Node에서 테스트됨), M3 시점에 editor 워크플로 전용으로 `edit/`에 배치됐다. `core-quick-options.ts`가 "edit·game 둘 다 쓰는 순수 로직은 core로 내린다"는 선례를 이미 세웠지만, 이번 로직은 `env-file`의 ZIP 함수를 호출해야 해서 그대로 core로 내리면 core가 env를 import하게 돼(`architecture.md`의 "core는 브라우저 API를 하나도 안 쓴다"는 사용 여부가 아니라 import 방향 자체의 규율이라 예외를 만드는 셈) 다른 구조적 결정이 필요하다. 시도했던 `game-song-select.ts`/테스트는 되돌렸다 — `core-song-select.ts`/`scene-song-select.ts`는 데이터가 어디서 오든 동작하므로 이 문제와 독립적으로 완성됐다.
+- **Defined in:** `src/core/core-song-select.ts`, `src/scene/scene-song-select.ts`
+- **Rationale:** Not required
+- **Affects:** core, scene, 향후 game/edit 레이어 재검토
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

@@ -37,3 +37,18 @@ credits의 표시 값은 `ui-design.md` §2.8.4가 승인한 placeholder 그대�
 서로 다른 종류의 목록이라(수작업 유지 vs library 스캔 dedupe) placeholder
 이름 계열도 분리했다(`[Staff N]` vs `[Placeholder N]`) — 처음엔 겹쳐 썼다가
 테스트로 드러나 `ui-design.md` §2.8.4도 함께 정정했다.
+
+`scene-song-select.ts`는 M4-3 범위다([[ui-design]] §2.5). `core-song-select.ts`가
+낸 `SongRow[]`를 받아 렌더만 한다 — row+slot(tier 색 박스+state 색 바),
+category 탭(클릭 전환), groupBy folder 헤더(count+진척), sortKey/sortDir을
+바꾸면 목록이 재구성되는 것까지가 이번 범위다. **정렬·그룹 바는 표시만
+한다** — 클릭해 overlay를 여는 인터랙션은 아직 안 닫힌 M4-3 前 게이트
+("목록 옵션 overlay 진입 키")가 막고 있다. cursor·검색·preview·정보
+패널·하단 키 힌트 바는 커서가 있어야 의미가 생겨 M4-4로 미룬다.
+
+**데이터 로딩은 이 파일에 없다** — `game → edit` import가 아키텍처상
+금지 방향이라(`architecture.md` §1 "edit=에디터, game=플레이. 둘은
+서로를 모른다") library `.cfx` decode 로직(`edit-cfx-load.ts`/
+`edit-cfx-package.ts`)이 전부 `edit/`에 있는 지금 상태로는 game 레이어에서
+가져올 수 없다. `game-song-select.ts`를 만들어 시도했다가 `import/no-restricted-paths`
+에 걸려 되돌렸다 — 별도로 보고하고 결정을 기다린다(D-2026-084).
