@@ -919,7 +919,7 @@
 - **Rationale:** Not required
 - **Affects:** scene, settings UI 구조 (M3.5-2 레이아웃의 전제)
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `d77d6e4`
 
 
 ### D-YYYY-NNN — <Title>
