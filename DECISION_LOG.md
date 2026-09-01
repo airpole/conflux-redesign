@@ -894,6 +894,19 @@
 - **Commit:** `9a5e65a`
 
 
+### D-2026-073 — 빈 library 레이아웃 불필요: `game-public`은 항상 번들 curated `.cfx`로 시작
+
+- **Status:** Accepted
+- **Decision:** `ui-design.md` §2.5.7-2가 남겼던 "빈 library 안내/import 레이아웃" 공백을 전용 레이아웃 없이 해소한다 — Conflux에 사용자 chart import UI가 없고(`_meta/persistence.md` §12·D-2026-059로 `game-public`은 첫 실행부터 번들 curated `.cfx` 세트가 library에 채워진 채 시작), "진짜로 텅 빈 library" 최초 진입 경로가 존재하지 않는다. 목록이 비어 보일 수 있는 경우는 이미 스펙에 있는 두 edge case뿐이다 — 검색 매치 0건, 빈 category 탭/빈 group folder. 둘 다 §2.5.1의 "검색 결과가 없습니다" 빈 목록 표시를 그대로 재사용하며 새 레이아웃을 만들지 않는다. [[song-select]] §11의 "안내 문구 + import 진입점" 요구는 import UI가 없는 `game-public` 경로에는 적용되지 않는다.
+
+  이로써 M3.5-1(곡 선택 레이아웃)은 §2.5.7-1(정렬/그룹 overlay 진입 키 게이트의 마우스+휠 확장, [[settings]] §2 소관 — 별도로 열려 있음)을 제외하고 완전히 닫혔다.
+- **Defined in:** `scene/ui-design.md` §2.5.3·§2.5.7-2
+- **Rationale:** Not required
+- **Affects:** scene
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred
