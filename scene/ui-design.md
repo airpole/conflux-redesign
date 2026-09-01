@@ -783,8 +783,8 @@ mode-select 진입/이탈)의 단일 출처는 [[scene]] §7이며 여기서 새
 
 ```
 Project Staff
-  Direction        [Placeholder A]
-  Development       [Placeholder B]
+  Direction        [Staff 1]
+  Development       [Staff 2]
 
 Music
   [Placeholder A]
@@ -797,6 +797,12 @@ Chart
 Jacket
   [Placeholder E]
 ```
+
+`Project Staff`는 `Music`/`Chart`/`Jacket`과 **다른 종류의 목록**이라
+(수작업 유지 vs library 스캔 dedupe, §2.8.5) placeholder 이름도 별도
+계열(`[Staff N]`)을 쓴다 — `[Placeholder A]`가 Direction과 Music에
+동시에 등장하면 "이 사람이 project staff이면서 동시에 어느 chart의
+musicBy이기도 하다"는 뜻으로 잘못 읽힐 수 있어 피한다.
 
 `[Placeholder A]`가 `Music`과 `Chart` 둘 다에 등장하는 것은 §2.8.1의
 "겸직은 각 역할 섹션에 각각" 규칙을 보여주기 위함이다 — 한 항목으로

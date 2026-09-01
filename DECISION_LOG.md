@@ -1075,6 +1075,27 @@
 - **Commit:** `18373b5`
 
 
+### D-2026-083 — M4-2: title/mode-select/credits scene 구현, credits placeholder 이름 계열 충돌 수정
+
+- **Status:** Accepted
+- **Decision:** `scene-title.ts`/`scene-mode-select.ts`/`scene-credits.ts`를 구현하고 `app-main.ts`에서 `scene-manager`로 조립해 실제 부팅한다(`title → mode-select → credits`, 그리고 그 반대).
+
+  세 모듈 다 `mountXxxScene(target, ...): { show(), hide() }` 형태다. `Scene.mount()` 클로저 안에서 실제 `mountXxxScene()` 호출을 미뤄 M4-1의 lazy-mount 계약을 지키고, 입력 리스너는 `show()`/`hide()`에서 붙였다 뗀다 — 그 scene이 화면에 없을 때 입력에 반응하면 안 되므로(예: mode-select에 있을 때 아무 키나 눌러도 title이 반응하면 안 된다).
+
+  `scene-result.ts`의 카운트업 연출과 같은 이유로 title의 wave/bubble/pulse, credits의 bubble 배경 애니메이션은 구현하지 않았다 — 데이터·입력 계약이 이번 범위의 핵심이고 순수 시각 효과는 Deferred다.
+
+  mode-select의 `play`/`editor`/`settings` 선택은 목적지 scene이 아직 없다(M4-3·M4-5·M4-6 범위) — 가짜 scene을 만들어 억지로 연결하지 않고 콘솔 로그만 남긴다. `Editor` 항목은 `FEATURES.editor`를 app 레이어에서 주입받아 꺼지면 목록에서 빠지고 reflow한다(§2.9.2 그대로).
+
+  **테스트로 드러난 문서 결함을 함께 고쳤다**: credits placeholder 콘텐츠 구현 중 `ui-design.md` §2.8.4가 "Project Staff Direction" 항목과 "Music" 섹션 양쪽에 `[Placeholder A]`를 실수로 재사용하고 있었다 — 원래 의도는 Music·Chart 사이의 겸직 시연이었는데, Project Staff까지 같은 이름을 쓰면서 "이 사람이 project staff이면서 동시에 어느 chart의 credit이기도 하다"로 잘못 읽힐 수 있는 문구가 됐다. `ui-design.md` §2.8.4와 `scene-credits.ts`를 함께 고쳐 Project Staff는 `[Staff N]` 계열, Music/Chart/Jacket은 `[Placeholder N]` 계열로 이름을 분리했다.
+
+  테스트 16개 신규(`scene-title.test.ts` 6, `scene-mode-select.test.ts` 6, `scene-credits.test.ts` 4) — show/hide에 따른 리스너 연결·해제, 클릭/키보드 선택, Editor reflow, 겸직 placeholder 노출.
+- **Defined in:** `src/scene/scene-title.ts`, `src/scene/scene-mode-select.ts`, `src/scene/scene-credits.ts`, `src/app/app-main.ts`, `scene/ui-design.md` §2.8.4
+- **Rationale:** Not required
+- **Affects:** scene, app, ui-design(§2.8.4 정정)
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

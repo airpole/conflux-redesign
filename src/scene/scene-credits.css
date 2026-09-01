@@ -1,0 +1,57 @@
+/* credits 화면 — 단일 출처 `scene/ui-design.md` §1·§2.8.
+   wave 없음, bubble도 Deferred(scene-credits.ts 주석 참조). --cyan 미사용. */
+
+.credits-scene {
+  --bg: #050508;
+  --text: #ececf4;
+  --dim: #9a9ab4;
+  --rule: #1e1e30;
+
+  --sans:
+    'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+
+  container-type: size;
+  aspect-ratio: 16 / 9;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  overflow-y: auto;
+  /* §2.8.2: 스크롤바·fade-edge 등 chrome 없음. */
+  scrollbar-width: none;
+}
+
+.credits-scene::-webkit-scrollbar {
+  display: none;
+}
+
+.credits-scene .credits-scroll {
+  padding: 4cqw;
+  display: flex;
+  flex-direction: column;
+  gap: 2.4cqw;
+}
+
+.credits-scene .credits-heading {
+  font-size: max(18px, 3cqw);
+}
+
+.credits-scene .section-header {
+  font-size: max(11px, 1.6cqw);
+  color: var(--dim);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.4cqw;
+  margin-bottom: 0.6cqw;
+}
+
+.credits-scene .credit-row {
+  display: flex;
+  gap: 1.2cqw;
+  font-size: max(12px, 1.4cqw);
+  padding: 0.2cqw 0;
+}
+
+.credits-scene .credit-row .role {
+  color: var(--dim);
+  min-width: 8cqw;
+}

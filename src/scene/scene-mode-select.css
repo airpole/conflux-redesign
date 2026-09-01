@@ -1,0 +1,41 @@
+/* mode-select 화면 — 단일 출처 `scene/ui-design.md` §1·§2.9. */
+
+.mode-select-scene {
+  --bg: #050508;
+  --text: #ececf4;
+  --cyan: #4fbcd0;
+
+  --sans:
+    'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+
+  container-type: size;
+  aspect-ratio: 16 / 9;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mode-select-scene .mode-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4cqw;
+}
+
+.mode-select-scene .mode-item {
+  font-family: var(--sans);
+  font-size: max(14px, 2.4cqw);
+  background: transparent;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  padding: 0.2em 0;
+}
+
+.mode-select-scene .mode-item.active {
+  color: var(--cyan);
+}

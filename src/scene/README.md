@@ -18,5 +18,22 @@ FEATURES 기반 build gate 필터링은 이 모듈이 하지 않는다 — `arch
 `FEATURES`를 import할 수 없다. `createSceneManager`는 **이미 걸러진 scene
 목록**을 받으므로, 꺼진 축의 scene은 그 목록에 없어 `mount()`가 호출될
 방법이 구조적으로 없다. 실제 필터링 호출(어떤 scene을 넘길지 결정)은
-app 레이어(`app-main.ts`) 몫이며, title/mode-select/credits 등 실제 root
-graph scene 모듈이 아직 없어(M4-2 범위) 그 배선 자체는 이번 step에 없다.
+app 레이어(`app-main.ts`) 몫이다.
+
+`scene-title.ts`/`scene-mode-select.ts`/`scene-credits.ts`는 M4-2 범위다
+([[ui-design]] §2.7·§2.9·§2.8, [[scene]] §3·§4·§7). 셋 다 `mountXxxScene(target,
+...): { show(), hide() }` 형태를 쓴다 — `scene-manager.ts`의 lazy-mount 계약과
+맞물려, 실제 DOM 생성(`mountXxxScene` 호출)은 `Scene.mount()` 클로저 안으로
+미루고 입력 리스너는 `show()`/`hide()`에서 붙였다 뗀다(화면에 없을 때 입력에
+반응하면 안 되므로). `scene-result.ts`의 카운트업 연출과 같은 이유로 title의
+wave/bubble/pulse, credits의 bubble 배경 애니메이션은 이번 범위에 없다 —
+데이터·입력 계약이 핵심이고 순수 시각 효과는 Deferred다. `app-main.ts`가
+세 scene을 조립해 실제로 부팅한다 — `play`/`editor`/`settings` mode-select
+선택은 목적지 scene이 아직 없어(M4-3·M4-5·M4-6) 콘솔 로그만 남기고 가짜
+scene으로 억지 연결하지 않는다.
+
+credits의 표시 값은 `ui-design.md` §2.8.4가 승인한 placeholder 그대로다 —
+실제 project staff·크레딧이 아니다. `Project Staff`와 `Music`/`Chart`/`Jacket`은
+서로 다른 종류의 목록이라(수작업 유지 vs library 스캔 dedupe) placeholder
+이름 계열도 분리했다(`[Staff N]` vs `[Placeholder N]`) — 처음엔 겹쳐 썼다가
+테스트로 드러나 `ui-design.md` §2.8.4도 함께 정정했다.
