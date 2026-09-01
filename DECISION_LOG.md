@@ -1166,7 +1166,7 @@
 - **Rationale:** Not required
 - **Affects:** core, game, scene, app — M4-4 완료
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `87d6f14`
 
 
 ### D-YYYY-NNN — <Title>
