@@ -904,7 +904,7 @@
 - **Rationale:** Not required
 - **Affects:** scene
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `9fc7d28`
 
 
 ### D-YYYY-NNN — <Title>
