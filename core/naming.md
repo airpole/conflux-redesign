@@ -29,7 +29,7 @@
 4. **도메인 개념은 [[glossary]]의 영어 용어 하나로 고정.** 한 개념에 두 이름을 두지 않는다. 특히 `scrollSpeed`와 `playbackRate`는 영원히 분리. (한국어 설명은 쓰되, 개념을 가리키는 단어는 영어 그대로.)
 5. **단위를 이름에 박는다.** ms/tick/px/pct가 헷갈리는 곳은 접미사로: `durationMs`, `startTick`, `widthPx`, `hardPct`.
 6. **상태 객체는 전체 단어.** `D`/`ES`/`PS` → `chart`/`editorState`/`playState`.
-7. **레이어 접두사가 파일명.** `core-`, `env-`, `render-`, `edit-`, `game-`, `scene-`, `app-`. 파일명만 보고 의존 방향을 안다 (위→아래만 import). 레이어 정의 → [[architecture]].
+7. **레이어 접두사가 파일명.** `core-`, `env-`, `render-`, `format-`, `edit-`, `game-`, `scene-`, `app-`. 파일명만 보고 의존 방향을 안다 (위→아래만 import). `format`은 D-2026-085(M4-3)로 신설 — 레이어 정의 → [[architecture]].
 8. **모든 시간축 이벤트는 `startTick`을 가진다.** duration 없는 순간 이벤트(tempo·timeSignature)도 `tick`이 아니라 `startTick`. 시작점 개념은 동일하다.
 9. **이벤트 배열은 자연 복수.** 이미 "event"가 의미상 맞는 것만 `Events` 접미사(`shapeEvents`/`laneEvents`/`textEvents`), 나머지는 단순 복수(`tempos`/`timeSignatures`/`notes`). `tempoEvents`·`noteEvents` 같은 장황한 형태는 쓰지 않는다.
 

@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
  * 폴더가 안 보이는 자리(에디터 탭·검색 결과·스택 트레이스)에서 접두사가 값을 하므로
  * 폴더와의 중복을 감수하고 유지한다.
  */
-const LAYERS = ['core', 'env', 'render', 'edit', 'game', 'scene', 'app'] as const;
+const LAYERS = ['core', 'env', 'render', 'format', 'edit', 'game', 'scene', 'app'] as const;
 const SRC = fileURLToPath(new URL('../../src/', import.meta.url));
 
 describe('레이어 배치', () => {

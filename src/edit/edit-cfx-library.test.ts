@@ -7,7 +7,8 @@ import {
   type StorageBackend,
   type StoreName,
 } from '../env/env-storage.js';
-import { buildCfxPackage, type AssetFile, type CandidateChart } from './edit-cfx-package.js';
+import { buildCfxPackage } from './edit-cfx-package.js';
+import type { AssetFile, CandidateChart } from '../format/format-cfx-package.js';
 import {
   commitLibraryRegistration,
   compareReimport,

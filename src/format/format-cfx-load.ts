@@ -26,10 +26,17 @@
  * game/library import에서 요구하는 playable music 실제 decode 검증(§12.2
  * "game/library import·load")도 이 함수의 범위 밖이다 — 그건 "로드했다"가
  * 아니라 "등록해도 되는가"의 정책이라 M3-6(game library) 소관이다.
+ *
+ * M3-5 때는 `edit/`(editor의 "`.cfx` 열기" 워크플로) 소속이었다. M4-3에서
+ * song-select(game 레이어)도 library의 `.cfx`를 정확히 같은 방식으로
+ * decode해야 한다는 게 드러나 `format`(D-2026-085)으로 옮겼다 — editor의
+ * `.cfx` 열기와 game의 library 읽기가 우연히 같은 함수가 필요했던 게
+ * 아니라, "`.cfx` bytes → chart 집합"이 애초에 어느 한쪽 소유가 아닌
+ * 파일 포맷 계약이었다.
  */
-import type { AssetFile, CandidateChart, PackageValidationIssue } from './edit-cfx-package.js';
-import { validatePackageGroup } from './edit-cfx-package.js';
-import { openChartJson } from './edit-chart-open.js';
+import type { AssetFile, CandidateChart, PackageValidationIssue } from './format-cfx-package.js';
+import { validatePackageGroup } from './format-cfx-package.js';
+import { openChartJson } from './format-chart-open.js';
 import { readZipArchive } from '../env/env-file.js';
 
 export type CfxLoadResult =

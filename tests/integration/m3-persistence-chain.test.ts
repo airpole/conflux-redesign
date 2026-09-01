@@ -14,8 +14,9 @@ import { describe, expect, it } from 'vitest';
 import { makeChart } from '../../src/core/core-chart-fixture.js';
 import type { JudgmentCounts } from '../../src/core/core-gauge.js';
 import { saveChartVersion } from '../../src/edit/edit-chart-save.js';
-import { buildCfxPackage, type CandidateChart } from '../../src/edit/edit-cfx-package.js';
-import { loadCfxPackage } from '../../src/edit/edit-cfx-load.js';
+import { buildCfxPackage } from '../../src/edit/edit-cfx-package.js';
+import type { CandidateChart } from '../../src/format/format-cfx-package.js';
+import { loadCfxPackage } from '../../src/format/format-cfx-load.js';
 import {
   commitLibraryRegistration,
   compareReimport,

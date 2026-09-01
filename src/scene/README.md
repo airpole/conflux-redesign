@@ -46,9 +46,9 @@ category 탭(클릭 전환), groupBy folder 헤더(count+진척), sortKey/sortDi
 ("목록 옵션 overlay 진입 키")가 막고 있다. cursor·검색·preview·정보
 패널·하단 키 힌트 바는 커서가 있어야 의미가 생겨 M4-4로 미룬다.
 
-**데이터 로딩은 이 파일에 없다** — `game → edit` import가 아키텍처상
-금지 방향이라(`architecture.md` §1 "edit=에디터, game=플레이. 둘은
-서로를 모른다") library `.cfx` decode 로직(`edit-cfx-load.ts`/
-`edit-cfx-package.ts`)이 전부 `edit/`에 있는 지금 상태로는 game 레이어에서
-가져올 수 없다. `game-song-select.ts`를 만들어 시도했다가 `import/no-restricted-paths`
-에 걸려 되돌렸다 — 별도로 보고하고 결정을 기다린다(D-2026-084).
+**데이터 로딩은 이 파일에 없다** — `game/game-song-select.ts`가 맡는다.
+처음 시도했을 땐 `game → edit` import가 아키텍처상 금지 방향이라(당시
+`.cfx` decode 로직이 전부 `edit/`에 있었다) `import/no-restricted-paths`에
+걸려 되돌렸다 — 그 로직을 `format/`(D-2026-085, M4-3)으로 재분류해 문제를
+풀었다. `app-main.ts`가 `game-song-select.ts`의 `loadSongSelectRows`로 얻은
+row를 `update()`에 넘겨 실제로 부팅한다.

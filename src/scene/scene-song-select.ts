@@ -17,8 +17,12 @@
  * 보여준다.
  *
  * 데이터 로딩(library → row[])은 이 파일 밖이다 — `SongRow[]`를 인자로
- * 받는다. 실제 로딩 배선이 `edit`/`game` 레이어 분리 문제로 막혀 있다는
- * 점은 별도로 보고했다(이 파일과 무관하게 렌더는 독립적으로 완성됨).
+ * 받는다. 실제 배선은 `game-song-select.ts`(D-2026-085로 신설된 `format`
+ * 층을 통해 `edit`↔`game` 분리 문제를 해소한 뒤)와 `app-main.ts`가 맡는다.
+ *
+ * Backspace/Esc → mode-select(`ui-design.md` §4 키 바인딩 표, D-2026-052의
+ * 통일 Back 키와 같은 패턴)만 받는다 — 다른 키(방향키·Enter·검색 등)는
+ * 커서가 있어야 의미가 생겨 여기 없다.
  */
 import './scene-song-select.css';
 import {
@@ -51,6 +55,7 @@ export interface SongSelectSceneHandle {
 
 export interface SongSelectHandlers {
   readonly onCategoryChange: (category: string) => void;
+  readonly onBack: () => void;
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(
@@ -148,6 +153,13 @@ export function mountSongSelectScene(
     return rowEl;
   }
 
+  function onKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Escape' || event.key === 'Backspace') {
+      event.preventDefault();
+      handlers.onBack();
+    }
+  }
+
   return {
     update(rows: readonly SongRow[], view: SongSelectViewState): void {
       renderTabs(rows, view.category);
@@ -166,9 +178,11 @@ export function mountSongSelectScene(
     },
     show(): void {
       root.hidden = false;
+      document.addEventListener('keydown', onKeyDown);
     },
     hide(): void {
       root.hidden = true;
+      document.removeEventListener('keydown', onKeyDown);
     },
   };
 }

@@ -4,6 +4,11 @@
  * asset(music/jacket) 재연결은 여기 없다 — `_meta/persistence.md` §10의 그
  * 부분은 workspace가 있어야 성립하므로 M3-3(workspace) 소관이다. 이 함수는
  * "이 텍스트가 chart로 성립하는가"까지만 판단한다.
+ *
+ * M3-2 때는 editor 전용 워크플로였지만, M4-3에서 song-select(game 레이어)도
+ * `.cfx` 안의 chart JSON을 같은 방식으로 파싱·검증해야 한다는 게 드러나
+ * `format`(D-2026-085)으로 옮겼다 — 브라우저 API를 직접 안 쓰는 순수 로직인데
+ * `edit`/`game` 형제 둘 다 읽어야 해서 어느 한쪽 소유가 될 수 없었다.
  */
 import type { Chart } from '../core/core-chart.js';
 import {

@@ -69,3 +69,12 @@ no-record 조건을 걸러 store를 건드리지 않는다. `game-session.ts`의
 `finalize`에서 실제로 이 함수를 부르는 배선과, no-record 4조건 중
 `midStart`·`editorOrigin`을 실제로 판별하는 로직(editor test scene·게임
 진입 경로가 있어야 안다)은 아직 없다 — 그 host들이 아직 없다(M4/M5).
+
+`game-song-select.ts`는 M4-3 범위다([[song-select]]). `env-storage`의
+`library` store를 `format/format-cfx-load.ts`의 `loadCfxPackage`로 decode해
+`core-song-select.ts`가 먹는 `SongChartInput[]`으로 바꾸고, `game-records.ts`의
+`readRecord`로 각 chart의 기록을 붙인다. library entry 원시 읽기(`storage.keys`/
+`storage.read`)는 `edit-cfx-library.ts`의 래퍼를 거치지 않고 `StorageEnv`를
+직접 부른다 — 그 래퍼들은 한 줄짜리 pass-through라 옮길 실익이 없었다(D-2026-085).
+`.cfx` decode 로직 자체가 `edit`↔`game` 형제 제약(`architecture.md` §1)에
+걸려 있었던 문제는 `format/` 신설로 풀었다 — 자세한 경위는 `src/format/README.md`.

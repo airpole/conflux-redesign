@@ -6,22 +6,51 @@
 
 ---
 
-## 1. 레이어 7층
+## 1. 레이어 8층
 
 import은 **위→아래 한 방향만**. 아래는 위를 모른다.
 
 ```
-core ─→ env ─→ render ─→ edit / game ─→ scene ─→ app
+core ─→ env ─→ { render, format } ─→ edit / game ─→ scene ─→ app
 ```
+
+`render`와 `format`은 같은 깊이다 — 둘 다 `env`/`core` 위, `edit`/`game`
+아래에 있고 서로를 모른다(서로를 참조할 이유도 없다).
 
 | 레이어 | 책임 | 기준(이 레이어인가?) |
 |---|---|---|
-| **core** | 순수 로직·계산 (tick↔ms, shape 기하, 판정, 게이지) | 브라우저 API를 **하나도** 안 쓴다. Node 하네스에서 import해 돈다. |
+| **core** | 순수 로직·계산 (tick↔ms, shape 기하, 판정, 게이지) | 브라우저 API를 **하나도** 안 쓴다. Node 하네스에서 import해 돈다. `env`를 import하지 않는다(그 아래 뭔가를 import하는 게 아니라, foundation이라 애초에 어떤 위층도 import 안 함). |
 | **env** | 브라우저 설비 래핑 (구 `plat`) | 브라우저 API를 **직접 호출**한다 — `<canvas>` 생성·리사이즈·DPR, WebAudio 노드·오디오 로드/재생, IndexedDB, raw 키/포인터 입력. |
 | **render** | 캔버스에 매 프레임 그리기 | core 지오메트리를 받아 env가 만든 캔버스에 **칠하기만** 한다. 상태를 안 바꾼다. |
+| **format** `[신규]` | 파일 포맷 파싱·검증 (`.cfx`, chart JSON) | 브라우저 API를 직접 안 쓰지만(env와 같은 기준), `env`(예: `env-file`의 ZIP 함수)는 호출할 수 있다는 점이 `core`와 다르다. `edit`/`game` 형제가 **둘 다** 읽어야 하는 포맷 계약이 여기 온다 — 한쪽만 쓰면 그 축에 그냥 둔다. → §1.1 |
 | **edit / game** | 인터랙션 (형제 축) | 사용자 동작 → 상태 변경 → render 호출. edit=에디터, game=플레이. 둘은 **서로를 모른다**. |
 | **scene** | 화면 그래프 (전환·스택·mount) | edit/game을 **mount하는 컨테이너**. 어느 scene이 보이는지만 관리. → [[scene]] |
 | **app** | 부트스트랩·빌드별 진입점·config·빌드 게이트 | 무엇을 켜고(§4) 무엇을 최상위에 붙일지 결정. |
+
+### 1.1 `format` 신설 이유 (D-2026-085, M4-3)
+
+`.cfx`/chart JSON 파싱·검증(`loadCfxPackage`·`groupBySongId`·
+`validatePackageGroup`·`openChartJson`)은 M3 때 전부 `edit/`에 있었다 —
+M3 자체가 "persistence + `.cfx`"로 스코프됐던 편의상의 배치였지, 이
+로직이 editor 전용이라는 결정은 아니었다. M4-3에서 song-select(`game`)도
+library의 `.cfx`를 읽으려면 같은 decode·검증이 필요하다는 게 드러났는데,
+`edit`↔`game`은 서로 import 금지다.
+
+세 대안을 검토하고 기각했다:
+
+1. **`game`에 복제** — `.cfx` 구조 검증(§10 체크리스트)은 spec-critical한
+   알고리즘이다. 두 벌을 두면 `cfx.md`가 바뀔 때 몰래 어긋날 위험이 생긴다.
+2. **`core`로 내림** — `core-quick-options.ts`의 "edit·game 둘 다 쓰는 순수
+   로직은 core로" 선례를 따르는 안. 이 로직은 `env-file`의 ZIP 함수를
+   호출해야 해서, core로 내리면 core가 env를 import하게 돼 core 자신의
+   "어떤 위층도 import 안 함" 규율을 core를 위해 깨는 셈이라 기각.
+3. **ESLint 예외 목록** — `game`이 이 파일들만 예외로 import. 규칙이
+   단순해야 한다는 전제를 깨고, 다음 유사 사례마다 예외가 늘어난다.
+
+대신 이 로직을 **재분류**했다 — `edit/`에 있었던 게 애초에 착오였다는
+평가다. `env`(브라우저 API를 직접 호출하지 않아 정의상 안 맞고 6파일도
+이미 실패 모드 기준으로 꽉 참)도 `render`(그리기 전용, 무관한 책임)도
+맞는 자리가 아니라 새 층을 만들었다. 상세 — `src/format/README.md`.
 
 ### env로 개명한 이유 (구 plat)
 `plat`(platform 줄임)은 뜻이 안 와닿았다. **core ↔ env** 대비가 레이어 본질을 그대로 드러낸다 — core는 "환경 무관(Node도 됨)", env는 "환경 의존(브라우저 없으면 못 돎)". canvas·audio·IndexedDB·input을 하나로 아우르는 추상도도 맞고(`browser`보다 미래 안전, `io`보다 넓음), `host`는 CTX seam(§3)이 다른 뜻으로 점유해 충돌하므로 피했다. → [[rationale]].
@@ -155,7 +184,7 @@ scene-manager(register/goScene/goBack/replace/lazy-mount)는 **메커니즘 하�
 ## 6. 결정 완료 / 잔여
 
 확정:
-- [x] 레이어 7층 `core/env/render/edit/game/scene/app`, import 위→아래 한 방향
+- [x] 레이어 8층 `core/env/render/format/edit/game/scene/app`, import 위→아래 한 방향 — `format`은 D-2026-085(M4-3)로 신설, `render`와 같은 깊이
 - [x] `plat`→`env` 개명 (단일 출처 = 이 문서)
 - [x] env vs render 가름선 = "브라우저 API 직접 호출" vs "매 프레임 그리기"
 - [x] core는 전역 D를 import하지 않고 활성 보면을 인자로 받는다 [수정] (동작 보존, 의존 재배선)

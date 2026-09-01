@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeChart } from '../core/core-chart-fixture.js';
-import { openChartJson } from './edit-chart-open.js';
+import { openChartJson } from './format-chart-open.js';
 
 describe('openChartJson', () => {
   it('유효한 chart JSON을 연다', () => {

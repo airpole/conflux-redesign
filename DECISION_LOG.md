@@ -1113,6 +1113,35 @@
 - **Commit:** `8e7ca55`
 
 
+### D-2026-085 — `format` 레이어 신설: `.cfx`/chart JSON 파싱을 `edit/`에서 재분류, M4-3 완료
+
+- **Status:** Accepted
+- **Decision:** D-2026-084가 남긴 "데이터 로딩 배선" 결정 필요 항목을 닫는다. `architecture.md` §1을 8층으로 개정해 `core → env → { render, format } → edit / game → scene → app`으로 만들고, `.cfx`/chart JSON 파싱·검증 로직을 `edit/`에서 새 `format/` 층으로 재분류했다 — `render`와 같은 깊이(둘 다 `env`/`core` 위, `edit`/`game` 아래, 서로 무관).
+
+  **왜 "이동"이 아니라 "재분류"인가**: 이 로직(`loadCfxPackage`·`groupBySongId`·`validatePackageGroup`·`openChartJson`)이 M3 때 `edit/`에 있었던 건 M3 자체가 "persistence + `.cfx`"로 스코프됐던 편의상의 배치였지, editor 전용이라는 결정이 아니었다 — `.cfx` bytes → chart 집합·검증은 파일 포맷 계약이지 어느 한쪽의 소유물이 아니다.
+
+  **세 대안을 검토하고 기각했다** (D-2026-084가 제시한 목록 그대로 판단):
+  1. `game`에 복제 — spec-critical한 §10 체크리스트를 두 벌 두면 `cfx.md`가 바뀔 때 몰래 어긋날 위험.
+  2. `core`로 내림 — `core-quick-options.ts` 선례를 따르되, 이 로직은 `env-file`의 ZIP 함수를 호출해야 해서 core가 env를 import하게 된다. `env-file`의 ZIP 함수 자체는 실측상 순수 바이트 연산(jsdom 없이 Node 테스트됨)이지만, "core는 어떤 위층도 import하지 않는다"는 규율은 개별 함수의 순수성이 아니라 import 방향 자체의 규율이라 core 하나를 위해 이 규율에 예외를 두는 셈이 된다 — 기각.
+  3. ESLint 예외 목록 — 규칙이 폴더 이름만으로 판단 가능해야 한다는 전제를 깨고, 유사 사례마다 예외가 늘어난다 — 기각.
+
+  **어느 로직이 옮겨갔는지 (읽기/검증 vs 쓰기로 갈랐다)**:
+  - `format/format-chart-open.ts`(`openChartJson`), `format/format-cfx-package.ts`(`CandidateChart`/`AssetFile`/`SongGroup` 타입, `groupBySongId`, `validatePackageGroup`), `format/format-cfx-load.ts`(`loadCfxPackage`) — 읽기/검증, `edit`·`game` 둘 다 필요.
+  - `edit/edit-cfx-package.ts`에 남은 것: `recommendCandidates`(버전 충돌 선택 UI 로직)·`suggestCfxFileName`·`buildCfxPackage`·`packageAndSaveCfx` — 새 `.cfx`를 **만드는** editor 전용 쓰기. `game`은 패키징을 안 하므로 옮길 이유가 없다.
+  - `edit/edit-cfx-library.ts`는 그대로 뒀다 — `game-song-select.ts`가 필요한 건 `StorageEnv`(env 타입, 이미 game이 자유롭게 씀)의 원시 `read`/`keys`뿐이라 library 워크플로 전체를 옮길 이유가 없었다. 최소 범위 원칙(`CLAUDE.md` §4)을 지켰다.
+
+  **기계적 재배선**: `edit-cfx-library.ts`·`edit-cfx-package.test.ts`·`edit-cfx-library.test.ts`·`tests/integration/m3-persistence-chain.test.ts`의 import 경로를 갱신했다. 테스트도 로직을 따라 분리했다 — `edit-cfx-load.test.ts`→`format-cfx-load.test.ts`(그 중 `buildCfxPackage`를 쓰던 테스트 1개는 손으로 만든 ZIP bytes로 바꿔 `format`이 `edit`을 import하지 않게 했다), `edit-cfx-package.test.ts`의 `groupBySongId`/`validatePackageGroup` 관련 테스트는 `format-cfx-package.test.ts`로. 동작 변경은 없다 — 순수 재배치다. `tests/support/layout.test.ts`의 레이어 목록도 `format`을 추가해 갱신했다(이 테스트가 파일 배치를 감시하는 단일 출처).
+
+  **M4-3 완료**: `game-song-select.ts`를 `format-cfx-load.ts` 위에 재작성해 실제로 library를 decode하고, `app-main.ts`가 mode-select의 `Play` 선택 → `song-select` scene(실제 library 데이터로 `update()`) → Backspace/Esc로 mode-select 복귀까지 실제 부팅 경로에 연결했다. M4-3 Exit 기준("library의 chart가 song row + chart slot으로 뜬다. 세 축을 바꾸면 목록이 그에 맞게 재구성된다. folder 헤더에 클리어 진척이 뜬다. slot에 level·difficulty·state 램프가 함께 뜬다")이 실제 앱에서 충족된다. groupBy 4축(D-2026-084의 [결정 필요 1])은 여전히 열려 있다 — 이번 결정과 무관, 별도로 남는다.
+
+  테스트 4개 신규(`game-song-select.test.ts`, 재작성), 기존 테스트 전부 재배치돼도 그대로 통과 — 전체 1044/1044.
+- **Defined in:** `_plan/architecture.md` §1·§1.1, `core/naming.md` §7, `src/format/`(신설), `src/edit/edit-cfx-package.ts`, `src/edit/edit-cfx-library.ts`, `src/game/game-song-select.ts`, `src/app/app-main.ts`
+- **Rationale:** Not required
+- **Affects:** _plan(레이어 모델), core/naming, format(신설), edit, game, app — M4-3 완료
+- **Supersedes:** None — D-2026-084의 "결정 필요 2"를 해소
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

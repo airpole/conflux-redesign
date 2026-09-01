@@ -36,8 +36,9 @@ describe('scene-song-select', () => {
     const target = document.createElement('div');
     document.body.append(target);
     const onCategoryChange = vi.fn();
-    const handle = mountSongSelectScene(target, { onCategoryChange });
-    return { target, handle, onCategoryChange };
+    const onBack = vi.fn();
+    const handle = mountSongSelectScene(target, { onCategoryChange, onBack });
+    return { target, handle, onCategoryChange, onBack };
   }
 
   it('row가 title/artist/slot으로 뜬다', () => {
@@ -96,5 +97,22 @@ describe('scene-song-select', () => {
     const chips = target.querySelectorAll('.chip');
     expect(chips[0]?.textContent).toBe('Sort · level');
     expect(chips[1]?.textContent).toBe('Group · Updated');
+  });
+
+  it('show() 상태에서 Backspace/Escape가 onBack을 부른다', () => {
+    const { handle, onBack } = setup();
+    handle.show();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace' }));
+    expect(onBack).toHaveBeenCalledTimes(1);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(onBack).toHaveBeenCalledTimes(2);
+  });
+
+  it('hide() 이후에는 Backspace가 반응하지 않는다', () => {
+    const { handle, onBack } = setup();
+    handle.show();
+    handle.hide();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace' }));
+    expect(onBack).not.toHaveBeenCalled();
   });
 });

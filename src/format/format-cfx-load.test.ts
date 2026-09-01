@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { makeChart } from '../core/core-chart-fixture.js';
 import type { Chart } from '../core/core-chart.js';
-import { buildCfxPackage, type AssetFile, type CandidateChart } from './edit-cfx-package.js';
-import { loadCfxPackage } from './edit-cfx-load.js';
+import type { AssetFile, CandidateChart } from './format-cfx-package.js';
+import { loadCfxPackage } from './format-cfx-load.js';
 import { createZipArchive } from '../env/env-file.js';
 
 function candidate(overrides: Partial<Chart> = {}, fileName?: string): CandidateChart {
@@ -27,12 +27,14 @@ function traceChart(overrides: Partial<Chart> = {}): CandidateChart {
 const musicAsset: AssetFile = { name: 'music.ogg', bytes: new Uint8Array([1, 2, 3]) };
 
 describe('loadCfxPackage — 정상 .cfx', () => {
-  it('M3-4 buildCfxPackage로 만든 정상 .cfx를 chart 집합과 asset으로 되돌린다', () => {
-    const built = buildCfxPackage({ selected: [initChart(), traceChart()], assets: [musicAsset] });
-    expect(built.ok).toBe(true);
-    if (!built.ok) return;
+  it('정상 구성의 .cfx를 chart 집합과 asset으로 되돌린다', () => {
+    const bytes = createZipArchive([
+      { name: 'init.json', data: new TextEncoder().encode(JSON.stringify(initChart().chart)) },
+      { name: 'trace.json', data: new TextEncoder().encode(JSON.stringify(traceChart().chart)) },
+      { name: 'music.ogg', data: musicAsset.bytes },
+    ]);
 
-    const result = loadCfxPackage(built.bytes);
+    const result = loadCfxPackage(bytes);
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;

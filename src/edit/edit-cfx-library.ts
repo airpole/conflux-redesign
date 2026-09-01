@@ -6,7 +6,7 @@
  * `library` store를 그대로 쓴다(M3-1).
  *
  * import 게이트(§12.2 "game/library import·load")는 M3-5가 명시적으로 이
- * step으로 미룬 것이다(D-2026-065) — `edit-cfx-load`의 `loadCfxPackage`가
+ * step으로 미룬 것이다(D-2026-065) — `format-cfx-load`의 `loadCfxPackage`가
  * 이미 한 구조 검증(§12.1) 위에, 여기서 **모든 playable music의 실제 decode
  * 검증**을 추가한다: 하나라도 실패하면 전체 거부. jacket decode 실패는
  * 차단하지 않고 경고만 남긴다(§12.2·§12 "jacket decode 실패는 placeholder와
@@ -26,8 +26,8 @@
  * 정책은 M3-7(records) 소관이라 건드리지 않는다(§12 "records 삭제 여부는
  * records의 고아 기록 정책을 따른다").
  */
-import { loadCfxPackage, type CfxLoadResult } from './edit-cfx-load.js';
-import type { AssetFile, CandidateChart } from './edit-cfx-package.js';
+import { loadCfxPackage, type CfxLoadResult } from '../format/format-cfx-load.js';
+import type { AssetFile, CandidateChart } from '../format/format-cfx-package.js';
 import type { StorageEnv } from '../env/env-storage.js';
 
 // ── library store — 원시 연산 ───────────────────────────────────────
