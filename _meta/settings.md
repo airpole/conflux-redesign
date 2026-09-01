@@ -151,7 +151,7 @@ player settings와 별도로 editor에서만 쓰는 persistent aid. `.cfx`에 �
 - [x] measureLabelOffset editor setting
 - [x] no-record gate single source
 - [x] `laneOf(key)` 매핑을 DEFAULT_LANE_KEYS 표로 승격 — judge는 링크 (D-2026-031)
-- [x] settings graph = category별 4 scene — 정의는 [[scene]] §3 (D-2026-020)
+- [x] settings graph = 3 scene(play/visual/option), option scene이 GAUGE+OPTION 두 category를 함께 표시 — category 분류(§2, 4종)는 그대로, scene 경계만 접힘. 정의는 [[scene]] §3 (D-2026-020, scene 경계 수정은 D-2026-074 — M3.5-2)
 - [x] 기본값 표와 병합 규칙 — 알 수 없는 키 폐기·필드 단위 되돌림 §4 (D-2026-036)
 
 잔여:

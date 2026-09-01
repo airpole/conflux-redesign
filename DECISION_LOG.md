@@ -907,6 +907,21 @@
 - **Commit:** `9fc7d28`
 
 
+### D-2026-074 — M3.5-2 settings scene 구조 수정: GAUGE를 OPTION scene에 병합, 3-scene graph
+
+- **Status:** Accepted
+- **Decision:** `settings.md` §2의 4-category 분류(PLAY/VISUAL/GAUGE/OPTION)는 그대로 두되, `scene.md` §3의 settings scene graph를 4-scene에서 **3-scene**(`play`/`visual`/`option`)으로 접는다 — `option` scene이 GAUGE·OPTION 두 category를 함께 표시한다.
+
+  D-2026-020의 실제 근거를 재확인한 결과, 그 결정은 "settings를 tab에서 editor와 같은 flat scene mechanism으로 통일한다"는 mechanism 결정이었지(`_rationale/rationale.md` "settings를 category별 4 scene으로 나눈 이유" — "editor tab 폐기와 같은 방향의 mechanism 통일이다"), 카테고리 개수·경계 자체를 새로 설계한 근거가 아니었다 — 4개라는 숫자는 `settings.md` §2의 기존 category 분류를 그대로 이어받은 것뿐이다. GAUGE가 독립 scene이어야 할 다른 의존(키 바인딩, quick options 배치, no-record gate 등)도 레포 전체에서 찾지 못했다 — `settings-gauge`를 언급하는 곳은 `scene.md`의 scene id 표·진입 서술 두 줄뿐이었다.
+
+  GAUGE를 OPTION에 합치는 근거: (1) quick options overlay(`scene.md` §5)가 이미 `gaugeMode`와 `mirror`/`staticShape`/`autoplay`를 같은 5종 안에 나란히 두고 있어 자연스러운 짝이다. (2) `settings.md` §2 본문에서 PLAY("input·audio sync")·OPTION("quick per-play changes")은 소제목으로 성격을 설명하는데 GAUGE만 그런 소제목 없이 필드 한 줄뿐이다 — 처음부터 강한 독립 카테고리로 의도되지 않았다는 정황이다.
+- **Defined in:** `scene/scene.md` §3·§11, `_meta/settings.md` §5
+- **Rationale:** Not required
+- **Affects:** scene, settings UI 구조 (M3.5-2 레이아웃의 전제)
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred
