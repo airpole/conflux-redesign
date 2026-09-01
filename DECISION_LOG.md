@@ -937,6 +937,23 @@
 - **Commit:** `6fae4d8`
 
 
+### D-2026-076 — M3.5-2 settings 레이아웃 확정: `ui-design.md` §2.6
+
+- **Status:** Accepted
+- **Decision:** settings 4-scene(PLAY/VISUAL/SOUND/OPTION)의 레이아웃을 `ui-design.md` §2.6으로 문서화했다. 상단 nav 바(4 라벨, 클릭 전환 + `Tab`/`Shift+Tab`이 4개 전부를 `PLAY→VISUAL→SOUND→OPTION→PLAY` 순으로 순환 — editor의 `notes→shapes→test` 순환에서 `meta`를 click 전용으로 뺀 비대칭을 그대로 옮기지 않고, settings 3개 모두 그럴 근거가 없어 4개 전부를 순환 대상으로 두는 의도적 결정), 4개 scene 공용 필드 표현 어휘(toggle/slider/select/number/key-rebind, key-rebind는 idle/capturing/conflict **시각 상태만** — 캡처 흐름 자체는 M4-6 前 게이트로 범위 밖), scene별 배치(PLAY: 볼륨 제거 후 8필드, padding 없이 그대로 짧게 둠; VISUAL: select→number→slider→toggle 그룹, `judgeLinePos`만 raise-only를 트랙 시작점이 저장값인 예외로 표현; SOUND: 3-slider, `volEffect` 라벨은 "Effect"로 확정하고 "Hitsound"는 채택하지 않음; OPTION: gauge 선택 스트립(5개 peer 색 박스 + cascade는 구분선 뒤 무채색 outline 6번째 칸) + toggle 3종 + no-record 인라인 안내)를 담았다.
+
+  `volEffect` 라벨 확정 근거: `volEffect`의 실제 의미가 이 레포 어디에도 정의된 적이 없고(D-2026-075), `render/theme.md`의 "hit effect"(시각 물결, `hitEffect` 토글의 대상)와 용어가 겹쳐 "Hitsound"로 표시하면 근거 없이 더 구체적인 의미를 단정하는 셈이 된다 — 이 항목은 **막지 않고 남겨둔다**: 실제 오디오 배선/설계(M4+/M5+)가 이뤄질 때 `volEffect`의 실제 의미를 정의하고 라벨을 재검토한다.
+
+  cascade의 gauge 선택 UI: `gauge.md` §4("cascade는 5개 조건을 병렬로 태우다가 깨진 조건만큼 관대한 tier로 강등되며 끝까지 가고, 최종 표시는 항상 정착한 tier 자신의 색을 쓴다")를 확인해 cascade가 6번째 peer 색을 가질 개념적 근거가 없음을 재확인했다 — 구분선 + 무채색 outline으로 "5개를 가로질러 실행되는 모드"라는 성격만 표현한다.
+
+  M3.5-2는 이로써 완전히 닫혔다 — 레이아웃 범위에서 남은 항목(key rebinding UI 캡처 흐름, volume 슬라이더 조작 단위, `volEffect` 실제 의미)은 전부 별도 게이트(`settings.md` §5 잔여, M4-6 前 등)로 이미 분리돼 있어 M3.5-2를 막지 않는다.
+- **Defined in:** `scene/ui-design.md` §2.6
+- **Rationale:** Not required
+- **Affects:** scene
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

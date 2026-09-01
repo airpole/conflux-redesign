@@ -1,8 +1,8 @@
-# ui-design — tokens + result·song-select 레이아웃
+# ui-design — tokens + result·song-select·settings 레이아웃
 
-status: Accepted (D-2026-051) — §6(scene.md §9 필드 추가)은 D-2026-054, §7-3(티어 색 대 실패 적색)은 D-2026-055로 닫혔다. §7-2(티어 색 대 Shape 색)는 결정이 아니라 scene 축 분리 확인으로 해소— 별도 D-log 없음. §2.5(곡 선택 레이아웃)는 D-2026-072(M3.5-1)로 확정, 빈 library 항목은 D-2026-073으로 해소 — M3.5-1은 §2.5.7-1(overlay 진입 키 게이트의 마우스+휠 확장)만 남기고 닫혔다
+status: Accepted (D-2026-051) — §6(scene.md §9 필드 추가)은 D-2026-054, §7-3(티어 색 대 실패 적색)은 D-2026-055로 닫혔다. §7-2(티어 색 대 Shape 색)는 결정이 아니라 scene 축 분리 확인으로 해소— 별도 D-log 없음. §2.5(곡 선택 레이아웃)는 D-2026-072(M3.5-1)로 확정, 빈 library 항목은 D-2026-073으로 해소 — M3.5-1은 §2.5.7-1(overlay 진입 키 게이트의 마우스+휠 확장)만 남기고 닫혔다. §2.6(settings 레이아웃)은 D-2026-076(M3.5-2)으로 확정 — scene 구조 변경(GAUGE→OPTION 병합, SOUND 신설)은 D-2026-074·D-2026-075. M3.5-2는 완전히 닫혔다 — 남은 항목(key rebinding UI 캡처 흐름, volume 조작 단위, `volEffect` 실제 의미)은 모두 이 레이아웃 범위 밖의 별도 게이트(M4-6 前 등)로 이미 분리돼 있다
 supersedes: D-2026-051 초안 (원본 `play-result.js` 계승안)
-scope: UI 토큰 세트 + result 화면 레이아웃 + 곡 선택 화면 레이아웃(§2.5, M3.5-1). settings·title·credits는 범위 밖(M3.5-2/3/4)
+scope: UI 토큰 세트 + result 화면 레이아웃 + 곡 선택 화면 레이아웃(§2.5, M3.5-1) + settings 화면 레이아웃(§2.6, M3.5-2). title·credits는 범위 밖(M3.5-3/4)
 
 원본 계승안에서 출발해 반복 수정한 결과물. 그룹 순서·토큰·타이포·간격이
 모두 바뀌었으므로 원본과의 diff가 아니라 이 문서를 기준으로 구현한다.
@@ -373,6 +373,177 @@ state는 `--gauge-NORMAL`(`#4aa870`, 녹색 계열)을 참조하고 `--cyan`을
 7. 토큰 공백: 이 레이아웃에 필요한 색 전부(§1.1 표면/텍스트, §1.4 state,
    §1.5 tier, §1.6 rank 중 `--cyan`)가 기존 §1 토큰으로 커버된다 — 새
    토큰이 필요한 지점을 찾지 못했다.
+
+---
+
+## 2.6 settings 레이아웃 (M3.5-2)
+
+스테이지는 §2·§2.5와 같은 16:9 + `container-type: size` + `cqw` + 780px 이하
+스택 폴백을 그대로 재사용한다.
+
+행동 규칙(어떤 필드가 어느 category에 속하는지, no-record gate, quick
+options와의 관계 등)의 단일 출처는 여전히 [[settings]]다. 여기는 그 필드가
+scene 4개에 어떻게 배치·표현되는지만 다룬다.
+
+### 2.6.1 scene 구조 — 4-scene, GAUGE는 OPTION에 병합
+
+settings graph는 `play ↔ visual ↔ sound ↔ option` **4개의 독립 flat
+scene**이다([[scene]] §3). `[[settings]]` §2의 category 분류(PLAY/VISUAL/
+GAUGE/SOUND/OPTION, 5종)와 scene 경계가 더 이상 1:1이 아니다 — `option`
+scene 하나가 GAUGE·OPTION **두 category**를 함께 표시한다.
+
+- **GAUGE → OPTION 병합** (D-2026-074): D-2026-020의 실제 근거는 "settings를
+  tab에서 editor와 같은 flat scene mechanism으로 통일한다"는 mechanism
+  결정이었지 카테고리 개수·경계를 새로 설계한 근거가 아니었다. GAUGE가
+  독립 scene이어야 할 다른 의존(키 바인딩·quick options 배치·no-record
+  gate 등)도 찾지 못했다 — 오히려 quick options overlay가 이미 `gaugeMode`를
+  `mirror`/`staticShape`/`autoplay`와 같은 5종 안에 나란히 두고 있어
+  자연스러운 짝이다. `settings.md` §2에서 GAUGE만 PLAY/OPTION과 달리
+  성격을 설명하는 소제목이 없다는 점도 정황이다.
+- **SOUND 신설** (D-2026-075): `volMaster`/`volMusic`/`volEffect`(구 PLAY
+  소속)를 분리했다 — input·key mapping과 성격 축이 달라 PLAY 아래 묶여
+  있을 근거가 약했다.
+- 이 4-scene은 D-2026-020이 원래 정한 4-scene(play/visual/gauge/option)과
+  **다른 구성**이다 — 우연히 다시 4개가 됐을 뿐 원래대로 돌아간 게 아니다.
+
+### 2.6.2 상단 nav 바
+
+```
+┌─ PLAY ─┬─ VISUAL ─┬─ SOUND ─┬─ OPTION ────────────────┐
+│                                                          │
+│                     (scene 본문)                        │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+```
+
+- 4개 scene 이름을 §2.5.1 category pill과 같은 스타일로 상단에 나열한다.
+  활성 scene은 `--cyan` 밑줄/배경, 비활성은 `--dim` 텍스트.
+- **클릭**으로 즉시 그 scene으로 전환한다(`goScene`).
+- **`Tab`/`Shift+Tab`이 `PLAY → VISUAL → SOUND → OPTION → PLAY` 순으로
+  전체 4개를 순환한다** — editor의 `notes → shapes → test → notes`
+  Tab 순환(`meta`는 click 진입만, [[editor-graph]] §1)과 달리 settings는
+  세 scene 중 하나를 예외로 뺄 근거가 없어 **4개 전부를 순환 대상으로
+  둔다** — editor의 비대칭을 그대로 옮기지 않는다는 뜻의 의도적 결정이다.
+  순환 순서는 nav 바의 좌→우 배치 순서를 그대로 따른다.
+- 진입 scene은 `settings-play`([[scene]] §4).
+
+### 2.6.3 필드 표현 어휘 (4개 scene 공용)
+
+song-select에는 없던 컴포넌트 유형이라 여기서 새로 정의한다. 값은 모두
+[[settings]] §2/§4가 단일 출처 — 아래는 표현만 다룬다.
+
+- **toggle** (boolean): 캡슐형 스위치. on = `--cyan` 채움, off = `--dim`
+  외곽선, thumb `--text`.
+- **slider** (number, 연속 범위): 가로 트랙 `--rule` 배경, 채워진 구간
+  `--cyan`, 핸들 `--text` 원. 라벨 좌측, 실시간 값 우측 `--mono`.
+- **select** (닫힌 소수 enum — `noteSkin`/`frameCap`): 인라인 세그먼트
+  컨트롤(옵션 2~3개라 드롭다운 오버레이를 열 필요가 없다).
+- **number** (`audioOffset`/`visualOffset`/`noteThickness`): `--mono`
+  텍스트 필드, 단위(`ms`)는 `--dim`으로 뒤에 붙인다.
+- **key-rebind**: 현재 키 이름을 `--mono`로 보여주는 버튼형 필드. **시각
+  상태 3종만** 정의한다 — 캡처 흐름 자체(즉시 확정인지 확인 단계가
+  있는지, `Esc` 취소, 충돌 처리 규칙)는 이 레이아웃의 범위 밖이며
+  `settings.md` §5 잔여의 "key rebinding UI"(M4-6 前 게이트)가 정한다.
+  - idle: `--rule-strong` 테두리, 키 이름 `--text`.
+  - capturing: 테두리 `--cyan`, 키 이름 자리에 "입력 대기" placeholder
+    (정확한 애니메이션은 구현 시점 결정, 레이아웃 관심사 아님).
+  - conflict: 테두리·텍스트 `--j-miss`(§2.5.1 검색 결과 없음과 같은
+    attention 색 재사용 — 새 토큰 아님).
+
+### 2.6.4 PLAY scene
+
+볼륨 3필드가 SOUND로 빠져 8개 필드만 남는다 — 다른 scene보다 짧아졌다고
+빈 자리를 채우는 padding을 넣지 않는다(§2.5.3의 색약 높이-차등 미채택과
+같은 원칙: 짧으면 짧은 대로 둔다).
+
+- 그룹 1 — slider: `scrollSpeed`.
+- 그룹 2 — number: `audioOffset`, `visualOffset`.
+- 그룹 3 — key-rebind ×6, lane 1~4 슬롯으로 배치. **lane 2·3은 슬롯 하나에
+  key-rebind 버튼 2개를 세로로 쌓는다**(`key2`+`key4`가 lane 2, `key3`+
+  `key5`가 lane 3에 물린다, [[settings]] §2) — "이 lane은 둘 중 아무 키나
+  받는다"는 것을 6칸이 4칸에 어색하게 우겨넣힌 모양이 아니라 시각적으로
+  드러낸다. key → lane 매핑 자체는 고정이고 rebind는 그 슬롯의 키만
+  바꾼다는 점을 그대로 반영한다.
+
+### 2.6.5 VISUAL scene
+
+- 그룹 1 — select: `noteSkin`, `frameCap`. 화면에서 가장 먼저 눈에 띄는
+  값이라 상단에 둔다.
+- 그룹 2 — number: `noteThickness` (select 그룹과 인접).
+- 그룹 3 — slider: `laneOpacity`, `judgeLinePos`, `sudden`,
+  `jacketBrightness`.
+- 그룹 4 — toggle: `hitEffect`, `showCombo`, `showJudgment`,
+  `showFastSlow`.
+
+**`judgeLinePos`의 raise-only 예외**: 다른 slider와 같은 컴포넌트를 쓰되,
+드래그 가능한 트랙 범위가 고정된 하한이 아니라 **현재 저장값에서
+시작**한다 — 값을 올릴 수만 있고 트랙 자체가 그 이하로 안 내려간다는
+것을 슬라이더 모양으로 보여준다. 이 필드만의 예외이며 다른 slider는
+고정 범위([[settings]] §4)를 그대로 쓴다.
+
+### 2.6.6 SOUND scene (신규)
+
+3개 slider만 있는 짧은 화면 — 헤더 구획 없이 나열한다.
+
+| 필드 | 라벨 |
+|---|---|
+| `volMaster` | Master |
+| `volMusic` | Music |
+| `volEffect` | **Effect** |
+
+`volEffect`의 라벨을 "Hitsound"로 하지 않고 **"Effect"**로 둔다 —
+`volEffect`가 정확히 무엇의 볼륨인지 이 레포 어디에도 텍스트로 정의된
+적이 없고(D-2026-075), `render/theme.md`의 "hit effect"(판정선 시각
+물결, VISUAL `hitEffect` 토글의 대상)와 용어가 겹쳐 이미 모호한 이름에
+"Hitsound"라는 더 구체적인 의미를 얹어 확정하는 건 근거 없는 단정이다.
+**막지 않고 남겨두는 항목**: 실제 오디오 배선/설계(M4+/M5+)가 이뤄질 때
+`volEffect`의 실제 의미를 확정하고 이 라벨을 재검토한다 — 지금 결정하지
+않는다.
+
+### 2.6.7 OPTION scene (GAUGE + OPTION)
+
+병합된 scene이라 시각적으로 두 구획을 명확히 가른다.
+
+```
+┌─ Gauge ──────────────────────────────────────────┐
+│ [NORMAL] [HARD] [FC] [AP] [AS]      ┊  [CASCADE]  │
+└────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────┐
+│ Mirror              ⬤────                          │
+│ Autoplay            ────⬤                          │
+│ Static Shape         ────⬤                          │
+│  autoplay·staticShape는 기록에 반영되지 않습니다     │
+└────────────────────────────────────────────────────┘
+```
+
+- **gauge 선택 스트립** — 상단, 6칸이지만 5+1 비대칭 배치:
+  - 5개 실제 모드(`normal`/`hard`/`fc`/`ap`/`as`)는 각자 §1.4 파생 색으로
+    채워진 peer 박스(`--gauge-NORMAL`/`--gauge-HARD`/`--gauge-FC`(=
+    `--j-good`)/`--gauge-AP`(=`--j-perfect`)/`--gauge-AS`(=`--j-sync`)) —
+    새 토큰 아님, §1.3/§1.4 그대로 참조.
+  - **`cascade`는 6번째 peer가 아니라 별도 칸**이다 — 작은 구분선(`┊`,
+    `--rule`)으로 5개 묶음과 시각적으로 떼어 놓고, **자기 색을 칠하지
+    않는다**(`--rule-strong` 외곽선 + `--text` 라벨만). cascade는 5개
+    조건을 전부 병렬로 태우다가 깨진 조건만큼 관대한 tier로 강등되며
+    끝까지 가는 모드이고([[gauge]] §4), 최종 표시(result 게이지 막대
+    등)는 항상 **정착한 tier 자신의 색**을 쓴다([[gauge]] §4 "result
+    게이지 막대는 최종 생존 tier 기준") — cascade 자체가 독립된 6번째
+    색을 가질 개념적 근거가 없다. "5개를 가로질러 실행되는 모드"라는
+    성격을 peer 색 대신 구분선 + 무채색 외곽선으로 표현한다.
+- **toggle 3종** — `mirror`/`autoplay`/`staticShape`, §2.6.3의 toggle
+  컴포넌트. 그 아래 `--dimmer` 텍스트로 "autoplay·staticShape는 기록에
+  반영되지 않습니다" 한 줄 — no-record gate 인지를 위한 인라인 안내,
+  별도 아이콘/배지 체계는 두지 않는다. `mirror`는 기록에 영향을 주지
+  않으므로 이 안내에서 제외한다([[settings]] §2 "mirror: record 유지").
+
+### 2.6.8 재사용 토큰 vs 신규
+
+기존 §1 토큰으로 대부분 커버되지만(표면/텍스트/괘선, §1.4 state 파생 =
+gauge peer 색, `--cyan`, `--mono`/`--sans`), **이 절에서 처음 쓰는 컴포넌트
+색**이 있다 — toggle on/off, slider 트랙/핸들, key-rebind idle/capturing/
+conflict. 전부 §2.6.3에 명시한 대로 기존 토큰(`--cyan`/`--dim`/`--rule`/
+`--rule-strong`/`--text`/`--j-miss`)의 새 용법이며 새 색값을 만들지
+않았다.
 
 ---
 
