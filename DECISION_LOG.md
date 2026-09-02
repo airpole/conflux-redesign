@@ -1214,7 +1214,7 @@
 - **Rationale:** Not required
 - **Affects:** scene, game, env, app — M4-5 완료
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `0732ba0`
 
 
 ### D-YYYY-NNN — <Title>
