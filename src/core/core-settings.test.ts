@@ -5,6 +5,7 @@ import {
   JUDGE_LINE_DEFAULT,
   LANE_KEY_IDS,
   SETTING_CHECKS,
+  conflictingLaneKey,
   laneOf,
   mergeSettings,
 } from './core-settings.js';
@@ -29,6 +30,20 @@ describe('settings 스키마', () => {
 
   it('lane 매핑은 바인딩과 무관하게 고정이다', () => {
     expect(LANE_KEY_IDS.map(laneOf)).toEqual([1, 2, 3, 2, 3, 4]);
+  });
+});
+
+describe('conflictingLaneKey', () => {
+  it('다른 lane key가 이미 그 code를 쓰면 그 id를 돌려준다', () => {
+    expect(conflictingLaneKey(DEFAULT_SETTINGS.keyBindings, 'key2', 'KeyE')).toBe('key1');
+  });
+
+  it('자기 자신의 기존 바인딩과 같은 code는 충돌이 아니다', () => {
+    expect(conflictingLaneKey(DEFAULT_SETTINGS.keyBindings, 'key1', 'KeyE')).toBeNull();
+  });
+
+  it('아무도 안 쓰는 code는 충돌이 아니다', () => {
+    expect(conflictingLaneKey(DEFAULT_SETTINGS.keyBindings, 'key1', 'KeyZ')).toBeNull();
   });
 });
 

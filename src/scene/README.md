@@ -111,3 +111,17 @@ M4.5-1(D-2026-090)이 HUD를 마저 채웠다 — `ui-design.md` §2.10이 확�
 `game-song-select.ts`의 `PlayableChart.jacketBytes`를 `createImageBitmap`
 으로 decode해 채운다. pause overlay(Resume/Retry/Exit)의 DOM 색은
 `scene-result.css`의 기존 토큰을 그대로 재사용한다(`scene-gameplay.css`).
+
+`scene-settings.ts`는 M4-6 범위다([[scene]] §3, `ui-design.md` §2.6). settings
+4 scene(`settings-play`/`-visual`/`-sound`/`-option`)이 DOM host 하나를
+공유한다 — `mountSettingsScene()`은 처음 mount되는 scene에서만 실제로
+호출되고(`app-main.ts`), 나머지 셋은 `show(category)`만 부른다. `Tab`/
+`Shift+Tab`은 §2.6.2가 정한 대로 네 category 전부를 순환한다(`PLAY →
+VISUAL → SOUND → OPTION → PLAY`, editor의 `meta` 제외 순환과 다르다).
+필드 위젯은 네이티브 DOM 컨트롤(`<input type=range>`/`type=number`/버튼)을
+그대로 쓴다 — M4-6 前 게이트였던 "volume slider interaction unit"과
+"key rebinding capture-flow"는 이 세션이 확정했다(D-2026-091): slider는
+필드별 `step` 값 하나로, key-rebind는 idle→capturing→즉시 커밋(충돌 시
+거부, `core-settings.ts`의 `conflictingLaneKey`)로 구현했다. Backspace/Esc는
+다른 mode-select 자식 scene과 같은 통일 Back 키로 `onBack`을 부른다(D-2026-052
+관례의 확장 — 결정 필요 항목, 자세한 이유는 파일 헤더).

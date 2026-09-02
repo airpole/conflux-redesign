@@ -74,6 +74,12 @@ import {
   type ResultView,
 } from '../scene/scene-result.js';
 import { mountLoadingIndicator } from '../scene/scene-loading.js';
+import {
+  mountSettingsScene,
+  SETTINGS_CATEGORIES,
+  type SettingsCategory,
+  type SettingsSceneHandle,
+} from '../scene/scene-settings.js';
 import type { CursorTarget } from '../core/core-song-select.js';
 import { buildJudgeNotes } from '../core/core-judge.js';
 import { buildTimeline } from '../core/core-timing.js';
@@ -90,7 +96,7 @@ import {
 } from '../game/game-song-select.js';
 import { readRecord, resetRecord, saveRecordIfEligible } from '../game/game-records.js';
 import { readSongSelectViewState, writeSongSelectViewState } from '../game/game-viewstate.js';
-import { readSettings } from '../game/game-settings.js';
+import { readSettings, writeSettings } from '../game/game-settings.js';
 import { createPreviewController } from '../game/game-song-preview.js';
 import { createAudioEnv } from '../env/env-audio.js';
 import { createIndexedDbBackend, createStorageEnv, type StorageEnv } from '../env/env-storage.js';
@@ -127,7 +133,11 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
             manager.goScene('credits');
             return;
           }
-          console.info(`mode-select: '${id}' 목적지가 아직 없음 (M4-5/M4-6 범위)`);
+          if (id === 'settings') {
+            manager.goScene('settings-play');
+            return;
+          }
+          console.info(`mode-select: '${id}' 목적지가 아직 없음`);
         },
         onBack(): void {
           manager.goScene('title');
@@ -398,6 +408,46 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
     },
   };
 
+  // ── M4-6: settings 4 scene ────────────────────────────────────────────
+  // 하나의 host를 네 scene id가 공유한다(scene-settings.ts 헤더 참조) —
+  // 처음 mount되는 쪽에서만 실제로 mountSettingsScene을 부른다.
+
+  let settingsHandle: SettingsSceneHandle | undefined;
+  function mountSettingsIfNeeded(): void {
+    if (settingsHandle !== undefined) return;
+    settingsHandle = mountSettingsScene(root, {
+      onChange(settings): void {
+        void writeSettings(storage, settings);
+      },
+      onCategoryChange(category): void {
+        manager.goScene(`settings-${category}`);
+      },
+      onBack(): void {
+        manager.goScene('mode-select');
+      },
+    });
+  }
+
+  function makeSettingsScene(category: SettingsCategory): Scene {
+    return {
+      id: `settings-${category}`,
+      mount(): void {
+        mountSettingsIfNeeded();
+      },
+      onEnter(): void {
+        void (async () => {
+          settingsHandle!.update(await readSettings(storage));
+          settingsHandle!.show(category);
+        })();
+      },
+      onExit(): void {
+        settingsHandle!.hide();
+      },
+    };
+  }
+
+  const settingsScenes = SETTINGS_CATEGORIES.map(makeSettingsScene);
+
   const manager: SceneManager = createSceneManager([
     titleScene,
     modeSelectScene,
@@ -406,6 +456,7 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
     songCreditScene,
     gameplayScene,
     resultScene,
+    ...settingsScenes,
   ]);
   manager.goScene('title');
 }

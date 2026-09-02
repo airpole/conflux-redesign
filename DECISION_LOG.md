@@ -1269,6 +1269,29 @@
 - **Commit:** `e6ff161`
 
 
+### D-2026-091 — M4-6: settings 4 scene + key rebinding UI
+
+- **Status:** Accepted (구현분) / 하위 항목들은 결정 필요 — 아래 참조
+- **Decision:** `scene-settings.ts`(신규, ~380줄)가 `ui-design.md` §2.6이 확정한 PLAY/VISUAL/SOUND/OPTION 4 category 레이아웃을 전부 구현했다. 하나의 DOM host를 `settings-play`/`-visual`/`-sound`/`-option` 네 scene id가 공유하며(`mountSettingsScene()`은 처음 mount되는 scene에서 한 번만 호출, 나머지는 `show(category)`만 호출 — `scene-manager.ts`의 lazy-mount-once 계약을 유지하면서 네 scene이 상태를 공유하는 새 패턴), `Tab`/`Shift+Tab`은 [[scene]] §2.6.2가 정한 대로 `PLAY → VISUAL → SOUND → OPTION → PLAY` 4개 전부를 순환한다(editor의 `meta` 제외 순환과는 다른 대칭 순환). `app-main.ts`가 mode-select의 `settings` 목적지를 `settings-play`로 잇고, `onChange`→`writeSettings`(신규, `game-settings.ts`)로 필드 커밋마다 전체 settings를 즉시 저장하고, `onCategoryChange`→`goScene`, `onBack`→`goScene('mode-select')`로 배선했다. M4-6 Exit 기준(4 scene 존재·카테고리 전환·필드 조작·key rebind)을 충족한다.
+
+  **M4-6 前 게이트의 "key rebinding UI capture-flow"를 이 세션이 확정했다**: idle 버튼 클릭 → capturing(다음 keydown 하나를 가로챈다) → 충돌이 없으면 그 즉시 커밋(별도 확인 단계 없음, `CLAUDE.md` "가장 단순한 구현" 원칙) → `Esc`는 캡처를 취소하고 원래 값을 유지한다. **충돌은 커밋을 거부한다** — `core-settings.ts`에 새 순수 함수 `conflictingLaneKey(bindings, target, candidateCode)`를 추가해, 새 코드가 다른 lane key에 이미 쓰이고 있으면 그 lane key id를 돌려준다. 이건 취향이 아니라 기술적 제약이다: `game-judge-input.ts`의 `codeToKey`가 물리 key code → lane key id 1:1 `Map`이라, 중복 바인딩을 그대로 커밋하면 나중에 등록된 쪽 lane이 조용히 입력을 잃는다. 충돌 시엔 conflict 시각 상태(`ui-design.md` §2.6.3의 3상태 중 하나)를 보여주고 capturing으로 남아 다음 키 입력이나 `Esc`를 기다린다.
+
+  **"volume slider interaction unit"도 이 세션이 확정했다**: 모든 slider 필드(volume 3종뿐 아니라 scrollSpeed·laneOpacity·judgeLinePos·sudden·jacketBrightness 전부)에 네이티브 `<input type="range">`를 썼다 — 클릭 점프·드래그·화살표 key step을 브라우저가 그대로 제공해, "조작 단위"라는 질문 자체가 `step` 속성값 선택 하나로 줄어든다. `step` 값은 어느 스펙에도 없어 이 세션이 필드별로 골랐다: `scrollSpeed`는 기존 `SCROLL_SPEED_STEP`(0.1)을 재사용, `volMaster`/`volMusic`/`volEffect`/`laneOpacity`는 0.05(20단계), `sudden`/`jacketBrightness`는 1(정수 %), `judgeLinePos`는 0.01. number 필드(`audioOffset`/`visualOffset`/`noteThickness`) 도 같은 이유로 `step=1`을 뒀고, 커밋 전 기존 `SETTING_CHECKS`(`core-settings.ts`)로 검증해 무효값이면 원래 값으로 되돌린다(새 검증 로직을 이 파일에서 다시 만들지 않았다).
+
+  **`judgeLinePos`의 raise-only 제약**(§2.6.5 "트랙 자체가 그 이하로 안 내려간다")은 `<input type=range>`의 `min` 속성을 고정 0이 아니라 "지금 저장된 `judgeLinePos` 값"으로, `max`는 `JUDGE_LINE_DEFAULT`로 둬서 네이티브 range 시맨틱만으로 구현했다 — 별도 드래그 clamp 로직이 없다.
+
+  **settings 전용 Back 키는 스펙에 명시돼 있지 않다 — D-2026-052(mode-select 자식 scene의 Backspace 통일 Back) 관례의 확장으로 추론했다.** `scene.md`가 settings 4 scene의 Back 키를 별도로 정의한 자리를 찾지 못했다 — 다른 mode-select 자식 scene(song-select 등)과 일관되게 Backspace/Esc → `onBack`으로 뒀다. 스펙이 다른 Back 키(또는 Back 없음)를 의도했다면 재검토가 필요한 결정 필요 항목이다.
+
+  gauge 관련 필드(OPTION category)는 M4-5 이전 D-2026-074(GAUGE→OPTION 병합)·D-2026-075(SOUND 분리)가 이미 확정한 4-scene 구성을 그대로 따른 것으로, 이번 세션이 새로 정한 게 아니다.
+
+  테스트 신규: `core-settings.test.ts`에 `conflictingLaneKey` 3개, `game-settings.test.ts`에 `writeSettings` 1개, `scene-settings.test.ts`(신규) 14개(mount/show/hide, nav pill 클릭, Tab/Shift+Tab 순환과 wraparound, toggle/slider/select/number 4개 위젯 커밋과 number 검증 실패 시 되돌림, key-rebind 클릭→즉시 커밋·Esc 취소·충돌 거부, Backspace/Escape→onBack) — 전체 1169/1169 통과.
+- **Defined in:** `src/scene/scene-settings.ts`, `src/scene/scene-settings.css`, `src/core/core-settings.ts`, `src/game/game-settings.ts`, `src/app/app-main.ts`
+- **Rationale:** Not required
+- **Affects:** scene, core, game, app — M4-6 완료
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

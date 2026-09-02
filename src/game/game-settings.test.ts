@@ -6,7 +6,7 @@ import {
   type StoreName,
 } from '../env/env-storage.js';
 import { DEFAULT_SETTINGS } from '../core/core-settings.js';
-import { readSettings } from './game-settings.js';
+import { readSettings, writeSettings } from './game-settings.js';
 
 function fakeBackend(): StorageBackend {
   const data = new Map<StoreName, Map<string, unknown>>(STORE_NAMES.map((s) => [s, new Map()]));
@@ -44,5 +44,14 @@ describe('readSettings', () => {
     const storage = createStorageEnv(fakeBackend());
     await storage.write('settings', 'current', [1, 2, 3]);
     expect(await readSettings(storage)).toEqual(DEFAULT_SETTINGS);
+  });
+});
+
+describe('writeSettings', () => {
+  it('쓴 값을 다시 읽으면 그대로 나온다', async () => {
+    const storage = createStorageEnv(fakeBackend());
+    const changed = { ...DEFAULT_SETTINGS, scrollSpeed: 7, mirror: true };
+    await writeSettings(storage, changed);
+    expect(await readSettings(storage)).toEqual(changed);
   });
 });

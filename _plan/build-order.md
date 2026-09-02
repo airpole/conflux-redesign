@@ -104,7 +104,7 @@ Vitest `environment: 'node'`. core 테스트는 DOM 없이 돈다 — [[architec
 | ~~M4 진입~~ | ~~결정~~ | ~~**ui-design 전체** — song-select·settings·title·credits 레이아웃 → §6.5 M3.5~~ — **닫힘** (D-2026-080, M3.5-1~4 전부 완료: D-2026-072/073·074/075/076·078/079·080) |
 | M4-3 전 | 결정 | 목록 옵션 overlay 진입 키 · `sortDir` 단축 전환 키 · 가속 스크롤 수치(초기 지연·반복 간격·가속 곡선) |
 | M4-3 전 | 결정 | ~~song row 대표값 출처(title·jacket)~~ — **닫힘**(`_meta/cfx.md` §6 기존 스펙 적용, D-2026-084) · 정보 패널 BPM 표기 방식 · 곡 길이 표시 |
-| M4-6 전 | 결정 | key rebinding UI · volume 슬라이더 조작 단위 — 기본값·범위는 `[보존]`으로 확정됨([[settings]] §4) |
+| M4-6 전 | 결정 | ~~key rebinding UI · volume 슬라이더 조작 단위~~ — **닫힘** (D-2026-091: capture-flow는 즉시 커밋·Esc 취소·충돌 거부, slider는 네이티브 `<input type=range>` + 필드별 `step`) — 기본값·범위는 `[보존]`으로 확정됨([[settings]] §4) |
 | M4-2 전 | 결정 | credits scene 표시 내용 — `ui-design.md` §2.8.5가 남긴 방향: `Project Staff`는 수작업 유지 목록, `Music`/`Chart`/`Jacket` 세 섹션은 library 전체의 `musicBy`/`chartBy`/`jacketBy`를 필드별로 자동 스캔·중복 제거(song/chart로 묶지 않음) — 배선 자체는 이 게이트가 열릴 때 결정 |
 | M5 진입 | 실측 | §3 M5 항목 |
 

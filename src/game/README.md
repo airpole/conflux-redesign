@@ -77,9 +77,11 @@ no-record 조건을 걸러 store를 건드리지 않는다. `game-session.ts`의
 
 `game-settings.ts`는 M4-5 범위다([[settings]]). `env-storage`의 `settings`
 store(M3-1, `edit-workspace.ts`의 고정 key 패턴을 따라 key=`'current'`)에서
-`readSettings`로만 읽는다 — settings 4 scene(M4-6, 실제 값을 바꾸는 UI)이
-아직 없어 `writeSettings`는 두지 않았다. `core-settings.ts`의 순수
-`mergeSettings`를 그대로 재사용한다(`game-viewstate.ts`와 같은 패턴).
+`readSettings`로 읽는다. `core-settings.ts`의 순수 `mergeSettings`를 그대로
+재사용한다(`game-viewstate.ts`와 같은 패턴). M4-6이 `writeSettings`를
+더했다 — settings 4 scene(`scene-settings.ts`)이 필드 하나가 커밋될
+때마다 settings 객체 전체를 다시 쓴다(부분 patch가 아니다 —
+`mergeSettings`가 항상 전체 객체 하나를 다루는 계약과 맞춘다).
 
 `game-song-select.ts`의 `loadPlayableChart`는 M4-5 범위다 — `loadSongSelectRows`와
 같은 decode 경로(`format-cfx-load.ts`)로 songId+chartId 하나의 chart

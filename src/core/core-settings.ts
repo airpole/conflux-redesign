@@ -245,3 +245,25 @@ export function mergeSettings(saved: unknown): MergedSettings {
 export function laneOf(key: LaneKeyId): 1 | 2 | 3 | 4 {
   return DEFAULT_LANE_KEYS[key].lane;
 }
+
+/**
+ * `candidateCode`가 `target` 아닌 다른 lane key에 이미 물려 있으면 그
+ * lane key id를, 아니면 `null`을 돌려준다(M4-6, key rebinding UI의
+ * conflict 판정 — `ui-design.md` §2.6.3 idle/capturing/**conflict** 3상태).
+ *
+ * `game-judge-input.ts`의 `codeToKey`가 물리 key(code) → lane key 1:1
+ * map이라, 중복 바인딩을 그대로 커밋하면 먼저 등록된 쪽이 뒤 lane key로
+ * 조용히 덮인다 — 이 함수가 그 충돌을 rebind 커밋 전에 미리 잡는다.
+ * `target` 자신의 기존 바인딩과 같은 코드를 다시 누르는 것(무변화)은
+ * 충돌이 아니다.
+ */
+export function conflictingLaneKey(
+  bindings: Readonly<Record<LaneKeyId, string>>,
+  target: LaneKeyId,
+  candidateCode: string,
+): LaneKeyId | null {
+  for (const id of LANE_KEY_IDS) {
+    if (id !== target && bindings[id] === candidateCode) return id;
+  }
+  return null;
+}

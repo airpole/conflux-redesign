@@ -1,0 +1,250 @@
+/* settings 4 scene — 단일 출처 `scene/ui-design.md` §2.6. 토큰은 §2.6.8
+   "기존 토큰 재사용" 그대로 — 새 색은 toggle on/off·slider 트랙/핸들·
+   key-rebind 3상태의 새 *용법*뿐, 새 hex 값은 없다. */
+
+.settings-scene {
+  --bg: #050508;
+  --text: #ececf4;
+  --dim: #9a9ab4;
+  --rule: #1e1e30;
+  --rule-strong: #3a3a54;
+  --cyan: #4fbcd0;
+  --on-accent: #04040a;
+
+  --j-sync: #ffffff;
+  --j-perfect: #ffd23f;
+  --j-good: #5cff96;
+  --j-miss: #ff5f70;
+
+  --gauge-normal: #4aa870;
+  --gauge-hard: #ffa63d;
+
+  --sans:
+    'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', 'Roboto Mono',
+    monospace;
+
+  container-type: size;
+  aspect-ratio: 16 / 9;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.settings-scene .settings-nav {
+  display: flex;
+  gap: 0.6cqw;
+  padding: 1cqw 2cqw;
+  border-bottom: 1px solid var(--rule);
+}
+
+.settings-scene .settings-nav-pill {
+  font-family: var(--sans);
+  background: transparent;
+  border: none;
+  color: var(--dim);
+  padding: 0.4cqw 1.2cqw;
+  font-size: 1.1cqw;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.settings-scene .settings-nav-pill.active {
+  color: var(--cyan);
+  border-bottom-color: var(--cyan);
+}
+
+.settings-scene .settings-body {
+  padding: 1.5cqw 2cqw;
+  overflow-y: auto;
+}
+
+.settings-scene .field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8cqw;
+  margin-bottom: 1.6cqw;
+}
+
+.settings-scene .field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1cqw;
+}
+
+.settings-scene .field-label {
+  color: var(--text);
+  font-size: 1cqw;
+}
+
+.settings-scene .field-control {
+  display: flex;
+  align-items: center;
+  gap: 0.6cqw;
+}
+
+.settings-scene .field-unit {
+  color: var(--dim);
+  font-size: 0.8cqw;
+}
+
+/* toggle — 캡슐형 스위치 */
+.settings-scene .toggle-switch {
+  width: 3cqw;
+  height: 1.5cqw;
+  border-radius: 999px;
+  border: 1px solid var(--rule-strong);
+  background: transparent;
+  position: relative;
+  cursor: pointer;
+}
+
+.settings-scene .toggle-switch.on {
+  background: var(--cyan);
+  border-color: var(--cyan);
+}
+
+/* slider */
+.settings-scene .slider-input {
+  width: 12cqw;
+  accent-color: var(--cyan);
+}
+
+.settings-scene .slider-value {
+  font-family: var(--mono);
+  color: var(--text);
+  min-width: 3cqw;
+  text-align: right;
+  font-size: 0.9cqw;
+}
+
+/* select — 인라인 세그먼트 컨트롤 */
+.settings-scene .segment-group {
+  display: flex;
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.settings-scene .segment-btn {
+  font-family: var(--sans);
+  background: transparent;
+  border: none;
+  color: var(--dim);
+  padding: 0.3cqw 1cqw;
+  cursor: pointer;
+}
+
+.settings-scene .segment-btn.active {
+  background: var(--cyan);
+  color: var(--on-accent);
+}
+
+/* number */
+.settings-scene .number-input {
+  font-family: var(--mono);
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  color: var(--text);
+  width: 5cqw;
+  padding: 0.2cqw 0.4cqw;
+}
+
+/* key-rebind */
+.settings-scene .key-rebind-group {
+  display: flex;
+  gap: 1cqw;
+}
+
+.settings-scene .lane-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4cqw;
+}
+
+.settings-scene .key-rebind-btn {
+  font-family: var(--mono);
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  color: var(--text);
+  padding: 0.4cqw 1cqw;
+  cursor: pointer;
+}
+
+.settings-scene .key-rebind-btn.capturing {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+.settings-scene .key-rebind-btn.conflict {
+  border-color: var(--j-miss);
+  color: var(--j-miss);
+}
+
+/* OPTION scene — gauge strip */
+.settings-scene .gauge-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.6cqw;
+  margin-bottom: 1.6cqw;
+}
+
+.settings-scene .gauge-peer {
+  font-family: var(--sans);
+  border: none;
+  color: var(--on-accent);
+  padding: 0.4cqw 1cqw;
+  cursor: pointer;
+  opacity: 0.5;
+}
+
+.settings-scene .gauge-peer.active {
+  opacity: 1;
+}
+
+.settings-scene .gauge-normal {
+  background: var(--gauge-normal);
+}
+.settings-scene .gauge-hard {
+  background: var(--gauge-hard);
+}
+.settings-scene .gauge-fc {
+  background: var(--j-good);
+}
+.settings-scene .gauge-ap {
+  background: var(--j-perfect);
+}
+.settings-scene .gauge-as {
+  background: var(--j-sync);
+}
+
+.settings-scene .gauge-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--rule);
+}
+
+.settings-scene .gauge-cascade {
+  font-family: var(--sans);
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  color: var(--text);
+  padding: 0.4cqw 1cqw;
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.settings-scene .gauge-cascade.active {
+  opacity: 1;
+  border-color: var(--cyan);
+}
+
+.settings-scene .no-record-notice {
+  color: var(--dimmer, var(--dim));
+  font-size: 0.85cqw;
+}

@@ -41,5 +41,14 @@ scene과 달리 `mount()`가 비어 있고 매 `onEnter()`마다 `mountResultSce
 lazy-mount-once와 안 맞기 때문이다.
 
 `game-settings.ts`의 `readSettings`로 매 판 시작 시 실제 player settings를
-읽는다 — settings 4 scene(M4-6)이 아직 없어 기본값에서 바꿀 UI는 없지만,
-읽기 배선 자체는 이미 존재하는 저장값을 그대로 반영한다.
+읽는다.
+
+M4-6이 mode-select의 `settings` 목적지를 `settings-play`로 잇고, 네
+`settings-*` scene(`scene-settings.ts`)을 등록했다 — 하나의 `settingsHandle`을
+네 scene의 `mount()`가 공유한다(처음 mount되는 scene에서만 실제로
+`mountSettingsScene`을 호출, `mountSettingsIfNeeded`). 각 scene의 `onEnter`는
+`readSettings`로 최신 저장값을 다시 읽어 `update()`한 뒤 `show(category)`를
+부른다(재진입마다 다른 곳에서 저장한 값을 반영). `SettingsHandlers.onChange`는
+필드 커밋마다 `writeSettings`로 전체 settings를 즉시 저장하고,
+`onCategoryChange`는 `goScene('settings-<category>')`, `onBack`은
+`goScene('mode-select')`로 배선했다.
