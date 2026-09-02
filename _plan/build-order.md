@@ -349,6 +349,15 @@ component 공유)은 재검토 대상이 아니다.
 **Exit**: `ui-design.md`가 이 오버레이를 커버해, `scene-song-select.ts`의
 "오버레이 배치는 결정 필요 항목" 주석(D-2026-092)을 닫을 수 있다.
 
+**충족** (D-2026-093). M4.6-1 하나로 세 항목(배치·치수·시각 디자인,
+scrollSpeed/gaugeMode 클릭 상호작용, 닫을 때의 draft 처리) 전부 확정돼
+`ui-design.md` §2.5.8로 반영됐고 `scene-song-select.ts`/`.css`가 그대로
+구현했다 — M3.5·M4.5와 달리 이번엔 문서 확정과 구현이 한 라운드였다.
+클릭 상호작용은 scrollSpeed=native slider·gaugeMode=segmented control로
+확정돼 settings 화면(§2.6.3)의 기존 위젯을 그대로 재사용했고(새 위젯
+없음), 닫을 때의 draft 처리는 discard(D-2026-092의 잠정 결정)에서
+confirm으로 뒤집혔다. M4.6은 완전히 닫혔다 — 남은 항목 없음.
+
 역할 분담은 M3.5(§6.5)·M4.5(§7.5)와 같다 — 시각/제품 디자인 판단은
 사용자 몫, Claude Code는 이미 확정한 spec(`scene.md` §5·§10)에서 무엇을
 담아야 하는지 정리해 레이아웃 초안을 제안한다.
