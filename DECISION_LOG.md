@@ -1266,7 +1266,7 @@
 - **Rationale:** Not required
 - **Affects:** render, game, scene, app, theme(spec)·ui-design(spec)·build-order(spec) — M4.5-1 완료
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `e6ff161`
 
 
 ### D-YYYY-NNN — <Title>
