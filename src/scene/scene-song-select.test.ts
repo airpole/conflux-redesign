@@ -505,7 +505,7 @@ describe('scene-song-select', () => {
       expect(target.querySelector('.quick-options-overlay')?.hasAttribute('hidden')).toBe(true);
     });
 
-    it('ArrowDown/Up이 row를 이동하고 ArrowLeft/Right가 draft를 바꾼다', () => {
+    it('ArrowDown/Up이 row를 이동하고 ArrowLeft/Right가 gaugeMode draft를 바꾼다', () => {
       const { target, handle } = setup();
       handle.update([row('a', 'A', '')], defaultView, DEFAULT_SETTINGS);
       handle.show();
@@ -517,11 +517,11 @@ describe('scene-song-select', () => {
 
       const before = target
         .querySelectorAll('.quick-options-row')[1]
-        ?.querySelector('.quick-options-value')?.textContent;
+        ?.querySelector('.segment-btn.active')?.textContent;
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
       const after = target
         .querySelectorAll('.quick-options-row')[1]
-        ?.querySelector('.quick-options-value')?.textContent;
+        ?.querySelector('.segment-btn.active')?.textContent;
       expect(after).not.toBe(before);
     });
 
@@ -549,7 +549,7 @@ describe('scene-song-select', () => {
       expect(onQuickOptionsChange).not.toHaveBeenCalled();
     });
 
-    it('bool 필드 클릭은 그 즉시 draft를 토글한다(값 자체는 Enter로 확정)', () => {
+    it('bool 필드 클릭은 그 즉시 toggle-switch 상태를 바꾼다(값 자체는 Enter로 확정)', () => {
       const { target, handle, onQuickOptionsChange } = setup();
       handle.update([row('a', 'A', '')], defaultView, DEFAULT_SETTINGS);
       handle.show();
@@ -559,15 +559,49 @@ describe('scene-song-select', () => {
           (r) => r.querySelector('.quick-options-label')?.textContent === 'Mirror',
         ) as HTMLElement;
       }
-      mirrorRow().click();
-      expect(mirrorRow().querySelector('.quick-options-value')?.textContent).toBe(
-        DEFAULT_SETTINGS.mirror ? 'OFF' : 'ON',
+      mirrorRow()
+        .querySelector('.toggle-switch')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(mirrorRow().querySelector('.toggle-switch')?.classList.contains('on')).toBe(
+        !DEFAULT_SETTINGS.mirror,
       );
       expect(onQuickOptionsChange).not.toHaveBeenCalled(); // 아직 Enter 전.
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
       expect(onQuickOptionsChange).toHaveBeenCalledWith(
         expect.objectContaining({ mirror: !DEFAULT_SETTINGS.mirror }),
       );
+    });
+
+    it('scrollSpeed slider 드래그(input 이벤트)가 그 값으로 즉시 점프한다', () => {
+      const { target, handle, onQuickOptionsChange } = setup();
+      handle.update([row('a', 'A', '')], defaultView, DEFAULT_SETTINGS);
+      handle.show();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' })); // row=scrollSpeed
+      const input = target.querySelector('.slider-input') as HTMLInputElement;
+      input.value = String(DEFAULT_SETTINGS.scrollSpeed + 0.3);
+      input.dispatchEvent(new Event('input'));
+      expect(target.querySelector('.quick-options-value')?.textContent).toBe(
+        (DEFAULT_SETTINGS.scrollSpeed + 0.3).toFixed(1),
+      );
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+      expect(onQuickOptionsChange).toHaveBeenCalledWith(
+        expect.objectContaining({ scrollSpeed: DEFAULT_SETTINGS.scrollSpeed + 0.3 }),
+      );
+    });
+
+    it('gaugeMode segment 클릭이 그 모드로 즉시 점프한다', () => {
+      const { target, handle } = setup();
+      handle.update([row('a', 'A', '')], defaultView, DEFAULT_SETTINGS);
+      handle.show();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' })); // row=gaugeMode
+      function hardBtn(): HTMLElement {
+        return [...target.querySelectorAll('.segment-btn')].find(
+          (b) => b.textContent === 'HARD',
+        ) as HTMLElement;
+      }
+      hardBtn().click();
+      expect(hardBtn().classList.contains('active')).toBe(true);
     });
 
     it('wheel이 위/아래로 한 칸씩 draft를 바꾼다', () => {
@@ -579,6 +613,29 @@ describe('scene-song-select', () => {
       overlay.dispatchEvent(new WheelEvent('wheel', { deltaY: -1 }));
       const activeValue = target.querySelector('.quick-options-row.active .quick-options-value');
       expect(activeValue?.textContent).toBe((DEFAULT_SETTINGS.scrollSpeed + 0.1).toFixed(1));
+    });
+
+    it('M4.6: Esc/Space로 닫으면 미확정 draft가 discard 대신 confirm된다(D-2026-093)', () => {
+      const { handle, onQuickOptionsChange } = setup();
+      handle.update([row('a', 'A', '')], defaultView, DEFAULT_SETTINGS);
+      handle.show();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' })); // row=scrollSpeed
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); // draft만 바뀜, 아직 Enter 안 함
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); // close = 암묵적 confirm
+      expect(onQuickOptionsChange).toHaveBeenCalledWith(
+        expect.objectContaining({ scrollSpeed: DEFAULT_SETTINGS.scrollSpeed + 0.1 }),
+      );
+    });
+
+    it('row 이동으로 버려진 draft는 닫아도 되살아나지 않는다', () => {
+      const { handle, onQuickOptionsChange } = setup();
+      handle.update([row('a', 'A', '')], defaultView, DEFAULT_SETTINGS);
+      handle.show();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' })); // row=scrollSpeed
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); // scrollSpeed draft
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' })); // 이동 — draft 버려짐
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); // 닫기 — gaugeMode(변경 없음)만 confirm 대상
+      expect(onQuickOptionsChange).not.toHaveBeenCalled();
     });
 
     it('hide()는 오버레이를 닫는다', () => {

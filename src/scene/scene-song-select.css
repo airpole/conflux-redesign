@@ -202,10 +202,10 @@
   display: none;
 }
 
-/* quick options 오버레이 — M4-7, `scene.md` §5·§10.
-   ui-design.md가 픽셀 배치를 아직 정의하지 않아(결정 필요 항목,
-   scene-song-select.ts 헤더 참조) settings 화면과 같은 기존 토큰으로 최소
-   기능 목록형 UI만 뒀다. */
+/* quick options 오버레이 — M4-7이 최소 기능 placeholder로 열었고
+   M4.6(D-2026-093)이 `ui-design.md` §2.5.8로 정식 확정했다. 필드 위젯
+   (slider/segment/toggle) 자체는 settings 화면(§2.6.3)의 컴포넌트를
+   재사용한다 — 새 위젯을 만들지 않는다. */
 .song-select-scene .quick-options-overlay {
   position: absolute;
   inset: 0;
@@ -238,12 +238,13 @@
   justify-content: space-between;
   gap: 1cqw;
   padding: 0.3cqw 0.6cqw;
-  cursor: pointer;
-  border: 1px solid transparent;
+  border-left: 2px solid transparent;
 }
 
+/* 활성 row 강조 — settings의 key-rebind capturing 상태(§2.6.3)와 같은
+   좌측 강조 바 어휘. M4-7의 풀 row outline을 대체한다. */
 .song-select-scene .quick-options-row.active {
-  border-color: var(--cyan);
+  border-left-color: var(--cyan);
 }
 
 .song-select-scene .quick-options-label {
@@ -252,10 +253,18 @@
   font-size: 1cqw;
 }
 
+.song-select-scene .quick-options-control {
+  display: flex;
+  align-items: center;
+  gap: 0.6cqw;
+}
+
 .song-select-scene .quick-options-value {
   font-family: var(--mono);
   color: var(--cyan);
-  font-size: 1cqw;
+  font-size: 0.9cqw;
+  min-width: 3cqw;
+  text-align: right;
 }
 
 .song-select-scene .quick-options-hint {
@@ -263,4 +272,48 @@
   color: var(--dim);
   font-size: 0.75cqw;
   margin-top: 0.4cqw;
+}
+
+/* 필드 위젯 — settings 화면(§2.6.3, scene-settings.css)의 slider/segment/
+   toggle과 같은 컴포넌트를 같은 class 이름으로 재사용한다(스타일시트는
+   scene별로 로컬 — 값은 같은 토큰이라 실제로 같아 보인다). */
+.song-select-scene .slider-input {
+  width: 12cqw;
+  accent-color: var(--cyan);
+}
+
+.song-select-scene .segment-group {
+  display: flex;
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.song-select-scene .segment-btn {
+  font-family: var(--sans);
+  background: transparent;
+  border: none;
+  color: var(--dim);
+  padding: 0.3cqw 1cqw;
+  cursor: pointer;
+}
+
+.song-select-scene .segment-btn.active {
+  background: var(--cyan);
+  color: var(--on-accent);
+}
+
+.song-select-scene .toggle-switch {
+  width: 3cqw;
+  height: 1.5cqw;
+  border-radius: 999px;
+  border: 1px solid var(--rule-strong);
+  background: transparent;
+  position: relative;
+  cursor: pointer;
+}
+
+.song-select-scene .toggle-switch.on {
+  background: var(--cyan);
+  border-color: var(--cyan);
 }

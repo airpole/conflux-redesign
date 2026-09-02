@@ -90,9 +90,19 @@ Enter로 확정될 때마다 `handlers.onQuickOptionsChange(settings)`가 그
 이미 완성해 뒀고, 이 경로는 그 게이트에 걸리는 두 필드(autoplay/
 staticShape)를 바꿀 수 있는 새 입구일 뿐이다. `SongSelectSceneHandle.update()`
 에 세 번째 인자 `settings: Settings`가 추가됐다(오버레이가 여는 순간의
-스냅샷 출처). 오버레이의 픽셀 배치는 ui-design.md가 아직 정의하지 않아
-결정 필요 항목이다 — settings 화면과 같은 기존 토큰으로 최소 기능
-목록형 UI만 뒀다(자세한 이유는 `scene-song-select.ts` 헤더).
+스냅샷 출처).
+
+**M4.6이 배치·위젯·닫기 동작을 정식으로 확정했다**(`ui-design.md` §2.5.8,
+D-2026-093 — M4-7의 placeholder를 대체). 중앙 dimmed modal, scrollSpeed는
+네이티브 `<input type=range>`(settings의 slider와 동일 컴포넌트)로
+클릭·드래그가 실제로 그 값으로 점프하고, gaugeMode는 segmented control
+(`.segment-group`/`.segment-btn`, settings의 select와 동일)로 각 모드가
+독립 클릭 타겟이다. mirror/staticShape/autoplay는 M4-7의 toggle-switch
+클릭 토글 그대로다. **닫을 때(Esc/Space)의 동작이 뒤집혔다** — M4-7은
+미확정 draft를 버렸지만(D-2026-092), 이제는 지금 row의 draft를 Enter를
+누른 것처럼 그 자리에서 확정한다(`closeQuickOptionsOverlay`가 기존
+`commitQuickOptionsRow`를 그대로 재사용 — core 로직 변경 없음). row
+이동(↑/↓) 시 미확정 draft를 버리는 규칙은 바뀌지 않았다.
 
 `scene-song-credit.ts`는 M4-5 범위다([[scene]] §6). fade-in → 유지 →
 fade-out(수치는 `CREDIT_*`, 합이 5초) 뒤 `onDone`을 정확히 한 번 부르고

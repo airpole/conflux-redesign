@@ -15,9 +15,9 @@
  * 전용 핸들러(`onQuickOptionsKeyDown`)로만 간다(§10 "열림 중 scene 입력
  * 차단"). 5필드(scrollSpeed/gaugeMode/mirror/staticShape/autoplay)를
  * 위아래로 나열하고, ↑↓는 row 이동·←→는 한 칸 step·휠은 위/아래 한 칸씩
- * step·클릭은 그 값으로 즉시 점프·Enter는 지금 row의 draft를 확정한다
- * (전부 `core-quick-options.ts`가 이미 정한 순수 로직 — 이 파일은 DOM과
- * 키/휠/클릭 이벤트만 그 함수들에 잇는다). row 하나가 Enter로 확정될
+ * step·클릭/드래그는 그 값으로 즉시 점프·Enter는 지금 row의 draft를
+ * 확정한다(전부 `core-quick-options.ts`가 이미 정한 순수 로직 — 이 파일은
+ * DOM과 키/휠/클릭 이벤트만 그 함수들에 잇는다). row 하나가 확정될
  * 때마다 `handlers.onQuickOptionsChange(settings)`를 그 즉시 부른다
  * ([[settings]] D-2026-022 "즉시 영속 필드" — M4-6의 설정 화면과 같은
  * 즉시-커밋 패턴). autoplay/staticShape가 이 경로로 바뀌면 다음 gameplay
@@ -26,14 +26,25 @@
  * 자동으로 반영된다 — no-record 로직 자체는 M4-5가 이미 완성해 뒀고,
  * M4-7이 잇는 건 "이 값을 바꿀 수 있는 새 입구 하나"뿐이다.
  *
- * 오버레이를 닫을 때(Esc/Space) 지금 row의 미확정 draft는 버려진다 — row
- * 이동 시 버려지는 것과 같은 규칙을 닫기에도 확장한 것으로, 스펙이 닫을
- * 때의 draft 처리를 명시하지 않아 이 세션이 정했다(결정 필요 항목).
- * 클릭의 "즉시 점프"는 bool 필드(mirror/staticShape/autoplay)는 토글로
- * 정확히 구현했지만 scrollSpeed/gaugeMode는 클릭 위치→값 환산 UI(슬라이더
- * 드래그 등)가 없어 지금 표시된 값을 그대로 다시 넘긴다(사실상 "이
- * row를 고른다"는 역할만 한다) — ui-design.md가 이 오버레이의 픽셀
- * 배치를 아직 정의하지 않아(결정 필요 항목) 최소 기능 목록형 UI로 뒀다.
+ * **M4.6이 배치·위젯·닫기 동작을 정식으로 확정했다**(`ui-design.md`
+ * §2.5.8, D-2026-093 — M4-7의 placeholder를 대체, 아래 세 가지를
+ * 뒤집거나 채운다). (1) scrollSpeed는 네이티브 `<input type=range>`
+ * (`.slider-input`, settings §2.6.3과 같은 컴포넌트)로 바뀌어 클릭·드래그가
+ * 실제로 그 위치의 값으로 점프한다 — 드래그 도중 매 `input` 이벤트마다
+ * `quickOptionsPanel`을 통째로 다시 그리면 드래그 중인 `<input>` 자체가
+ * 교체돼 포인터 캡처가 끊긴다, 그래서 같은 row에서의 드래그는 값 텍스트
+ * 노드만 갱신하고(`renderScrollSpeedControl`) row가 바뀔 때만 전체
+ * `renderQuickOptions()`를 다시 부른다. (2) gaugeMode는 segmented control
+ * (`.segment-group`/`.segment-btn`, settings의 select 위젯과 동일)로
+ * 바뀌어 각 모드가 독립 클릭 타겟이다. mirror/staticShape/autoplay는
+ * 이미 M4-7의 toggle-switch 클릭 토글 그대로다(bool 필드는 원래도
+ * "클릭 = 즉시 점프"를 만족했다). (3) **닫을 때(Esc/Space)의 동작이
+ * 뒤집혔다** — M4-7은 미확정 draft를 버렸지만(D-2026-092), 이제는 지금
+ * row의 draft를 Enter를 누른 것처럼 그 자리에서 확정한다
+ * (`closeQuickOptionsOverlay`가 `commitQuickOptionsRow`를 그대로 재사용 —
+ * 새 core 로직이 필요 없었다). row 이동(↑/↓)이 미확정 draft를 버리는
+ * 규칙은 바뀌지 않았다 — "다른 필드로 옮긴다"와 "오버레이를 나간다"를
+ * 서로 다른 액션으로 갈랐다.
  *
  * **folder 헤더는 row와 같은 메커니즘으로 상하 이동이 지나가는 정지점이다**
  * (§4 "아코디언이다 — 하나를 펼치면 다른 folder는 접힌다") — 새 인터랙션
@@ -94,6 +105,8 @@ import {
   type QuickOptionField,
   type QuickOptionsState,
 } from '../core/core-quick-options.js';
+import { GAUGE_MODES, type GaugeMode } from '../core/core-gauge.js';
+import { SCROLL_SPEED_MAX, SCROLL_SPEED_MIN, SCROLL_SPEED_STEP } from '../core/core-constants.js';
 import { DEFAULT_SETTINGS, type Settings } from '../core/core-settings.js';
 import { translate } from '../core/core-i18n.js';
 
@@ -309,11 +322,12 @@ export function mountSongSelectScene(
     renderQuickOptions();
   }
 
-  /** Esc/Space로 닫을 때 — row 이동과 같은 규칙으로 지금 row의 미확정
-   *  draft를 버린다(파일 헤더 없음, `core-quick-options.ts`의 "이동하면
-   *  미확정 값이 버려진다" 규칙을 닫기에도 확장한 것 — 결정 필요 항목으로
-   *  보고, 스펙은 닫을 때의 draft 처리를 명시하지 않는다). */
+  /** Esc/Space로 닫을 때 — 지금 row의 draft를 Enter를 누른 것처럼 그
+   *  자리에서 확정한다(`ui-design.md` §2.5.8, D-2026-093이 M4-7의
+   *  discard-on-close(D-2026-092)를 뒤집은 것). row 이동(↑/↓) 시 미확정
+   *  draft를 버리는 규칙은 그대로다 — "옮긴다"와 "나간다"는 다른 액션. */
   function closeQuickOptionsOverlay(): void {
+    if (quickOptionsState !== null) commitQuickOptionsRow(quickOptionsState);
     quickOptionsState = null;
     quickOptionsOverlay.hidden = true;
   }
@@ -334,6 +348,78 @@ export function mountSongSelectScene(
     return next;
   }
 
+  /** 클릭/드래그로 그 필드를 골라 즉시 그 값으로 점프한다 — row가 다른
+   *  곳에 있었으면 그리로 옮긴 뒤 커밋 전 draft로 반영한다(§5 "마우스
+   *  클릭(그 값으로 즉시 점프)"). */
+  function jumpAndFocus(
+    index: number,
+    value: QuickOptionsState['draft'],
+  ): { changed: QuickOptionsState; rowChanged: boolean } {
+    const before = quickOptionsState!;
+    const rowChanged = before.rowIndex !== index;
+    const changed = jumpQuickOption(moveQuickOptionsRowTo(before, index), value);
+    quickOptionsState = changed;
+    return { changed, rowChanged };
+  }
+
+  function renderScrollSpeedControl(index: number, value: number): HTMLElement {
+    const control = el('div', 'quick-options-control');
+    const input = el('input', 'slider-input');
+    input.type = 'range';
+    input.min = String(SCROLL_SPEED_MIN);
+    input.max = String(SCROLL_SPEED_MAX);
+    input.step = String(SCROLL_SPEED_STEP);
+    input.value = String(value);
+    const valueEl = el('span', 'quick-options-value');
+    valueEl.textContent = value.toFixed(1);
+    input.addEventListener('input', () => {
+      if (quickOptionsState === null) return;
+      const next = Number(input.value);
+      const { rowChanged } = jumpAndFocus(index, next);
+      if (rowChanged) {
+        renderQuickOptions();
+      } else {
+        // 드래그 도중 전체를 다시 그리면 이 <input> 자체가 교체돼 포인터
+        // 캡처가 끊긴다(파일 헤더 참조) — 같은 row라면 값 텍스트만 갱신.
+        valueEl.textContent = next.toFixed(1);
+      }
+    });
+    control.append(input, valueEl);
+    return control;
+  }
+
+  function renderGaugeModeControl(index: number, value: GaugeMode): HTMLElement {
+    const control = el('div', 'quick-options-control');
+    const group = el('div', 'segment-group');
+    for (const mode of GAUGE_MODES) {
+      const btn = el('button', `segment-btn${mode === value ? ' active' : ''}`);
+      btn.type = 'button';
+      btn.textContent = mode.toUpperCase();
+      btn.addEventListener('click', () => {
+        if (quickOptionsState === null) return;
+        jumpAndFocus(index, mode);
+        renderQuickOptions();
+      });
+      group.append(btn);
+    }
+    control.append(group);
+    return control;
+  }
+
+  function renderToggleControl(index: number, value: boolean): HTMLElement {
+    const control = el('div', 'quick-options-control');
+    const btn = el('button', `toggle-switch${value ? ' on' : ''}`);
+    btn.type = 'button';
+    btn.setAttribute('aria-pressed', String(value));
+    btn.addEventListener('click', () => {
+      if (quickOptionsState === null) return;
+      jumpAndFocus(index, !value);
+      renderQuickOptions();
+    });
+    control.append(btn);
+    return control;
+  }
+
   function renderQuickOptions(): void {
     if (quickOptionsState === null) return;
     const state = quickOptionsState;
@@ -346,47 +432,22 @@ export function mountSongSelectScene(
       const row = el('div', `quick-options-row${index === state.rowIndex ? ' active' : ''}`);
       const label = el('span', 'quick-options-label');
       label.textContent = QUICK_OPTION_LABEL[field];
-      const value = el('span', 'quick-options-value');
+      row.append(label);
       const shown = index === state.rowIndex ? state.draft : state.committed[field];
-      value.textContent = formatQuickOptionValue(field, shown);
-      row.append(label, value);
-      row.addEventListener('click', () => {
-        if (quickOptionsState === null) return;
-        quickOptionsState = jumpQuickOption(
-          moveQuickOptionsRowTo(quickOptionsState, index),
-          jumpValueFor(field, shown),
-        );
-        renderQuickOptions();
-      });
+
+      if (field === 'scrollSpeed') {
+        row.append(renderScrollSpeedControl(index, shown as number));
+      } else if (field === 'gaugeMode') {
+        row.append(renderGaugeModeControl(index, shown as GaugeMode));
+      } else {
+        row.append(renderToggleControl(index, shown as boolean));
+      }
       quickOptionsPanel.append(row);
     });
 
     const hint = el('div', 'quick-options-hint');
-    hint.textContent = '↑↓ Row · ←→ Change · Enter Confirm · Esc/Space Close';
+    hint.textContent = 'Click/Drag Set · ↑↓ Row · ←→ Adjust · Enter/Esc/Space Confirm';
     quickOptionsPanel.append(hint);
-  }
-
-  function formatQuickOptionValue(
-    field: QuickOptionField,
-    value: QuickOptionsState['draft'],
-  ): string {
-    if (field === 'scrollSpeed') return (value as number).toFixed(1);
-    if (field === 'gaugeMode') return String(value).toUpperCase();
-    return value ? 'ON' : 'OFF';
-  }
-
-  /** 클릭 = "그 값으로 즉시 점프"(§5) — bool 필드는 두 값뿐이라 클릭이 곧
-   *  토글이고, gaugeMode·scrollSpeed는 지금 표시된 값 그대로를 다시
-   *  넘긴다(정확한 클릭 위치→값 환산 UI가 없어, 클릭은 "이 row를 고른다"는
-   *  역할까지만 하고 값 자체는 좌우 화살표/휠로 바꾸는 걸 전제로 한다 —
-   *  scrollSpeed에 실제 슬라이더 드래그를 붙이는 건 결정 필요 항목으로
-   *  남긴다, ui-design.md가 이 오버레이의 픽셀 배치를 아직 정의하지 않음). */
-  function jumpValueFor(
-    field: QuickOptionField,
-    shown: QuickOptionsState['draft'],
-  ): QuickOptionsState['draft'] {
-    if (field === 'mirror' || field === 'staticShape' || field === 'autoplay') return !shown;
-    return shown;
   }
 
   function onQuickOptionsKeyDown(event: KeyboardEvent): void {

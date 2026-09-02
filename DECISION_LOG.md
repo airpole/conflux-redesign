@@ -1315,6 +1315,29 @@
 - **Commit:** `32e7a5be9009bd09450fa30ee54cdee960082d2f`
 
 
+### D-2026-093 — M4.6: quick options 오버레이 레이아웃 확정, D-2026-092의 discard-on-close를 뒤집음
+
+- **Status:** Accepted
+- **Decision:** M3.5-1의 원래 범위 문구("quick options overlay 배치")가 실제로는 `ui-design.md` §2.5에 반영되지 못한 채 넘어갔던 공백을 §2.5.8로 닫는다. M4-7의 최소 기능 placeholder(설정 화면 토큰의 중앙 모달, 목록형 5행, 클릭은 "그 row를 고른다"는 역할만)를 대체하는 정식 레이아웃이다.
+
+  **배치**: 중앙 정렬 dimmed modal(`rgb(5 5 8 / 70%)` 스크림, M4-7 placeholder와 동일 값 유지) — `scene.md` §10 "열림 중 scene 입력 차단"을 시각적으로도 뒷받침한다. 모달 폭·행 간격은 §2.6.3(settings 필드 표현 어휘)의 `.field-row` 계열 치수를 재사용한다.
+
+  **필드별 컴포넌트 — 새 위젯 없음, §2.6.3 재사용**: scrollSpeed는 네이티브 `<input type="range">`(`.slider-input`, settings의 slider와 동일 컴포넌트) — 클릭·드래그가 그 위치의 값으로 즉시 점프해 [[scene]] §5 "마우스 클릭(그 값으로 즉시 점프)"을 문자 그대로 만족한다. gaugeMode는 segmented control(`.segment-group`/`.segment-btn`, settings의 select와 동일) — 6개 모드가 각각 독립 클릭 타겟이다. mirror/staticShape/autoplay는 M4-7의 toggle-switch 클릭 토글을 그대로 유지한다(bool 필드는 애초에 클릭 토글이 "즉시 점프"를 만족했다).
+
+  **활성 row 표시**: M4-7의 풀 row outline을 좌측 강조 바 하나로 바꿨다 — settings의 key-rebind capturing 상태(§2.6.3, `--cyan` 강조)와 같은 시각 어휘.
+
+  **닫을 때(Esc/Space)의 동작을 뒤집는다 — D-2026-092 수정**: M4-7은 오버레이를 닫을 때 확정 안 된 draft를 버렸다(row 이동과 같은 규칙을 닫기에도 확장한 잠정 결정). 이 라운드에서 뒤집는다 — **닫기는 지금 활성 row의 draft를 암묵적으로 확정한다**(Enter를 누른 것과 동일). 근거: 클릭이 이제 실제 값 설정 동작이라(위 필드별 컴포넌트), 클릭 직후 Space로 나가면서 그 값이 사라지면 "빠른 조작"이라는 이 화면의 존재 이유와 반대로 느껴진다 — "quick" options 표면에 Enter라는 두 번째 확인 게이트를 요구하는 건 클릭-즉시-점프 인터랙션과 마찰을 일으킨다. row 이동(↑/↓) 시 미확정 draft를 버리는 규칙은 그대로 유지한다 — "다른 필드로 옮긴다"와 "오버레이를 나간다"는 다른 액션으로 갈랐다.
+
+  **core 변경 없음**: 닫기의 confirm 동작은 `scene-song-select.ts`의 `closeQuickOptionsOverlay`가 기존 `commitQuickOptionsRow`(→ `confirmQuickOption`+`applyQuickOptions`, `core-quick-options.ts`)를 그대로 재사용해 구현했다 — 새 pure 로직이 필요 없었다. scrollSpeed 슬라이더 드래그 중에는 `quickOptionsPanel` 전체를 다시 그리지 않고(드래그 중인 `<input>` 자체가 교체되면 포인터 캡처가 끊긴다) 값 텍스트 노드만 갱신하는 예외를 뒀다 — row가 실제로 바뀔 때만 전체 재렌더한다.
+
+  테스트: `scene-song-select.test.ts`의 quick options 블록을 gaugeMode segment 클릭·scrollSpeed slider `input` 이벤트·toggle-switch class 검사로 갱신하고, close-confirms 동작 2개(미확정 draft가 닫을 때 confirm됨 / row 이동으로 버려진 draft는 닫아도 안 되살아남)를 새로 추가했다 — 전체 1182/1182 통과.
+- **Defined in:** `scene/ui-design.md` §2.5.8, `src/scene/scene-song-select.ts`, `src/scene/scene-song-select.css`
+- **Rationale:** Not required
+- **Affects:** scene, ui-design(spec) — M4.6 완료
+- **Supersedes:** D-2026-092의 discard-on-close 잠정 결정(닫기가 이제 confirm) — 배치·클릭 컴포넌트는 확장이지 번복이 아니다
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred
