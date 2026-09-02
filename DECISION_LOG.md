@@ -1388,7 +1388,7 @@
 - **Rationale:** Not required
 - **Affects:** edit, app — M5-2 완료(구체 command 목록은 M5-3~M5-7로 이월)
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `b25d77d5d65928960cfc55a2ae443f81a3fb060a`
 
 
 ### D-YYYY-NNN — <Title>
