@@ -1335,7 +1335,7 @@
 - **Rationale:** Not required
 - **Affects:** scene, ui-design(spec) — M4.6 완료
 - **Supersedes:** D-2026-092의 discard-on-close 잠정 결정(닫기가 이제 confirm) — 배치·클릭 컴포넌트는 확장이지 번복이 아니다
-- **Commit:** `PENDING`
+- **Commit:** `abc0369f198568fd844d916f1a442b7e80f469f5`
 
 
 ### D-YYYY-NNN — <Title>
