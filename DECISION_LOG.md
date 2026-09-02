@@ -1312,7 +1312,7 @@
 - **Rationale:** Not required
 - **Affects:** scene, app — M4-7 완료
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `32e7a5be9009bd09450fa30ee54cdee960082d2f`
 
 
 ### D-YYYY-NNN — <Title>
