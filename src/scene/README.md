@@ -77,6 +77,23 @@ idle/typing/no-results 3상태 — 검색 중엔 folder 헤더 없이 평평한 
 viewport 측정이 없어 `PAGE_STOP_COUNT`(고정 근사값) — 결정 필요 항목으로
 별도 보고, 실제 DOM 측정 기반 페이지 크기가 필요해지면 갱신한다.
 
+**M4-7이 quick options 오버레이를 더했다**([[scene]] §5·§10, 로직은
+`core-quick-options.ts`가 이미 갖고 있던 것을 그대로 쓴다). `Space`로 열고
+Esc/Space로 닫는다 — 열려 있는 동안은 `onKeyDown`이 오버레이 전용
+핸들러로만 가고 검색·커서 이동 등 나머지 scene 입력은 전혀 처리하지
+않는다(§10 "열림 중 scene 입력 차단"). 5필드(scrollSpeed/gaugeMode/mirror/
+staticShape/autoplay)를 나열해 ↑↓=row 이동·←→=한 칸 step·휠=위/아래 한
+칸씩 step·클릭=즉시 점프·Enter=지금 row의 draft 확정으로 구현했다. row가
+Enter로 확정될 때마다 `handlers.onQuickOptionsChange(settings)`가 그
+즉시 불려([[settings]] D-2026-022 "즉시 영속 필드") `app-main.ts`가
+`writeSettings`로 잇는다(D-2026-092) — no-record OR 4조건 자체는 M4-5가
+이미 완성해 뒀고, 이 경로는 그 게이트에 걸리는 두 필드(autoplay/
+staticShape)를 바꿀 수 있는 새 입구일 뿐이다. `SongSelectSceneHandle.update()`
+에 세 번째 인자 `settings: Settings`가 추가됐다(오버레이가 여는 순간의
+스냅샷 출처). 오버레이의 픽셀 배치는 ui-design.md가 아직 정의하지 않아
+결정 필요 항목이다 — settings 화면과 같은 기존 토큰으로 최소 기능
+목록형 UI만 뒀다(자세한 이유는 `scene-song-select.ts` 헤더).
+
 `scene-song-credit.ts`는 M4-5 범위다([[scene]] §6). fade-in → 유지 →
 fade-out(수치는 `CREDIT_*`, 합이 5초) 뒤 `onDone`을 정확히 한 번 부르고
 끝난다 — 입력·클릭 리스너를 아예 안 붙인다(§6 "입력·skip·back 없음").

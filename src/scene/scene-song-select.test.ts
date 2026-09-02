@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mountSongSelectScene } from './scene-song-select.js';
 import type { SongRow, SongSelectViewState } from '../core/core-song-select.js';
+import { DEFAULT_SETTINGS } from '../core/core-settings.js';
 
 function row(
   songId: string,
@@ -56,6 +57,7 @@ describe('scene-song-select', () => {
     const onSelect = vi.fn();
     const onRecordCellModeChange = vi.fn();
     const onResetRecord = vi.fn();
+    const onQuickOptionsChange = vi.fn();
     const handle = mountSongSelectScene(target, {
       onCategoryChange,
       onBack,
@@ -63,6 +65,7 @@ describe('scene-song-select', () => {
       onSelect,
       onRecordCellModeChange,
       onResetRecord,
+      onQuickOptionsChange,
     });
     return {
       target,
@@ -73,12 +76,13 @@ describe('scene-song-select', () => {
       onSelect,
       onRecordCellModeChange,
       onResetRecord,
+      onQuickOptionsChange,
     };
   }
 
   it('row가 title/artist/slot으로 뜬다', () => {
     const { target, handle } = setup();
-    handle.update([row('a', 'Song A', '')], defaultView);
+    handle.update([row('a', 'Song A', '')], defaultView, DEFAULT_SETTINGS);
     expect(target.querySelector('.row-title')?.textContent).toBe('Song A');
     expect(target.querySelector('.row-artist')?.textContent).toBe('Composer');
     const slots = target.querySelectorAll('.slot');
@@ -90,10 +94,14 @@ describe('scene-song-select', () => {
 
   it('groupBy가 none이 아니면 folder 헤더에 count+진척이 뜬다', () => {
     const { target, handle } = setup();
-    handle.update([row('a', 'Apple', ''), row('b', 'Banana', '')], {
-      ...defaultView,
-      groupBy: 'title',
-    });
+    handle.update(
+      [row('a', 'Apple', ''), row('b', 'Banana', '')],
+      {
+        ...defaultView,
+        groupBy: 'title',
+      },
+      DEFAULT_SETTINGS,
+    );
     const headers = target.querySelectorAll('.folder-header');
     expect(headers).toHaveLength(2); // 'A'와 'B' 두 folder
     expect(headers[0]?.querySelector('.folder-progress')?.textContent).toBe('1/1 CLEAR');
@@ -101,13 +109,13 @@ describe('scene-song-select', () => {
 
   it('groupBy가 none이면 folder 헤더가 없다', () => {
     const { target, handle } = setup();
-    handle.update([row('a', 'Apple', '')], defaultView);
+    handle.update([row('a', 'Apple', '')], defaultView, DEFAULT_SETTINGS);
     expect(target.querySelectorAll('.folder-header')).toHaveLength(0);
   });
 
   it('category 탭을 클릭하면 onCategoryChange가 불린다', () => {
     const { target, handle, onCategoryChange } = setup();
-    handle.update([row('a', 'Apple', 'Original')], defaultView);
+    handle.update([row('a', 'Apple', 'Original')], defaultView, DEFAULT_SETTINGS);
     const pills = target.querySelectorAll('.tab-pill');
     expect(Array.from(pills).map((p) => p.textContent)).toEqual(['All', 'Original']);
     (pills[1] as HTMLElement).click();
@@ -117,18 +125,18 @@ describe('scene-song-select', () => {
   it('세 축을 바꾸면 목록이 재구성된다', () => {
     const { target, handle } = setup();
     const rows = [row('a', 'Zeta', ''), row('b', 'Alpha', '')];
-    handle.update(rows, { ...defaultView, sortKey: 'title', sortDir: 'asc' });
+    handle.update(rows, { ...defaultView, sortKey: 'title', sortDir: 'asc' }, DEFAULT_SETTINGS);
     let titles = Array.from(target.querySelectorAll('.row-title')).map((el) => el.textContent);
     expect(titles).toEqual(['Alpha', 'Zeta']);
 
-    handle.update(rows, { ...defaultView, sortKey: 'title', sortDir: 'desc' });
+    handle.update(rows, { ...defaultView, sortKey: 'title', sortDir: 'desc' }, DEFAULT_SETTINGS);
     titles = Array.from(target.querySelectorAll('.row-title')).map((el) => el.textContent);
     expect(titles).toEqual(['Zeta', 'Alpha']);
   });
 
   it('sort/group 칩이 현재 axis 값을 정적으로 보여준다', () => {
     const { target, handle } = setup();
-    handle.update([], { ...defaultView, groupBy: 'updated', sortKey: 'level' });
+    handle.update([], { ...defaultView, groupBy: 'updated', sortKey: 'level' }, DEFAULT_SETTINGS);
     const chips = target.querySelectorAll('.chip');
     expect(chips[0]?.textContent).toBe('Sort · level');
     expect(chips[1]?.textContent).toBe('Group · Updated');
@@ -136,7 +144,7 @@ describe('scene-song-select', () => {
 
   it('show() 상태에서 검색 중이 아닐 때 Backspace/Escape가 onBack을 부른다', () => {
     const { handle, onBack } = setup();
-    handle.update([row('a', 'A', '')], defaultView);
+    handle.update([row('a', 'A', '')], defaultView, DEFAULT_SETTINGS);
     handle.show();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace' }));
     expect(onBack).toHaveBeenCalledTimes(1);
@@ -155,7 +163,11 @@ describe('scene-song-select', () => {
   it('첫 update에서 lastSelected로 커서를 초기화하고 onCursorChange를 부른다', () => {
     const rows = [row('a', 'A', ''), row('b', 'B', '')];
     const { handle, onCursorChange } = setup();
-    handle.update(rows, { ...defaultView, lastSelected: { songId: 'b', chartId: 1 } });
+    handle.update(
+      rows,
+      { ...defaultView, lastSelected: { songId: 'b', chartId: 1 } },
+      DEFAULT_SETTINGS,
+    );
     expect(onCursorChange).toHaveBeenCalledWith({ songId: 'b', chartId: 1 });
   });
 
@@ -184,7 +196,7 @@ describe('scene-song-select', () => {
       null,
     ]);
     const { target, handle, onCursorChange } = setup();
-    handle.update([multiSlotRow], defaultView);
+    handle.update([multiSlotRow], defaultView, DEFAULT_SETTINGS);
     handle.show();
     onCursorChange.mockClear();
 
@@ -226,7 +238,7 @@ describe('scene-song-select', () => {
       null,
     ]);
     const { handle, onCursorChange } = setup();
-    handle.update([rowA, rowB], defaultView);
+    handle.update([rowA, rowB], defaultView, DEFAULT_SETTINGS);
     handle.show();
     onCursorChange.mockClear();
 
@@ -237,7 +249,7 @@ describe('scene-song-select', () => {
 
   it('Enter가 onSelect를 부른다', () => {
     const { handle, onSelect } = setup();
-    handle.update([row('a', 'A', '')], defaultView);
+    handle.update([row('a', 'A', '')], defaultView, DEFAULT_SETTINGS);
     handle.show();
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
@@ -246,7 +258,7 @@ describe('scene-song-select', () => {
 
   it('문자 키를 누르면 검색이 시작되고 idle 힌트가 검색어로 바뀐다', () => {
     const { target, handle } = setup();
-    handle.update([row('a', 'Foo', '')], defaultView);
+    handle.update([row('a', 'Foo', '')], defaultView, DEFAULT_SETTINGS);
     handle.show();
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'f' }));
@@ -257,7 +269,7 @@ describe('scene-song-select', () => {
 
   it('매치가 없으면 no-results 상태와 빈 안내 문구를 보여준다', () => {
     const { target, handle } = setup();
-    handle.update([row('a', 'Foo', '')], defaultView);
+    handle.update([row('a', 'Foo', '')], defaultView, DEFAULT_SETTINGS);
     handle.show();
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'z' }));
@@ -269,10 +281,14 @@ describe('scene-song-select', () => {
 
   it('검색 중에는 folder 헤더 없이 평평한 목록으로 보여준다', () => {
     const { target, handle } = setup();
-    handle.update([row('a', 'Apple', ''), row('b', 'Banana', '')], {
-      ...defaultView,
-      groupBy: 'title',
-    });
+    handle.update(
+      [row('a', 'Apple', ''), row('b', 'Banana', '')],
+      {
+        ...defaultView,
+        groupBy: 'title',
+      },
+      DEFAULT_SETTINGS,
+    );
     handle.show();
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
@@ -282,7 +298,7 @@ describe('scene-song-select', () => {
 
   it('Escape가 검색 중이면 onBack 대신 검색어를 지운다', () => {
     const { target, handle, onBack } = setup();
-    handle.update([row('a', 'Foo', '')], defaultView);
+    handle.update([row('a', 'Foo', '')], defaultView, DEFAULT_SETTINGS);
     handle.show();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'f' }));
 
@@ -294,27 +310,27 @@ describe('scene-song-select', () => {
 
   it('커서가 있는 chart의 정보 패널이 뜬다(jacket·title·기록 격자)', () => {
     const { target, handle } = setup();
-    handle.update([row('a', 'A', '')], defaultView);
+    handle.update([row('a', 'A', '')], defaultView, DEFAULT_SETTINGS);
     expect(target.querySelector('.info-title')?.textContent).toBe('A');
     expect(target.querySelectorAll('.record-cell')).toHaveLength(4);
   });
 
   it('기록 없는 slot에서는 정보 패널이 안 뜬다(row가 아예 없으면)', () => {
     const { target, handle } = setup();
-    handle.update([], defaultView);
+    handle.update([], defaultView, DEFAULT_SETTINGS);
     expect(target.querySelector('.info-title')).toBeNull();
   });
 
   it('기록 칸 클릭이 onRecordCellModeChange를 부른다', () => {
     const { target, handle, onRecordCellModeChange } = setup();
-    handle.update([row('a', 'A', '')], defaultView);
+    handle.update([row('a', 'A', '')], defaultView, DEFAULT_SETTINGS);
     (target.querySelector('.record-cell-toggle') as HTMLElement).click();
     expect(onRecordCellModeChange).toHaveBeenCalledWith('judge');
   });
 
   it('기록 있는 chart에 Reset Record 버튼이 뜨고 클릭하면 onResetRecord를 부른다', () => {
     const { target, handle, onResetRecord } = setup();
-    handle.update([row('a', 'A', '')], defaultView);
+    handle.update([row('a', 'A', '')], defaultView, DEFAULT_SETTINGS);
     const button = target.querySelector('.reset-record-btn') as HTMLElement | null;
     expect(button).not.toBeNull();
     button!.click();
@@ -338,7 +354,7 @@ describe('scene-song-select', () => {
       null,
     ]);
     const { target, handle } = setup();
-    handle.update([noRecordRow], defaultView);
+    handle.update([noRecordRow], defaultView, DEFAULT_SETTINGS);
     expect(target.querySelector('.reset-record-btn')).toBeNull();
   });
 
@@ -359,18 +375,22 @@ describe('scene-song-select', () => {
       null,
     ]);
     const { target, handle } = setup();
-    handle.update([judgeRow], { ...defaultView, recordCellMode: 'judge' });
+    handle.update([judgeRow], { ...defaultView, recordCellMode: 'judge' }, DEFAULT_SETTINGS);
     expect(target.querySelector('.record-cell-toggle')?.textContent).toBe('8 / 1 / 1 / 0');
   });
 
   it('folder 헤더는 상하 이동이 지나가는 정지점이고 Enter로 펼침/접힘을 토글한다(§4)', () => {
     const rows = [row('a', 'Apple', ''), row('b', 'Banana', '')];
     const { target, handle } = setup();
-    handle.update(rows, {
-      ...defaultView,
-      groupBy: 'title',
-      lastSelected: { songId: 'a', chartId: 1 },
-    });
+    handle.update(
+      rows,
+      {
+        ...defaultView,
+        groupBy: 'title',
+        lastSelected: { songId: 'a', chartId: 1 },
+      },
+      DEFAULT_SETTINGS,
+    );
     handle.show();
 
     // 진입 시 lastSelected('a')가 속한 folder('A')만 펼쳐져 있다 — 'B'는 헤더뿐.
@@ -394,7 +414,7 @@ describe('scene-song-select', () => {
   it('folder 헤더 클릭도 Enter와 동등하게 펼침/접힘을 토글한다(§7 마우스)', () => {
     const rows = [row('a', 'Apple', '')];
     const { target, handle } = setup();
-    handle.update(rows, { ...defaultView, groupBy: 'title' });
+    handle.update(rows, { ...defaultView, groupBy: 'title' }, DEFAULT_SETTINGS);
     expect(target.querySelectorAll('.song-row')).toHaveLength(1);
 
     (target.querySelector('.folder-header') as HTMLElement).click();
@@ -407,11 +427,15 @@ describe('scene-song-select', () => {
   it('펼치면 다른 folder는 자동으로 접힌다(아코디언, 한 번에 하나만)', () => {
     const rows = [row('a', 'Apple', ''), row('b', 'Banana', '')];
     const { target, handle } = setup();
-    handle.update(rows, {
-      ...defaultView,
-      groupBy: 'title',
-      lastSelected: { songId: 'a', chartId: 1 },
-    });
+    handle.update(
+      rows,
+      {
+        ...defaultView,
+        groupBy: 'title',
+        lastSelected: { songId: 'a', chartId: 1 },
+      },
+      DEFAULT_SETTINGS,
+    );
     expect(
       target.querySelectorAll('.song-row').item(0)?.querySelector('.row-title')?.textContent,
     ).toBe('Apple');
@@ -425,7 +449,11 @@ describe('scene-song-select', () => {
   it('Home/End가 목록의 처음/끝으로 간다(§7)', () => {
     const rows = [row('a', 'A', ''), row('b', 'B', ''), row('c', 'C', '')];
     const { handle, onCursorChange } = setup();
-    handle.update(rows, { ...defaultView, lastSelected: { songId: 'b', chartId: 1 } });
+    handle.update(
+      rows,
+      { ...defaultView, lastSelected: { songId: 'b', chartId: 1 } },
+      DEFAULT_SETTINGS,
+    );
     handle.show();
     onCursorChange.mockClear();
 
@@ -439,12 +467,127 @@ describe('scene-song-select', () => {
   it('PageDown/PageUp이 여러 row를 한 번에 건너뛴다(§7 "한 화면 단위")', () => {
     const rows = Array.from({ length: 10 }, (_, i) => row(String(i), String(i), ''));
     const { handle, onCursorChange } = setup();
-    handle.update(rows, defaultView);
+    handle.update(rows, defaultView, DEFAULT_SETTINGS);
     handle.show();
     onCursorChange.mockClear();
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown' }));
     const firstCall = onCursorChange.mock.calls[0]![0] as { songId: string };
     expect(Number(firstCall.songId)).toBeGreaterThan(1); // 한 칸(ArrowDown)보다 더 간다.
+  });
+
+  describe('quick options overlay(M4-7)', () => {
+    it('Space가 오버레이를 연다', () => {
+      const { target, handle } = setup();
+      handle.update([row('a', 'A', '')], defaultView, DEFAULT_SETTINGS);
+      handle.show();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+      expect(target.querySelector('.quick-options-overlay')?.hasAttribute('hidden')).toBe(false);
+    });
+
+    it('열려 있는 동안은 scene 입력(ArrowDown 등)이 막힌다', () => {
+      const rows = [row('a', 'A', ''), row('b', 'B', '')];
+      const { handle, onCursorChange } = setup();
+      handle.update(rows, defaultView, DEFAULT_SETTINGS);
+      handle.show();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+      onCursorChange.mockClear();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+      expect(onCursorChange).not.toHaveBeenCalled();
+    });
+
+    it('Esc/Space로 닫힌다', () => {
+      const { target, handle } = setup();
+      handle.update([row('a', 'A', '')], defaultView, DEFAULT_SETTINGS);
+      handle.show();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      expect(target.querySelector('.quick-options-overlay')?.hasAttribute('hidden')).toBe(true);
+    });
+
+    it('ArrowDown/Up이 row를 이동하고 ArrowLeft/Right가 draft를 바꾼다', () => {
+      const { target, handle } = setup();
+      handle.update([row('a', 'A', '')], defaultView, DEFAULT_SETTINGS);
+      handle.show();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+      expect(target.querySelectorAll('.quick-options-row')[1]?.classList.contains('active')).toBe(
+        true,
+      ); // gaugeMode row
+
+      const before = target
+        .querySelectorAll('.quick-options-row')[1]
+        ?.querySelector('.quick-options-value')?.textContent;
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+      const after = target
+        .querySelectorAll('.quick-options-row')[1]
+        ?.querySelector('.quick-options-value')?.textContent;
+      expect(after).not.toBe(before);
+    });
+
+    it('Enter가 draft를 확정하고 onQuickOptionsChange를 부른다', () => {
+      const { handle, onQuickOptionsChange } = setup();
+      handle.update([row('a', 'A', '')], defaultView, DEFAULT_SETTINGS);
+      handle.show();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' })); // open, row=scrollSpeed
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); // draft += step
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+      expect(onQuickOptionsChange).toHaveBeenCalledWith(
+        expect.objectContaining({ scrollSpeed: DEFAULT_SETTINGS.scrollSpeed + 0.1 }),
+      );
+    });
+
+    it('row 이동은 미확정 draft를 버린다', () => {
+      const { handle, onQuickOptionsChange } = setup();
+      handle.update([row('a', 'A', '')], defaultView, DEFAULT_SETTINGS);
+      handle.show();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); // scrollSpeed draft만 바뀜
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' })); // 이동 — draft 버려짐
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp' })); // scrollSpeed로 복귀
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+      expect(onQuickOptionsChange).not.toHaveBeenCalled();
+    });
+
+    it('bool 필드 클릭은 그 즉시 draft를 토글한다(값 자체는 Enter로 확정)', () => {
+      const { target, handle, onQuickOptionsChange } = setup();
+      handle.update([row('a', 'A', '')], defaultView, DEFAULT_SETTINGS);
+      handle.show();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+      function mirrorRow(): HTMLElement {
+        return [...target.querySelectorAll('.quick-options-row')].find(
+          (r) => r.querySelector('.quick-options-label')?.textContent === 'Mirror',
+        ) as HTMLElement;
+      }
+      mirrorRow().click();
+      expect(mirrorRow().querySelector('.quick-options-value')?.textContent).toBe(
+        DEFAULT_SETTINGS.mirror ? 'OFF' : 'ON',
+      );
+      expect(onQuickOptionsChange).not.toHaveBeenCalled(); // 아직 Enter 전.
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+      expect(onQuickOptionsChange).toHaveBeenCalledWith(
+        expect.objectContaining({ mirror: !DEFAULT_SETTINGS.mirror }),
+      );
+    });
+
+    it('wheel이 위/아래로 한 칸씩 draft를 바꾼다', () => {
+      const { target, handle } = setup();
+      handle.update([row('a', 'A', '')], defaultView, DEFAULT_SETTINGS);
+      handle.show();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+      const overlay = target.querySelector('.quick-options-overlay') as HTMLElement;
+      overlay.dispatchEvent(new WheelEvent('wheel', { deltaY: -1 }));
+      const activeValue = target.querySelector('.quick-options-row.active .quick-options-value');
+      expect(activeValue?.textContent).toBe((DEFAULT_SETTINGS.scrollSpeed + 0.1).toFixed(1));
+    });
+
+    it('hide()는 오버레이를 닫는다', () => {
+      const { target, handle } = setup();
+      handle.update([row('a', 'A', '')], defaultView, DEFAULT_SETTINGS);
+      handle.show();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+      handle.hide();
+      expect(target.querySelector('.quick-options-overlay')?.hasAttribute('hidden')).toBe(true);
+    });
   });
 });

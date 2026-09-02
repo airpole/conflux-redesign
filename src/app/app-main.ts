@@ -218,6 +218,9 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
             await refreshSongSelect(view);
           })();
         },
+        onQuickOptionsChange(settings): void {
+          void writeSettings(storage, settings);
+        },
       };
       songSelectHandle = mountSongSelectScene(root, {
         ...handlers,
@@ -249,11 +252,14 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
   async function refreshSongSelect(
     view: Awaited<ReturnType<typeof readSongSelectViewState>>,
   ): Promise<void> {
-    const { rows, warnings } = await loadSongSelectRows(storage);
+    const [{ rows, warnings }, settings] = await Promise.all([
+      loadSongSelectRows(storage),
+      readSettings(storage),
+    ]);
     if (warnings.length > 0) {
       console.warn(`song-select: decode 실패한 library entry — ${warnings.join(', ')}`);
     }
-    songSelectHandle!.update(rows, view);
+    songSelectHandle!.update(rows, view, settings);
   }
 
   // ── M4-5: song-credit → gameplay → result ────────────────────────────

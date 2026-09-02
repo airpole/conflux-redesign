@@ -9,6 +9,32 @@
  * 콜백(실제 재생은 `game-song-preview.ts`), 기록 초기화 진입점(옵션,
  * `FEATURES.recordReset` 게이팅은 호출측 몫).
  *
+ * **M4-7이 quick options 오버레이를 더했다**([[scene]] §5·§10, 로직은
+ * `core-quick-options.ts`). `Space`로 열고 Esc/Space로 닫는다 — 열려 있는
+ * 동안은 `onKeyDown`이 이 파일의 다른 어떤 처리로도 새지 않고 오버레이
+ * 전용 핸들러(`onQuickOptionsKeyDown`)로만 간다(§10 "열림 중 scene 입력
+ * 차단"). 5필드(scrollSpeed/gaugeMode/mirror/staticShape/autoplay)를
+ * 위아래로 나열하고, ↑↓는 row 이동·←→는 한 칸 step·휠은 위/아래 한 칸씩
+ * step·클릭은 그 값으로 즉시 점프·Enter는 지금 row의 draft를 확정한다
+ * (전부 `core-quick-options.ts`가 이미 정한 순수 로직 — 이 파일은 DOM과
+ * 키/휠/클릭 이벤트만 그 함수들에 잇는다). row 하나가 Enter로 확정될
+ * 때마다 `handlers.onQuickOptionsChange(settings)`를 그 즉시 부른다
+ * ([[settings]] D-2026-022 "즉시 영속 필드" — M4-6의 설정 화면과 같은
+ * 즉시-커밋 패턴). autoplay/staticShape가 이 경로로 바뀌면 다음 gameplay
+ * 진입(`app-main.ts`의 `readSettings`)이 그 값을 그대로 읽어 no-record
+ * 게이트([[settings]] §4의 OR 4조건, `core-records.ts`의 `isNoRecord`)에
+ * 자동으로 반영된다 — no-record 로직 자체는 M4-5가 이미 완성해 뒀고,
+ * M4-7이 잇는 건 "이 값을 바꿀 수 있는 새 입구 하나"뿐이다.
+ *
+ * 오버레이를 닫을 때(Esc/Space) 지금 row의 미확정 draft는 버려진다 — row
+ * 이동 시 버려지는 것과 같은 규칙을 닫기에도 확장한 것으로, 스펙이 닫을
+ * 때의 draft 처리를 명시하지 않아 이 세션이 정했다(결정 필요 항목).
+ * 클릭의 "즉시 점프"는 bool 필드(mirror/staticShape/autoplay)는 토글로
+ * 정확히 구현했지만 scrollSpeed/gaugeMode는 클릭 위치→값 환산 UI(슬라이더
+ * 드래그 등)가 없어 지금 표시된 값을 그대로 다시 넘긴다(사실상 "이
+ * row를 고른다"는 역할만 한다) — ui-design.md가 이 오버레이의 픽셀
+ * 배치를 아직 정의하지 않아(결정 필요 항목) 최소 기능 목록형 UI로 뒀다.
+ *
  * **folder 헤더는 row와 같은 메커니즘으로 상하 이동이 지나가는 정지점이다**
  * (§4 "아코디언이다 — 하나를 펼치면 다른 folder는 접힌다") — 새 인터랙션
  * 어휘를 만들지 않고 기존 `Enter`(다른 곳에서도 "확정/토글" 역할)와 기존
@@ -57,6 +83,18 @@ import {
   type SongRow,
   type SongSelectViewState,
 } from '../core/core-song-select.js';
+import {
+  applyQuickOptions,
+  confirmQuickOption,
+  jumpQuickOption,
+  moveQuickOptionsRow,
+  openQuickOptions,
+  stepQuickOption,
+  QUICK_OPTION_FIELDS,
+  type QuickOptionField,
+  type QuickOptionsState,
+} from '../core/core-quick-options.js';
+import { DEFAULT_SETTINGS, type Settings } from '../core/core-settings.js';
 import { translate } from '../core/core-i18n.js';
 
 export type { SongSelectViewState };
@@ -68,8 +106,10 @@ const PAGE_STOP_COUNT = 5;
 export interface SongSelectSceneHandle {
   /** 전체 row 목록과 표시 axis를 다시 받아 목록을 재구성한다. 커서는
    *  `view.lastSelected`를 시작점으로 두되, 이후 내부적으로 관리한다
-   *  (재호출로 덮어쓰지 않는다 — 그러면 axis만 바꿨는데 커서가 리셋된다). */
-  update(rows: readonly SongRow[], view: SongSelectViewState): void;
+   *  (재호출로 덮어쓰지 않는다 — 그러면 axis만 바꿨는데 커서가 리셋된다).
+   *  `settings`는 quick options 오버레이가 여는 순간 스냅샷의 출처다 —
+   *  매 `onEnter`마다 최신값으로 다시 넘겨받는다(M4-7). */
+  update(rows: readonly SongRow[], view: SongSelectViewState, settings: Settings): void;
   show(): void;
   hide(): void;
 }
@@ -90,6 +130,11 @@ export interface SongSelectHandlers {
   /** `FEATURES.recordReset`이 켜졌을 때만 넘겨준다 — 없으면 버튼 자체를
    *  안 그린다(§13 "FEATURES.recordReset에서만 노출"). */
   readonly onResetRecord?: (target: CursorTarget) => void;
+  /** quick options 오버레이에서 필드 하나가 확정될 때마다(Enter) 그 즉시
+   *  불린다 — [[settings]] D-2026-022 "즉시 영속 필드"를 따라 `writeSettings`
+   *  로 잇는 건 호출측 몫이다(M4-6의 `SettingsHandlers.onChange`와 같은
+   *  패턴). */
+  readonly onQuickOptionsChange: (settings: Settings) => void;
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(
@@ -133,7 +178,12 @@ export function mountSongSelectScene(
   const listCol = el('div', 'list-col');
   body.append(infoPanel, listCol);
 
-  root.append(topBar, listOptionsBar, body);
+  const quickOptionsOverlay = el('div', 'quick-options-overlay');
+  quickOptionsOverlay.hidden = true;
+  const quickOptionsPanel = el('div', 'quick-options-panel');
+  quickOptionsOverlay.append(quickOptionsPanel);
+
+  root.append(topBar, listOptionsBar, body, quickOptionsOverlay);
   target.append(root);
 
   // ── 내부 상태 ──────────────────────────────────────────────────────
@@ -167,6 +217,13 @@ export function mountSongSelectScene(
   let headerFocusFolderIndex: number | null = null;
   let searchQuery = '';
   let currentStops: readonly CursorStop[] = [];
+
+  // ── quick options overlay(M4-7, `scene.md` §5·§10) ───────────────────
+  // `settings`는 host(`app-main.ts`)가 매 `update()`마다 최신값을 넘긴다 —
+  // `update()`가 `show()`보다 먼저 불려야 한다는 계약은 다른 scene들과
+  // 같다(자리표시자는 그 계약이 지켜지는 한 실제로 쓰이지 않는다).
+  let currentSettings: Settings = DEFAULT_SETTINGS;
+  let quickOptionsState: QuickOptionsState | null = null;
 
   function isFolderExpanded(hasHeaders: boolean, folderIndex: number): boolean {
     return !hasHeaders || folderIndex === expandedFolderIndex;
@@ -235,6 +292,150 @@ export function mountSongSelectScene(
       handlers.onCursorChange(newTarget);
     }
   }
+
+  // ── quick options overlay ─────────────────────────────────────────
+
+  const QUICK_OPTION_LABEL: Record<QuickOptionField, string> = {
+    scrollSpeed: 'Scroll Speed',
+    gaugeMode: 'Gauge',
+    mirror: 'Mirror',
+    staticShape: 'Static Shape',
+    autoplay: 'Autoplay',
+  };
+
+  function openQuickOptionsOverlay(): void {
+    quickOptionsState = openQuickOptions(currentSettings);
+    quickOptionsOverlay.hidden = false;
+    renderQuickOptions();
+  }
+
+  /** Esc/Space로 닫을 때 — row 이동과 같은 규칙으로 지금 row의 미확정
+   *  draft를 버린다(파일 헤더 없음, `core-quick-options.ts`의 "이동하면
+   *  미확정 값이 버려진다" 규칙을 닫기에도 확장한 것 — 결정 필요 항목으로
+   *  보고, 스펙은 닫을 때의 draft 처리를 명시하지 않는다). */
+  function closeQuickOptionsOverlay(): void {
+    quickOptionsState = null;
+    quickOptionsOverlay.hidden = true;
+  }
+
+  function commitQuickOptionsRow(state: QuickOptionsState): void {
+    const confirmed = confirmQuickOption(state);
+    quickOptionsState = confirmed;
+    if (confirmed.committed !== state.committed) {
+      currentSettings = applyQuickOptions(currentSettings, confirmed);
+      handlers.onQuickOptionsChange(currentSettings);
+    }
+  }
+
+  function moveQuickOptionsRowTo(state: QuickOptionsState, targetIndex: number): QuickOptionsState {
+    let next = state;
+    while (next.rowIndex < targetIndex) next = moveQuickOptionsRow(next, 'down');
+    while (next.rowIndex > targetIndex) next = moveQuickOptionsRow(next, 'up');
+    return next;
+  }
+
+  function renderQuickOptions(): void {
+    if (quickOptionsState === null) return;
+    const state = quickOptionsState;
+    quickOptionsPanel.replaceChildren();
+    const title = el('div', 'quick-options-title');
+    title.textContent = 'Quick Options';
+    quickOptionsPanel.append(title);
+
+    QUICK_OPTION_FIELDS.forEach((field, index) => {
+      const row = el('div', `quick-options-row${index === state.rowIndex ? ' active' : ''}`);
+      const label = el('span', 'quick-options-label');
+      label.textContent = QUICK_OPTION_LABEL[field];
+      const value = el('span', 'quick-options-value');
+      const shown = index === state.rowIndex ? state.draft : state.committed[field];
+      value.textContent = formatQuickOptionValue(field, shown);
+      row.append(label, value);
+      row.addEventListener('click', () => {
+        if (quickOptionsState === null) return;
+        quickOptionsState = jumpQuickOption(
+          moveQuickOptionsRowTo(quickOptionsState, index),
+          jumpValueFor(field, shown),
+        );
+        renderQuickOptions();
+      });
+      quickOptionsPanel.append(row);
+    });
+
+    const hint = el('div', 'quick-options-hint');
+    hint.textContent = '↑↓ Row · ←→ Change · Enter Confirm · Esc/Space Close';
+    quickOptionsPanel.append(hint);
+  }
+
+  function formatQuickOptionValue(
+    field: QuickOptionField,
+    value: QuickOptionsState['draft'],
+  ): string {
+    if (field === 'scrollSpeed') return (value as number).toFixed(1);
+    if (field === 'gaugeMode') return String(value).toUpperCase();
+    return value ? 'ON' : 'OFF';
+  }
+
+  /** 클릭 = "그 값으로 즉시 점프"(§5) — bool 필드는 두 값뿐이라 클릭이 곧
+   *  토글이고, gaugeMode·scrollSpeed는 지금 표시된 값 그대로를 다시
+   *  넘긴다(정확한 클릭 위치→값 환산 UI가 없어, 클릭은 "이 row를 고른다"는
+   *  역할까지만 하고 값 자체는 좌우 화살표/휠로 바꾸는 걸 전제로 한다 —
+   *  scrollSpeed에 실제 슬라이더 드래그를 붙이는 건 결정 필요 항목으로
+   *  남긴다, ui-design.md가 이 오버레이의 픽셀 배치를 아직 정의하지 않음). */
+  function jumpValueFor(
+    field: QuickOptionField,
+    shown: QuickOptionsState['draft'],
+  ): QuickOptionsState['draft'] {
+    if (field === 'mirror' || field === 'staticShape' || field === 'autoplay') return !shown;
+    return shown;
+  }
+
+  function onQuickOptionsKeyDown(event: KeyboardEvent): void {
+    if (quickOptionsState === null) return;
+    switch (event.key) {
+      case 'Escape':
+      case ' ':
+        event.preventDefault();
+        closeQuickOptionsOverlay();
+        return;
+      case 'ArrowUp':
+        event.preventDefault();
+        quickOptionsState = moveQuickOptionsRow(quickOptionsState, 'up');
+        renderQuickOptions();
+        return;
+      case 'ArrowDown':
+        event.preventDefault();
+        quickOptionsState = moveQuickOptionsRow(quickOptionsState, 'down');
+        renderQuickOptions();
+        return;
+      case 'ArrowLeft':
+        event.preventDefault();
+        quickOptionsState = stepQuickOption(quickOptionsState, 'left');
+        renderQuickOptions();
+        return;
+      case 'ArrowRight':
+        event.preventDefault();
+        quickOptionsState = stepQuickOption(quickOptionsState, 'right');
+        renderQuickOptions();
+        return;
+      case 'Enter':
+        event.preventDefault();
+        commitQuickOptionsRow(quickOptionsState);
+        renderQuickOptions();
+        return;
+    }
+  }
+
+  function onQuickOptionsWheel(event: WheelEvent): void {
+    if (quickOptionsState === null) return;
+    event.preventDefault();
+    quickOptionsState = stepQuickOption(
+      quickOptionsState,
+      event.deltaY < 0 ? 'scrollUp' : 'scrollDown',
+    );
+    renderQuickOptions();
+  }
+
+  quickOptionsOverlay.addEventListener('wheel', onQuickOptionsWheel, { passive: false });
 
   function renderTabs(): void {
     tabBar.replaceChildren();
@@ -419,6 +620,17 @@ export function mountSongSelectScene(
   }
 
   function onKeyDown(event: KeyboardEvent): void {
+    // quick options가 열려 있는 동안은 scene 입력이 전부 막힌다(§10 "열림
+    // 중 scene 입력 차단") — 여기서 완전히 갈라 아래로 새지 않게 한다.
+    if (quickOptionsState !== null) {
+      onQuickOptionsKeyDown(event);
+      return;
+    }
+    if (event.key === ' ') {
+      event.preventDefault();
+      openQuickOptionsOverlay();
+      return;
+    }
     if (event.key === 'Escape') {
       event.preventDefault();
       if (searchQuery !== '') {
@@ -509,9 +721,10 @@ export function mountSongSelectScene(
   }
 
   return {
-    update(rows: readonly SongRow[], nextView: SongSelectViewState): void {
+    update(rows: readonly SongRow[], nextView: SongSelectViewState, settings: Settings): void {
       allRows = rows;
       view = nextView;
+      currentSettings = settings;
       // lastSelected는 커서가 아직 한 번도 안 정해졌을 때만 시작점으로
       // 쓴다 — 이후로는 이 함수가 다시 불려도(axis 변경 등) 내부 커서를
       // 덮어쓰지 않는다(§8 "변경 전 커서의 chart를 그대로 유지").
@@ -524,6 +737,7 @@ export function mountSongSelectScene(
     },
     hide(): void {
       root.hidden = true;
+      closeQuickOptionsOverlay();
       document.removeEventListener('keydown', onKeyDown);
     },
   };

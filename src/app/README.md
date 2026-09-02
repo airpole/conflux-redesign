@@ -52,3 +52,14 @@ M4-6이 mode-select의 `settings` 목적지를 `settings-play`로 잇고, 네
 필드 커밋마다 `writeSettings`로 전체 settings를 즉시 저장하고,
 `onCategoryChange`는 `goScene('settings-<category>')`, `onBack`은
 `goScene('mode-select')`로 배선했다.
+
+M4-7이 song-select의 quick options 오버레이를 잇는 `onQuickOptionsChange`
+핸들러를 더했다 — row가 Enter로 확정될 때마다 `writeSettings(storage,
+settings)`로 즉시 저장한다(M4-6의 `SettingsHandlers.onChange`와 같은
+즉시-커밋 패턴). `refreshSongSelect`가 이제 `loadSongSelectRows`와
+`readSettings`를 병렬로 읽어 `songSelectHandle.update(rows, view, settings)`
+세 번째 인자로 함께 넘긴다 — 오버레이가 여는 순간의 값 스냅샷 출처다.
+no-record 게이트 로직 자체(`isNoRecord`, `saveRecordIfEligible` 호출)는
+M4-5가 이미 완성해 뒀다 — `enterSongCredit`이 매 진입마다 `readSettings`로
+최신값을 읽으므로 quick options로 바꾼 `autoplay`/`staticShape`는 별도
+배선 없이 다음 판부터 그 게이트에 반영된다.

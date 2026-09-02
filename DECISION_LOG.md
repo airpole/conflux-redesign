@@ -1292,6 +1292,29 @@
 - **Commit:** `784f437c2e19c490252f6c38d177302bfb5eeda5`
 
 
+### D-2026-092 — M4-7: quick options 오버레이 배치 + no-record 결선
+
+- **Status:** Accepted (구현분) / 오버레이 픽셀 배치는 결정 필요 — 아래 참조
+- **Decision:** song-select `Space`가 quick options 오버레이(`scene.md` §5·§10, 로직은 이미 완성돼 있던 `core-quick-options.ts`)를 열고, Esc/Space로 닫는다. 열려 있는 동안 `scene-song-select.ts`의 `onKeyDown`은 오버레이 전용 핸들러로만 가고 검색·커서 이동 등 나머지 scene 입력은 전혀 처리하지 않는다(§10 "열림 중 scene 입력 차단"). 5필드(scrollSpeed/gaugeMode/mirror/staticShape/autoplay)를 목록으로 나열해 ↑↓=row 이동, ←→=한 칸 step, 휠=위/아래 한 칸씩 step, 클릭=그 값으로 즉시 점프, Enter=지금 row의 draft 확정으로 구현했다 — 전부 `core-quick-options.ts`의 기존 순수 함수(`moveQuickOptionsRow`/`stepQuickOption`/`jumpQuickOption`/`confirmQuickOption`/`applyQuickOptions`)를 그대로 호출할 뿐이고, 이 세션은 DOM·키·휠·클릭 이벤트를 그 함수들에 잇는 host 배선만 했다.
+
+  **no-record 결선**: `SongSelectHandlers`에 `onQuickOptionsChange(settings)`를 추가해, row가 Enter로 확정될 때마다 그 즉시 불린다(`applyQuickOptions`로 병합한 전체 `Settings`) — `app-main.ts`가 이를 `writeSettings(storage, settings)`로 영속한다([[settings]] D-2026-022 "즉시 영속 필드", M4-6의 설정 화면 `onChange`와 같은 즉시-커밋 패턴). no-record OR 4조건(`isNoRecord`, `core-records.ts`)과 `saveRecordIfEligible` 호출 배선 자체는 M4-5(D-2026-088)가 이미 완성해 뒀다 — `app-main.ts`의 `enterSongCredit`이 매 진입마다 `readSettings(storage)`로 최신 저장값을 읽어 gameplay에 넘기므로, quick options로 바꾼 `autoplay`/`staticShape`는 다음 판 시작부터 no-record 게이트에 자동으로 반영된다. M4-7이 새로 더한 건 "이 두 필드를 바꿀 수 있는 입구 하나"뿐이고, 게이트 로직 자체를 다시 만들지 않았다.
+
+  `SongSelectSceneHandle.update()`에 세 번째 인자 `settings: Settings`를 추가했다(오버레이가 열리는 순간의 스냅샷 출처, M4-6 settings 화면과 같은 "update가 show보다 먼저 불려야 한다" 계약) — `app-main.ts`의 `refreshSongSelect`가 `loadSongSelectRows`와 `readSettings`를 병렬로 읽어 함께 넘긴다.
+
+  **오버레이의 픽셀 배치는 결정 필요 항목이다** — `ui-design.md`가 이 오버레이의 레이아웃을 아직 정의하지 않아(§2.6 setting 화면과 달리 quick options 전용 절이 없다), M4-6 settings 화면과 같은 기존 토큰으로 최소 기능 목록형 UI(중앙 모달, 5행)만 뒀다. 배치가 확정되면 재검토.
+
+  **클릭의 "즉시 점프"는 필드 성격에 따라 두 갈래로 구현했다**: bool 필드(mirror/staticShape/autoplay)는 값이 둘뿐이라 클릭이 정확히 스펙대로(그 값으로 즉시 점프 = 토글) 동작한다. scrollSpeed/gaugeMode는 클릭 위치→값 환산 UI(슬라이더 드래그 등)가 없어 클릭이 "그 row를 고른다"는 역할만 하고 값 자체는 좌우 화살표/휠로 바꾼다 — 오버레이 배치가 결정 필요 항목인 것과 같은 이유로, 정확한 클릭-점프는 배치가 정해지면 함께 재검토한다.
+
+  **닫을 때(Esc/Space)의 미확정 draft 처리는 이 세션이 정했다**: row 이동 시 미확정 draft가 버려지는 `core-quick-options.ts`의 기존 규칙을 닫기에도 그대로 확장했다 — 스펙이 닫을 때의 draft 처리를 명시하지 않아서다(결정 필요 항목). 즉, Enter로 확정하지 않은 값은 오버레이를 닫으면 사라진다.
+
+  테스트 신규: `scene-song-select.test.ts`에 quick options overlay describe 블록 9개(Space로 열기·열림 중 scene 입력 차단·Esc/Space로 닫기·row 이동과 step·Enter 확정과 `onQuickOptionsChange` 호출·row 이동이 미확정 draft를 버림·bool 필드 클릭 토글·wheel step·hide()가 오버레이를 닫음) — `update()` 시그니처 변경으로 기존 호출부 전체(27곳)에 `DEFAULT_SETTINGS` 인자를 추가했다(동작 변경 없는 순수 시그니처 맞춤). 전체 1178/1178 통과.
+- **Defined in:** `src/scene/scene-song-select.ts`, `src/scene/scene-song-select.css`, `src/app/app-main.ts`
+- **Rationale:** Not required
+- **Affects:** scene, app — M4-7 완료
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

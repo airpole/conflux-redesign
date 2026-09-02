@@ -201,3 +201,66 @@
 .song-select-scene .state-bar.state-N {
   display: none;
 }
+
+/* quick options 오버레이 — M4-7, `scene.md` §5·§10.
+   ui-design.md가 픽셀 배치를 아직 정의하지 않아(결정 필요 항목,
+   scene-song-select.ts 헤더 참조) settings 화면과 같은 기존 토큰으로 최소
+   기능 목록형 UI만 뒀다. */
+.song-select-scene .quick-options-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(5 5 8 / 70%);
+}
+
+.song-select-scene .quick-options-panel {
+  min-width: 24cqw;
+  background: var(--bg);
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  padding: 1.5cqw 2cqw;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8cqw;
+}
+
+.song-select-scene .quick-options-title {
+  font-family: var(--sans);
+  color: var(--cyan);
+  font-size: 1.1cqw;
+}
+
+.song-select-scene .quick-options-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1cqw;
+  padding: 0.3cqw 0.6cqw;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.song-select-scene .quick-options-row.active {
+  border-color: var(--cyan);
+}
+
+.song-select-scene .quick-options-label {
+  font-family: var(--sans);
+  color: var(--text);
+  font-size: 1cqw;
+}
+
+.song-select-scene .quick-options-value {
+  font-family: var(--mono);
+  color: var(--cyan);
+  font-size: 1cqw;
+}
+
+.song-select-scene .quick-options-hint {
+  font-family: var(--sans);
+  color: var(--dim);
+  font-size: 0.75cqw;
+  margin-top: 0.4cqw;
+}
