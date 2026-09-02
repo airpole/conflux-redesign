@@ -51,10 +51,15 @@ Resume"). `paused` 동안은 `game-judge-input.ts`가 `judgeKeyDown`/`Up` 대신
 M2-7: `game-visibility.ts`(`attachAutoPause`)·`game-pause-keys.ts`
 (`attachPauseKeys`)가 붙었다 — 둘 다 `session.pause()`(멱등, 이미 pause
 상태거나 끝난 세션엔 아무 일도 안 함)를 호출만 하는 얇은 이벤트 배선이다.
-전자는 `visibilitychange`의 `document.hidden`만 보고 `blur`는 무시한다
-(`scene.md` §9). 후자는 Escape/Backspace `keydown`에서 `preventDefault()`
-후 pause한다 — 전체화면 중 Esc는 브라우저에 예약돼 있어(D-2026-052)
-Backspace가 실제 대체키다.
+`visibilitychange`의 `document.hidden`은 설정과 무관하게 항상 pause를
+건다(`scene.md` §9). `blur`는 원래(M2-7) 무시했지만 M4-5가
+`Settings.pauseOnBlur`(기본 `true`, D-2026-089)로 게이팅해 기본적으로도
+pause를 걸도록 뒤집었다 — `attachAutoPause(session, pauseOnBlur, doc?,
+win?)`의 두 번째 인자가 그 값이고, 함수 자체는 기본 `false`라 인자 없이
+부르면 M2-7 당시 동작(blur 무시) 그대로다. `attachPauseKeys`는
+Escape/Backspace `keydown`에서 `preventDefault()` 후 pause한다 —
+전체화면 중 Esc는 브라우저에 예약돼 있어(D-2026-052) Backspace가 실제
+대체키다.
 
 **M4-5가 실제 host를 붙였다** — pause overlay UI·`env-audio.decode()` 배선·
 `game-records.ts` 실제 호출은 `src/scene/scene-gameplay.ts`가 맡는다(아래

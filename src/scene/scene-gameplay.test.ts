@@ -121,6 +121,28 @@ describe('scene-gameplay', () => {
     expect((target.querySelector('.pause-overlay') as HTMLElement).hidden).toBe(false);
   });
 
+  it('settings.pauseOnBlur가 true(기본값)면 blur가 pause overlay를 연다(D-2026-089)', async () => {
+    const { handle } = setup();
+    handle.show();
+    handle.start(fakeInput()); // DEFAULT_SETTINGS.pauseOnBlur === true
+
+    window.dispatchEvent(new Event('blur'));
+    await tick();
+
+    expect((target.querySelector('.pause-overlay') as HTMLElement).hidden).toBe(false);
+  });
+
+  it('settings.pauseOnBlur가 false면 blur만으로는 pause overlay가 안 뜬다', async () => {
+    const { handle } = setup();
+    handle.show();
+    handle.start(fakeInput({ settings: { ...DEFAULT_SETTINGS, pauseOnBlur: false } }));
+
+    window.dispatchEvent(new Event('blur'));
+    await tick();
+
+    expect((target.querySelector('.pause-overlay') as HTMLElement).hidden).toBe(true);
+  });
+
   it('Exit 버튼 클릭이 onExit을 부른다(§9 "Exit: song-select")', () => {
     const { handle, onExit } = setup();
     handle.show();

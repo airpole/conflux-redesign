@@ -184,7 +184,9 @@ pause는 engine을 살리는 overlay다. result는 정식 scene이다.
 
 Resume은 **정지 카운트다운 재개**다 `[수정]` (D-2026-022): 화면·시간을 pause 지점에 고정한 채 카운트다운을 표시하고, 끝나면 정확히 그 지점부터 음악·판정이 흐른다. 되감기(lead-in) 없음. pause 사용은 no-record 게이트와 무관하다 — mid-start 정의는 [[settings]] §2.
 
-탭이 백그라운드로 전환되면(`visibilitychange` hidden) gameplay는 자동으로 pause overlay를 연다 `[신규]`. Resume 규칙은 위와 같다. 창 포커스만 잃은 경우(blur)에는 pause하지 않는다.
+탭이 백그라운드로 전환되면(`visibilitychange` hidden) gameplay는 자동으로 pause overlay를 연다 `[신규]`. Resume 규칙은 위와 같다. 이 동작은 설정과 무관하게 항상 켜져 있다.
+
+창 포커스만 잃은 경우(blur, 탭은 계속 보임)의 auto-pause는 `Settings.pauseOnBlur`(기본값 `true`)를 따른다 `[수정]` (D-2026-089) — 이전 판은 devtools를 여는 등 탭이 보이는 채로 blur만 뜨는 상황의 오탐을 피하려고 blur를 아예 무시했으나, 기본값을 켜 둔 채로 재검토했다: 플레이어가 자리를 비우거나 다른 창을 볼 때 진행 중인 판이 안전하게 멈추는 쪽을 기본으로 삼는 편이 devtools 오탐(끄면 피할 수 있다)보다 우선한다고 판단했다. `pauseOnBlur`를 끄면 이전 판의 동작(blur 무시)으로 정확히 되돌아간다.
 
 `.cfx` decode·음원 로드 등 비동기 작업이 [[constants]] `LOADING_INDICATOR_DELAY_MS`를 넘기면 로딩 표시를 낸다 `[신규]`.
 
@@ -234,7 +236,7 @@ CTX 상세 → [[architecture]].
 - [x] gameplay host = selected active chart
 - [x] quick options 공유·no-record link
 - [x] pause overlay·result scene·정지 카운트다운 재개(기록 유지) `[수정]` (D-2026-022)
-- [x] 탭 백그라운드 시 auto-pause, blur 제외 `[신규]`
+- [x] 탭 백그라운드 시 auto-pause(설정과 무관하게 항상) `[신규]` — blur는 `Settings.pauseOnBlur`(기본 `true`)를 따름 `[수정]` (D-2026-089, 최초는 blur 제외였다)
 - [x] 로딩 표시 임계 `[신규]`
 - [x] 곡 종료 시각·autoplay 종료 전이 — 정의는 [[timing]] §9 (D-2026-030)
 - [x] build gate

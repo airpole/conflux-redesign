@@ -90,8 +90,12 @@ ui-design 범위 밖이라 최소 골격만 뒀다.
 그리고, `session.result`가 생기면 `onFinished`를 정확히 한 번 부른다.
 pause overlay(Resume/Retry/Exit 세 버튼)는 이 scene이 소유한다(§10
 "gameplay-owned interactive DOM overlay") — `game-visibility.ts`/
-`game-pause-keys.ts`의 기존 pause 배선을 그대로 쓴다. 정확한 HUD·pause
-overlay 픽셀 디자인은 ui-design이 아직 gameplay를 다루지 않아 결정 필요
-항목이다(파일 헤더 참조) — 최소 기능 레이아웃만 뒀다. hitVol/음악 volume을
+`game-pause-keys.ts`의 기존 pause 배선을 그대로 쓴다(`attachAutoPause`에
+`settings.pauseOnBlur`를 넘긴다 — D-2026-089, 아래 game/README.md 참조).
+정확한 HUD·pause overlay 픽셀 디자인은 ui-design이 아직 gameplay를 다루지
+않아 결정 필요 항목이다(파일 헤더 참조, `build-order.md` M4.5로 별도
+확정 예정) — 최소 기능 레이아웃만 뒀다. hitVol/음악 volume을
 `volMaster`×`volEffect`/`volMaster`×`volMusic`로 조합한 것도 같은 이유로
-결정 필요 항목(`_meta/settings.md` §2가 스스로 "정의된 적 없다"고 명시).
+결정 필요 항목(`_meta/settings.md` §2가 스스로 "정의된 적 없다"고 명시) —
+세션 시작 시 1회 계산이며 플레이 중 실시간으로 다시 안 바뀐다(설정 화면
+자체가 gameplay 중 도달 불가능하므로 충분하다).

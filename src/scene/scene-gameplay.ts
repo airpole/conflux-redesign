@@ -293,7 +293,7 @@ export function mountGameplayScene(
 
     const currentSession = session;
 
-    stopAutoPause = attachAutoPause(currentSession);
+    stopAutoPause = attachAutoPause(currentSession, input.settings.pauseOnBlur);
     stopPauseKeys = attachPauseKeys(currentSession);
 
     const laneCodes = new Set(LANE_KEY_IDS.map((id) => input.settings.keyBindings[id]));
@@ -303,13 +303,16 @@ export function mountGameplayScene(
         onKeyDown: currentSession.input.onKeyDown,
         onKeyUp: currentSession.input.onKeyUp,
         onFocusLost(): void {
-          // 원본 stuck-key 복구는 game 상태를 아는 정책이라 env가 아니라
-          // 여기 몫이다(`env-input.ts` 헤더 참조) — M4-5는 물리 입력이
-          // pause와 무관하게 계속 눌린 채 남는 것만 막으면 충분해
-          // autoPause(visibilitychange)에 이미 걸리는 탭 전환과 달리
-          // blur만으로는 아무 것도 하지 않는다(§9 "blur는 pause하지
-          // 않는다"와 같은 이유 — 정책은 아직 필요 이상으로 만들지
-          // 않는다, 결정 필요 항목으로 남김).
+          // blur에서 실제로 pause를 거는 쪽은 `attachAutoPause`(위,
+          // `Settings.pauseOnBlur` 게이팅, D-2026-089)다 — 여기(env-input의
+          // `onFocusLost`)는 그것과 다른 관심사인 stuck-key 복구
+          // 자리다(원본 `keyboard.js`의 blur 핸들러가 눌린 채로 남은
+          // 채널을 순회해 복구하던 것, `env-input.ts` 헤더 참조 — game
+          // 상태를 아는 정책이라 env가 아니라 여기 몫이다). 그 복구
+          // 로직 자체는 아직 없다 — pauseOnBlur가 켜져 있으면(기본값)
+          // blur 즉시 pause돼 입력이 멎으므로 stuck key가 실제로
+          // 문제되는 경우가 줄었지만, pauseOnBlur를 끈 상태에서는 여전히
+          // 유효한 결정 필요 항목으로 남는다.
         },
         onVisibilityHidden(): void {
           currentSession.pause();

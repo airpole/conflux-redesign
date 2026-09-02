@@ -30,7 +30,7 @@ describe('attachAutoPause (scene.md §9 — 탭 백그라운드 auto-pause)', ()
     detach();
   });
 
-  it('blur만으로는 pause()를 부르지 않는다 — visibilitychange만 듣는다', () => {
+  it('pauseOnBlur를 안 넘기면(기본 false) blur만으로는 pause()를 부르지 않는다', () => {
     Object.defineProperty(document, 'hidden', { value: false, configurable: true });
     const session = { pause: vi.fn() };
     const detach = attachAutoPause(session);
@@ -50,6 +50,37 @@ describe('attachAutoPause (scene.md §9 — 탭 백그라운드 auto-pause)', ()
     fireVisibilityChange();
     expect(session.pause).not.toHaveBeenCalled();
 
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+  });
+
+  it('pauseOnBlur=true면 blur가 pause()를 부른다(D-2026-089)', () => {
+    const session = { pause: vi.fn() };
+    const detach = attachAutoPause(session, true);
+
+    window.dispatchEvent(new Event('blur'));
+    expect(session.pause).toHaveBeenCalledTimes(1);
+
+    detach();
+  });
+
+  it('pauseOnBlur=true여도 detach() 후에는 blur가 pause()를 부르지 않는다', () => {
+    const session = { pause: vi.fn() };
+    const detach = attachAutoPause(session, true);
+    detach();
+
+    window.dispatchEvent(new Event('blur'));
+    expect(session.pause).not.toHaveBeenCalled();
+  });
+
+  it('pauseOnBlur=true여도 visibilitychange는 여전히(설정과 무관하게) pause()를 부른다', () => {
+    Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+    const session = { pause: vi.fn() };
+    const detach = attachAutoPause(session, true);
+
+    fireVisibilityChange();
+    expect(session.pause).toHaveBeenCalledTimes(1);
+
+    detach();
     Object.defineProperty(document, 'hidden', { value: false, configurable: true });
   });
 });

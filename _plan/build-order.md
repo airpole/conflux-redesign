@@ -288,6 +288,33 @@ settings·title·credits)의 레이아웃을 `ui-design.md`에 확정한다. `ui
 
 ---
 
+## 7.5. M4.5 — gameplay HUD·pause overlay 디자인
+
+**목표**: M4-5가 최소 기능 레이아웃으로 남겨둔 gameplay 화면의 HUD(콤보·
+판정 텍스트·FAST/SLOW·게이지 바 배치)와 pause overlay(Resume/Retry/Exit)
+시각 디자인을 `ui-design.md`에 확정한다. `scene-gameplay.ts`/
+`scene-gameplay.css`의 헤더 주석이 이미 "ui-design이 아직 gameplay를
+다루지 않아 결정 필요 항목"이라고 명시해 둔 자리다 — M3.5(§6.5)와 같은
+성격의, 코드 구현 없는 문서(spec) 산출물 단계.
+
+**범위**: gameplay 화면의 HUD 요소·pause overlay 레이아웃/시각 디자인만
+다룬다. 새 gameplay 메커닉(예: HUD에 새 데이터 필드 추가)은 범위 밖이다.
+
+**진입 gate**: 없음 — M4-5 종료 직후 바로 연다.
+
+| step | 범위 | 완료 기준 |
+|---|---|---|
+| M4.5-1 | gameplay HUD 레이아웃 — 콤보·마지막 판정·FAST/SLOW·게이지 바 배치 | `ui-design.md`가 canvas 위 HUD 요소들의 구체 위치·치수·색 참조를 제공하고 사용자 승인을 받는다. |
+| M4.5-2 | pause overlay 레이아웃 — Resume/Retry/Exit | `ui-design.md`가 pause overlay의 배치·치수·색을 정의하고 사용자 승인을 받는다. |
+
+**Exit**: `ui-design.md`가 gameplay HUD·pause overlay를 커버해, `scene-gameplay.ts`/`.css`의 "결정 필요 항목" 주석을 닫을 수 있다.
+
+역할 분담은 M3.5(§6.5)와 같다 — 시각/제품 디자인 판단은 사용자 몫, Claude
+Code는 이미 확정한 spec(`scene.md` §9·§10)에서 무엇을 담아야 하는지 정리해
+초안을 제안한다.
+
+---
+
 ## 8. M5 — editor
 
 **목표**: chart를 처음부터 만들 수 있다.

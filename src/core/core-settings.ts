@@ -57,6 +57,10 @@ export interface Settings {
   volMusic: number;
   volEffect: number;
   keyBindings: Record<LaneKeyId, string>;
+  /** `true`면 창 focus를 잃을 때(`blur`, 탭이 계속 보여도)도 자동 pause한다
+   *  — `visibilitychange`(탭이 실제로 안 보임)는 이 값과 무관하게 항상
+   *  pause한다(D-2026-089, [[scene]] §9). */
+  pauseOnBlur: boolean;
 
   // VISUAL
   noteSkin: NoteSkin;
@@ -96,6 +100,7 @@ export const DEFAULT_SETTINGS: Settings = {
   volMaster: 1.0,
   volMusic: 1.0,
   volEffect: 1.0,
+  pauseOnBlur: true,
   keyBindings: {
     key1: DEFAULT_LANE_KEYS.key1.binding,
     key2: DEFAULT_LANE_KEYS.key2.binding,
@@ -163,6 +168,7 @@ export const SETTING_CHECKS: Record<keyof Settings, Check> = {
   volMaster: inRange(0, 1),
   volMusic: inRange(0, 1),
   volEffect: inRange(0, 1),
+  pauseOnBlur: isBoolean,
   keyBindings: isKeyBindings,
 
   noteSkin: oneOf(NOTE_SKINS),

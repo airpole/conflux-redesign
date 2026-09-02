@@ -1217,6 +1217,31 @@
 - **Commit:** `0732ba0`
 
 
+### D-2026-089 — `pauseOnBlur` 설정 신설, M2-7의 "blur는 pause 안 함"을 기본값에서 뒤집음
+
+- **Status:** Accepted
+- **Decision:** `Settings.pauseOnBlur`(boolean, PLAY category, 기본값 `true`)를 신설한다. 창 focus를 잃으면(`blur`, 탭은 계속 보임) 이 설정이 켜져 있을 때만 gameplay가 자동 pause한다 — 탭이 실제로 안 보일 때(`visibilitychange` hidden)의 auto-pause는 이 설정과 무관하게 항상 켜져 있다(M2-7 그대로 유지, 여기는 안 바뀐다).
+
+  **M2-7의 근거를 기본값에서 뒤집는 결정이다** — M2-7(`game-visibility.ts`, `scene.md` §9)은 "devtools를 열거나 다른 창을 클릭해도 `blur`는 뜨지만 탭 자체는 여전히 보이므로 pause 대상이 아니다"라는 이유로 `blur`를 아예 무시했다. `pauseOnBlur` 기본값을 `true`로 두면 devtools를 여는 것도 이제 pause를 유발해 그 오탐이 기본 경험에 다시 들어온다.
+
+  **그럼에도 기본값을 켜기로 한 이유**: 플레이어 보호(자리를 비우거나 다른 창을 보는 동안 진행 중인 판이 안전하게 멈춘다)가 개발자 편의(devtools를 열어도 판이 안 멈추면 편함)보다 우선한다고 판단했다. 트레이드오프가 비대칭적이다 — devtools로 디버깅해야 하는 사람은 이 설정 하나를 끄면 M2-7 시절 동작(blur 무시)으로 정확히 돌아가지만, 반대로 기본값이 꺼져 있으면 실수로 자리를 비운 일반 플레이어를 보호할 방법이 없다. 정확히 devtools-blur와 진짜 focus 상실(다른 창 전환 등)을 구분하는 브라우저 API가 없어(둘 다 같은 `blur` 이벤트), 휴리스틱으로 골라내는 대신 설정 하나로 전부 위임했다.
+
+  **`visibilitychange`와 독립된 별도 축이다** — 하나의 설정이 두 트리거를 한꺼번에 묶지 않는다: 탭이 실제로 안 보이는 경우는 판단의 여지가 없는 correctness 문제(화면을 볼 수 없다)라 설정으로 끌 수 없게 뒀고, `blur`만 있는 경우(탭은 보임)는 순수히 취향의 영역이라 설정으로 뺐다.
+
+  `attachAutoPause(session, pauseOnBlur = false, doc?, win?)`의 두 번째 인자로 구현했다 — 함수 자체의 기본값은 `false`(호출측이 명시 안 하면 M2-7 시절 동작 그대로)이고, `scene-gameplay.ts`가 `Settings.pauseOnBlur`를 명시적으로 넘긴다(기본 설정값은 `true`이므로 실제 기본 동작은 pause한다). 이렇게 가른 이유: `game-visibility.ts` 자체는 순수 이벤트 배선이라 settings를 몰라도 되고, 무엇을 기본으로 할지는 오직 호출측(game 레이어)이 결정한다.
+
+  category는 PLAY로 뒀다 — `_meta/settings.md` §2의 OPTION은 quick options 5종·no-record 게이트 전용 category라 이 필드와 성격이 다르고, PLAY("input·audio sync")가 세션 진행 취향이라는 점에서 더 맞는다.
+
+  `scene.md` §9·§11(결정 완료 목록)과 `_meta/settings.md` §2·§4·§5를 함께 정정했다 — spec 문서 자체가 이전 판단("blur 제외")을 명시하고 있었으므로 코드만 바꾸고 문서를 안 고치면 스펙과 구현이 어긋난다(`CLAUDE.md` §7 "Single Source 유지").
+
+  테스트: `game-visibility.test.ts`에 3개 추가(`pauseOnBlur=true`일 때 blur가 pause 호출·detach 후 무효화·`visibilitychange`는 설정과 무관하게 여전히 pause), `scene-gameplay.test.ts`에 2개 추가(기본 설정으로 blur가 pause overlay를 열고, `pauseOnBlur:false`면 안 연다) — 전체 통과.
+- **Defined in:** `src/core/core-settings.ts`, `src/game/game-visibility.ts`, `src/scene/scene-gameplay.ts`, `scene/scene.md` §9·§11, `_meta/settings.md` §2·§4·§5
+- **Rationale:** Not required
+- **Affects:** core, game, scene, scene(spec)·settings(spec)
+- **Supersedes:** M2-7의 "blur는 pause 대상이 아니다" 판단(기본값 한정 — `pauseOnBlur: false`로 두면 그 동작이 정확히 재현된다)
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

@@ -24,6 +24,7 @@ settings는 사람의 환경·취향이다. 같은 chart를 누가 치든 달라
 - `audioOffset`(ms) — player device audio output compensation. active chart의 `metadata.offset`과 다른 축.
 - `visualOffset`(ms) — judgment clock compensation. press/release input timestamp에 적용 `[보존]`.
 - key mapping도 PLAY 소속.
+- `pauseOnBlur`(boolean, 기본 `true`) `[신규]` (D-2026-089) — 창 focus를 잃을 때(`blur`, 탭은 계속 보임) gameplay를 자동 pause할지. 탭이 실제로 안 보일 때(`visibilitychange` hidden)의 auto-pause는 이 값과 무관하게 항상 켜져 있다([[scene]] §9). input·세션 진행에 관한 취향이라 PLAY에 둔다 — OPTION은 quick options 5종·no-record 게이트 전용 category라 이 필드와 성격이 다르다.
 
 ### SOUND `[신규]` (M3.5-2, D-2026-075)
 
@@ -117,6 +118,7 @@ player settings와 별도로 editor에서만 쓰는 persistent aid. `.cfx`에 �
 | `volMaster` | `1.0` | 0~1 | 보존 |
 | `volMusic` | `1.0` | 0~1 | **수정** — 구 `0.7`. 음악은 감쇠 없이 출발하고 크기는 master로 잡는다 |
 | `volEffect` | `1.0` | 0~1 | 보존 |
+| `pauseOnBlur` | `true` | boolean | **신규** — D-2026-089, blur auto-pause 여부 |
 | `keyBindings` | `DEFAULT_LANE_KEYS`의 binding 열 | 6키 전부 빈 문자열 아님 | **신규** — 배치 자체는 보존이나 거처가 런타임 상태에서 영속 settings로 옮겼다. rebinding이 영속하려면 여기 있어야 한다 |
 | `noteSkin` | `'bar'` | `bar`\|`circle` | 보존 |
 | `laneOpacity` | `1.0` | 0~1 | 보존 |
@@ -164,6 +166,7 @@ player settings와 별도로 editor에서만 쓰는 persistent aid. `.cfx`에 �
 - [x] settings graph = 4 scene(play/visual/sound/option), option scene이 GAUGE+OPTION 두 category를 함께 표시 — 정의는 [[scene]] §3 (D-2026-020, scene 경계 첫 수정은 D-2026-074 — GAUGE→OPTION 병합)
 - [x] volMaster/volMusic/volEffect를 PLAY에서 분리해 SOUND category 신설 — §2 (D-2026-075 — M3.5-2)
 - [x] 기본값 표와 병합 규칙 — 알 수 없는 키 폐기·필드 단위 되돌림 §4 (D-2026-036)
+- [x] `pauseOnBlur`(PLAY, 기본 `true`) — 창 focus 상실 auto-pause 여부, `visibilitychange` auto-pause와는 독립 (D-2026-089)
 
 잔여:
 - [ ] key rebinding UI · volume 슬라이더 조작 단위
