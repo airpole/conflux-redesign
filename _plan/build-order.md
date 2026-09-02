@@ -324,6 +324,37 @@ Code는 이미 확정한 spec(`scene.md` §9·§10)에서 무엇을 담아야 �
 
 ---
 
+## 7.6. M4.6 — quick options overlay 디자인
+
+**목표**: M3.5-1의 원래 범위 문구("quick options overlay 배치")가 실제로는
+`ui-design.md` §2.5에 반영되지 못한 채 넘어간 자리를 닫는다(D-2026-072가
+닫은 두 유보 항목에도 이 자리는 없었다 — 유보가 아니라 누락이었다).
+M4-7이 이 공백을 최소 기능 placeholder(설정 화면과 같은 기존 토큰, 중앙
+모달)로 메워 뒀다 — `scene-song-select.ts` 헤더 주석과 D-2026-092가 이
+자리를 "결정 필요 항목"으로 명시해 뒀다.
+
+**범위**: song-select quick options 오버레이(5필드 — scrollSpeed·gaugeMode·
+mirror·staticShape·autoplay) 하나의 배치·치수·시각 디자인만 다룬다.
+editor test의 embedded 상시 panel(M5-6)은 범위 밖이다. `scene.md` §5·§10이
+이미 정한 것들(필드 5개와 순서, ↑↓/Enter/row 이동 시 draft 폐기, 열고
+닫는 키 Space/Esc, 열림 중 scene 입력 차단, song-select와 editor test의
+component 공유)은 재검토 대상이 아니다.
+
+**진입 gate**: 없음 — M4가 main에 이미 완료돼 있어 바로 연다.
+
+| step | 범위 | 완료 기준 |
+|---|---|---|
+| M4.6-1 | quick options overlay 레이아웃 — 배치·치수·5필드 표현·클릭 상호작용 | `ui-design.md`가 이 오버레이의 구체 위치·치수·색 참조와 scrollSpeed/gaugeMode 클릭 상호작용 방식을 정의하고, 닫을 때의 미확정 draft 처리를 확정하며, 사용자 승인을 받는다. |
+
+**Exit**: `ui-design.md`가 이 오버레이를 커버해, `scene-song-select.ts`의
+"오버레이 배치는 결정 필요 항목" 주석(D-2026-092)을 닫을 수 있다.
+
+역할 분담은 M3.5(§6.5)·M4.5(§7.5)와 같다 — 시각/제품 디자인 판단은
+사용자 몫, Claude Code는 이미 확정한 spec(`scene.md` §5·§10)에서 무엇을
+담아야 하는지 정리해 레이아웃 초안을 제안한다.
+
+---
+
 ## 8. M5 — editor
 
 **목표**: chart를 처음부터 만들 수 있다.
