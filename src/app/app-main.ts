@@ -116,6 +116,7 @@ import {
   type WorkspaceSession,
 } from '../edit/edit-workspace.js';
 import { resolveSessionTransition } from '../edit/edit-session-transition.js';
+import { createCommandHistory, type CommandHistory } from '../edit/edit-command.js';
 import { openChartJson } from '../format/format-chart-open.js';
 
 console.info(`Conflux — build profile: ${BUILD_PROFILE}`);
@@ -514,6 +515,7 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
   };
 
   let editorSession: WorkspaceSession | undefined;
+  let editorCommandHistory: CommandHistory | undefined;
   let editorWorkspaceHandle: EditorWorkspaceSceneHandle | undefined;
 
   function mountEditorWorkspaceIfNeeded(): void {
@@ -550,6 +552,7 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
     if (result.kind === 'proceed') {
       session.dispose();
       editorSession = undefined;
+      editorCommandHistory = undefined;
       editorWorkspaceHandle = undefined;
       manager.goScene('mode-select');
     }
@@ -560,7 +563,20 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
     editorStartHandle!.update({ hasRecoverableWorkspace: slot !== null, error });
   }
 
-  function enterEditorWorkspace(): void {
+  /** 새 세션을 시작할 때마다 부른다 — command history도 함께 새로 만들어
+   *  session 교체 시 모든 scope stack이 비어 있게 한다(editor-commands.md
+   *  §5 "history baseline", 매번 새 인스턴스를 만드는 게 가장 단순한
+   *  구현이라 `resetBaseline()`을 여기서 따로 부르지 않는다). `onDispatch`
+   *  구독은 §3 "active scene redraw"의 최소 배선이다 — 지금은 notes/
+   *  shapes/meta/test가 전부 껍데기라(M5-1) 실제로 command를 dispatch할
+   *  곳이 없지만, M5-3+이 command를 만들기 시작하면 이 구독이 바로
+   *  작동한다. */
+  function beginEditorSession(session: WorkspaceSession): void {
+    editorSession = session;
+    editorCommandHistory = createCommandHistory();
+    editorCommandHistory.onDispatch(() => {
+      editorWorkspaceHandle?.update(editorSession!.chart);
+    });
     mountEditorWorkspaceIfNeeded();
     manager.goScene('editor-notes');
   }
@@ -572,15 +588,16 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
       editorStartHandle = mountEditorStartScene(root, {
         onNewChart(songId): void {
           const chart = createInitChart(songId, () => new Date().toISOString());
-          editorSession = createWorkspaceSession({
-            storage,
-            chart,
-            musicBlob: null,
-            jacketBlob: null,
-            baseVersion: null,
-            timerHost: window,
-          });
-          enterEditorWorkspace();
+          beginEditorSession(
+            createWorkspaceSession({
+              storage,
+              chart,
+              musicBlob: null,
+              jacketBlob: null,
+              baseVersion: null,
+              timerHost: window,
+            }),
+          );
         },
         onOpenJson(): void {
           void (async () => {
@@ -597,31 +614,33 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
               );
               return;
             }
-            editorSession = createWorkspaceSession({
-              storage,
-              chart: parsed.chart,
-              musicBlob: null,
-              jacketBlob: null,
-              baseVersion: parsed.chart.version,
-              timerHost: window,
-            });
-            enterEditorWorkspace();
+            beginEditorSession(
+              createWorkspaceSession({
+                storage,
+                chart: parsed.chart,
+                musicBlob: null,
+                jacketBlob: null,
+                baseVersion: parsed.chart.version,
+                timerHost: window,
+              }),
+            );
           })();
         },
         onContinueEditing(): void {
           void (async () => {
             const slot = await loadRecoverableWorkspace(storage);
             if (slot === null) return; // 버튼이 안 보였어야 하지만 방어적으로.
-            editorSession = createWorkspaceSession({
-              storage,
-              chart: slot.chart,
-              musicBlob: slot.musicBlob,
-              jacketBlob: slot.jacketBlob,
-              baseVersion: slot.baseVersion,
-              recovered: true,
-              timerHost: window,
-            });
-            enterEditorWorkspace();
+            beginEditorSession(
+              createWorkspaceSession({
+                storage,
+                chart: slot.chart,
+                musicBlob: slot.musicBlob,
+                jacketBlob: slot.jacketBlob,
+                baseVersion: slot.baseVersion,
+                recovered: true,
+                timerHost: window,
+              }),
+            );
           })();
         },
         onBack(): void {

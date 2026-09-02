@@ -390,6 +390,8 @@ confirm으로 뒤집혔다. M4.6은 완전히 닫혔다 — 남은 항목 없음
 | M5-1 | editor graph + start scene + single-chart session | 네 scene이 자유 전환되고 `test`는 lazy mount된다. 세션이 chart 하나를 소유한다. |
 
 **M5-1 진행 상황**: `.cfx` 열기를 뺀 나머지(scene 그래프·New Chart·Open JSON·Continue Editing·세션 소유)는 구현됐다(D-2026-094) — `.cfx` 열기는 `env-file.ts`의 binary open 확장이 필요해 결정 필요 항목으로 별도 보고했다. notes/shapes/meta/test 4 scene은 이번 라운드엔 chart identity만 표시하는 껍데기다 — 실제 내용은 M5-3~M5-6.
+
+**M5-2 진행 상황**: command/history 엔진(scope 분할·dispatch/undo/redo·listener·history baseline)은 완성됐다(D-2026-095) — chart-agnostic이라 `app-main.ts`가 세션마다 새로 만들어 붙여 뒀다. §6의 구체 command 목록(AddNotes 등 실제 chart 배열 편집)은 이 엔진에 붙는 실 편집 인터랙션이 필요해 M5-3(notes)·M5-4(shapes/lane)·M5-5(tempo/timeSignature)·M5-7(textEvents)로 이월했다 — M5-2 자신의 Exit 기준(모든 편집이 command로 들어감·undo/redo가 원본과 같은 단위로 되감김·chart 구조 편집은 history 밖)은 엔진 단위 테스트와 통합 테스트로 확인했다.
 | M5-2 | command / history 계약 | 모든 편집이 command로 들어가고 undo/redo가 원본과 같은 단위로 되감긴다. chart 구조 편집은 history 밖이다. |
 | M5-3 | notes scene 편집 interaction | 노트 배치·이동·삭제·복사·붙여넣기·flip이 원본과 같은 결과를 낸다. overlap/conflict가 화면에 표시된다. |
 | M5-4 | shapes scene — shape/lane 서브모드 | `T`로 서브모드가 갈리고 선택 필터가 서브모드를 따른다. Q/W/E/R 툴이 정의대로 배치한다. 현재 그룹·symmetry 쌍·`R` 모드가 툴바에 상시 표시된다. |

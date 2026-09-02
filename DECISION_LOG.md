@@ -1366,6 +1366,31 @@
 - **Commit:** `31827edf2b4546bc721fb777711215344751fd91`
 
 
+### D-2026-095 — M5-2: command/history 엔진
+
+- **Status:** Accepted
+- **Decision:** `editor-commands.md` §1~§5의 command/history 계약을 그대로 구현하는 chart-agnostic 엔진(`src/edit/edit-command.ts`, `createCommandHistory`)을 신설했다. `Command = { name, apply(), undo(), invalidates[] }`(§1), scope 3분할(notes/textEvents→n, shapeEvents/laneEvents→s, tempos/timeSignatures→m, §2), scope당 깊이 60(초과 시 가장 오래된 항목부터 버림), `dispatch`(apply → scope stack push → 해당 scope redo clear → listener 발화), `undo`/`redo`(scope별 독립), `onDispatch` listener(§3), `resetBaseline()`(§5 history baseline)을 구현했다. `app-main.ts`가 매 `WorkspaceSession` 생성마다(New Chart/Open JSON/Continue Editing) 새 `CommandHistory`도 함께 만든다 — "새 인스턴스 = 항상 빈 상태로 시작"이 `resetBaseline()`을 굳이 호출하는 것보다 단순해 그 경로를 택했다(`resetBaseline()`은 엔진 계약 자체의 단위 테스트를 위해 API로는 남겨 뒀다).
+
+  **이 엔진은 chart 배열을 실제로 어떻게 바꿀지 모른다** — `invalidates`에 적힌 필드 이름(예: `'notes'`)으로 scope만 판정할 뿐, `AddNotes`/`MoveNotes`/`MirrorShapeEvents` 등 §6의 구체 command 목록(실제로 note/shape/lane 배열을 편집하는 apply/undo 본문)은 이 라운드에 포함하지 않았다 — 그건 실제 편집 인터랙션이 필요한 M5-3(notes)·M5-4(shapes/lane)·M5-5(tempo/timeSignature)·M5-7(textEvents)의 몫이다. M5-2는 "그 command들이 붙을 수 있는 검증된 엔진"까지만 낸다.
+
+  **"cache invalidate" 단계는 실제 캐시가 없어 자연히 해소된다** — `core-timing.ts`(`buildTimeline`)·`core-shape.ts`(`buildFieldGeometry`)가 이미 "캐시도 무효화도 없다, 매번 chart에서 다시 계산한다"는 설계라(두 파일 헤더), §1 알고리즘의 이 단계는 `onDispatch` listener가 `invalidates`를 실어 나르는 것으로 충분하다고 판단했다 — 새 캐시 객체를 만들지 않았다.
+
+  **drag command(§4)에 특별한 API를 두지 않았다** — "drag 중 live mutate, drag-end에 old/new snapshot command 1개 dispatch"는 보통 command 하나(apply=새 값, undo=이전 값)로 이미 표현되므로 새 추상화가 불필요하다고 판단했다. drag 중 dispatch를 안 하다가 끝에 한 번만 하는 건 호출측(M5-3·M5-4의 실제 드래그 로직)의 책임으로 남긴다.
+
+  **"undo/redo 직전 해당 scope selection clear"(§2)는 이 파일 밖이다** — selection은 scene 내부 상태이고 이 엔진은 scene을 모른다. `onDispatch` listener로 미래의 notes/shapes scene(M5-3+)이 직접 처리해야 한다.
+
+  **chart field 편집이 history 밖이라는 M5-2 Exit 기준의 절반은 새 코드 없이 이미 충족돼 있었다** — M5-1부터 `WorkspaceSession.updateChart()`가 chart field(chartId/difficulty/subtitle/level/chartBy/metadata/asset 연결) 편집의 유일한 경로였고, 이 엔진을 거치지 않는다. 통합 테스트로 "그 경로가 command history를 전혀 건드리지 않는다"를 명시적으로 확인했다.
+
+  `app-main.ts`가 `editorCommandHistory.onDispatch(() => editorWorkspaceHandle?.update(editorSession!.chart))`로 §3 "active scene redraw"의 최소 배선을 미리 만들어 뒀다 — 지금은 notes/shapes/meta/test가 전부 M5-1의 껍데기라 실제로 dispatch될 command가 없지만, M5-3+이 command를 만들기 시작하면 이 구독이 바로 작동한다.
+
+  테스트 신규: `edit-command.test.ts` 17개(scope 분할·깊이 60 초과 시 최오래 항목 폐기·invalidates 여러 scope 혼입 시 에러·undo/redo LIFO·resetBaseline·onDispatch 구독/해제·M5-2 Exit 통합 2개) — 전체 1221/1221 통과.
+- **Defined in:** `src/edit/edit-command.ts`, `src/app/app-main.ts`
+- **Rationale:** Not required
+- **Affects:** edit, app — M5-2 완료(구체 command 목록은 M5-3~M5-7로 이월)
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

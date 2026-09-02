@@ -81,3 +81,13 @@ scene의 세 경로(New Chart/Open Chart JSON/Continue Editing)가 성공하면
 인터랙션이 없어(M5-2·M5-5 이후에야 생김) dirty가 실제로 true가 될 경로가
 없다 — `saveNewVersion` 콜백은 저장 창 UI가 붙기 전까지의 자리표시자
 (즉시 취소를 돌려줘 세션을 지키는 안전한 기본값)다.
+
+M5-2가 `beginEditorSession()` 헬퍼를 더해 세 진입 경로(New Chart/Open
+Chart JSON/Continue Editing)의 중복 배선을 하나로 모았다 — 세션을 만들
+때마다 `edit-command.ts`의 `createCommandHistory()`도 함께 새로 만든다
+(session 교체 시 history가 항상 빈 상태로 시작한다는 §5 "history
+baseline"을 `resetBaseline()` 호출 없이 만족하는 가장 단순한 방법).
+`editorCommandHistory.onDispatch(...)`가 `editorWorkspaceHandle?.update(...)`
+를 부르도록 미리 구독해 뒀다 — §3 "active scene redraw"의 최소 배선으로,
+지금은 notes/shapes/meta/test가 전부 M5-1의 껍데기라 실제로 dispatch될
+command가 없지만 M5-3+이 command를 만들기 시작하면 바로 작동한다.

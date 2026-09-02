@@ -59,3 +59,19 @@ meta/test 형제 4개, `src/scene/scene-editor-*.ts`)이 `createWorkspaceSession
 confirm)는 M5-1에도 아직 없다 — chart 편집 인터랙션 자체가 없어(command
 layer는 M5-2, chart field 편집은 M5-5) dirty가 실제로 true가 될 경로가
 이번 라운드엔 없기 때문이다.
+
+`edit-command`는 M5-2 범위다([[editor-commands]] §1~§5). `Command = { name,
+apply(), undo(), invalidates[] }`의 scope 3분할(notes/textEvents→n,
+shapeEvents/laneEvents→s, tempos/timeSignatures→m)·깊이 60 stack·
+dispatch/undo/redo·`onDispatch` listener·history baseline(`resetBaseline`)
+을 구현한 chart-agnostic 엔진이다 — 실제 chart 배열을 어떻게 바꿀지는
+이 파일이 모른다(§6의 구체 command 목록은 그 배열을 실제로 편집하는
+M5-3~M5-5·M5-7이 만든다). "cache invalidate" 단계는 `core-timing.ts`/
+`core-shape.ts`가 이미 캐시 없이 매번 chart에서 다시 계산하는 설계라
+`onDispatch` listener가 `invalidates`를 실어 나르는 것으로 충분하다고
+보고 새 캐시 객체를 만들지 않았다. `app-main.ts`가 매 `WorkspaceSession`
+생성마다 새 `CommandHistory`도 함께 만들어 `resetBaseline()`을 굳이
+호출하지 않고도 §5 "session 교체 시 모든 scope stack을 비운다"를
+만족한다 — `resetBaseline()`은 엔진 계약 자체의 단위 테스트를 위해
+API로는 남겨 뒀다. chart field 편집(§7, `WorkspaceSession.updateChart`)이
+이 엔진을 전혀 거치지 않는다는 것도 통합 테스트로 확인했다.
