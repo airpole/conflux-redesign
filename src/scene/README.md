@@ -99,3 +99,15 @@ pause overlay(Resume/Retry/Exit 세 버튼)는 이 scene이 소유한다(§10
 결정 필요 항목(`_meta/settings.md` §2가 스스로 "정의된 적 없다"고 명시) —
 세션 시작 시 1회 계산이며 플레이 중 실시간으로 다시 안 바뀐다(설정 화면
 자체가 gameplay 중 도달 불가능하므로 충분하다).
+
+M4.5-1(D-2026-090)이 HUD를 마저 채웠다 — `ui-design.md` §2.10이 확정한
+자리대로 jacket 배경·key 빔·마디선/step 선·sudden 커버·text event·카운터/
+퍼센트·곡정보 띠·canvas pause 아이콘까지 매 프레임 그린다(render 함수는
+`render-playfield.ts`, 자세한 목록은 그 README). canvas pause 아이콘은
+`canvas`에 붙인 `click` 리스너 하나가 `pauseIconHitTest`로 hit-test해
+`session.pause()`를 부른다 — `attachPauseKeys`(키보드)와 별개 경로이지만
+둘 다 멱등이라 부딪히지 않는다. `GameplayStartInput`에 `jacket`
+(`{image, width, height} | null`) 필드가 새로 생겼다 — `app-main.ts`가
+`game-song-select.ts`의 `PlayableChart.jacketBytes`를 `createImageBitmap`
+으로 decode해 채운다. pause overlay(Resume/Retry/Exit)의 DOM 색은
+`scene-result.css`의 기존 토큰을 그대로 재사용한다(`scene-gameplay.css`).

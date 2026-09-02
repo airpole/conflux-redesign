@@ -1,8 +1,25 @@
-/* gameplay 화면 — 단일 출처는 `scene/scene.md` §9·§10. 픽셀 레이아웃은
-   ui-design이 아직 gameplay를 다루지 않아(결정 필요 항목, scene-gameplay.ts
-   헤더 참조) 최소 기능 레이아웃만 둔다. */
+/* gameplay 화면 — 단일 출처는 `scene/scene.md` §9·§10, HUD는 `render/theme.md`
+   (M4.5-1로 확정, `render-theme.ts`가 그 코드 표현). canvas HUD는 이
+   파일이 아니라 `render-theme.ts`가 그린다 — 여기는 DOM 층(캔버스 자체
+   배치, pause overlay)만 다룬다.
+
+   pause overlay(Resume/Retry/Exit)는 새 색을 만들지 않고 `scene-result.css`
+   (`ui-design.md` §5)의 DOM 토큰을 그대로 옮겨 쓴다(M4.5-1) — canvas HUD
+   색(`render-theme.ts`)과는 별개 팔레트이므로 겹쳐 정의해도 충돌하지 않는다. */
 
 .gameplay-scene {
+  --bg: #050508;
+  --text: #ececf4;
+  --dim: #9a9ab4;
+  --rule: #1e1e30;
+  --rule-strong: #3a3a54;
+  --cyan: #4fbcd0;
+  --on-accent: #04040a;
+
+  --sans:
+    'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -23,14 +40,20 @@
   align-items: center;
   justify-content: center;
   gap: 1cqw;
-  background: rgb(0 0 0 / 70%);
+  background: rgb(5 5 8 / 80%);
+  font-family: var(--sans);
 }
 
 .gameplay-scene .pause-btn {
   font-size: max(12px, 2cqw);
   padding: 0.6em 2em;
-  background: #1a1a24;
-  color: #ececf4;
-  border: 1px solid #3a3a4a;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--rule-strong);
   cursor: pointer;
+}
+
+.gameplay-scene .pause-btn:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
 }

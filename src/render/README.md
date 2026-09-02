@@ -22,5 +22,19 @@ idle 트랙(`drawJudgeTrack`) 위에 덧그린다. `hard`는 항상 빨강, `nor
 gauge, `GAUGE_COLOR`).
 
 overlap 기반 노트 채색(`noteColor`/`noteHeadColorAt`)과 `noteSkin` 전환,
-카운터·정확도·score·sudden·key 빔·곡정보 띠·text event·pause overlay UI는
-아직 없다(M2-6, pause overlay는 scene 층).
+score 표시는 아직 없다.
+
+M4.5-1(D-2026-090)이 M2 이후 미뤄뒀던 HUD 나머지를 채웠다 — jacket 배경
+(`drawJacketBackground`, `drawPlayfield`에 `jacket` 선택 인자로 끼워 넣음,
+`DrawContext.drawImage` 신설)·key 빔(`drawKeyBeams`)·마디선/step 선
+(`drawMeasureLines`, 이제까지 안 쓰이던 `SHAPE_STEP_LINE`도 함께 씀)·
+sudden 커버(`drawSuddenCover`)·text event(`computeActiveTextEvents`+
+`drawTextEvent`, 3분할 컬럼/lane1~4)·카운터·퍼센트(`drawCounterPercent`)·
+곡정보 띠(`drawSongInfoStrip`)·canvas pause 아이콘(`drawPauseIcon`+
+`pauseIconHitTest`, 클릭 판정은 순수 함수로 분리해 scene 층에서 hit-test만
+가져다 쓴다). 전부 `render/theme.md`가 원본에서 실측해 둔 값 그대로다 —
+새 디자인이 아니라 뒤늦은 배선(`scene/ui-design.md` §2.10 참조). 판정
+텍스트에 지속시간(`HUD_TEXT.judgmentFlashMs`)이 새로 생겼고, 카운터·퍼센트
+행이 판정 텍스트와 FAST/SLOW 사이에 끼어들며 `drawJudgmentText`가
+`nowMs`를 받게 됐다(신호는 FAST/SLOW와 같은 패턴) — 자세한 이유는
+DECISION_LOG D-2026-090.

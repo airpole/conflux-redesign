@@ -4,19 +4,30 @@ import { buildFieldGeometry } from '../core/core-shape.js';
 import { buildTimeline } from '../core/core-timing.js';
 import { computePlayfieldRect, judgeLineY } from './render-layout.js';
 import {
+  computeActiveTextEvents,
   computeHitEffectVisual,
   computeNoteHeadRect,
   drawCombo,
+  drawCounterPercent,
   drawFastSlow,
   drawGaugeBar,
   drawHitEffect,
+  drawJacketBackground,
   drawJudgeTrack,
   drawJudgmentText,
+  drawKeyBeams,
   drawLaneDividers,
+  drawMeasureLines,
   drawNoteHead,
+  drawPauseIcon,
   drawPlayfield,
   drawShapeBoundary,
+  drawSongInfoStrip,
+  drawSuddenCover,
+  drawTextEvent,
   buildFieldSamplePoints,
+  pauseIconHitRegion,
+  pauseIconHitTest,
   type DrawContext,
 } from './render-playfield.js';
 
@@ -57,6 +68,9 @@ function fakeCtx(): DrawContext & { calls: string[] } {
     },
     stroke() {
       calls.push(`stroke ${this.strokeStyle} ${this.lineWidth}`);
+    },
+    drawImage(_image, dx, dy, dw, dh) {
+      calls.push(`drawImage ${dx},${dy},${dw},${dh}`);
     },
   };
 }
@@ -283,8 +297,14 @@ describe('drawCombo', () => {
 describe('drawJudgmentText', () => {
   it('판정 종류를 그 색으로 그린다', () => {
     const ctx = fakeCtx();
-    drawJudgmentText(ctx, rect, jY, { judgment: 'PERFECT', atMs: 0 });
+    drawJudgmentText(ctx, rect, jY, { judgment: 'PERFECT', atMs: 0 }, 0);
     expect(ctx.calls.some((c) => c.startsWith('fillText #ffe44a "PERFECT"'))).toBe(true);
+  });
+
+  it('judgmentFlashMs가 지나면 더 안 그린다(M4.5-1)', () => {
+    const ctx = fakeCtx();
+    drawJudgmentText(ctx, rect, jY, { judgment: 'PERFECT', atMs: 0 }, 500);
+    expect(ctx.calls).toEqual([]);
   });
 });
 
@@ -342,5 +362,150 @@ describe('computeHitEffectVisual · drawHitEffect', () => {
     const ctx = fakeCtx();
     drawHitEffect(ctx, jY, { cx: 100, radius: 20, alpha: 0.5, color: '#fff' });
     expect(ctx.calls).toContain(`arc 100,${jY},20,${Math.PI},${2 * Math.PI}`);
+  });
+});
+
+// ── M4.5-1 HUD 나머지 ─────────────────────────────────────────
+
+describe('drawJacketBackground', () => {
+  it('brightnessPct가 0이면 아무것도 안 그린다', () => {
+    const ctx = fakeCtx();
+    drawJacketBackground(ctx, 1600, 900, {} as CanvasImageSource, 800, 450, 0);
+    expect(ctx.calls).toEqual([]);
+  });
+
+  it('brightnessPct > 0이면 cover-fit으로 drawImage를 부른다', () => {
+    const ctx = fakeCtx();
+    drawJacketBackground(ctx, 1600, 900, {} as CanvasImageSource, 800, 450, 100);
+    expect(ctx.calls.some((c) => c.startsWith('drawImage'))).toBe(true);
+  });
+});
+
+describe('drawKeyBeams', () => {
+  it('눌린 lane이 없으면 아무것도 안 그린다', () => {
+    const ctx = fakeCtx();
+    const geometry = buildFieldGeometry(makeChart());
+    drawKeyBeams(ctx, rect, jY, geometry, buildTimeline(makeChart()), 0, false, new Set());
+    expect(ctx.calls).toEqual([]);
+  });
+
+  it('눌린 lane이 있으면 헤드+빔을 채운다', () => {
+    const ctx = fakeCtx();
+    const chart = makeChart();
+    const geometry = buildFieldGeometry(chart);
+    drawKeyBeams(ctx, rect, jY, geometry, buildTimeline(chart), 0, false, new Set([1]));
+    expect(ctx.calls.filter((c) => c.startsWith('fillRect')).length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('drawMeasureLines', () => {
+  it('보이는 구간의 마디 시작점마다 선을 긋는다', () => {
+    const ctx = fakeCtx();
+    const chart = makeChart();
+    const geometry = buildFieldGeometry(chart);
+    const timeline = buildTimeline(chart);
+    drawMeasureLines(ctx, rect, jY, geometry, timeline, 0, 3, false);
+    expect(ctx.calls.some((c) => c.startsWith('stroke'))).toBe(true);
+  });
+});
+
+describe('drawSuddenCover', () => {
+  it('0이면 안 그린다', () => {
+    const ctx = fakeCtx();
+    drawSuddenCover(ctx, rect, jY, 0);
+    expect(ctx.calls).toEqual([]);
+  });
+
+  it('90이면 최대 95%까지만 덮는다', () => {
+    const ctx = fakeCtx();
+    drawSuddenCover(ctx, rect, jY, 90);
+    const call = ctx.calls.find((c) => c.startsWith('fillRect'))!;
+    const height = Number(call.split(',')[3]);
+    expect(height).toBeLessThanOrEqual((jY - rect.gy) * 0.95 + 1e-9);
+  });
+});
+
+describe('computeActiveTextEvents', () => {
+  const chart = makeChart({
+    textEvents: [{ startTick: 0, duration: 960, content: 'hello', position: 'left' }],
+  });
+  const timeline = buildTimeline(chart);
+
+  it('구간 밖이면 안 뜬다', () => {
+    expect(computeActiveTextEvents(chart.textEvents, timeline, -100_000)).toEqual([]);
+  });
+
+  it('구간 안이면 alpha 1로 뜬다(fade 경계 밖)', () => {
+    const active = computeActiveTextEvents(chart.textEvents, timeline, 250);
+    expect(active).toHaveLength(1);
+    expect(active[0]!.alpha).toBe(1);
+    expect(active[0]!.content).toBe('hello');
+  });
+
+  it('시작 직전(TEXT_FADE_MS 안)은 fade-in alpha가 1보다 작다', () => {
+    const active = computeActiveTextEvents(chart.textEvents, timeline, -100);
+    expect(active).toHaveLength(1);
+    expect(active[0]!.alpha).toBeGreaterThan(0);
+    expect(active[0]!.alpha).toBeLessThan(1);
+  });
+});
+
+describe('drawTextEvent', () => {
+  it('컬럼(left/middle/right) 텍스트는 세로 중앙에 그려진다', () => {
+    const ctx = fakeCtx();
+    const geometry = buildFieldGeometry(makeChart());
+    drawTextEvent(ctx, rect, jY, geometry, 0, false, {
+      content: 'hi',
+      position: 'middle',
+      alpha: 1,
+    });
+    expect(ctx.calls.some((c) => c.includes('"hi"'))).toBe(true);
+  });
+
+  it('lane1~4 텍스트는 판정선 위(삼각+하이라이트+텍스트)를 그린다', () => {
+    const ctx = fakeCtx();
+    const geometry = buildFieldGeometry(makeChart());
+    drawTextEvent(ctx, rect, jY, geometry, 0, false, {
+      content: 'go',
+      position: 'lane1',
+      alpha: 1,
+    });
+    expect(ctx.calls.some((c) => c.includes('"go"'))).toBe(true);
+    expect(ctx.calls.some((c) => c.startsWith('fill '))).toBe(true); // 삼각형
+  });
+});
+
+describe('drawCounterPercent', () => {
+  it('총 판정 수와 accuracy%를 그린다', () => {
+    const ctx = fakeCtx();
+    drawCounterPercent(ctx, rect, jY, { SYNC: 3, PERFECT: 1, GOOD: 0, MISS: 1 }, 87.5);
+    expect(ctx.calls.some((c) => c.includes('"5"'))).toBe(true);
+    expect(ctx.calls.some((c) => c.includes('"87.50%"'))).toBe(true);
+  });
+});
+
+describe('drawSongInfoStrip', () => {
+  it('곡명·아티스트를 그린다', () => {
+    const ctx = fakeCtx();
+    drawSongInfoStrip(ctx, rect, jY, 'My Song', 'Composer');
+    expect(ctx.calls.some((c) => c.includes('"My Song"'))).toBe(true);
+    expect(ctx.calls.some((c) => c.includes('"Composer"'))).toBe(true);
+  });
+});
+
+describe('pause 아이콘', () => {
+  it('hit region 안쪽 좌표는 true다', () => {
+    const region = pauseIconHitRegion(rect);
+    expect(pauseIconHitTest(rect, region.x + 1, region.y + 1)).toBe(true);
+  });
+
+  it('hit region 밖 좌표는 false다', () => {
+    expect(pauseIconHitTest(rect, rect.gx + rect.gw / 2, rect.gy + rect.gh / 2)).toBe(false);
+  });
+
+  it('drawPauseIcon이 두 막대를 채운다', () => {
+    const ctx = fakeCtx();
+    drawPauseIcon(ctx, rect);
+    expect(ctx.calls.filter((c) => c.startsWith('fillRect')).length).toBe(2);
   });
 });

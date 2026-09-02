@@ -119,6 +119,7 @@ describe('loadPlayableChart', () => {
     expect(result?.chart.difficulty).toBe('Trace');
     expect(result?.chart.songId).toBe('song-x');
     expect(result?.musicBytes).toEqual(new Uint8Array([1, 2, 3]));
+    expect(result?.jacketBytes).toBeNull(); // fixture chart는 jacketFile이 없다
   });
 
   it('songId가 library에 없으면 null이다', async () => {

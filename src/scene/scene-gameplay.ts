@@ -1,10 +1,16 @@
 /**
  * gameplay 화면 — canvas·오디오·입력·pause overlay를 묶어 `game-session.ts`를
  * 실제로 돌리는 host. 단일 출처는 `scene/scene.md` §9(전이 규칙)·§10
- * (pause overlay 계약) — 정확한 픽셀 레이아웃은 `ui-design.md`가 아직
- * gameplay 화면을 다루지 않아 최소한의 기능 레이아웃만 둔다(결정 필요
- * 항목으로 별도 보고 — HUD·pause overlay 시각 디자인은 ui-design 후속
- * 확인 대상).
+ * (pause overlay 계약)·`render/theme.md`(HUD 전체, M4.5-1로 확정).
+ *
+ * **M4.5-1(D-2026-090)이 HUD를 완성했다** — jacket 배경·key 빔·마디선/
+ * step 선·sudden 커버·text event·카운터/퍼센트·곡정보 띠·canvas pause
+ * 아이콘(클릭하면 pause)까지 `render/theme.md`가 실측해 둔 자리대로
+ * 그린다. pause 아이콘 클릭은 canvas `click` 리스너 하나로 hit-test하며,
+ * `attachPauseKeys`(키보드)와는 완전히 별개 경로다 — 둘 다 그냥
+ * `session.pause()`를 부를 뿐이라(멱등) 우선순위 충돌이 없다. pause
+ * overlay(Resume/Retry/Exit 메뉴)의 DOM 색은 `ui-design.md`/
+ * `scene-result.css`의 기존 토큰을 그대로 쓴다(`scene-gameplay.css`).
  *
  * **CTX는 이 파일이 소유한다**(`architecture.md` §3 "game 호스트: CTX가
  * 자기 객체를 소유. song-select가 contentEndMs·플레이 옵션을 채워
@@ -38,11 +44,12 @@
  * 세션이 내린 결정이다(결정 필요 항목으로 보고 — 스펙이 명시적으로
  * 정하지 않았다).
  */
-import { LANE_KEY_IDS } from '../core/core-settings.js';
+import { LANE_KEY_IDS, laneOf } from '../core/core-settings.js';
 import type { Settings } from '../core/core-settings.js';
 import type { Chart } from '../core/core-chart.js';
 import { buildFieldGeometry } from '../core/core-shape.js';
-import { buildTimeline, songEndOf } from '../core/core-timing.js';
+import { buildTimeline, msToTick, songEndOf } from '../core/core-timing.js';
+import { deriveAccuracy } from '../core/core-records.js';
 import { createHitBuffer, type AudioEnv } from '../env/env-audio.js';
 import { bindKeyInput, type KeyboardHost, type RawKeyboardEvent } from '../env/env-input.js';
 import { resizeCanvas, watchResize } from '../env/env-canvas.js';
@@ -53,21 +60,39 @@ import { attachPauseKeys } from '../game/game-pause-keys.js';
 import type { CTX } from '../game/game-ctx.js';
 import { computePlayfieldRect, judgeLineY } from '../render/render-layout.js';
 import {
+  computeActiveTextEvents,
+  computeHitEffectVisual,
   drawCombo,
+  drawCounterPercent,
   drawFastSlow,
   drawGaugeBar,
   drawHitEffect,
   drawJudgmentText,
+  drawKeyBeams,
+  drawMeasureLines,
+  drawPauseIcon,
   drawPlayfield,
-  computeHitEffectVisual,
+  drawSongInfoStrip,
+  drawSuddenCover,
+  drawTextEvent,
+  pauseIconHitTest,
   type DrawContext,
+  type JacketInput,
 } from '../render/render-playfield.js';
 import './scene-gameplay.css';
+
+export interface GameplayJacket {
+  readonly image: CanvasImageSource;
+  readonly width: number;
+  readonly height: number;
+}
 
 export interface GameplayStartInput {
   readonly chart: Chart;
   readonly musicBuffer: AudioBuffer | null;
   readonly settings: Settings;
+  /** `null`이면 배경 없이 진행(`chart.jacketFile`이 없거나 decode 실패). */
+  readonly jacket: GameplayJacket | null;
 }
 
 export interface GameplayHandlers {
@@ -157,6 +182,19 @@ export function mountGameplayScene(
 
   const canvas2d = canvas.getContext('2d') as unknown as DrawContext | null;
 
+  // canvas pause 아이콘 클릭(M4.5-1) — `attachPauseKeys`(키보드)와 별개
+  // 경로다. 둘 다 `session.pause()`(멱등)만 부르므로 부딪히지 않는다.
+  canvas.addEventListener('click', (event) => {
+    if (session === null) return;
+    const canvasRect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / (canvasRect.width || 1);
+    const scaleY = canvas.height / (canvasRect.height || 1);
+    const x = (event.clientX - canvasRect.left) * scaleX;
+    const y = (event.clientY - canvasRect.top) * scaleY;
+    const rect = computePlayfieldRect(canvas.width, canvas.height);
+    if (pauseIconHitTest(rect, x, y)) session.pause();
+  });
+
   let session: GameSession | null = null;
   let stopFrameLoop: (() => void) | null = null;
   let stopResize: (() => void) | null = null;
@@ -196,6 +234,18 @@ export function mountGameplayScene(
     const geometry = buildFieldGeometry(lastInput.chart);
     const curMs = session.ctx.sharedMs;
 
+    const jacket: JacketInput | null =
+      lastInput.jacket === null
+        ? null
+        : {
+            image: lastInput.jacket.image,
+            width: lastInput.jacket.width,
+            height: lastInput.jacket.height,
+            brightnessPct: lastInput.settings.jacketBrightness,
+          };
+
+    // layer 0(캔버스/플레이필드 바닥)·1(jacket)·2(shape 경계)·5(notes)·
+    // 7(idle 판정선) — `drawPlayfield` 내부가 이 순서를 지킨다.
     drawPlayfield(
       canvas2d,
       canvas.width,
@@ -209,15 +259,50 @@ export function mountGameplayScene(
       lastInput.settings.scrollSpeed,
       lastInput.settings.mirror,
       lastInput.settings.noteThickness,
+      jacket,
     );
 
-    if (lastInput.settings.showCombo) drawCombo(canvas2d, rect, jY, session.judgeState.combo);
-    if (lastInput.settings.showJudgment && session.display.lastJudgment !== null) {
-      drawJudgmentText(canvas2d, rect, jY, session.display.lastJudgment);
-    }
-    if (lastInput.settings.showFastSlow && session.display.fastSlow !== null) {
-      drawFastSlow(canvas2d, rect, jY, session.display.fastSlow, nowMs);
-    }
+    // layer 3 — key 빔(눌린 lane). keysHeld는 물리 key(key1~6)라 lane(1~4)로
+    // 접어야 한다(같은 lane을 여러 키가 눌러도 빔은 하나).
+    const heldLanes = new Set([...session.judgeState.keysHeld].map(laneOf));
+    drawKeyBeams(
+      canvas2d,
+      rect,
+      jY,
+      geometry,
+      timeline,
+      curMs,
+      lastInput.settings.mirror,
+      heldLanes,
+    );
+
+    // layer 4 — 마디선·step 선.
+    drawMeasureLines(
+      canvas2d,
+      rect,
+      jY,
+      geometry,
+      timeline,
+      curMs,
+      lastInput.settings.scrollSpeed,
+      lastInput.settings.mirror,
+    );
+
+    // layer 6 — sudden 커버(notes 뒤·판정선 앞, `theme.md` §2).
+    drawSuddenCover(canvas2d, rect, jY, lastInput.settings.sudden);
+
+    // layer 7 — 라이브 게이지(=판정선).
+    drawGaugeBar(
+      canvas2d,
+      rect,
+      jY,
+      session.gaugeState.tier === 'hard'
+        ? session.gaugeState.gauge.hardPct
+        : session.gaugeState.gauge.normalPct,
+      session.gaugeState.tier === 'hard' ? 'hard' : 'normal',
+    );
+
+    // layer 8 — hit effect.
     if (lastInput.settings.hitEffect) {
       for (const effect of session.display.hitEffects) {
         const visual = computeHitEffectVisual(
@@ -230,15 +315,38 @@ export function mountGameplayScene(
         if (visual !== null) drawHitEffect(canvas2d, jY, visual);
       }
     }
-    drawGaugeBar(
+
+    // layer 9 — text event(lane 변형은 "판정선 위" 배치라 현재 tick의
+    // lane 기하를 쓴다, `theme.md` §3).
+    const activeTextEvents = computeActiveTextEvents(lastInput.chart.textEvents, timeline, curMs);
+    const currentTick = msToTick(timeline, curMs);
+    for (const active of activeTextEvents) {
+      drawTextEvent(canvas2d, rect, jY, geometry, currentTick, lastInput.settings.mirror, active);
+    }
+
+    // layer 10 — HUD(콤보·판정 텍스트·카운터/퍼센트·F/S·곡정보 띠·pause 아이콘).
+    if (lastInput.settings.showCombo) drawCombo(canvas2d, rect, jY, session.judgeState.combo);
+    if (lastInput.settings.showJudgment && session.display.lastJudgment !== null) {
+      drawJudgmentText(canvas2d, rect, jY, session.display.lastJudgment, nowMs);
+    }
+    drawCounterPercent(
       canvas2d,
       rect,
       jY,
-      session.gaugeState.tier === 'hard'
-        ? session.gaugeState.gauge.hardPct
-        : session.gaugeState.gauge.normalPct,
-      session.gaugeState.tier === 'hard' ? 'hard' : 'normal',
+      session.gaugeState.counts,
+      deriveAccuracy(session.gaugeState.counts, session.context.notes.totalUnits),
     );
+    if (lastInput.settings.showFastSlow && session.display.fastSlow !== null) {
+      drawFastSlow(canvas2d, rect, jY, session.display.fastSlow, nowMs);
+    }
+    drawSongInfoStrip(
+      canvas2d,
+      rect,
+      jY,
+      lastInput.chart.metadata.title,
+      lastInput.chart.metadata.musicBy,
+    );
+    drawPauseIcon(canvas2d, rect);
   }
 
   function startInternal(input: GameplayStartInput): void {

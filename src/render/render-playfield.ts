@@ -1,36 +1,54 @@
 /**
- * playfield 렌더 — shape 경계·lane 구분선·note·판정선(idle 트랙)·판정 표시.
+ * playfield 렌더 — shape 경계·lane 구분선·note·판정선(idle 트랙)·판정 표시·
+ * HUD 전체.
  *
  * M2-2 범위: "실측 레이아웃대로 판정선·lane·노트가 그려지고, scrollSpeed
  * 변경이 밀도만 바꾼다"(`_plan/build-order.md` M2-2) — 판정선은 항상 "idle"
  * 트랙(빈 게이지)으로 그린다(게이지 채색은 M2-5).
  *
- * M2-4 범위: 콤보·마지막 판정 텍스트·FAST/SLOW 플래시·hit effect. 카운터·
- * 정확도·score·pause 버튼·곡정보 띠(전부 `render/theme.md`가 게이지/카운터
- * 데이터를 요구)는 M2-5·M2-6 — 그 값이 실제로 생기는 시점에 짓는다(D-2026-046과
- * 같은 이유). sudden·key 빔·text event도 아직 없다.
+ * M2-4 범위: 콤보·마지막 판정 텍스트·FAST/SLOW 플래시·hit effect.
+ *
+ * M4.5-1(D-2026-090) 범위: jacket 배경·key 빔·마디선/step 선·sudden 커버·
+ * text event·카운터/퍼센트·곡정보 띠·canvas pause 아이콘 — `render/theme.md`가
+ * 이미 실측해 둔 자리를 마저 채웠다(카운터·퍼센트의 정확한 Y 앵커만 이
+ * 세션의 해석, `render-theme.ts`의 `HUD_COUNTER_PERCENT` 주석 참조).
  *
  * canvas API는 함수 인자로 받는다(`DrawContext` — CanvasRenderingContext2D의
  * 부분집합) — env-*와 같은 이유로, jsdom 없이 Node에서 mock으로 계약을 검사한다.
  */
 
-import { NORMAL_CLEAR_PCT, SCROLL_VIEW_MS } from '../core/core-constants.js';
-import { laneLayoutAt, shapeGeometryAt, type FieldGeometry } from '../core/core-shape.js';
+import { NORMAL_CLEAR_PCT, SCROLL_VIEW_MS, TEXT_FADE_MS } from '../core/core-constants.js';
+import {
+  laneLayoutAt,
+  shapeGeometryAt,
+  stepTicks,
+  type FieldGeometry,
+} from '../core/core-shape.js';
 import { msToTick, scrollProgressAt, tickToMs, type Timeline } from '../core/core-timing.js';
-import type { Note } from '../core/core-chart.js';
+import type { Lane, Note, TextEvent, TextPosition } from '../core/core-chart.js';
+import type { JudgmentCounts } from '../core/core-gauge.js';
 import type { Judgment } from '../core/core-judge.js';
 import {
   CANVAS_BG,
   FAST_SLOW_COLOR,
   GAUGE_COLOR,
   HIT_EFFECT,
+  HUD_COUNTER_PERCENT,
   HUD_TEXT,
+  JACKET_BG,
   JUDGE_TRACK,
   JUDGMENT_COLOR,
+  KEY_BEAM,
   LANE_DIVIDER,
+  MEASURE_LINE,
   NOTE_COLOR,
+  PAUSE_ICON,
   PLAYFIELD_BG,
   SHAPE_BOUNDARY,
+  SHAPE_STEP_LINE,
+  SONG_INFO_STRIP,
+  SUDDEN_COVER,
+  TEXT_EVENT,
 } from './render-theme.js';
 import {
   JUDGE_LINE_DEFAULT_FRAC,
@@ -60,6 +78,8 @@ export interface DrawContext {
   closePath(): void;
   fill(): void;
   stroke(): void;
+  /** jacket 배경(M4.5-1)에만 쓴다 — destination rect만 받는 단순 draw. */
+  drawImage(image: CanvasImageSource, dx: number, dy: number, dw: number, dh: number): void;
 }
 
 // ── 샘플링(경계·lane 곡선을 부드럽게 그리기 위한 tick 격자) ──────
@@ -274,6 +294,13 @@ export function drawGaugeBar(
  * 배경 → shape 경계 → lane 구분선 → notes → 판정선. M2-2 범위 밖(jacket·키
  * 빔·마디선·sudden·hit effect·HUD)은 없다.
  */
+export interface JacketInput {
+  readonly image: CanvasImageSource;
+  readonly width: number;
+  readonly height: number;
+  readonly brightnessPct: number;
+}
+
 export function drawPlayfield(
   ctx: DrawContext,
   canvasWidth: number,
@@ -287,12 +314,27 @@ export function drawPlayfield(
   scrollSpeed: number,
   mirror: boolean,
   noteThicknessPx: number,
+  jacket: JacketInput | null = null,
   sampleCount = 64,
 ): void {
   ctx.fillStyle = CANVAS_BG;
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
   ctx.fillStyle = PLAYFIELD_BG;
   ctx.fillRect(rect.gx, rect.gy, rect.gw, rect.gh);
+
+  // draw order layer 1(jacket) — layer 0(위 두 fillRect) 위, shape 경계
+  // 아래(`theme.md` §2).
+  if (jacket !== null) {
+    drawJacketBackground(
+      ctx,
+      canvasWidth,
+      canvasHeight,
+      jacket.image,
+      jacket.width,
+      jacket.height,
+      jacket.brightnessPct,
+    );
+  }
 
   const samples = buildFieldSamplePoints(
     geometry,
@@ -365,21 +407,43 @@ export function drawCombo(ctx: DrawContext, rect: PlayfieldRect, jY: number, com
   ctx.fillText(String(combo), rect.gx + rect.gw / 2, comboY);
 }
 
+/** HUD 텍스트 블록(콤보 아래로 쌓이는 줄들)의 Y좌표들 — `render/theme.md`
+ *  §3 HUD, 카운터·퍼센트 스택 순서는 `HUD_COUNTER_PERCENT` 주석 참조. */
+function hudStackY(
+  rect: PlayfieldRect,
+  jY: number,
+): { comboY: number; judgeY: number; counterY: number; percentY: number; fsY: number } {
+  const comboSz = rect.gw * HUD_TEXT.comboSizeFactor;
+  const judgeSz = rect.gw * HUD_TEXT.judgmentSizeFactor;
+  const counterSz = rect.gw * HUD_COUNTER_PERCENT.counterSizeFactor;
+  const percentSz = rect.gw * HUD_COUNTER_PERCENT.percentSizeFactor;
+  const fsSz = rect.gw * HUD_TEXT.fastSlowSizeFactor;
+  const gap = rect.gw * HUD_TEXT.gapFactor;
+
+  const comboY = jY - rect.gh * (JUDGE_LINE_DEFAULT_FRAC - HUD_TEXT.comboOffsetFrac);
+  const judgeY = comboY + comboSz / 2 + gap + judgeSz / 2;
+  const counterY = judgeY + judgeSz / 2 + gap + counterSz / 2;
+  const percentY = counterY + counterSz / 2 + gap + percentSz / 2;
+  const fsY = percentY + percentSz / 2 + gap + fsSz / 2;
+  return { comboY, judgeY, counterY, percentY, fsY };
+}
+
 /**
- * 마지막 판정 텍스트. 콤보 블록 바로 아래(`render/theme.md` §3 HUD) — 카운터·
- * 정확도 행이 아직 없어(M2-5) 그 자리를 당겨 쓴다.
+ * 마지막 판정 텍스트. 콤보 블록 바로 아래(`render/theme.md` §3 HUD).
+ * `HUD_TEXT.judgmentFlashMs` 동안만 그린다(M4.5-1, D-2026-090) — 카운터·
+ * 퍼센트 행이 생겨 더는 그 자리를 빌리지 않는다.
  */
 export function drawJudgmentText(
   ctx: DrawContext,
   rect: PlayfieldRect,
   jY: number,
   flash: JudgmentTextView,
+  nowMs: number,
 ): void {
-  const comboSz = rect.gw * HUD_TEXT.comboSizeFactor;
+  const age = nowMs - flash.atMs;
+  if (age < 0 || age >= HUD_TEXT.judgmentFlashMs) return;
   const judgeSz = rect.gw * HUD_TEXT.judgmentSizeFactor;
-  const gap = rect.gw * HUD_TEXT.gapFactor;
-  const comboY = jY - rect.gh * (JUDGE_LINE_DEFAULT_FRAC - HUD_TEXT.comboOffsetFrac);
-  const judgeY = comboY + comboSz / 2 + gap + judgeSz / 2;
+  const { judgeY } = hudStackY(rect, jY);
   ctx.font = `bold ${Math.round(judgeSz)}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -397,18 +461,41 @@ export function drawFastSlow(
 ): void {
   const age = nowMs - flash.atMs;
   if (age < 0 || age >= HUD_TEXT.fastSlowFlashMs) return;
-  const comboSz = rect.gw * HUD_TEXT.comboSizeFactor;
-  const judgeSz = rect.gw * HUD_TEXT.judgmentSizeFactor;
   const fsSz = rect.gw * HUD_TEXT.fastSlowSizeFactor;
-  const gap = rect.gw * HUD_TEXT.gapFactor;
-  const comboY = jY - rect.gh * (JUDGE_LINE_DEFAULT_FRAC - HUD_TEXT.comboOffsetFrac);
-  const judgeY = comboY + comboSz / 2 + gap + judgeSz / 2;
-  const fsY = judgeY + judgeSz / 2 + gap + fsSz / 2;
+  const { fsY } = hudStackY(rect, jY);
   ctx.font = `bold ${Math.round(fsSz)}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = FAST_SLOW_COLOR[flash.side];
   ctx.fillText(flash.side, rect.gx + rect.gw / 2, fsY);
+}
+
+/**
+ * 카운터(판정 누적 수)·퍼센트(누적 accuracy) 행 — 판정 텍스트 아래, FAST/SLOW
+ * 위(M4.5-1, `HUD_COUNTER_PERCENT` 스택 순서 주석 참조). 값 계산은 이
+ * 파일이 안 한다 — `counts`·`accuracyPct`를 그대로 받아 그리기만 한다.
+ */
+export function drawCounterPercent(
+  ctx: DrawContext,
+  rect: PlayfieldRect,
+  jY: number,
+  counts: Readonly<JudgmentCounts>,
+  accuracyPct: number,
+): void {
+  const counterSz = rect.gw * HUD_COUNTER_PERCENT.counterSizeFactor;
+  const percentSz = rect.gw * HUD_COUNTER_PERCENT.percentSizeFactor;
+  const { counterY, percentY } = hudStackY(rect, jY);
+  const total = counts.SYNC + counts.PERFECT + counts.GOOD + counts.MISS;
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = HUD_TEXT.comboColor;
+
+  ctx.font = `bold ${Math.round(counterSz)}px sans-serif`;
+  ctx.fillText(String(total), rect.gx + rect.gw / 2, counterY);
+
+  ctx.font = `bold ${Math.round(percentSz)}px sans-serif`;
+  ctx.fillText(`${accuracyPct.toFixed(2)}%`, rect.gx + rect.gw / 2, percentY);
 }
 
 /**
@@ -475,4 +562,308 @@ export function drawHitEffect(
   ctx.closePath();
   ctx.fill();
   ctx.globalAlpha = 1;
+}
+
+// ── jacket 배경(M4.5-1, draw order layer 1) ──────────────────
+
+/**
+ * jacket 배경 — 캔버스 전체를 cover-fit으로 채우고 `jacketBrightness`
+ * (0~100)만큼 dim한다. 곡선 없는 순수 곱셈(alpha = brightness/100)이다 —
+ * `theme.md`가 별도 dim 곡선을 주지 않았다.
+ */
+export function drawJacketBackground(
+  ctx: DrawContext,
+  canvasWidth: number,
+  canvasHeight: number,
+  image: CanvasImageSource,
+  imageWidth: number,
+  imageHeight: number,
+  brightnessPct: number,
+): void {
+  if (imageWidth < 1 || imageHeight < 1) return;
+  const alpha = (Math.max(0, Math.min(100, brightnessPct)) / 100) * JACKET_BG.maxAlpha;
+  if (alpha <= 0) return;
+
+  const canvasAspect = canvasWidth / canvasHeight;
+  const imgAspect = imageWidth / imageHeight;
+  let dw: number, dh: number, dx: number, dy: number;
+  if (imgAspect > canvasAspect) {
+    dh = canvasHeight;
+    dw = dh * imgAspect;
+    dx = (canvasWidth - dw) / 2;
+    dy = 0;
+  } else {
+    dw = canvasWidth;
+    dh = dw / imgAspect;
+    dx = 0;
+    dy = (canvasHeight - dh) / 2;
+  }
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(image, dx, dy, dw, dh);
+  ctx.globalAlpha = 1;
+}
+
+// ── key 빔(M4.5-1, draw order layer 3) ───────────────────────
+
+/**
+ * 눌린 lane 위 세로 빔 — `beamTop`(`gy + gh×0.30`)부터 `jY`까지, 헤드
+ * (`jY`에서 `headHeightPx` 위)만 더 밝게(`theme.md` "1/3 지점부터 페이드
+ * 인"의 근사) — `DrawContext`가 그라디언트를 안 받아(`drawJudgeTrack` 주석
+ * 참조) 두 톤 계단으로 근사한다.
+ */
+export function drawKeyBeams(
+  ctx: DrawContext,
+  rect: PlayfieldRect,
+  jY: number,
+  geometry: FieldGeometry,
+  timeline: Timeline,
+  curMs: number,
+  mirror: boolean,
+  heldLanes: ReadonlySet<Lane>,
+): void {
+  if (heldLanes.size === 0) return;
+  const tick = msToTick(timeline, curMs);
+  const { blue, red } = shapeGeometryAt(geometry, tick);
+  const leftX = shapeX(rect, Math.min(blue, red), mirror);
+  const rightX = shapeX(rect, Math.max(blue, red), mirror);
+  const loX = Math.min(leftX, rightX);
+  const hiX = Math.max(leftX, rightX);
+  const projected = projectLaneLayout(laneLayoutAt(geometry, tick));
+  const beamTop = rect.gy + rect.gh * KEY_BEAM.topFrac;
+
+  for (const lane of heldLanes) {
+    const segment = laneSegment(loX, hiX, projected, lane);
+    ctx.fillStyle = KEY_BEAM.color;
+    ctx.fillRect(segment.x, beamTop, segment.width, jY - beamTop);
+    ctx.fillStyle = KEY_BEAM.headColor;
+    ctx.fillRect(segment.x, jY - KEY_BEAM.headHeightPx, segment.width, KEY_BEAM.headHeightPx);
+  }
+}
+
+// ── 마디선 · step 선(M4.5-1, draw order layer 4) ─────────────
+
+/**
+ * 현재 보이는 구간의 마디 시작점·shape step 지점에 가로선을 긋는다 —
+ * `computeNoteHeadRect`와 같은 scroll 변환을 tick 하나마다 반복한다(note가
+ * 아니라 눈금이므로 `NoteRect`을 만들지 않고 바로 그린다).
+ */
+export function drawMeasureLines(
+  ctx: DrawContext,
+  rect: PlayfieldRect,
+  jY: number,
+  geometry: FieldGeometry,
+  timeline: Timeline,
+  curMs: number,
+  scrollSpeed: number,
+  mirror: boolean,
+): void {
+  const visMs = SCROLL_VIEW_MS / scrollSpeed;
+  const botTk = msToTick(timeline, curMs);
+  const topTk = msToTick(timeline, curMs + visMs);
+
+  function lineAt(tick: number, color: string, lineWidth: number): void {
+    const progress = scrollProgressAt(timeline, tick, curMs, scrollSpeed);
+    const y = scrollYAt(rect, jY, progress);
+    const { blue, red } = shapeGeometryAt(geometry, tick);
+    const leftX = shapeX(rect, Math.min(blue, red), mirror);
+    const rightX = shapeX(rect, Math.max(blue, red), mirror);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    ctx.moveTo(leftX, y);
+    ctx.lineTo(rightX, y);
+    ctx.stroke();
+  }
+
+  for (const measure of timeline.measures) {
+    if (measure.startTick < botTk || measure.startTick > topTk) continue;
+    lineAt(measure.startTick, MEASURE_LINE.color, MEASURE_LINE.lineWidth);
+  }
+  for (const tick of stepTicks(geometry, botTk, topTk)) {
+    lineAt(tick, SHAPE_STEP_LINE.color, SHAPE_STEP_LINE.lineWidth);
+  }
+}
+
+// ── sudden(M4.5-1, draw order layer 6) ───────────────────────
+
+/** 상단 불투명 레인 커버 — `sudden`(0~90, `Settings`) 클수록 판정선까지
+ *  거리의 더 많은 부분을 가린다(최대 95%). */
+export function drawSuddenCover(
+  ctx: DrawContext,
+  rect: PlayfieldRect,
+  jY: number,
+  suddenPct: number,
+): void {
+  if (suddenPct <= 0) return;
+  const frac = Math.min(SUDDEN_COVER.maxCoverFrac, suddenPct / 100);
+  const height = (jY - rect.gy) * frac;
+  ctx.fillStyle = SUDDEN_COVER.color;
+  ctx.fillRect(rect.gx, rect.gy, rect.gw, height);
+}
+
+// ── text event(M4.5-1, draw order layer 9) ───────────────────
+
+export interface ActiveTextEvent {
+  readonly content: string;
+  readonly position: TextPosition;
+  readonly alpha: number;
+}
+
+/**
+ * 지금 보여야 할 text event와 그 fade alpha. `TEXT_FADE_MS`(등장·퇴장 공용,
+ * [[constants]] §6)를 시작·끝 경계 밖으로 대칭 적용한다.
+ */
+export function computeActiveTextEvents(
+  events: readonly TextEvent[],
+  timeline: Timeline,
+  curMs: number,
+): readonly ActiveTextEvent[] {
+  const active: ActiveTextEvent[] = [];
+  for (const event of events) {
+    const startMs = tickToMs(timeline, event.startTick);
+    const endMs = tickToMs(timeline, event.startTick + event.duration);
+    if (curMs < startMs - TEXT_FADE_MS || curMs > endMs + TEXT_FADE_MS) continue;
+
+    let alpha = 1;
+    if (curMs < startMs) alpha = (curMs - (startMs - TEXT_FADE_MS)) / TEXT_FADE_MS;
+    else if (curMs > endMs) alpha = 1 - (curMs - endMs) / TEXT_FADE_MS;
+    active.push({
+      content: event.content,
+      position: event.position,
+      alpha: Math.max(0, Math.min(1, alpha)),
+    });
+  }
+  return active;
+}
+
+const LANE_POSITIONS: ReadonlySet<TextPosition> = new Set(['lane1', 'lane2', 'lane3', 'lane4']);
+
+function laneOfPosition(position: TextPosition): Lane {
+  return Number(position.slice(4)) as Lane;
+}
+
+/**
+ * text event 하나를 그린다. `left`/`middle`/`right`는 화면 3분할 컬럼
+ * (세로 중앙 고정), `lane1~4`는 그 lane 위 삼각 인디케이터+하이라이트+
+ * 텍스트 박스(판정선 위)다 — `theme.md` §3 "text event". lane 삼각의
+ * "펄스" 애니메이션은 주기가 명시돼 있지 않아(결정 필요 항목) 정적
+ * 삼각형으로 그린다.
+ */
+export function drawTextEvent(
+  ctx: DrawContext,
+  rect: PlayfieldRect,
+  jY: number,
+  geometry: FieldGeometry,
+  tick: number,
+  mirror: boolean,
+  event: ActiveTextEvent,
+): void {
+  ctx.globalAlpha = event.alpha;
+  ctx.fillStyle = TEXT_EVENT.color;
+
+  if (!LANE_POSITIONS.has(event.position)) {
+    const pad = rect.gw * TEXT_EVENT.columnPaddingFactor;
+    const sz = rect.gw * TEXT_EVENT.columnSizeFactor;
+    ctx.font = `bold ${Math.round(sz)}px sans-serif`;
+    ctx.textBaseline = 'middle';
+    const y = rect.gy + rect.gh * 0.5;
+    if (event.position === 'left') {
+      ctx.textAlign = 'left';
+      ctx.fillText(event.content, rect.gx + pad, y);
+    } else if (event.position === 'right') {
+      ctx.textAlign = 'right';
+      ctx.fillText(event.content, rect.gx + rect.gw - pad, y);
+    } else {
+      ctx.textAlign = 'center';
+      ctx.fillText(event.content, rect.gx + rect.gw / 2, y);
+    }
+    ctx.globalAlpha = 1;
+    return;
+  }
+
+  const { blue, red } = shapeGeometryAt(geometry, tick);
+  const leftX = shapeX(rect, Math.min(blue, red), mirror);
+  const rightX = shapeX(rect, Math.max(blue, red), mirror);
+  const loX = Math.min(leftX, rightX);
+  const hiX = Math.max(leftX, rightX);
+  const projected = projectLaneLayout(laneLayoutAt(geometry, tick));
+  const segment = laneSegment(loX, hiX, projected, laneOfPosition(event.position));
+  const cx = segment.x + segment.width / 2;
+
+  ctx.fillRect(segment.x, jY - 4, segment.width, 4); // lane 하이라이트(판정선 바로 위)
+
+  const triSize = rect.gh * 0.015;
+  const triY = jY - 8;
+  ctx.beginPath();
+  ctx.moveTo(cx, triY - triSize);
+  ctx.lineTo(cx - triSize, triY);
+  ctx.lineTo(cx + triSize, triY);
+  ctx.closePath();
+  ctx.fill();
+
+  const sz = rect.gw * TEXT_EVENT.laneSizeFactor;
+  ctx.font = `bold ${Math.round(sz)}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(event.content, cx, triY - triSize - 4);
+  ctx.globalAlpha = 1;
+}
+
+// ── HUD 나머지(M4.5-1, draw order layer 10) ──────────────────
+
+/** 곡정보 띠 — 판정선 바로 아래 밴드, 내부 높이는 고정한 채 판정선을 따라
+ *  이동한다(`theme.md` §3 "HUD 밴드 추종"). */
+export function drawSongInfoStrip(
+  ctx: DrawContext,
+  rect: PlayfieldRect,
+  jY: number,
+  title: string,
+  artist: string,
+): void {
+  const cell = rect.gw / 16;
+  const bandHeight = rect.gh * SONG_INFO_STRIP.bandHeightFrac;
+  const titleSz = cell * SONG_INFO_STRIP.titleCellFactor;
+  const artistSz = titleSz * SONG_INFO_STRIP.artistOfTitleFactor;
+  const padX = rect.gx + cell * 0.2;
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.round(titleSz)}px sans-serif`;
+  ctx.fillStyle = SONG_INFO_STRIP.titleColor;
+  ctx.fillText(title, padX, jY + bandHeight * 0.35);
+
+  ctx.font = `bold ${Math.round(artistSz)}px sans-serif`;
+  ctx.fillStyle = SONG_INFO_STRIP.artistColor;
+  ctx.fillText(artist, padX, jY + bandHeight * 0.75);
+}
+
+/** 캔버스 pause 아이콘의 클릭 판정 영역 — 좌상단 `cell × cell`. */
+export function pauseIconHitRegion(rect: PlayfieldRect): {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+} {
+  const cell = rect.gw * PAUSE_ICON.cellFactor;
+  return { x: rect.gx, y: rect.gy, w: cell, h: cell };
+}
+
+/** 점 `(x, y)`가 pause 아이콘 클릭 영역 안인지. */
+export function pauseIconHitTest(rect: PlayfieldRect, x: number, y: number): boolean {
+  const region = pauseIconHitRegion(rect);
+  return x >= region.x && x <= region.x + region.w && y >= region.y && y <= region.y + region.h;
+}
+
+/** 두 막대 pause 아이콘 — `theme.md` §3 "pause 버튼". */
+export function drawPauseIcon(ctx: DrawContext, rect: PlayfieldRect): void {
+  const region = pauseIconHitRegion(rect);
+  const cell = region.w;
+  const barW = cell * PAUSE_ICON.barWFactor;
+  const barH = cell * PAUSE_ICON.barHFactor;
+  const cx = region.x + cell / 2;
+  const cy = region.y + cell / 2;
+  const gap = barW * 0.6;
+  ctx.fillStyle = PAUSE_ICON.color;
+  ctx.fillRect(cx - gap / 2 - barW, cy - barH / 2, barW, barH);
+  ctx.fillRect(cx + gap / 2, cy - barH / 2, barW, barH);
 }

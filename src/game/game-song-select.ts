@@ -69,6 +69,9 @@ export interface PlayableChart {
   /** `chart.musicFile`이 있고 asset도 있으면 그 bytes. 없으면 `null`(무음
    *  판 — 곡 종료 시각은 chart event만으로 정해진다, `songEndOf`). */
   readonly musicBytes: Uint8Array | null;
+  /** `chart.jacketFile`이 있고 asset도 있으면 그 bytes(M4.5-1, jacket 배경
+   *  — `render/theme.md` §2 layer 1). 없으면 `null`(배경 없이 진행). */
+  readonly jacketBytes: Uint8Array | null;
 }
 
 /**
@@ -90,12 +93,20 @@ export async function loadPlayableChart(
   const found = loaded.charts.find((c) => c.chart.chartId === chartId);
   if (found === undefined) return null;
 
-  const asset =
+  const musicAsset =
     found.chart.musicFile === null
       ? undefined
       : loaded.assets.find((a) => a.name === found.chart.musicFile);
+  const jacketAsset =
+    found.chart.jacketFile === null
+      ? undefined
+      : loaded.assets.find((a) => a.name === found.chart.jacketFile);
 
-  return { chart: found.chart, musicBytes: asset?.bytes ?? null };
+  return {
+    chart: found.chart,
+    musicBytes: musicAsset?.bytes ?? null,
+    jacketBytes: jacketAsset?.bytes ?? null,
+  };
 }
 
 export async function loadSongSelectRows(storage: StorageEnv): Promise<SongSelectLoadResult> {

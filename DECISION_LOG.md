@@ -1242,6 +1242,33 @@
 - **Commit:** `c44a27c`
 
 
+### D-2026-090 — M4.5-1: gameplay HUD 완성 — jacket·key 빔·마디선/step 선·sudden·text event·카운터/퍼센트·곡정보 띠·canvas pause 아이콘
+
+- **Status:** Accepted
+- **Decision:** M4-5가 최소 기능 레이아웃만 구현하고 남겨둔 gameplay HUD 8종(jacket 배경·key 빔·마디선/step 선·sudden 커버·text event·카운터/퍼센트·곡정보 띠·canvas pause 아이콘)을 전부 구현했다. `render/theme.md`가 원본 게임에서 이미 실측해 둔 draw order(§2)·치수(§3)·색(§1)을 그대로 썼다 — 새 레이아웃 설계가 아니라 뒤늦은 배선이다. `ui-design.md` §2.10이 이 확인과, theme.md에 없던 네 자리(아래)를 문서화했다.
+
+  **판정 텍스트(SYNC/PERFECT/GOOD/MISS)에 지속시간을 추가했다** — `HUD_TEXT.judgmentFlashMs = 500ms`(`render-theme.ts`). 원래 theme.md에 이 값이 없어 다음 판정이 올 때까지 안 지워지는 채로 구현돼 있었다 — `fastSlowFlashMs`(바로 아래 줄에 붙는 형제 HUD 텍스트)와 같은 값을 재사용했다. `core/constants.md`가 아니라 `render/theme.md`(순수 표시 값)에 뒀다 — `core/constants.md`는 로직에 쓰이는 수치 전용이라는 그 문서 자신의 분류 기준을 따랐다.
+
+  **카운터·퍼센트 행의 Y 순서를 새로 정했다** — 콤보 → 판정 텍스트 → 카운터 → 퍼센트 → FAST/SLOW로 스택했다. theme.md의 원본 주석("카운터·정확도 행이 아직 없어 판정 텍스트가 그 자리를 당겨 쓴다")을 판정 텍스트가 카운터/퍼센트 행의 자리를 임시로 빌려 쓰던 것으로 읽어, 판정 텍스트를 표 순서대로 제자리로 옮기고 그 사이에 카운터/퍼센트를 끼워 넣었다 — theme.md가 정확한 Y 앵커를 안 남겨서 이 세션의 해석이다.
+
+  **canvas pause 아이콘에 클릭 판정을 붙였다** — 좌상단 `cell`(`gw/16`) 영역 클릭 → `session.pause()`. 이전엔 키보드(Escape/Backspace, `attachPauseKeys`)만 있었다 — `pauseIconHitTest`(순수 함수, `render-playfield.ts`)로 hit-test하는 canvas `click` 리스너를 `scene-gameplay.ts`에 새로 달았다. `attachPauseKeys`와는 완전히 별개 경로이지만 둘 다 `session.pause()`(멱등)만 부르므로 충돌하지 않는다.
+
+  **pause overlay(Resume/Retry/Exit) DOM 색은 새로 만들지 않고 `scene-result.css`(`ui-design.md` §5)의 기존 토큰(`--bg`/`--text`/`--rule`/`--rule-strong`/`--cyan`)을 그대로 가져다 썼다** — canvas HUD 색(`render-theme.ts`)과는 별개 팔레트다(둘이 이미 미세하게 다른 값이었다는 점도 이 분리가 새 결정이 아님을 보여준다).
+
+  **jacket 배경 로딩을 새로 배선했다** — `game-song-select.ts`의 `PlayableChart`에 `jacketBytes` 필드를 추가하고(`musicBytes`와 같은 패턴), `app-main.ts`가 `createImageBitmap`으로 decode해 `GameplayStartInput.jacket`에 채운다. decode 실패나 `jacketFile` 없음은 배경 없이 진행(필수 데이터가 아니다).
+
+  **`DrawContext`에 `drawImage`를 추가했다** — jacket 배경 draw에만 쓰는 최소 확장. `drawPlayfield`에 `jacket: JacketInput | null` 선택 인자를 추가해 draw order layer 0(배경 fill)과 layer 2(shape 경계) 사이(layer 1)에 정확히 끼워 넣었다 — 기존 호출부는 인자 생략 시 그대로 동작한다(하위 호환).
+
+  **key 빔 페이드는 두 톤 계단으로 근사했다** — `DrawContext`가 그라디언트 API를 안 받아(`drawJudgeTrack`의 기존 주석과 같은 이유) theme.md의 "1/3 지점부터 페이드 인"을 정확한 그라디언트 대신 머리(head)만 더 밝은 두 구간으로 단순화했다.
+
+  **lane1~4 text event의 "펄스" 애니메이션은 정적 삼각형으로 뒀다** — theme.md가 펄스 주기를 안 남겨 결정 필요 항목으로 남긴다.
+- **Defined in:** `src/render/render-theme.ts`, `src/render/render-playfield.ts`, `src/scene/scene-gameplay.ts`, `src/scene/scene-gameplay.css`, `src/game/game-song-select.ts`, `src/app/app-main.ts`, `render/theme.md`, `scene/ui-design.md` §2.10, `_plan/build-order.md` §7.5
+- **Rationale:** Not required
+- **Affects:** render, game, scene, app, theme(spec)·ui-design(spec)·build-order(spec) — M4.5-1 완료
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

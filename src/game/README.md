@@ -84,7 +84,9 @@ store(M3-1, `edit-workspace.ts`의 고정 key 패턴을 따라 key=`'current'`)�
 `game-song-select.ts`의 `loadPlayableChart`는 M4-5 범위다 — `loadSongSelectRows`와
 같은 decode 경로(`format-cfx-load.ts`)로 songId+chartId 하나의 chart
 전체(notes 포함)와 음원 bytes를 얻는다. gameplay 진입([[scene]] §5)에
-쓰인다.
+쓰인다. M4.5-1(D-2026-090)이 `jacketBytes` 필드를 더했다 — jacket 배경
+(HUD, `scene-gameplay.ts`)을 그리려면 `musicBytes`와 같은 방식으로
+asset을 함께 읽어야 한다.
 
 `game-song-select.ts`는 M4-3 범위다([[song-select]]). `env-storage`의
 `library` store를 `format/format-cfx-load.ts`의 `loadCfxPackage`로 decode해

@@ -1,8 +1,8 @@
-# ui-design — tokens + result·song-select·settings·title·credits 레이아웃
+# ui-design — tokens + result·song-select·settings·title·credits·gameplay 레이아웃
 
-status: Accepted (D-2026-051) — §6(scene.md §9 필드 추가)은 D-2026-054, §7-3(티어 색 대 실패 적색)은 D-2026-055로 닫혔다. §7-2(티어 색 대 Shape 색)는 결정이 아니라 scene 축 분리 확인으로 해소— 별도 D-log 없음. §2.5(곡 선택 레이아웃)는 D-2026-072(M3.5-1)로 확정, 빈 library 항목은 D-2026-073으로 해소 — M3.5-1은 §2.5.7-1(overlay 진입 키 게이트의 마우스+휠 확장)만 남기고 닫혔다. §2.6(settings 레이아웃)은 D-2026-076(M3.5-2)으로 확정 — scene 구조 변경(GAUGE→OPTION 병합, SOUND 신설)은 D-2026-074·D-2026-075. M3.5-2는 완전히 닫혔다 — 남은 항목(key rebinding UI 캡처 흐름, volume 조작 단위, `volEffect` 실제 의미)은 모두 이 레이아웃 범위 밖의 별도 게이트(M4-6 前 등)로 이미 분리돼 있다. §2.5·§2.6의 화면 텍스트는 D-2026-077로 "공용 영어 vs 실제 번역" 구분에 맞춰 소급 재정리됐다 — `src/core/core-i18n.ts` 참조. §2.7(title 레이아웃)은 D-2026-079(M3.5-3)로 확정 — 클릭 포함 입력 규칙은 `scene.md` §3에 D-2026-078로 반영, `prefers-reduced-motion` 대응(정지 최종 프레임, 별도 D-log 없이 §2.7.5-2에 해소로 기록)까지 정리돼 M3.5-3은 완전히 닫혔다. §2.8(credits 레이아웃 골격)은 D-2026-080(M3.5-4)으로 확정 — 표시 내용 자체(M4-2 前 게이트)는 범위 밖, 골격은 완전히 닫혔다. **이로써 M3.5(§6.5) 4단계 전부 닫혔다**. §2.9(mode-select 레이아웃)는 D-2026-082(M4-2 선행)로 확정 — M3.5 네 화면 목록에 mode-select가 원래 없었던 공백을 M4-2 구현 직전에 발견해 별도로 닫았다
+status: Accepted (D-2026-051) — §6(scene.md §9 필드 추가)은 D-2026-054, §7-3(티어 색 대 실패 적색)은 D-2026-055로 닫혔다. §7-2(티어 색 대 Shape 색)는 결정이 아니라 scene 축 분리 확인으로 해소— 별도 D-log 없음. §2.5(곡 선택 레이아웃)는 D-2026-072(M3.5-1)로 확정, 빈 library 항목은 D-2026-073으로 해소 — M3.5-1은 §2.5.7-1(overlay 진입 키 게이트의 마우스+휠 확장)만 남기고 닫혔다. §2.6(settings 레이아웃)은 D-2026-076(M3.5-2)으로 확정 — scene 구조 변경(GAUGE→OPTION 병합, SOUND 신설)은 D-2026-074·D-2026-075. M3.5-2는 완전히 닫혔다 — 남은 항목(key rebinding UI 캡처 흐름, volume 조작 단위, `volEffect` 실제 의미)은 모두 이 레이아웃 범위 밖의 별도 게이트(M4-6 前 등)로 이미 분리돼 있다. §2.5·§2.6의 화면 텍스트는 D-2026-077로 "공용 영어 vs 실제 번역" 구분에 맞춰 소급 재정리됐다 — `src/core/core-i18n.ts` 참조. §2.7(title 레이아웃)은 D-2026-079(M3.5-3)로 확정 — 클릭 포함 입력 규칙은 `scene.md` §3에 D-2026-078로 반영, `prefers-reduced-motion` 대응(정지 최종 프레임, 별도 D-log 없이 §2.7.5-2에 해소로 기록)까지 정리돼 M3.5-3은 완전히 닫혔다. §2.8(credits 레이아웃 골격)은 D-2026-080(M3.5-4)으로 확정 — 표시 내용 자체(M4-2 前 게이트)는 범위 밖, 골격은 완전히 닫혔다. **이로써 M3.5(§6.5) 4단계 전부 닫혔다**. §2.9(mode-select 레이아웃)는 D-2026-082(M4-2 선행)로 확정 — M3.5 네 화면 목록에 mode-select가 원래 없었던 공백을 M4-2 구현 직전에 발견해 별도로 닫았다. §2.10(gameplay HUD·pause overlay)은 D-2026-090(M4.5-1)으로 확정 — 다른 절과 달리 새 레이아웃을 설계한 게 아니라 `render/theme.md`가 이미 실측해 둔 자리를 공식 확인하고, theme.md에 없던 자리(판정 텍스트 지속시간·카운터/퍼센트 Y순서·pause 아이콘 클릭·pause overlay DOM 색)만 새로 정했다.
 supersedes: D-2026-051 초안 (원본 `play-result.js` 계승안)
-scope: UI 토큰 세트 + result 화면 레이아웃 + 곡 선택 화면 레이아웃(§2.5, M3.5-1) + settings 화면 레이아웃(§2.6, M3.5-2) + title 화면 레이아웃(§2.7, M3.5-3) + credits 화면 레이아웃 골격(§2.8, M3.5-4, 표시 내용은 M4-2 前) + mode-select 화면 레이아웃(§2.9, M4-2 선행)
+scope: UI 토큰 세트 + result 화면 레이아웃 + 곡 선택 화면 레이아웃(§2.5, M3.5-1) + settings 화면 레이아웃(§2.6, M3.5-2) + title 화면 레이아웃(§2.7, M3.5-3) + credits 화면 레이아웃 골격(§2.8, M3.5-4, 표시 내용은 M4-2 前) + mode-select 화면 레이아웃(§2.9, M4-2 선행) + gameplay HUD·pause overlay(§2.10, M4.5-1)
 
 원본 계승안에서 출발해 반복 수정한 결과물. 그룹 순서·토큰·타이포·간격이
 모두 바뀌었으므로 원본과의 diff가 아니라 이 문서를 기준으로 구현한다.
@@ -901,6 +901,71 @@ mode-select가 원래 없었다 — M4-2 구현 직전에 이 공백을 발견�
 
 `--bg`·`--text`·`--cyan` 전부 §1 기존 토큰. 새 토큰 없음. 이 절은 §2.7·
 §2.8과 달리 장식 파라미터(bubble 개수 등)조차 없다 — 정적 목록 하나뿐.
+
+---
+
+## 2.10 gameplay HUD·pause overlay (M4.5-1)
+
+다른 절과 성격이 다르다 — song-select·settings·title·credits·mode-select는
+이 문서가 처음 레이아웃을 설계한 화면이지만, gameplay는 `render/theme.md`가
+원본 게임에서 이미 실측해 둔 canvas HUD 좌표·치수·색(§1·§2·§3·§4)을
+그대로 갖고 있었다. 이 절이 하는 일은 두 가지뿐이다: (1) 그 실측값을
+그대로 쓰기로 **공식 확인**하고, (2) theme.md에 없던 네 자리(판정 텍스트
+지속시간·카운터/퍼센트 행의 Y 순서·pause 아이콘 클릭·pause overlay의
+DOM 색)를 새로 정한다. canvas HUD 자체의 좌표·치수·색을 다시 나열하지
+않는다 — 단일 출처는 여전히 `render/theme.md`이고, 그 코드 표현은
+`render-theme.ts`/`render-playfield.ts`다.
+
+### 2.10.1 canvas HUD — theme.md 실측값 그대로 확인
+
+콤보·마지막 판정 텍스트·FAST/SLOW 플래시·게이지 바(=판정선)·hit
+effect는 이미 M2-4·M2-5에서 그 실측값대로 구현돼 있었다(재확인만 필요).
+M4.5-1이 마저 채운 자리 — 전부 `theme.md` §2(draw order)·§3(치수)의
+기존 값 그대로:
+
+- **jacket 배경**(layer 1) — `jacketBrightness`(0~100) 곱으로 dim, cover-fit.
+- **key 빔**(layer 3) — 눌린 lane 위 `beamTop`(`gy+gh×0.30`)~판정선.
+- **마디선·step 선**(layer 4) — 마디 시작 tick·shape step tick마다.
+- **sudden 커버**(layer 6) — `sudden`(0~90) 비율, 최대 95% 캡.
+- **text event**(layer 9) — 3분할 컬럼(`left`/`middle`/`right`)·lane1~4,
+  fade는 [[constants]] `TEXT_FADE_MS`.
+- **곡정보 띠**(layer 10) — 판정선 바로 아래, 판정선을 따라 이동.
+
+### 2.10.2 새로 정한 네 자리
+
+theme.md가 값을 안 남겼거나(①②) 이번에 새로 생긴 인터랙션·색 결정이라
+(③④) 이 세션이 확정했다 — 근거는 DECISION_LOG D-2026-090.
+
+1. **판정 텍스트 지속시간** — `HUD_TEXT.judgmentFlashMs = 500ms`.
+   `fastSlowFlashMs`와 같은 값을 재사용했다(바로 아래 줄에 붙는 형제
+   HUD 텍스트라 다른 값을 쓸 근거가 약했다). theme.md에는 원래 이
+   값이 없어(다음 판정이 올 때까지 안 지워지는 채로 있었다) 새로
+   정한 것이다.
+2. **카운터·퍼센트 행의 Y 순서** — 콤보 → 판정 텍스트 → **카운터 →
+   퍼센트** → FAST/SLOW로 스택했다. theme.md의 원본 주석("카운터·
+   정확도 행이 아직 없어 판정 텍스트가 그 자리를 당겨 쓴다")을 판정
+   텍스트가 카운터/퍼센트 행의 자리를 임시로 빌려 쓰고 있었다는 뜻으로
+   읽어, 판정 텍스트를 표의 순서(콤보→판정→카운터→퍼센트→F/S)대로
+   제자리로 옮기고 카운터/퍼센트를 그 사이에 끼워 넣었다.
+3. **pause 아이콘 클릭** — 좌상단 `cell`(`gw/16`) 영역을 클릭하면
+   `session.pause()`를 부른다. 이전에는 키보드(Escape/Backspace)만
+   있었다 — canvas HUD의 pause 아이콘(layer 10)이 theme.md에 그림은
+   있었지만 클릭 판정은 없었다.
+4. **pause overlay(Resume/Retry/Exit)의 DOM 색** — 새 팔레트를 만들지
+   않고 `scene-result.css`(§5)의 기존 DOM 토큰(`--bg`/`--text`/`--rule`/
+   `--rule-strong`/`--cyan`)을 그대로 옮겨 썼다. canvas HUD 색
+   (`render-theme.ts`)과는 별개 팔레트다 — canvas와 DOM은 원래도 서로
+   다른 색 체계였다(`render-theme.ts`의 판정 색과 `scene-result.css`의
+   `--j-*`가 미세하게 다른 값인 것도 그 증거).
+
+### 2.10.3 canvas vs DOM
+
+`theme.md` §2가 이미 정해 둔 경계를 그대로 따른다 — draw order layer
+0~10(배경·jacket·shape·notes·HUD 텍스트·pause 아이콘 포함)은 전부 canvas
+패스, layer 11(pause overlay 메뉴)만 DOM이다. pause 아이콘 자체는
+canvas에 그리고 클릭 판정도 canvas 좌표계에서 hit-test하지만, 그 클릭이
+여는 메뉴(Resume/Retry/Exit)는 DOM이다 — 아이콘과 메뉴가 서로 다른
+렌더 층에 있다고 인터랙션이 끊기지 않는다.
 
 ---
 

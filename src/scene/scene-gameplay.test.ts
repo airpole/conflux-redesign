@@ -45,6 +45,7 @@ function fakeInput(overrides: Partial<GameplayStartInput> = {}): GameplayStartIn
     chart: makeChart(),
     musicBuffer: null,
     settings: DEFAULT_SETTINGS,
+    jacket: null,
     ...overrides,
   };
 }
@@ -104,6 +105,63 @@ describe('scene-gameplay', () => {
     await tick();
 
     expect((target.querySelector('.pause-overlay') as HTMLElement).hidden).toBe(false);
+  });
+
+  it('canvas pause 아이콘 클릭이 pause overlay를 연다(M4.5-1)', async () => {
+    const { handle } = setup();
+    const root = target;
+    handle.show();
+    handle.start(fakeInput());
+
+    const canvas = root.querySelector('.gameplay-canvas') as HTMLCanvasElement;
+    canvas.width = 1600;
+    canvas.height = 900;
+    canvas.getBoundingClientRect = () =>
+      ({
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        width: 1600,
+        height: 900,
+        right: 1600,
+        bottom: 900,
+      }) as DOMRect;
+
+    // pause 아이콘은 playfield 좌상단 cell(gw/16) 안 — rect.gx+5, rect.gy+5는
+    // 항상 그 영역 안이다(letterbox 여백보다 작다는 보장은 없지만 16:9
+    // 캔버스라 gx=0이라 5,5는 확실히 cell 안).
+    canvas.dispatchEvent(new MouseEvent('click', { clientX: 5, clientY: 5, bubbles: true }));
+    await tick();
+
+    expect((target.querySelector('.pause-overlay') as HTMLElement).hidden).toBe(false);
+  });
+
+  it('canvas의 pause 아이콘 밖을 클릭해도 pause되지 않는다', async () => {
+    const { handle } = setup();
+    const root = target;
+    handle.show();
+    handle.start(fakeInput());
+
+    const canvas = root.querySelector('.gameplay-canvas') as HTMLCanvasElement;
+    canvas.width = 1600;
+    canvas.height = 900;
+    canvas.getBoundingClientRect = () =>
+      ({
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        width: 1600,
+        height: 900,
+        right: 1600,
+        bottom: 900,
+      }) as DOMRect;
+
+    canvas.dispatchEvent(new MouseEvent('click', { clientX: 800, clientY: 450, bubbles: true }));
+    await tick();
+
+    expect((target.querySelector('.pause-overlay') as HTMLElement).hidden).toBe(true);
   });
 
   it('Resume 버튼 클릭이 크래시 없이 카운트다운을 시작한다(정확한 재개 타이밍은 game-engine.test.ts가 단위 검증한다)', async () => {

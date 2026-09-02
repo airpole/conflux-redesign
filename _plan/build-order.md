@@ -294,8 +294,7 @@ settings·title·credits)의 레이아웃을 `ui-design.md`에 확정한다. `ui
 판정 텍스트·FAST/SLOW·게이지 바 배치)와 pause overlay(Resume/Retry/Exit)
 시각 디자인을 `ui-design.md`에 확정한다. `scene-gameplay.ts`/
 `scene-gameplay.css`의 헤더 주석이 이미 "ui-design이 아직 gameplay를
-다루지 않아 결정 필요 항목"이라고 명시해 둔 자리다 — M3.5(§6.5)와 같은
-성격의, 코드 구현 없는 문서(spec) 산출물 단계.
+다루지 않아 결정 필요 항목"이라고 명시해 둔 자리다.
 
 **범위**: gameplay 화면의 HUD 요소·pause overlay 레이아웃/시각 디자인만
 다룬다. 새 gameplay 메커닉(예: HUD에 새 데이터 필드 추가)은 범위 밖이다.
@@ -308,6 +307,16 @@ settings·title·credits)의 레이아웃을 `ui-design.md`에 확정한다. `ui
 | M4.5-2 | pause overlay 레이아웃 — Resume/Retry/Exit | `ui-design.md`가 pause overlay의 배치·치수·색을 정의하고 사용자 승인을 받는다. |
 
 **Exit**: `ui-design.md`가 gameplay HUD·pause overlay를 커버해, `scene-gameplay.ts`/`.css`의 "결정 필요 항목" 주석을 닫을 수 있다.
+
+**충족** (D-2026-090). M3.5와 달리 이 milestone은 문서 확정과 구현이
+한 라운드로 합쳐졌다 — HUD 요소 대부분이 `render/theme.md`에 이미 실측
+값으로 있어서(원본 게임에서 가져온 값, 새로 설계할 게 없었다) "레이아웃을
+정하고 나중에 구현" 단계를 나눌 이유가 약했고, 사용자가 명시적으로 구현까지
+함께 지시했다. `ui-design.md` §2.10이 canvas HUD(M4.5-1)·pause overlay
+DOM 색(M4.5-2 해당분)을 함께 확정했고, `scene-gameplay.ts`/
+`render-playfield.ts`/`render-theme.ts`가 그대로 구현했다 — 판정 텍스트
+지속시간·카운터/퍼센트 Y순서·pause 아이콘 클릭의 결정 필요 항목 셋도
+이 라운드에서 함께 닫혔다(§2.10.2).
 
 역할 분담은 M3.5(§6.5)와 같다 — 시각/제품 디자인 판단은 사용자 몫, Claude
 Code는 이미 확정한 spec(`scene.md` §9·§10)에서 무엇을 담아야 하는지 정리해

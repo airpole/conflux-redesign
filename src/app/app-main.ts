@@ -272,7 +272,18 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
           musicBuffer = null; // 무음으로 진행 — game-song-select.ts의 PlayableChart 계약과 같다.
         }
       }
-      pendingGameplayInput = { chart: playable.chart, musicBuffer, settings };
+      let jacket: GameplayStartInput['jacket'] = null;
+      if (playable.jacketBytes !== null) {
+        try {
+          const bitmap = await createImageBitmap(
+            new Blob([playable.jacketBytes.buffer as ArrayBuffer]),
+          );
+          jacket = { image: bitmap, width: bitmap.width, height: bitmap.height };
+        } catch {
+          jacket = null; // 배경 없이 진행 — M4.5-1 jacket 배경은 있으면 좋은 장식이지 필수 데이터가 아니다.
+        }
+      }
+      pendingGameplayInput = { chart: playable.chart, musicBuffer, settings, jacket };
       manager.goScene('song-credit');
     } finally {
       loading.stop();
