@@ -1363,7 +1363,7 @@
 - **Rationale:** Not required
 - **Affects:** scene, edit, app, build-order(spec) — M5-1 부분 완료(`.cfx` 열기 제외)
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `31827edf2b4546bc721fb777711215344751fd91`
 
 
 ### D-YYYY-NNN — <Title>
