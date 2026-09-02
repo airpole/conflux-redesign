@@ -21,6 +21,7 @@
 import { loadCfxPackage } from '../format/format-cfx-load.js';
 import { readRecord } from './game-records.js';
 import { buildSongRow, type SongChartInput, type SongRow } from '../core/core-song-select.js';
+import type { Chart } from '../core/core-chart.js';
 import type { ChartRecord } from '../core/core-records.js';
 import type { StorageEnv } from '../env/env-storage.js';
 
@@ -61,6 +62,40 @@ export async function loadPreviewAsset(
   if (asset === undefined) return null;
 
   return { bytes: asset.bytes, previewStartMs: found.chart.metadata.previewStartMs };
+}
+
+export interface PlayableChart {
+  readonly chart: Chart;
+  /** `chart.musicFile`이 있고 asset도 있으면 그 bytes. 없으면 `null`(무음
+   *  판 — 곡 종료 시각은 chart event만으로 정해진다, `songEndOf`). */
+  readonly musicBytes: Uint8Array | null;
+}
+
+/**
+ * gameplay 진입(M4-5, [[scene]] §5 "나가기: chart 선택 확정 + Enter →
+ * song-credit")에 필요한 chart 하나 전체(notes 포함)와 그 음원을 얻는다.
+ * `chartId 0`(init)은 재생 대상이 아니라 여기서 못 찾는다.
+ */
+export async function loadPlayableChart(
+  storage: StorageEnv,
+  songId: string,
+  chartId: number,
+): Promise<PlayableChart | null> {
+  const bytes = (await storage.read('library', songId)) as Uint8Array | undefined;
+  if (bytes === undefined) return null;
+
+  const loaded = loadCfxPackage(bytes);
+  if (!loaded.ok) return null;
+
+  const found = loaded.charts.find((c) => c.chart.chartId === chartId);
+  if (found === undefined) return null;
+
+  const asset =
+    found.chart.musicFile === null
+      ? undefined
+      : loaded.assets.find((a) => a.name === found.chart.musicFile);
+
+  return { chart: found.chart, musicBytes: asset?.bytes ?? null };
 }
 
 export async function loadSongSelectRows(storage: StorageEnv): Promise<SongSelectLoadResult> {

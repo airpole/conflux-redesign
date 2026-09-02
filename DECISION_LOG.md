@@ -1190,6 +1190,33 @@
 - **Commit:** `0a41ea8`
 
 
+### D-2026-088 — M4-5: song-credit + gameplay 진입 결선
+
+- **Status:** Accepted (구현분) / 하위 항목들은 Deferred·결정 필요 — 아래 참조
+- **Decision:** `scene-song-credit.ts`(§6 fade 연출)·`scene-gameplay.ts`(canvas·오디오·입력·pause overlay를 묶어 `game-session.ts`를 실제로 돌리는 host)·`game-settings.ts`(설정 읽기)·`game-song-select.ts`의 `loadPlayableChart`(chart 전체+음원 로드)를 신설하고, `app-main.ts`가 song-select `Enter` → song-credit(5초) → `goScene('gameplay','replace')` → 판 종료 → (autoplay면 `goBack()`으로 바로 song-select, 아니면) `goScene('result','replace')` → Retry/Back까지 전체 경로를 이었다. M4-5 Exit 기준("선택한 chart의 credit이 fade로 흐른 뒤 gameplay가 그 chart로 시작한다. 종료 후 result를 거쳐 song-select로 돌아온다")을 충족한다.
+
+  **gameplay→result에도 song-credit→gameplay의 replace 관례를 확장했다**: [[scene]] §6은 song-credit→gameplay만 명시하지만, Retry를 반복해도 스택이 계속 자라지 않게 하려고 gameplay→result·result→gameplay(Retry)도 전부 `'replace'`를 썼다 — song-select가 항상 스택에서 정확히 한 칸 아래 있게 유지해, 어디서든 `goBack()` 하나로 song-select에 돌아갈 수 있다. 스펙이 이 확장을 명시하지 않아 결정 필요 항목으로 보고한다.
+
+  **hitVol/음악 volume 조합식은 결정 필요 항목이다**: `_meta/settings.md` §2가 스스로 "volEffect가 정확히 무엇의 볼륨인지 정의된 적 없다... 실제 오디오 배선은 아직 없다"고 명시해 둔 자리다. `hitVol = volMaster × volEffect`, 음악 volume = `volMaster × volMusic`로 가장 단순한 곱을 택했다 — 3계통 분리의 정확한 결합 방식이 정해지면 재검토.
+
+  **gameplay 화면의 HUD·pause overlay 픽셀 디자인은 결정 필요 항목이다**: ui-design.md가 아직 gameplay 화면을 다루지 않는다(§2.5~§2.9는 song-select/settings/title/credits/mode-select뿐) — 최소 기능 레이아웃(canvas + Resume/Retry/Exit 세 버튼)만 뒀다.
+
+  **`PageUp`/`PageDown`의 페이지 크기와 같은 이유로, `frameCap`·note thickness 등은 이미 있는 설정값을 그대로 썼다** — 새 결정이 아니다.
+
+  **`AudioEnv`에 `getContext(): AudioContext`를 더했다**(D-2026 목록에 없던 최소 의존 수정, `CLAUDE.md` §4) — `playHitSound`/`createHitBuffer`가 raw context를 요구하는데 `AudioEnv`가 그걸 감추고 있었다. 동작 변경 없는 순수 접근자 추가다.
+
+  **기록 초기화와 같은 패턴으로, gameplay scene은 `AudioEnv`를 주입받는다**(`mountGameplayScene(target, audio, handlers)`) — `game-song-preview.ts`와 같은 DI 관례이며, `AudioContext`가 없는 테스트 환경(jsdom)에서도 fake `AudioEnv`로 이 파일 전체를 검증할 수 있게 하는 목적과, `app-main.ts`가 이미 preview용으로 들고 있는 같은 context를 재사용하는 목적 둘 다다.
+
+  no-record 4조건 중 `midStart`/`editorOrigin`은 이 진입 경로(song-select → song-credit → gameplay)에서 항상 `false`다 — 둘 다 아직 없는 host(mid-start·editor test scene, M5)에서만 `true`가 될 수 있다.
+
+  테스트 신규: `scene-song-credit.test.ts` 6, `scene-gameplay.test.ts` 7(jsdom에 `AudioContext`가 없어 fake `AudioEnv` 주입, canvas 2D context 없이도 크래시하지 않음을 확인), `game-settings.test.ts` 3, `game-song-select.test.ts`에 `loadPlayableChart` 3개 추가 — 전체 1126/1126 통과.
+- **Defined in:** `src/scene/scene-song-credit.ts`, `src/scene/scene-gameplay.ts`, `src/game/game-settings.ts`, `src/game/game-song-select.ts`, `src/env/env-audio.ts`, `src/app/app-main.ts`
+- **Rationale:** Not required
+- **Affects:** scene, game, env, app — M4-5 완료
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

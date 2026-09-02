@@ -33,6 +33,28 @@
  * `confirm()`을 쓴다 — 스펙에 별도 확인 인터랙션이 정해져 있지 않아 되돌릴
  * 수 없는 동작에 대한 가장 단순한 방어로 골랐다(결정 필요 항목으로 별도
  * 보고).
+ *
+ * **M4-5**: song-select `Enter`(`onSelect`) → chart+음원 로드(`Loading…`
+ * 표시, [[song-select]] §11) → song-credit(5초 fade) →
+ * `goScene('gameplay', 'replace')` → 판 종료 → autoplay면 result 없이
+ * `goBack()`으로 song-select(§9 "autoplay는 result 없이 song-select로"),
+ * 아니면 `goScene('result', 'replace')` → Retry는 다시
+ * `goScene('gameplay', 'replace')`, Back은 `goBack()`으로 song-select.
+ * `song-credit → gameplay`의 replace 관례를 `gameplay → result`에도 그대로
+ * 이었다 — Retry를 반복해도 스택이 자라지 않게 하려는 것으로, §6이 명시한
+ * 건 song-credit→gameplay뿐이라 이 확장은 이 세션이 내린 결정이다
+ * (결정 필요 항목으로 보고, 자세한 이유는 `scene-gameplay.ts` 헤더).
+ * `pendingGameplayInput`/`pendingResultView`에 scene 사이로 넘길 데이터를
+ * 잠깐 들고 있는다 — `mountResultScene`이 `update()`가 아니라 생성 시점에
+ * view를 받는 계약이라(`scene-result.ts`, M2-6) scene-manager의 lazy-mount-
+ * once 모델과 안 맞는다: `result` Scene의 `mount()`는 아무 것도 안 하고,
+ * 실제 DOM 생성은 매번 `onEnter()`에서 새로 하고 `onExit()`에서
+ * `destroy()`한다 — 다른 scene들의 "한 번 mount, 반복 show/hide"와 다른
+ * 자리라 명시해 둔다.
+ *
+ * 기록 저장은 `saveRecordIfEligible`이 no-record 4조건으로 스스로 거르므로
+ * (`game-records.ts`) 여기서 따로 안 막는다 — midStart·editorOrigin은 이
+ * 진입 경로에서 항상 `false`다(mid-start·editor test host가 아니다).
  */
 import { BUILD_PROFILE, FEATURES } from './app-features.js';
 import { createSceneManager, type Scene, type SceneManager } from '../scene/scene-manager.js';
@@ -44,13 +66,35 @@ import {
   type SongSelectHandlers,
   type SongSelectSceneHandle,
 } from '../scene/scene-song-select.js';
+import { mountSongCreditScene, type SongCreditSceneHandle } from '../scene/scene-song-credit.js';
+import { mountGameplayScene, type GameplaySceneHandle } from '../scene/scene-gameplay.js';
+import {
+  mountResultScene,
+  type ResultSceneHandle,
+  type ResultView,
+} from '../scene/scene-result.js';
+import { mountLoadingIndicator } from '../scene/scene-loading.js';
 import type { CursorTarget } from '../core/core-song-select.js';
-import { loadPreviewAsset, loadSongSelectRows } from '../game/game-song-select.js';
-import { resetRecord } from '../game/game-records.js';
+import { buildJudgeNotes } from '../core/core-judge.js';
+import { buildTimeline } from '../core/core-timing.js';
+import {
+  deriveRecordSummary,
+  type NoRecordConditions,
+  type RecordCandidate,
+} from '../core/core-records.js';
+import type { ResultData } from '../game/game-session.js';
+import {
+  loadPlayableChart,
+  loadPreviewAsset,
+  loadSongSelectRows,
+} from '../game/game-song-select.js';
+import { readRecord, resetRecord, saveRecordIfEligible } from '../game/game-records.js';
 import { readSongSelectViewState, writeSongSelectViewState } from '../game/game-viewstate.js';
+import { readSettings } from '../game/game-settings.js';
 import { createPreviewController } from '../game/game-song-preview.js';
 import { createAudioEnv } from '../env/env-audio.js';
 import { createIndexedDbBackend, createStorageEnv, type StorageEnv } from '../env/env-storage.js';
+import type { GameplayStartInput } from '../scene/scene-gameplay.js';
 
 console.info(`Conflux — build profile: ${BUILD_PROFILE}`);
 
@@ -155,7 +199,7 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
           });
         },
         onSelect(target): void {
-          console.info(`song-select: '${target.songId}:${target.chartId}' 선택됨 (M4-5 범위)`);
+          void enterSongCredit(target);
         },
         onRecordCellModeChange(mode): void {
           void (async () => {
@@ -202,11 +246,155 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
     songSelectHandle!.update(rows, view);
   }
 
+  // ── M4-5: song-credit → gameplay → result ────────────────────────────
+
+  let pendingGameplayInput: GameplayStartInput | null = null;
+  let pendingResultView: ResultView | undefined;
+
+  async function enterSongCredit(target: CursorTarget): Promise<void> {
+    previewController.stop();
+    const loading = mountLoadingIndicator(root);
+    loading.start();
+    try {
+      const [playable, settings] = await Promise.all([
+        loadPlayableChart(storage, target.songId, target.chartId),
+        readSettings(storage),
+      ]);
+      if (playable === null) {
+        console.warn(`song-select: '${target.songId}:${target.chartId}' chart를 못 읽었다`);
+        return;
+      }
+      let musicBuffer: AudioBuffer | null = null;
+      if (playable.musicBytes !== null) {
+        try {
+          musicBuffer = await audioEnv.decode(playable.musicBytes.buffer as ArrayBuffer);
+        } catch {
+          musicBuffer = null; // 무음으로 진행 — game-song-select.ts의 PlayableChart 계약과 같다.
+        }
+      }
+      pendingGameplayInput = { chart: playable.chart, musicBuffer, settings };
+      manager.goScene('song-credit');
+    } finally {
+      loading.stop();
+      loading.destroy();
+    }
+  }
+
+  let songCreditHandle: SongCreditSceneHandle | undefined;
+  const songCreditScene: Scene = {
+    id: 'song-credit',
+    mount(): void {
+      songCreditHandle = mountSongCreditScene(root, {
+        onDone: () => manager.goScene('gameplay', 'replace'),
+      });
+    },
+    onEnter(): void {
+      songCreditHandle!.update(pendingGameplayInput!.chart);
+      songCreditHandle!.show();
+    },
+    onExit(): void {
+      songCreditHandle!.hide();
+    },
+  };
+
+  let gameplayHandle: GameplaySceneHandle | undefined;
+  const gameplayScene: Scene = {
+    id: 'gameplay',
+    mount(): void {
+      gameplayHandle = mountGameplayScene(root, audioEnv, {
+        onFinished(result): void {
+          void onGameplayFinished(result);
+        },
+        onExit(): void {
+          manager.goBack();
+        },
+      });
+    },
+    onEnter(): void {
+      gameplayHandle!.show();
+      gameplayHandle!.start(pendingGameplayInput!);
+    },
+    onExit(): void {
+      gameplayHandle!.hide();
+    },
+  };
+
+  async function onGameplayFinished(result: ResultData): Promise<void> {
+    const input = pendingGameplayInput;
+    if (input === null) return;
+    const { chart, settings } = input;
+
+    const timeline = buildTimeline(chart);
+    const totalUnits = buildJudgeNotes(chart, timeline).totalUnits;
+    const conditions: NoRecordConditions = {
+      autoplay: settings.autoplay,
+      staticShape: settings.staticShape,
+      midStart: false,
+      editorOrigin: false,
+    };
+    const candidate: RecordCandidate = {
+      judgments: result.counts,
+      totalUnits,
+      state: result.state,
+      maxCombo: result.maxCombo,
+    };
+
+    const prevRecord = await readRecord(storage, chart.songId, chart.chartId);
+    const prevBest = prevRecord !== null ? deriveRecordSummary(prevRecord) : null;
+    await saveRecordIfEligible(storage, chart.songId, chart.chartId, candidate, conditions);
+
+    if (settings.autoplay) {
+      // [[scene]] §9 "autoplay로 돌린 판은 곡이 끝나면 result를 거치지
+      // 않고 song-select로 돌아간다".
+      manager.goBack();
+      return;
+    }
+
+    const mods: string[] = [];
+    if (settings.mirror) mods.push('Mirror');
+    if (settings.autoplay) mods.push('Autoplay');
+    if (settings.staticShape) mods.push('Static Shape');
+
+    pendingResultView = {
+      chart,
+      result,
+      prevBest: prevBest !== null ? { score: prevBest.score, accuracy: prevBest.accuracy } : null,
+      mods,
+    };
+    manager.goScene('result', 'replace');
+  }
+
+  let resultHandle: ResultSceneHandle | undefined;
+  const resultScene: Scene = {
+    id: 'result',
+    // `mountResultScene`은 다른 scene과 달리 생성 시점에 view를 통째로
+    // 받는 계약이다(`scene-result.ts`, M2-6) — lazy-mount-once와 안 맞아
+    // 여기 `mount()`는 비워 두고 실제 생성은 매 `onEnter()`에서 한다.
+    mount(): void {},
+    onEnter(): void {
+      resultHandle = mountResultScene(root, pendingResultView!, {
+        onRetry(): void {
+          manager.goScene('gameplay', 'replace');
+        },
+        onBack(): void {
+          manager.goBack();
+        },
+      });
+    },
+    onExit(): void {
+      resultHandle?.destroy();
+      resultHandle = undefined;
+    },
+  };
+
   const manager: SceneManager = createSceneManager([
     titleScene,
     modeSelectScene,
     creditsScene,
     songSelectScene,
+    songCreditScene,
+    gameplayScene,
+    resultScene,
   ]);
   manager.goScene('title');
 }

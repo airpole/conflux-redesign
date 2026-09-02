@@ -23,5 +23,23 @@ axis 상태(category/groupBy/sortKey/sortDir/recordCellMode/lastSelected)를
 `FEATURES.recordReset`이 켜졌을 때만 핸들러를 넘긴다(꺼지면 핸들러 자체가
 없어 `scene-song-select.ts`가 버튼을 안 그린다) — 확정은 `confirm()`으로
 막는다(스펙에 별도 확인 인터랙션이 없어 되돌릴 수 없는 동작에 대한 가장
-단순한 방어로 고른 것, 결정 필요 항목으로 별도 보고). `onSelect`(Enter)는
-아직 목적지가 없어(`song-credit`, M4-5) 콘솔 로그만 남긴다.
+단순한 방어로 고른 것, 결정 필요 항목으로 별도 보고).
+
+M4-5가 `onSelect`(Enter) 이후의 전체 경로를 이었다 — song-select →
+`enterSongCredit`(chart+음원 로드, `LOADING_INDICATOR_DELAY_MS` 넘으면
+`scene-loading.ts`) → `song-credit`(5초 fade, `scene-song-credit.ts`) →
+`goScene('gameplay', 'replace')`(`scene-gameplay.ts`가 실제 판을 돌린다) →
+`onGameplayFinished`가 `game-records.ts`의 `saveRecordIfEligible`로 기록을
+갱신하고, `settings.autoplay`면 `goBack()`으로 곧장 song-select(§9 "autoplay는
+result 없이"), 아니면 `goScene('result', 'replace')`로 `scene-result.ts`
+(M2-6)를 띄운다. Retry는 다시 `goScene('gameplay', 'replace')`, Back은
+`goBack()`으로 song-select — `song-credit → gameplay`의 replace 관례를
+`gameplay → result`에도 확장했다(Retry 반복에 스택이 안 자라게, 스펙이
+명시하지 않은 확장이라 결정 필요 항목으로 보고). `result` scene은 다른
+scene과 달리 `mount()`가 비어 있고 매 `onEnter()`마다 `mountResultScene`을
+새로 만든다 — 그 함수가 생성 시점에 view를 통째로 받는 계약이라(M2-6)
+lazy-mount-once와 안 맞기 때문이다.
+
+`game-settings.ts`의 `readSettings`로 매 판 시작 시 실제 player settings를
+읽는다 — settings 4 scene(M4-6)이 아직 없어 기본값에서 바꿀 UI는 없지만,
+읽기 배선 자체는 이미 존재하는 저장값을 그대로 반영한다.

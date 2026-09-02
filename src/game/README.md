@@ -56,19 +56,30 @@ M2-7: `game-visibility.ts`(`attachAutoPause`)·`game-pause-keys.ts`
 후 pause한다 — 전체화면 중 Esc는 브라우저에 예약돼 있어(D-2026-052)
 Backspace가 실제 대체키다.
 
-**아직 없는 것**: pause overlay UI(scene/render, 이 파일들은 상태 기계만 다룸),
-quick options 패널 UI(scene/render — `core-quick-options.ts`에 조작 로직은
-이미 있다). 로딩 표시 컴포넌트는 `src/scene/scene-loading.ts`에 있지만
-`env-audio.decode()` 등 실제 비동기 호출부에 붙이는 배선은 아직 없다 —
-M2는 chart를 고정 입력으로 받아 파일 로드 host 자체가 없다.
+**M4-5가 실제 host를 붙였다** — pause overlay UI·`env-audio.decode()` 배선·
+`game-records.ts` 실제 호출은 `src/scene/scene-gameplay.ts`가 맡는다(아래
+참조와 `src/scene/README.md`). quick options 패널 UI는 여전히 없다
+(M4-7 범위).
 
 `game-records.ts`는 M3-7 범위다([[records]]). `core-records.ts`의 순수
 병합·no-record gate를 `env-storage`의 `records` store(M3-1, key=
 `songId:chartId`)에 잇는다 — `saveRecordIfEligible`이 init(`chartId 0`)과
 no-record 조건을 걸러 store를 건드리지 않는다. `game-session.ts`의
-`finalize`에서 실제로 이 함수를 부르는 배선과, no-record 4조건 중
-`midStart`·`editorOrigin`을 실제로 판별하는 로직(editor test scene·게임
-진입 경로가 있어야 안다)은 아직 없다 — 그 host들이 아직 없다(M4/M5).
+`finalize`에서 실제로 이 함수를 부르는 배선(M4-5, `app-main.ts`의
+`onGameplayFinished`)이 붙었다 — no-record 4조건 중 `midStart`·
+`editorOrigin`은 song-select에서 들어오는 이 진입 경로에서 항상 `false`다
+(mid-start·editor test host가 아니다 — 그 host들은 여전히 없다, M5).
+
+`game-settings.ts`는 M4-5 범위다([[settings]]). `env-storage`의 `settings`
+store(M3-1, `edit-workspace.ts`의 고정 key 패턴을 따라 key=`'current'`)에서
+`readSettings`로만 읽는다 — settings 4 scene(M4-6, 실제 값을 바꾸는 UI)이
+아직 없어 `writeSettings`는 두지 않았다. `core-settings.ts`의 순수
+`mergeSettings`를 그대로 재사용한다(`game-viewstate.ts`와 같은 패턴).
+
+`game-song-select.ts`의 `loadPlayableChart`는 M4-5 범위다 — `loadSongSelectRows`와
+같은 decode 경로(`format-cfx-load.ts`)로 songId+chartId 하나의 chart
+전체(notes 포함)와 음원 bytes를 얻는다. gameplay 진입([[scene]] §5)에
+쓰인다.
 
 `game-song-select.ts`는 M4-3 범위다([[song-select]]). `env-storage`의
 `library` store를 `format/format-cfx-load.ts`의 `loadCfxPackage`로 decode해

@@ -16,6 +16,9 @@ function fakeAudio(): AudioEnv & { plays: Array<{ buffer: unknown; fromMs: numbe
     stop: vi.fn(),
     getPositionMs: () => null,
     setVolume: vi.fn(),
+    getContext: () => {
+      throw new Error('not used in these tests');
+    },
   };
 }
 

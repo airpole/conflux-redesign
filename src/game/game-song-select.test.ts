@@ -10,7 +10,7 @@ import {
 import { createZipArchive } from '../env/env-file.js';
 import type { CandidateChart } from '../format/format-cfx-package.js';
 import { saveRecordIfEligible } from './game-records.js';
-import { loadSongSelectRows } from './game-song-select.js';
+import { loadPlayableChart, loadSongSelectRows } from './game-song-select.js';
 
 function fakeBackend(): StorageBackend {
   const data = new Map<StoreName, Map<string, unknown>>(STORE_NAMES.map((s) => [s, new Map()]));
@@ -107,5 +107,28 @@ describe('loadSongSelectRows', () => {
     const result = await loadSongSelectRows(storage);
     expect(result.rows).toEqual([]);
     expect(result.warnings).toEqual(['broken']);
+  });
+});
+
+describe('loadPlayableChart', () => {
+  it('songId+chartId로 chart 전체와 음원 bytes를 얻는다', async () => {
+    const storage = createStorageEnv(fakeBackend());
+    await storage.write('library', 'song-x', buildCfx('song-x', 'My Song'));
+
+    const result = await loadPlayableChart(storage, 'song-x', 1);
+    expect(result?.chart.difficulty).toBe('Trace');
+    expect(result?.chart.songId).toBe('song-x');
+    expect(result?.musicBytes).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it('songId가 library에 없으면 null이다', async () => {
+    const storage = createStorageEnv(fakeBackend());
+    expect(await loadPlayableChart(storage, 'gone', 1)).toBeNull();
+  });
+
+  it('chartId가 그 song에 없으면 null이다', async () => {
+    const storage = createStorageEnv(fakeBackend());
+    await storage.write('library', 'song-x', buildCfx('song-x', 'My Song'));
+    expect(await loadPlayableChart(storage, 'song-x', 99)).toBeNull();
   });
 });

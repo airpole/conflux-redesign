@@ -59,9 +59,9 @@ idle/typing/no-results 3상태 — 검색 중엔 folder 헤더 없이 평평한 
 前 게이트가 아직 안 닫혀 빈 칸), 기록 초기화 버튼(`onResetRecord`가
 있을 때만 노출, §13 `FEATURES.recordReset` 게이팅)을 더했다. 정렬·그룹
 바는 여전히 표시만 한다("목록 옵션 overlay 진입 키" 게이트가 아직
-그대로다). 아코디언(folder 접힘/펼침)·PageUp/PageDown/Home/End·가속
-스크롤은 이번 범위에도 없다(결정 필요 항목으로 미룸, `scene-song-select.ts`
-헤더 주석 참조).
+그대로다). 아코디언(folder 접힘/펼침)·PageUp/PageDown/Home/End는 이후
+"M4-4 후속" 문단에서 닫혔다 — 아래 참조. 가속 스크롤만 결정 필요 항목으로
+계속 미룬다(`scene-song-select.ts` 헤더 주석 참조).
 
 `SongSelectViewState`/`CursorTarget`은 `core-song-select.ts`에서 그대로
 가져와 재수출한다(로컬 재정의 아님) — 처음엔 이 파일이 자체 정의를 뒀다가
@@ -76,3 +76,22 @@ idle/typing/no-results 3상태 — 검색 중엔 folder 헤더 없이 평평한 
 상태일 뿐 영속하지 않는다. `PageUp`/`PageDown`의 "한 화면 단위"는 실제
 viewport 측정이 없어 `PAGE_STOP_COUNT`(고정 근사값) — 결정 필요 항목으로
 별도 보고, 실제 DOM 측정 기반 페이지 크기가 필요해지면 갱신한다.
+
+`scene-song-credit.ts`는 M4-5 범위다([[scene]] §6). fade-in → 유지 →
+fade-out(수치는 `CREDIT_*`, 합이 5초) 뒤 `onDone`을 정확히 한 번 부르고
+끝난다 — 입력·클릭 리스너를 아예 안 붙인다(§6 "입력·skip·back 없음").
+텍스트 3줄(`Music by`/`Jacket by`/`Chart by`)만 다루고 화면 레이아웃은
+ui-design 범위 밖이라 최소 골격만 뒀다.
+
+`scene-gameplay.ts`는 M4-5 범위다([[scene]] §9·§10). canvas·`env-audio`
+(호출측이 주입하는 `AudioEnv`)·`env-input`(이 파일이 처음 만드는 DOM
+`KeyboardHost` 구현)·`game-session.ts`를 한 데 묶어 실제 판을 돌린다.
+매 프레임 `session.advance()` 뒤 `drawPlayfield`+판정 표시+게이지 바를
+그리고, `session.result`가 생기면 `onFinished`를 정확히 한 번 부른다.
+pause overlay(Resume/Retry/Exit 세 버튼)는 이 scene이 소유한다(§10
+"gameplay-owned interactive DOM overlay") — `game-visibility.ts`/
+`game-pause-keys.ts`의 기존 pause 배선을 그대로 쓴다. 정확한 HUD·pause
+overlay 픽셀 디자인은 ui-design이 아직 gameplay를 다루지 않아 결정 필요
+항목이다(파일 헤더 참조) — 최소 기능 레이아웃만 뒀다. hitVol/음악 volume을
+`volMaster`×`volEffect`/`volMaster`×`volMusic`로 조합한 것도 같은 이유로
+결정 필요 항목(`_meta/settings.md` §2가 스스로 "정의된 적 없다"고 명시).

@@ -1,0 +1,37 @@
+/* song-credit 화면 — 단일 출처 `scene/scene.md` §6. 배경은 gameplay와
+   같은 검정(§6 "배경은 gameplay와 같은 검정") — `render-theme.ts`의
+   `CANVAS_BG`와 같은 값. 세부 타이포·레이아웃은 ui-design 범위 밖(§6은
+   화면 구성을 다루지 않는다) — 최소한의 가독 레이아웃만 둔다. */
+
+.song-credit-scene {
+  --bg: #000;
+  --text: #ececf4;
+
+  --sans:
+    'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+
+  container-type: size;
+  aspect-ratio: 16 / 9;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.song-credit-scene .song-credit-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8cqw;
+  font-size: max(12px, 2.2cqw);
+  opacity: 0;
+  transition-property: opacity;
+  transition-timing-function: linear;
+}
+
+.song-credit-scene .song-credit-text.visible {
+  opacity: 1;
+}

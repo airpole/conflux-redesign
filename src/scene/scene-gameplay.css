@@ -1,0 +1,36 @@
+/* gameplay 화면 — 단일 출처는 `scene/scene.md` §9·§10. 픽셀 레이아웃은
+   ui-design이 아직 gameplay를 다루지 않아(결정 필요 항목, scene-gameplay.ts
+   헤더 참조) 최소 기능 레이아웃만 둔다. */
+
+.gameplay-scene {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+
+.gameplay-scene .gameplay-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.gameplay-scene .pause-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1cqw;
+  background: rgb(0 0 0 / 70%);
+}
+
+.gameplay-scene .pause-btn {
+  font-size: max(12px, 2cqw);
+  padding: 0.6em 2em;
+  background: #1a1a24;
+  color: #ececf4;
+  border: 1px solid #3a3a4a;
+  cursor: pointer;
+}

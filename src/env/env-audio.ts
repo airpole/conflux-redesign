@@ -20,6 +20,12 @@ export interface AudioEnv {
   stop(): void;
   getPositionMs(): number | null;
   setVolume(gain: number): void;
+  /** 내부 `AudioContext`(없으면 이 호출로 만든다 — `decode`/`play`와 같은
+   *  lazy-create). `playHitSound`/`createHitBuffer`가 raw context를 요구해
+   *  (M4-5, `game-session.ts`의 `HitSoundSource`) 히트음이 음악과 같은
+   *  context를 쓰게 하려면 노출이 필요하다 — 없으면 host가 별도
+   *  `AudioContext`를 또 만들어야 해 낭비다. */
+  getContext(): AudioContext;
 }
 
 export function createAudioEnv(createContext: () => AudioContext): AudioEnv {
@@ -96,6 +102,10 @@ export function createAudioEnv(createContext: () => AudioContext): AudioEnv {
     setVolume(gain) {
       const context = ensureContext();
       ensureGain(context).gain.value = gain;
+    },
+
+    getContext() {
+      return ensureContext();
     },
   };
 }

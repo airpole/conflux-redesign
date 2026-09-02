@@ -41,3 +41,10 @@ store별 `failed` 상태로 남는다 — 다음 쓰기가 곧 재시도이고, 
 `env-audio`의 히트음(`createHitBuffer`/`playHitSound`)은 asset 파일이 아니라 원본이
 절차적으로 합성하던 소리를 그대로 옮긴 것이다(D-2026-050) — 25ms 지수 감쇠 버퍼를 매
 판정마다 새로 만들어 재생하는 fire-and-forget이다.
+
+M4-5가 `AudioEnv`에 `getContext(): AudioContext`를 더했다(없으면 lazy-create,
+`decode`/`play`와 같은 관례) — `playHitSound`/`createHitBuffer`가 raw
+`AudioContext`를 요구하는데(`game-session.ts`의 `HitSoundSource`) `AudioEnv`가
+그걸 안 감추고 노출해야 host(`scene-gameplay.ts`)가 음악 재생과 히트음이
+같은 context를 쓰게 할 수 있다 — 없으면 별도 `AudioContext`를 하나 더
+만들어야 해 낭비다. 동작 변경은 없다(순수 접근자 추가).
