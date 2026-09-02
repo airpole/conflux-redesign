@@ -1239,7 +1239,7 @@
 - **Rationale:** Not required
 - **Affects:** core, game, scene, scene(spec)·settings(spec)
 - **Supersedes:** M2-7의 "blur는 pause 대상이 아니다" 판단(기본값 한정 — `pauseOnBlur: false`로 두면 그 동작이 정확히 재현된다)
-- **Commit:** `PENDING`
+- **Commit:** `c44a27c`
 
 
 ### D-YYYY-NNN — <Title>
