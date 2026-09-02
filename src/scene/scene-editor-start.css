@@ -1,0 +1,74 @@
+/* editor start scene — M5-1. ui-design.md가 editor 화면을 아직 다루지
+   않아(M4까지의 scope에 editor가 없다) 픽셀 디자인은 결정 필요 항목이다 —
+   다른 scene과 같은 기존 토큰만으로 최소 기능 UI를 뒀다. */
+
+.editor-start-scene {
+  --bg: #050508;
+  --text: #ececf4;
+  --dim: #9a9ab4;
+  --rule-strong: #3a3a54;
+  --cyan: #4fbcd0;
+  --on-accent: #04040a;
+  --j-miss: #ff5f70;
+
+  --sans:
+    'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', 'Roboto Mono',
+    monospace;
+
+  container-type: size;
+  aspect-ratio: 16 / 9;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2cqw;
+}
+
+.editor-start-scene .editor-start-title {
+  font-size: 2cqw;
+  color: var(--cyan);
+}
+
+.editor-start-scene .editor-start-row {
+  display: flex;
+  gap: 0.6cqw;
+}
+
+.editor-start-scene .songid-input {
+  font-family: var(--mono);
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  color: var(--text);
+  padding: 0.4cqw 0.6cqw;
+}
+
+.editor-start-scene .editor-start-btn {
+  font-family: var(--sans);
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  color: var(--text);
+  padding: 0.4cqw 1.2cqw;
+  cursor: pointer;
+  min-width: 14cqw;
+}
+
+.editor-start-scene .editor-start-btn:hover:not(:disabled) {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+.editor-start-scene .editor-start-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.editor-start-scene .editor-start-error {
+  color: var(--j-miss);
+  font-size: 0.9cqw;
+}

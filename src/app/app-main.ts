@@ -100,7 +100,23 @@ import { readSettings, writeSettings } from '../game/game-settings.js';
 import { createPreviewController } from '../game/game-song-preview.js';
 import { createAudioEnv } from '../env/env-audio.js';
 import { createIndexedDbBackend, createStorageEnv, type StorageEnv } from '../env/env-storage.js';
+import { createFileEnv, type FileOpenHost } from '../env/env-file.js';
 import type { GameplayStartInput } from '../scene/scene-gameplay.js';
+import { mountEditorStartScene, type EditorStartSceneHandle } from '../scene/scene-editor-start.js';
+import {
+  mountEditorWorkspaceScene,
+  EDITOR_CATEGORIES,
+  type EditorCategory,
+  type EditorWorkspaceSceneHandle,
+} from '../scene/scene-editor-workspace.js';
+import { createInitChart } from '../edit/edit-chart-init.js';
+import {
+  createWorkspaceSession,
+  loadRecoverableWorkspace,
+  type WorkspaceSession,
+} from '../edit/edit-workspace.js';
+import { resolveSessionTransition } from '../edit/edit-session-transition.js';
+import { openChartJson } from '../format/format-chart-open.js';
 
 console.info(`Conflux — build profile: ${BUILD_PROFILE}`);
 
@@ -135,6 +151,10 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
           }
           if (id === 'settings') {
             manager.goScene('settings-play');
+            return;
+          }
+          if (id === 'editor') {
+            manager.goScene('editor-start');
             return;
           }
           console.info(`mode-select: '${id}' 목적지가 아직 없음`);
@@ -454,6 +474,187 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
 
   const settingsScenes = SETTINGS_CATEGORIES.map(makeSettingsScene);
 
+  // ── M5-1: editor scene graph + single-chart session ───────────────────
+  // editor-graph.md §1·§2, persistence.md §6·§7·§9. WorkspaceSession
+  // 하나를 start + 네 형제 scene이 공유한다 — settingsHandle과 같은
+  // "host가 들고 있다가 scene에 넘겨준다" 패턴.
+
+  const fileEnv = createFileEnv();
+
+  interface MinimalFileHandle {
+    getFile(): Promise<File>;
+  }
+  type ShowOpenFilePicker = (options: {
+    types?: readonly { accept: Record<string, readonly string[]> }[];
+    multiple?: boolean;
+  }) => Promise<readonly MinimalFileHandle[]>;
+
+  // File System Access API는 DOM lib 타입에 아직 없어(관련 패키지 미설치)
+  // 이 파일에서만 최소 표면으로 duck-type한다 — `env-file.ts`가 이미
+  // "실제 브라우저 지원 폭·폴백은 범위 밖"이라고 명시해 둔 자리다
+  // (D-2026-062). 여기서 그 결정을 다시 열지 않고 그대로 따른다:
+  // 미지원 브라우저에서는 `null`(취소)로 처리한다.
+  const jsonOpenHost: FileOpenHost = {
+    async pickFile(accept) {
+      const picker = (window as unknown as { showOpenFilePicker?: ShowOpenFilePicker })
+        .showOpenFilePicker;
+      if (picker === undefined) return null;
+      let handles: readonly MinimalFileHandle[];
+      try {
+        handles = await picker({
+          types: [{ accept: { 'application/json': accept } }],
+          multiple: false,
+        });
+      } catch {
+        return null; // 사용자 취소(AbortError) — env-file 계약대로 취소는 null.
+      }
+      const file = await handles[0]!.getFile();
+      return { name: file.name, text: await file.text() };
+    },
+  };
+
+  let editorSession: WorkspaceSession | undefined;
+  let editorWorkspaceHandle: EditorWorkspaceSceneHandle | undefined;
+
+  function mountEditorWorkspaceIfNeeded(): void {
+    if (editorWorkspaceHandle !== undefined) return;
+    editorWorkspaceHandle = mountEditorWorkspaceScene(root, {
+      onCategoryChange(category): void {
+        manager.goScene(`editor-${category}`);
+      },
+      onBack(): void {
+        void leaveEditor();
+      },
+    });
+  }
+
+  /** Backspace/Esc로 editor를 나갈 때 — dirty 세션 전환 확인(persistence.md
+   *  §5)을 거친다. M5-1은 아직 chart 편집 인터랙션이 없어(M5-2+) dirty가
+   *  실제로 true가 될 경로가 없다 — `saveNewVersion`이 저장 창 UI 없이
+   *  즉시 취소를 돌려주는 건 그 경로가 열리기 전까지의 안전한 자리표시자
+   *  (닿으면 전환하지 않고 세션을 유지해, 실제 저장 창이 붙기 전에
+   *  조용히 버려지는 일이 없게 한다) — 결정 필요 항목으로 보고, 실제
+   *  저장 창은 M5-2 이후 붙는다. */
+  async function leaveEditor(): Promise<void> {
+    const session = editorSession;
+    if (session === undefined) {
+      manager.goScene('mode-select');
+      return;
+    }
+    const result = await resolveSessionTransition(session.dirty, session.dirty ? 'cancel' : null, {
+      saveNewVersion: async () => 'cancelled',
+      discard: async () => {
+        await session.discard();
+      },
+    });
+    if (result.kind === 'proceed') {
+      session.dispose();
+      editorSession = undefined;
+      editorWorkspaceHandle = undefined;
+      manager.goScene('mode-select');
+    }
+  }
+
+  async function refreshEditorStartAvailability(error: string | null): Promise<void> {
+    const slot = await loadRecoverableWorkspace(storage);
+    editorStartHandle!.update({ hasRecoverableWorkspace: slot !== null, error });
+  }
+
+  function enterEditorWorkspace(): void {
+    mountEditorWorkspaceIfNeeded();
+    manager.goScene('editor-notes');
+  }
+
+  let editorStartHandle: EditorStartSceneHandle | undefined;
+  const editorStartScene: Scene = {
+    id: 'editor-start',
+    mount(): void {
+      editorStartHandle = mountEditorStartScene(root, {
+        onNewChart(songId): void {
+          const chart = createInitChart(songId, () => new Date().toISOString());
+          editorSession = createWorkspaceSession({
+            storage,
+            chart,
+            musicBlob: null,
+            jacketBlob: null,
+            baseVersion: null,
+            timerHost: window,
+          });
+          enterEditorWorkspace();
+        },
+        onOpenJson(): void {
+          void (async () => {
+            const outcome = await fileEnv.open(jsonOpenHost, ['.json']);
+            if (outcome.kind === 'cancelled') return;
+            const parsed = openChartJson(outcome.file.text);
+            if (parsed.kind === 'invalid-json') {
+              await refreshEditorStartAvailability('JSON을 파싱할 수 없다.');
+              return;
+            }
+            if (parsed.kind === 'rejected') {
+              await refreshEditorStartAvailability(
+                `chart 구조가 유효하지 않다: ${parsed.errors.map((e) => e.path).join(', ')}`,
+              );
+              return;
+            }
+            editorSession = createWorkspaceSession({
+              storage,
+              chart: parsed.chart,
+              musicBlob: null,
+              jacketBlob: null,
+              baseVersion: parsed.chart.version,
+              timerHost: window,
+            });
+            enterEditorWorkspace();
+          })();
+        },
+        onContinueEditing(): void {
+          void (async () => {
+            const slot = await loadRecoverableWorkspace(storage);
+            if (slot === null) return; // 버튼이 안 보였어야 하지만 방어적으로.
+            editorSession = createWorkspaceSession({
+              storage,
+              chart: slot.chart,
+              musicBlob: slot.musicBlob,
+              jacketBlob: slot.jacketBlob,
+              baseVersion: slot.baseVersion,
+              recovered: true,
+              timerHost: window,
+            });
+            enterEditorWorkspace();
+          })();
+        },
+        onBack(): void {
+          manager.goScene('mode-select');
+        },
+      });
+    },
+    onEnter(): void {
+      editorStartHandle!.show();
+      void refreshEditorStartAvailability(null);
+    },
+    onExit(): void {
+      editorStartHandle!.hide();
+    },
+  };
+
+  function makeEditorWorkspaceScene(category: EditorCategory): Scene {
+    return {
+      id: `editor-${category}`,
+      mount(): void {
+        mountEditorWorkspaceIfNeeded();
+      },
+      onEnter(): void {
+        editorWorkspaceHandle!.update(editorSession!.chart);
+        editorWorkspaceHandle!.show(category);
+      },
+      onExit(): void {
+        editorWorkspaceHandle!.hide();
+      },
+    };
+  }
+  const editorWorkspaceScenes = EDITOR_CATEGORIES.map(makeEditorWorkspaceScene);
+
   const manager: SceneManager = createSceneManager([
     titleScene,
     modeSelectScene,
@@ -463,6 +664,8 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
     gameplayScene,
     resultScene,
     ...settingsScenes,
+    editorStartScene,
+    ...editorWorkspaceScenes,
   ]);
   manager.goScene('title');
 }

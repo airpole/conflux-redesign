@@ -63,3 +63,21 @@ no-record 게이트 로직 자체(`isNoRecord`, `saveRecordIfEligible` 호출)�
 M4-5가 이미 완성해 뒀다 — `enterSongCredit`이 매 진입마다 `readSettings`로
 최신값을 읽으므로 quick options로 바꾼 `autoplay`/`staticShape`는 별도
 배선 없이 다음 판부터 그 게이트에 반영된다.
+
+M5-1이 mode-select의 `editor` 목적지를 `editor-start`로 잇고, editor
+scene 5개(`editor-start` + 형제 4개)를 등록했다 — settings와 같은 공유
+패턴으로 `editorWorkspaceHandle`을 형제 4 scene이 공유한다
+(`mountEditorWorkspaceIfNeeded`). `WorkspaceSession`(M3의
+`edit-workspace.ts`)을 이 파일이 직접 들고 있다가(`editorSession`) start
+scene의 세 경로(New Chart/Open Chart JSON/Continue Editing)가 성공하면
+그 세션을 만들고 `editor-notes`로 전환한다. `Open Chart JSON`은 이
+파일에서 처음으로 `env-file.ts`의 `FileOpenHost`를 실제 브라우저 API
+(`showOpenFilePicker`)에 연결했다 — 그 타입이 DOM lib에 아직 없어
+최소 duck-type으로 지역 선언했다(D-2026-062가 이미 "폴백은 범위 밖"이라고
+정해 둔 자리를 그대로 따른다 — 미지원 브라우저는 취소로 처리). `Open
+.cfx`는 이 확장으로도 못 연다(바이너리) — 결정 필요 항목으로 별도
+보고했다. Back(Backspace/Esc)은 `edit-session-transition.ts`의
+`resolveSessionTransition`을 그대로 호출하지만, 이 라운드엔 chart 편집
+인터랙션이 없어(M5-2·M5-5 이후에야 생김) dirty가 실제로 true가 될 경로가
+없다 — `saveNewVersion` 콜백은 저장 창 UI가 붙기 전까지의 자리표시자
+(즉시 취소를 돌려줘 세션을 지키는 안전한 기본값)다.

@@ -106,7 +106,10 @@ Vitest `environment: 'node'`. core 테스트는 DOM 없이 돈다 — [[architec
 | M4-3 전 | 결정 | ~~song row 대표값 출처(title·jacket)~~ — **닫힘**(`_meta/cfx.md` §6 기존 스펙 적용, D-2026-084) · 정보 패널 BPM 표기 방식 · 곡 길이 표시 |
 | M4-6 전 | 결정 | ~~key rebinding UI · volume 슬라이더 조작 단위~~ — **닫힘** (D-2026-091: capture-flow는 즉시 커밋·Esc 취소·충돌 거부, slider는 네이티브 `<input type=range>` + 필드별 `step`) — 기본값·범위는 `[보존]`으로 확정됨([[settings]] §4) |
 | M4-2 전 | 결정 | credits scene 표시 내용 — `ui-design.md` §2.8.5가 남긴 방향: `Project Staff`는 수작업 유지 목록, `Music`/`Chart`/`Jacket` 세 섹션은 library 전체의 `musicBy`/`chartBy`/`jacketBy`를 필드별로 자동 스캔·중복 제거(song/chart로 묶지 않음) — 배선 자체는 이 게이트가 열릴 때 결정 |
-| M5 진입 | 실측 | §3 M5 항목 |
+| ~~M5 진입~~ | ~~실측~~ | ~~§3 M5 항목~~ — **재배치됨**(D-2026-094) — §3 "M5-3 전"·"M5-1 이후(notes/shapes 실 렌더) 전"·"M5-4 전" 참조, M5 진입 자체는 더 이상 막혀 있지 않다 |
+| M5-3 전 | 실측 | 편집 미세 수치 — 히트 반경, 드래그 임계([[editor-editing]] §8) |
+| M5-1 이후(notes/shapes 실 렌더) 전 | 실측 | `viewMs` 기본값·zoom 범위, editor timeline 최소 표시 길이([[editor-graph]] §6) |
+| M5-4 전 | 실측 | shape 보조 툴(normalize 등)의 계승 여부([[shape]] §8) |
 
 gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한 뒤 진입한다. build-order는 gate의 **위치**만 갖고 내용은 갖지 않는다.
 
@@ -129,10 +132,22 @@ gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한
 - [x] shape render 폭 매핑·선 굵기 — §12.3·§12.4, [[shape]] §8.
 - [x] lane 최소 간격 px — **제한 없음으로 확정** (D-2026-048). 원본에도 대응물이 없었고(§12.9), 구분선이 붙어 선처럼 좁아지는 것을 의도된 연출로 승인받았다 — [[lane-events]] §7.
 
-### M5 진입 전
+### M5-3 전
+
+`[수정]` (D-2026-094) — 원래 "M5 진입 전"이었으나, M5-1(scene 그래프·start scene·세션 소유)은 아래 수치를 하나도 쓰지 않는다. D-2026-046과 같은 이유로 값이 실제로 쓰이는 step 바로 앞으로 옮겼다.
 
 - 편집 미세 수치: 히트 반경, 드래그 임계 — [[editor-editing]] §8.
+
+### M5-1 이후(notes/shapes 실 렌더) 전
+
+`[수정]` (D-2026-094) — `viewMs`는 notes/shapes canvas가 실제로 그려지는 시점에야 필요하다. M5-1의 4 형제 scene은 아직 껍데기라 이 값을 안 쓴다.
+
 - `viewMs` 기본값·zoom 범위, editor timeline 최소 표시 길이 — [[editor-graph]] §6.
+
+### M5-4 전
+
+`[수정]` (D-2026-094) — shape 보조 툴 계승 여부는 M5-4(shapes scene)가 그 툴바를 만들 때만 필요하다.
+
 - shape 보조 툴(normalize 등)의 계승 여부 — [[shape]] §8.
 
 ---
@@ -368,11 +383,13 @@ confirm으로 뒤집혔다. M4.6은 완전히 닫혔다 — 남은 항목 없음
 
 **목표**: chart를 처음부터 만들 수 있다.
 
-**진입 gate**: §3 M5 실측.
+**진입 gate**: 없음(D-2026-094) — §3의 M5 실측 3항목은 각 값이 실제로 쓰이는 step 앞으로 재배치됐다(§3 "M5-3 전"·"M5-1 이후(notes/shapes 실 렌더) 전"·"M5-4 전", D-2026-046과 같은 이유). M5-1 자신은 그 값들을 쓰지 않아 막힘없이 시작한다.
 
 | step | 범위 | 완료 기준 |
 |---|---|---|
 | M5-1 | editor graph + start scene + single-chart session | 네 scene이 자유 전환되고 `test`는 lazy mount된다. 세션이 chart 하나를 소유한다. |
+
+**M5-1 진행 상황**: `.cfx` 열기를 뺀 나머지(scene 그래프·New Chart·Open JSON·Continue Editing·세션 소유)는 구현됐다(D-2026-094) — `.cfx` 열기는 `env-file.ts`의 binary open 확장이 필요해 결정 필요 항목으로 별도 보고했다. notes/shapes/meta/test 4 scene은 이번 라운드엔 chart identity만 표시하는 껍데기다 — 실제 내용은 M5-3~M5-6.
 | M5-2 | command / history 계약 | 모든 편집이 command로 들어가고 undo/redo가 원본과 같은 단위로 되감긴다. chart 구조 편집은 history 밖이다. |
 | M5-3 | notes scene 편집 interaction | 노트 배치·이동·삭제·복사·붙여넣기·flip이 원본과 같은 결과를 낸다. overlap/conflict가 화면에 표시된다. |
 | M5-4 | shapes scene — shape/lane 서브모드 | `T`로 서브모드가 갈리고 선택 필터가 서브모드를 따른다. Q/W/E/R 툴이 정의대로 배치한다. 현재 그룹·symmetry 쌍·`R` 모드가 툴바에 상시 표시된다. |

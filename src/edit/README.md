@@ -46,3 +46,16 @@ records 고아 기록 정책은 건드리지 않는다(M3-7 소관). **이 파�
 옮기지 않았다** — `game-song-select.ts`(M4-3)가 필요한 건 원시 `read`/`keys`
 호출뿐이고 그건 `StorageEnv`(env 타입)를 직접 불러 해결했다. 쓰기·import
 검증 워크플로까지 옮길 이유가 없어 최소 범위로만 움직였다.
+
+`edit-chart-init`은 M5-1 범위다([[persistence]] §7). `createInitChart(songId,
+now)`가 새 song 생성 결과인 init chart(`chartId 0`·`difficulty 'init'`)를
+만든다 — songId만 호출측(start scene)이 받고 나머지 필드는
+`core-chart-fixture.ts`의 `makeChart()`가 이미 검증 통과로 확인해 둔 최소값
+(bpm 120·4/4·level 1)을 그대로 재사용했다(새 product 결정이 아니다).
+`edit-workspace.ts`/`edit-session-transition.ts`는 M3-3 때 이미 완성돼 있던
+그대로 M5-1이 처음 실제로 쓰기 시작했다 — scene 층(start + notes/shapes/
+meta/test 형제 4개, `src/scene/scene-editor-*.ts`)이 `createWorkspaceSession`/
+`resolveSessionTransition`을 그대로 호출한다. 실제 다이얼로그 UI(세션 전환
+confirm)는 M5-1에도 아직 없다 — chart 편집 인터랙션 자체가 없어(command
+layer는 M5-2, chart field 편집은 M5-5) dirty가 실제로 true가 될 경로가
+이번 라운드엔 없기 때문이다.

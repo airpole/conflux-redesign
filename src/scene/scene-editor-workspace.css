@@ -1,0 +1,67 @@
+/* editor notes/shapes/meta/test 형제 scene — M5-1 껍데기. 각 category의
+   실제 내용은 이후 milestone(M5-3~M5-6) 범위 — 여기는 nav·전환만. */
+
+.editor-workspace-scene {
+  --bg: #050508;
+  --text: #ececf4;
+  --dim: #9a9ab4;
+  --rule: #1e1e30;
+  --rule-strong: #3a3a54;
+  --cyan: #4fbcd0;
+  --on-accent: #04040a;
+
+  --sans:
+    'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', 'Roboto Mono',
+    monospace;
+
+  container-type: size;
+  aspect-ratio: 16 / 9;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+}
+
+.editor-workspace-scene .editor-nav {
+  display: flex;
+  gap: 0.6cqw;
+  padding: 1cqw 2cqw;
+  border-bottom: 1px solid var(--rule);
+}
+
+.editor-workspace-scene .editor-nav-pill {
+  font-family: var(--sans);
+  background: transparent;
+  border: none;
+  color: var(--dim);
+  padding: 0.4cqw 1.2cqw;
+  font-size: 1.1cqw;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.editor-workspace-scene .editor-nav-pill.active {
+  color: var(--cyan);
+  border-bottom-color: var(--cyan);
+}
+
+.editor-workspace-scene .editor-chart-identity {
+  font-family: var(--mono);
+  color: var(--dim);
+  font-size: 0.85cqw;
+  padding: 0.4cqw 2cqw;
+  border-bottom: 1px solid var(--rule);
+}
+
+.editor-workspace-scene .editor-body {
+  padding: 1.5cqw 2cqw;
+}
+
+.editor-workspace-scene .editor-body-placeholder {
+  color: var(--dim);
+  font-size: 1cqw;
+}

@@ -1338,6 +1338,34 @@
 - **Commit:** `abc0369f198568fd844d916f1a442b7e80f469f5`
 
 
+### D-2026-094 — M5-1: editor graph + start scene + single-chart session
+
+- **Status:** Accepted (구현분) / `.cfx` 열기·저장 창 UI는 결정 필요 항목 — 아래 참조
+- **Decision:** editor 5-scene 그래프(`editor-start` + 형제 4개 `editor-notes`/`-shapes`/`-meta`/`-test`)를 `scene-manager`(M4-1)에 등록하고, mode-select의 `editor` 항목을 `editor-start`로 이었다. `editor-graph.md` §1의 Tab 순환("notes → shapes → test → notes", meta는 click 진입만)을 `scene-editor-workspace.ts`가 그대로 구현했고, 4개 형제 scene은 `mountSettingsScene`(M4-6)과 같은 "하나의 host, 여러 scene id" 패턴으로 하나의 DOM host를 공유한다(§2 "shared editorState"와 자연히 맞는다).
+
+  **세션은 M3에서 이미 완성된 `edit-workspace.ts`의 `createWorkspaceSession`을 그대로 재사용한다** — 새 세션 관리 로직을 만들지 않았다. `editor-start`의 4개 진입 경로 중 3개를 이번 라운드에서 실제로 연결했다:
+  - **New Chart**: songId 입력 → 신설 `edit-chart-init.ts`의 `createInitChart`(chartId 0·difficulty 'init', 나머지 필드는 `core-chart-fixture.ts`의 `makeChart()`가 이미 검증 통과로 확인해 둔 최소값 재사용 — bpm 120·4/4·level 1)로 init chart를 만들고 `createWorkspaceSession`으로 세션화.
+  - **Open Chart JSON**: `env-file.ts`의 `FileEnv.open`(텍스트) + `format-chart-open.ts`의 `openChartJson`으로 파싱·검증. asset(music/jacket) 재연결 UI 없이도 스펙을 만족한다 — `_meta/persistence.md` §10이 "music Blob 없이 열기"를 명시적으로 허용해 뒀다(재생 불가 상태만 표시, 저장은 허용). 재연결 UI는 meta scene(M5-5) 몫으로 남긴다.
+  - **Continue Editing**: `edit-workspace.ts`의 `loadRecoverableWorkspace`로 dirty workspace를 조회해 `hasRecoverableWorkspace`로 버튼 노출을 결정하고(§6·§9), 있으면 `recovered: true`로 세션화.
+
+  **`.cfx` 열기는 이번 라운드에서 뺐다(결정 필요 항목)**: `env-file.ts`의 `FileOpenHost.pickFile`이 텍스트만 돌려주는 계약이라 바이너리 ZIP인 `.cfx`를 열 방법이 없다. 새 host 능력(binary open) 추가는 `env` 계약을 넓히는 architecture 확장이라 이 커밋에서 조용히 하지 않고 버튼을 disabled로 자리만 잡아 뒀다 — 언제 그 확장을 승인할지 별도 보고한다.
+
+  **Back(Backspace/Esc)의 dirty-transition 확인은 자리만 만들어 뒀다(결정 필요 항목)**: `edit-session-transition.ts`의 `resolveSessionTransition`(M3, 이미 완성)을 그대로 호출하지만, 이 라운드에는 chart 편집 인터랙션 자체가 없어(command layer는 M5-2, chart field 편집은 M5-5) dirty가 실제로 true가 될 경로가 없다. `saveNewVersion` 콜백은 저장 창 UI가 아직 없어 즉시 `'cancelled'`를 돌려주는 자리표시자다 — 실제로 dirty가 true인 상태에서 이 경로에 닿으면(향후 milestone) 전환하지 않고 세션을 유지해, 저장 창이 붙기 전까지 편집을 조용히 버리는 일은 없게 했다.
+
+  **notes/shapes/meta/test 4 scene은 이번 라운드에 껍데기만 만들었다** — chart identity(songId/chartId/difficulty)만 표시해 "세션이 chart 하나를 소유한다"는 M5-1 Exit 기준을 확인할 수 있게 했을 뿐, 실제 편집 UI(노트 캔버스 M5-3, shape/lane 툴바 M5-4, metadata 필드 M5-5, test 재생 M5-6)는 없다.
+
+  **editor 화면은 `ui-design.md`가 전혀 다루지 않는다** — M3.5(§6.5)가 song-select/settings/title/credits 4화면만, M4.5/M4.6이 gameplay/quick-options만 다뤘고 editor는 그 목록에 없었다. 그래서 이번 라운드는 M2(ui-design 이전)와 같은 처지로, 최소 기능 미디자인 UI만 뒀다 — 나중에 M3.5·M4.5·M4.6과 같은 별도 design-review milestone이 editor 화면에도 필요할 수 있다(결정 필요 항목, 사용자 판단).
+
+  **M5 진입 gate(§3 실측 3항목: 히트 반경·드래그 임계, `viewMs` 기본값·zoom 범위, shape 보조 툴 계승 여부)는 이번 라운드에 닫지 않았다** — D-2026-046의 "값이 실제로 쓰이는 step 바로 앞으로 gate를 옮긴다" 선례를 그대로 적용해, M5-1 자신의 Exit 기준(scene 전환·세션 소유)은 이 세 값 중 어느 것도 쓰지 않는다고 판단해 그대로 진행했다. 세 값은 각각 M5-3(노트 편집, 히트 반경·드래그 임계)·M5-1 이후 notes/shapes 실 렌더(`viewMs`)·M5-4(shape 보조 툴)가 실제로 그 값을 쓰기 시작하는 지점에서 다시 막힌다 — build-order.md에 그 재배치를 반영했다.
+
+  테스트 신규: `edit-chart-init.test.ts` 2, `scene-editor-start.test.ts` 12, `scene-editor-workspace.test.ts` 8 — 전체 1204/1204 통과.
+- **Defined in:** `src/scene/scene-editor-start.ts`, `src/scene/scene-editor-workspace.ts`, `src/edit/edit-chart-init.ts`, `src/app/app-main.ts`, `_plan/build-order.md`
+- **Rationale:** Not required
+- **Affects:** scene, edit, app, build-order(spec) — M5-1 부분 완료(`.cfx` 열기 제외)
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

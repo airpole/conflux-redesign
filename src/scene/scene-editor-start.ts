@@ -1,0 +1,132 @@
+/**
+ * editor start scene — 단일 출처 `editor/editor-graph.md` §1·9,
+ * `_meta/persistence.md` §7·§9.
+ *
+ * editor 진입 때 한 번 거치는 정식 scene이다. 4개 진입 경로(새 chart(init)
+ * 만들기 / chart JSON 열기 / `.cfx` 열기 / 이어서 편집)를 나열한다 — 실제
+ * 비동기 I/O(파일 읽기·workspace 조회·`WorkspaceSession` 생성)는 이 파일이
+ * 하지 않는다. 다른 scene 파일들과 같은 경계로, host(`app-main.ts`)가
+ * `handlers`를 통해 그 결과(성공 시 다음 scene 전환, 실패 시 에러 문구)만
+ * `update()`로 되돌려준다.
+ *
+ * **`.cfx` 열기는 이 M5-1 라운드에서 뺐다(결정 필요 항목)** — `env-file.ts`의
+ * `FileOpenHost.pickFile`은 텍스트만 돌려주는 계약이라(`OpenedFile.text:
+ * string`) 바이너리 ZIP인 `.cfx`를 열 방법이 없다. 새 host 능력(binary open)
+ * 추가는 `env` 계약을 넓히는 일이라 이 커밋에서 조용히 확장하지 않고, 버튼을
+ * disabled로 보여 자리만 잡아 뒀다 — 언제 그 확장을 할지는 별도 승인이
+ * 필요하다고 보고한다.
+ *
+ * chart JSON 열기는 asset(music/jacket) 재연결 UI 없이도 스펙을 만족한다 —
+ * `_meta/persistence.md` §10 "music Blob이 없을 때... 오디오 재생 불가
+ * 상태 표시... 새 version JSON 저장 허용"이 그 경로를 명시적으로 허용해 뒀다.
+ * 그래서 host는 `openChartJson`으로 얻은 chart를 musicBlob=null/jacketBlob=null
+ * 로 바로 세션화한다 — 재연결 자체는 meta scene(M5-5) 몫으로 남긴다.
+ *
+ * songId 입력에 유일성 검사를 하지 않는다 — `editor-graph.md` §4 "다른
+ * 파일을 모르는 editor는 group-wide duplicate를 최종 보장하지 않는다"가
+ * 명시적으로 이 검사를 editor 책임 밖에 둔다.
+ */
+import './scene-editor-start.css';
+
+export interface EditorStartState {
+  /** `loadRecoverableWorkspace`가 `null`이 아닌 걸 돌려줄 때만 true —
+   *  "이어서 편집"은 그럴 때만 노출한다(`persistence.md` §6·§9). */
+  readonly hasRecoverableWorkspace: boolean;
+  /** 열기 실패 등 최근 시도의 에러 메시지. 없으면 `null`. */
+  readonly error: string | null;
+}
+
+export interface EditorStartHandlers {
+  readonly onNewChart: (songId: string) => void;
+  readonly onOpenJson: () => void;
+  readonly onContinueEditing: () => void;
+  /** Backspace/Esc — mode-select로 복귀(D-2026-052 통일 Back 키 관례). */
+  readonly onBack: () => void;
+}
+
+export interface EditorStartSceneHandle {
+  update(state: EditorStartState): void;
+  show(): void;
+  hide(): void;
+}
+
+function el<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  className?: string,
+): HTMLElementTagNameMap[K] {
+  const node = document.createElement(tag);
+  if (className !== undefined) node.className = className;
+  return node;
+}
+
+export function mountEditorStartScene(
+  target: HTMLElement,
+  handlers: EditorStartHandlers,
+): EditorStartSceneHandle {
+  const root = el('div', 'editor-start-scene');
+  root.hidden = true;
+
+  const title = el('div', 'editor-start-title');
+  title.textContent = 'Editor';
+
+  const songIdInput = el('input', 'songid-input');
+  songIdInput.type = 'text';
+  songIdInput.placeholder = 'songId';
+
+  const newChartBtn = el('button', 'editor-start-btn');
+  newChartBtn.type = 'button';
+  newChartBtn.textContent = 'New Chart';
+  newChartBtn.addEventListener('click', () => {
+    const songId = songIdInput.value.trim();
+    if (songId === '') return;
+    handlers.onNewChart(songId);
+  });
+  const newChartRow = el('div', 'editor-start-row');
+  newChartRow.append(songIdInput, newChartBtn);
+
+  const openJsonBtn = el('button', 'editor-start-btn');
+  openJsonBtn.type = 'button';
+  openJsonBtn.textContent = 'Open Chart JSON';
+  openJsonBtn.addEventListener('click', () => handlers.onOpenJson());
+
+  const openCfxBtn = el('button', 'editor-start-btn');
+  openCfxBtn.type = 'button';
+  openCfxBtn.textContent = 'Open .cfx';
+  openCfxBtn.disabled = true;
+  openCfxBtn.title =
+    '결정 필요 항목 — binary file open 확장 승인 대기(scene-editor-start.ts 헤더 참조)';
+
+  const continueBtn = el('button', 'editor-start-btn');
+  continueBtn.type = 'button';
+  continueBtn.textContent = 'Continue Editing';
+  continueBtn.addEventListener('click', () => handlers.onContinueEditing());
+
+  const errorEl = el('div', 'editor-start-error');
+
+  root.append(title, newChartRow, openJsonBtn, openCfxBtn, continueBtn, errorEl);
+  target.append(root);
+
+  function onKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Escape' || event.key === 'Backspace') {
+      if (document.activeElement === songIdInput) return; // 텍스트 입력 중엔 통과.
+      event.preventDefault();
+      handlers.onBack();
+    }
+  }
+
+  return {
+    update(state: EditorStartState): void {
+      continueBtn.hidden = !state.hasRecoverableWorkspace;
+      errorEl.textContent = state.error ?? '';
+      errorEl.hidden = state.error === null;
+    },
+    show(): void {
+      root.hidden = false;
+      document.addEventListener('keydown', onKeyDown);
+    },
+    hide(): void {
+      root.hidden = true;
+      document.removeEventListener('keydown', onKeyDown);
+    },
+  };
+}
