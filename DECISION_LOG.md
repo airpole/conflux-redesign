@@ -1869,7 +1869,7 @@
 - **Affects:** game, scene, app, spec(다수 문서 동기화) — M6-1 사실상 완료
   (credits의 Project Staff 실명만 결정 필요 항목으로 남음)
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `e75b008`
 
 
 ### D-YYYY-NNN — <Title>
