@@ -2007,6 +2007,26 @@
 - **Commit:** `e801bd9`
 
 
+### D-2026-111 — build-order §10 잔여 체크박스 닫음 — 수동 대조 시나리오 구체 목록
+
+- **Status:** Accepted
+- **Decision:** `_plan/build-order.md` §10의 마지막 미체크 항목("수동 대조
+  시나리오의 구체 목록 — 각 milestone 진입 시 작성")을 닫는다. 별도의
+  사전 작성 문서로는 실현되지 않았지만, 그 항목이 요구한 실질("무엇을
+  대조할지 구체적으로 정해 둔다")은 각 milestone 자신의 `**Exit**:` 줄이
+  그 자리에서 채웠다 — M2(8개 named 시나리오)·M4("gameplay 구간에
+  한정"으로 M2 목록 재사용)·M5("편집 조작별 결과 비교", M5-8 보고의
+  다단계 경로가 실질적 concrete list 역할). M3은 end-to-end 흐름 자체가
+  하나의 시나리오 문장이라 별도 목록이 필요 없었다. "진입 시 작성"이
+  아니라 "Exit에 명시"로 실현된 차이는 실행 방식의 차이일 뿐 항목의
+  의도는 충족됐다고 판단했다.
+- **Defined in:** `_plan/build-order.md` §10
+- **Rationale:** Not required
+- **Affects:** build-order(spec) — 잔여 항목 정리
+- **Supersedes:** None
+- **Commit:** PENDING
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred
