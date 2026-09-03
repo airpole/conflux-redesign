@@ -1681,7 +1681,7 @@
 - **Rationale:** Not required
 - **Affects:** scene, app, spec(build-order) — M5-6 완료
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `4114fb1`
 
 
 ### D-YYYY-NNN — <Title>
