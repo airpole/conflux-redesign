@@ -1963,7 +1963,7 @@
 - **Affects:** scene(CSS 전반) — M6-3의 자동화 가능한 부분 완료, 사람
   QA 항목은 그대로 backlog
 - **Supersedes:** None
-- **Commit:** PENDING
+- **Commit:** `afd9dbf`
 
 
 ### D-YYYY-NNN — <Title>
