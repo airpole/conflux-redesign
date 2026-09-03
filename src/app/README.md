@@ -151,3 +151,33 @@ JSON 저장과 `.cfx` 내보내기 둘 다 쓴다 — 저장할 내용만 다르
 `packageAndSaveCfx`)·`edit-cfx-library.ts`(`validateCfxForImport`/
 `planLibraryRegistration`/`commitLibraryRegistration`) 전부 기존 순수
 로직 그대로 잇는다 — 이 파일이 새로 계산하는 건 없다.
+
+M6-2(D-2026-108)가 M5-1~M5-8이 쌓아 온 editor 전용 코드를 `app-editor.ts`로
+옮겼다 — `_plan/architecture.md` §4가 요구하는 "public 빌드 산출물에 editor
+코드가 없다"를 실제로 만족시키려면, `FEATURES.editor`로 UI 진입점만 숨기는
+걸로는 부족했다(정적 import는 사용 여부와 무관하게 항상 번들에 들어간다).
+`app-main.ts`의 `boot()`가 `async`가 됐고, `FEATURES.editor`가 true일 때만
+`await import('./app-editor.js')`로 이 모듈을 동적으로 불러 editor scene들
+(`editor-start`·`editor-notes`/`shapes`/`meta`/`test`)을 만든다 —
+`createSceneManager([...])`는 `Scene.mount()`가 동기라 나중에 끼워 넣을 수
+없어, editor scene 구성이 반드시 그 호출 *전에* 끝나 있어야 한다. `boot()`가
+들고 있던 `manager`(scene 전환)·`pendingGameplayInput`(gameplay 진입 데이터)
+은 `app-editor.ts`로 직접 넘기지 않고 `gotoScene`/`setPendingGameplayInput`
+콜백으로 받는다 — `mountEditorScenes()` 호출 시점엔 `manager`가 아직
+`const`로 초기화되기 전이지만, 콜백은 실제로 눌릴 때(그 시점엔 `manager`가
+이미 있다)까지 실행되지 않는 클로저라 안전하다. `FEATURES.recordReset`은
+별도 청크로 옮기지 않았다 — `onResetRecord` 핸들러 하나뿐이라
+`FEATURES.recordReset ? {...} : {}` 삼항이 상수로 접히는 것만으로 이미
+public 번들에서 완전히 빠진다(빌드 산출물 grep으로 확인, 아래 검증 방법
+참조) — editor처럼 scene 여러 개짜리 형제 축이 아니라 청크 분리가 과한
+추상화다.
+
+**빌드 산출물 검증 방법(M6-2 Exit)**: `npm run build`(public)·
+`npm run build:internal`을 각각 돌려 `dist/`를 비교한다. public 빌드는
+단일 JS 청크(`index-*.js`)만 나오고, internal 빌드는 별도
+`app-editor-*.js` 청크가 추가로 나온다(동적 import 경계가 실제로 별도
+청크로 쪼개졌다는 1차 증거) — 여기에 더해 editor 전용 식별자(예:
+`.cfx import 실패`·`Package .cfx`·`editor-notes` 같은 editor에서만 쓰는
+한국어 문자열/scene id)를 두 산출물에서 `grep -c`로 세어, internal에는
+있고 public에는 0임을 직접 확인한다(함수 이름은 압축기가 minify하지만
+문자열 리터럴은 그대로 남아 더 안정적인 검사 대상이다).

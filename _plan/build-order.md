@@ -583,6 +583,28 @@ M6-1의 좁은 의미("잔여 실측 **수치**")에는 안 들어맞을 수 있
 테스트 신규: `game-credits.test.ts` 6개, `scene-credits.test.ts`
 (재작성, 6개) — 전체 통과.
 
+**M6-2 진행 상황**(D-2026-108): `FEATURES.editor`로 mode-select의 버튼
+노출만 가리는 기존 배선은 확인해 보니 **번들 제거는 아니었다** — M5-1~
+M5-8이 쌓아 온 editor scene·`edit-*`·`format-cfx-*` 모듈이 전부
+`app-main.ts`에 정적 import로 남아 있어 `FEATURES.editor`가 false든
+아니든 항상 번들에 실렸다(정적 import는 런타임 분기와 무관하게 항상
+번들 그래프에 들어간다 — dead-code elimination이 걸리는 건 동적
+`import()` 경계 안쪽뿐). 그래서 이 라운드가 editor 전용 코드 전체를
+`app-editor.ts`(신규)로 옮기고, `app-main.ts`의 `boot()`를 `async`로 바꿔
+`FEATURES.editor`가 true일 때만 `await import('./app-editor.js')`로
+불러 `createSceneManager([...])`를 만들기 *전에* editor scene들을
+완성한다(`Scene.mount()`가 동기라 나중에 끼워 넣을 방법이 없다). 산출물
+검사로 실제 제거를 확인했다: `npm run build`(public)는 단일 JS 청크만
+내고, `npm run build:internal`은 별도 `app-editor-*.js` 청크(약 59KB)를
+추가로 낸다 — 그 청크에만 있는 editor 전용 문자열(예: `.cfx import
+실패`·`Package .cfx`·`editor-notes`)을 `grep -c`로 셌을 때 internal
+산출물엔 있고 public 산출물엔 0임을 확인했다. `FEATURES.recordReset`은
+별도 청크로 옮기지 않았다 — 핸들러 하나짜리 삼항 분기가 상수 접힘만으로
+이미 public 번들에서 완전히 빠지는 걸 같은 방식으로 확인했다(청크
+분리가 과한 추상화라 판단, 자세한 근거는 `src/app/README.md`). 기존
+동작은 그대로다(behavior-preserving 이동) — `tsc`/`eslint`/`prettier`/
+`vitest`(1367개) 전체 통과.
+
 ---
 
 ## 10. 결정 완료 / 잔여

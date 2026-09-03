@@ -1872,6 +1872,43 @@
 - **Commit:** `e75b008`
 
 
+### D-2026-108 — M6-2: editor 코드를 동적 import로 분리해 public 번들에서 제거
+
+- **Status:** Accepted
+- **Decision:** `FEATURES.editor`로 mode-select 버튼만 가리던 기존 배선은
+  번들 제거가 아니었다(editor scene·`edit-*`·`format-cfx-*` 모듈이 전부
+  정적 import라 항상 실렸다). editor 전용 코드 전체를 신규
+  `src/app/app-editor.ts`로 옮기고, `app-main.ts`의 `boot()`를 `async`로
+  바꿔 `FEATURES.editor`가 true일 때만
+  `await import('./app-editor.js')`로 불러 `createSceneManager([...])`
+  구성 *전에* editor scene들을 완성한다(`Scene.mount()`가 동기라 나중에
+  끼워 넣을 수 없어서). `manager`/`pendingGameplayInput`은
+  `gotoScene`/`setPendingGameplayInput` 콜백으로 넘긴다(호출 시점엔
+  `manager`가 아직 초기화 전이지만, 콜백은 클로저라 실제로 눌릴 때까지
+  실행되지 않아 안전하다).
+
+  검증 방법(빌드 산출물 검사, 신뢰 여부를 코드 읽기가 아니라 실측으로
+  확인): `npm run build`(public)·`npm run build:internal`을 각각 돌려
+  `dist/`를 비교했다. public은 단일 JS 청크만 나오고 internal은 별도
+  `app-editor-*.js` 청크(~59KB)가 추가로 나온다 — 그 청크에만 있는 editor
+  전용 한국어 문자열(`.cfx import 실패`·`Package .cfx`·`editor-notes` 등,
+  함수명은 minify로 안 남지만 문자열 리터럴은 남는다)을 `grep -c`로 셌을
+  때 internal에는 있고 public에는 0임을 확인했다.
+
+  `FEATURES.recordReset`은 같은 방식으로 분리하지 않았다 — `onResetRecord`
+  핸들러 하나짜리 삼항 분기가 상수 접힘만으로 이미 public 번들에서 완전히
+  빠지는 걸 같은 grep 검사로 확인했다(`resetRecord`/관련 문자열 0건) —
+  scene 여러 개짜리 형제 축인 editor와 달리 청크 분리가 과한 추상화라
+  판단했다(결정 필요 항목으로 보고).
+- **Defined in:** `src/app/app-editor.ts`, `src/app/app-main.ts`,
+  `src/app/README.md`, `_plan/build-order.md`
+- **Rationale:** `_plan/architecture.md` §4
+- **Affects:** app — M6-2 완료(editor/recordReset 둘 다 산출물 검사로
+  public 번들 부재 확인)
+- **Supersedes:** None
+- **Commit:** PENDING
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred
