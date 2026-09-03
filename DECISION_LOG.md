@@ -1487,7 +1487,7 @@
 - **Rationale:** Not required
 - **Affects:** edit, scene, app, spec(shape, editor-editing, editor-graph, build-order) — M5-4 완료(단순화 9항목은 결정 필요로 이월), M5-4 前 게이트 해소
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `830c05f`
 
 
 ### D-YYYY-NNN — <Title>
