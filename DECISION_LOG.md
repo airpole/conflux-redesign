@@ -2072,7 +2072,7 @@
   (클립보드·symmetry 수동축·lane group hold·lane symmetry 3그룹·
   laneGridDivisor UI·Ctrl+D는 잔여)
 - **Supersedes:** None
-- **Commit:** PENDING
+- **Commit:** `4c44af2`
 
 
 ### D-YYYY-NNN — <Title>
