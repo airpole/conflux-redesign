@@ -1455,7 +1455,7 @@
 - **Rationale:** Not required
 - **Affects:** scene, spec(editor-editing, editor-graph, build-order) — M5-1 이후 gate 해소, Z/X 줌 인터랙션 완료
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `c5a5b6e`
 
 
 ### D-YYYY-NNN — <Title>
