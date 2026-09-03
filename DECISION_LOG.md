@@ -1510,7 +1510,7 @@
 - **Rationale:** Not required
 - **Affects:** edit, scene, spec(editor-editing) — M5-4 단순화 항목 #1 해소
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `aa8cbbe`
 
 
 ### D-YYYY-NNN — <Title>
