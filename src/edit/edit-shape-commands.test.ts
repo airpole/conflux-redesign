@@ -7,7 +7,7 @@ import {
   deleteLaneEventsCommand,
   deleteShapeEventsCommand,
   mutateLaneEventCommand,
-  mutateShapeEventCommand,
+  mutateShapeEventsCommand,
   normalizeLaneEvents,
   normalizeShapeEvents,
   type ShapeSessionLike,
@@ -208,7 +208,7 @@ describe('edit-shape-commands', () => {
     });
   });
 
-  describe('mutateShapeEventCommand / mutateLaneEventCommand', () => {
+  describe('mutateShapeEventsCommand / mutateLaneEventCommand', () => {
     it('targetPos만 바꾸고 dest tick(startTick+duration)은 그대로 둔다', () => {
       // normalize가 매 커맨드마다 도니, 이 fixture처럼 normalize된 형태로
       // 미리 둔다(dest=1000, prevEnd=0이므로 startTick=0·duration=1000).
@@ -221,7 +221,7 @@ describe('edit-shape-commands', () => {
       };
       const chart = makeChart({ shapeEvents: [blueInit, redInit, target] });
       const s = session(chart);
-      const cmd = mutateShapeEventCommand(s, 2, 6);
+      const cmd = mutateShapeEventsCommand(s, [{ index: 2, targetPos: 6 }]);
       cmd.apply();
       const moved = s.getChart().shapeEvents[2]!;
       expect(moved.targetPos).toBe(6);
@@ -233,10 +233,39 @@ describe('edit-shape-commands', () => {
     it('anchor(init)도 위치를 옮길 수 있다 — 삭제 방지와는 다른 규칙', () => {
       const chart = makeChart({ shapeEvents: [blueInit, redInit] });
       const s = session(chart);
-      const cmd = mutateShapeEventCommand(s, 0, -3);
+      const cmd = mutateShapeEventsCommand(s, [{ index: 0, targetPos: -3 }]);
       cmd.apply();
       expect(s.getChart().shapeEvents[0]!.targetPos).toBe(-3);
       expect(s.getChart().shapeEvents[0]!.easing).toBe(null);
+    });
+
+    it('둘 이상의 index를 한 번에 갱신하면 한 undo 단위가 된다(composite 드래그용)', () => {
+      const blueTrans: ShapeEvent = {
+        startTick: 0,
+        duration: 500,
+        isBlue: true,
+        targetPos: 4,
+        easing: 'Linear',
+      };
+      const redTrans: ShapeEvent = {
+        startTick: 0,
+        duration: 500,
+        isBlue: false,
+        targetPos: 4,
+        easing: 'Linear',
+      };
+      const chart = makeChart({ shapeEvents: [blueInit, redInit, blueTrans, redTrans] });
+      const s = session(chart);
+      const cmd = mutateShapeEventsCommand(s, [
+        { index: 2, targetPos: 1 },
+        { index: 3, targetPos: 1 },
+      ]);
+      cmd.apply();
+      expect(s.getChart().shapeEvents[2]!.targetPos).toBe(1);
+      expect(s.getChart().shapeEvents[3]!.targetPos).toBe(1);
+      cmd.undo();
+      expect(s.getChart().shapeEvents[2]!.targetPos).toBe(4);
+      expect(s.getChart().shapeEvents[3]!.targetPos).toBe(4);
     });
 
     it('lane도 같은 패턴으로 targetPos만 바꾼다', () => {
@@ -253,9 +282,9 @@ describe('edit-shape-commands', () => {
     it('invalidates는 각각 shapeEvents/laneEvents 하나뿐이다', () => {
       const shapeChart = makeChart({ shapeEvents: [blueInit, redInit] });
       const laneChart = makeChart({ laneEvents: [line1Init, line2Init, line3Init] });
-      expect(mutateShapeEventCommand(session(shapeChart), 0, -1).invalidates).toEqual([
-        'shapeEvents',
-      ]);
+      expect(
+        mutateShapeEventsCommand(session(shapeChart), [{ index: 0, targetPos: -1 }]).invalidates,
+      ).toEqual(['shapeEvents']);
       expect(mutateLaneEventCommand(session(laneChart), 0, 0.1).invalidates).toEqual([
         'laneEvents',
       ]);

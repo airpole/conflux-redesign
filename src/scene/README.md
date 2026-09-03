@@ -217,5 +217,13 @@ Add/DeleteLaneEvents) — apply/undo 양쪽에서 chain normalize한다
 그대로 둔다** — `editor-editing.md` §2 "dot 드래그 = 위치 수정"과 원본
 `shape-input.js`의 `dragDot` 분기(둘 다 `targetPos`만 갱신) 재확인 결과다.
 symmetry는 드래그에 적용되지 않는다 — 원본 드래그 분기 어디에도 `sMirror`
-참조가 없다(배치에만 적용). composite dot(center/pinch 쌍) 드래그는 여전히
-범위 밖이다 — 단일 점(anchor 포함)만 옮길 수 있다.
+참조가 없다(배치에만 적용).
+
+**M5-4 후속(D-2026-101)이 composite dot(같은 tick의 Blue+Red 쌍) 드래그를
+마저 채웠다** — `findShapeHitAt`이 원본 `findDotAt`(`shape-input.js`)의
+그룹핑 규칙을 재확인해 그대로 옮겼다: `pinch` 후보는 Blue·Red가 둘 다
+있고 위치 차이 0.5 미만·둘 다 non-anchor일 때만, `center` 후보는 한쪽만
+있어도(half-pair) 생긴다(히트 지점은 evaluated 경계 중점). 드래그하면
+`pinch`는 둘 다 커서 위치로, `center`는 드래그 시작 시점 폭을 유지한 채
+커서를 중심으로 움직인다 — 두 점이 있으면 `mutateShapeEventsCommand`
+(단수에서 복수로 일반화, `edit-shape-commands.ts`)가 한 undo로 묶는다.

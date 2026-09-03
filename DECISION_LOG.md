@@ -1513,6 +1513,31 @@
 - **Commit:** `aa8cbbe`
 
 
+### D-2026-101 — M5-4 후속: composite dot(center/pinch 쌍) 드래그
+
+- **Status:** Accepted (구현분) / Ctrl+F mirror·클립보드·symmetry 축 수동 조절 등은 여전히 결정 필요 — 아래 참조
+- **Decision:** D-2026-100이 남긴 Deferred Finding("composite dot 드래그는 별도 히트테스트가 필요해 후속 라운드로 미룬다")을 이번 라운드에서 구현했다. 원본 `shape-input.js`의 `findDotAt`을 다시 읽어 정확한 그룹핑 규칙을 확인한 뒤(추측하지 않았다) 그대로 옮겼다:
+
+  - **`pinch` 후보**는 같은 tick(dest)에 Blue·Red가 **둘 다** 있고, 위치 차이가 0.5(외부단위) 미만이며 **둘 다 anchor가 아닐 때만**(`easing !== null`) 생긴다. 히트 지점은 Blue의 위치.
+  - **`center` 후보**는 Blue·Red 중 **하나만 있어도**(half-pair) 생긴다 — 히트 지점은 그 tick의 실제 evaluated 경계 중점(`shapeGeometryAt`)이지, 이벤트 자신의 저장값이 아니다(원본 `getShape(tk).left/right`와 동일).
+  - 두 composite 후보와 개별 점(`dot`/`init`) 후보가 전부 같은 최소거리 경쟁에 참여한다 — 원본처럼 순서가 아니라 거리로 가장 가까운 것이 이긴다.
+
+  `findShapeHitAt`(`scene-editor-shapes.ts`)이 이 규칙을 구현해 `ShapeHit`(point/center/pinch 판별 유니온)을 돌려준다. 기존 `findShapeIndexAt`(단일 인덱스만)은 이 함수로 대체됐다.
+
+  **드래그 동작도 원본 `onMove`를 그대로 옮겼다**: `pinch`는 드래그하면 두 쪽 다 커서 위치로 모인다(원래 위치가 조금 달랐어도 하나로 합쳐진다). `center`는 드래그 시작 시점의 폭(Red−Blue, **부호 있음** — 두 체인이 교차해 있어도 그 상태를 보존)을 그대로 유지한 채 커서를 중심으로 대칭 이동한다. 원본은 매 `onMove`마다 `getShape()`으로 폭을 다시 계산하지만, 그 폭 자체가 프레임마다 안 바뀌므로(매번 같은 halfW로 대칭 재배치하니 수렴) 드래그 시작 시 한 번만 캡처해도 결과가 같다 — 재확인 후 내린 구현 선택이다. half-pair `center`는 존재하는 쪽 인덱스만 갱신한다(반대편은 애초에 없으니 조용히 버려진다, 원본과 동일).
+
+  **명령 계층 결정**: `mutateShapeEventCommand`(단수, index 하나)를 `mutateShapeEventsCommand`(복수, `{index, targetPos}[]`)로 **일반화했다** — composite 드래그가 두 점을 한 undo 단위로 함께 옮기기 때문이다(`editor-commands.md` §4 "drag-end에 snapshot command 1개"). `addShapeEventsCommand`가 이미 "여러 개를 배열로 받아 한 undo"인 것과 같은 패턴이라 별도 "복수형" 타입을 새로 만들지 않고 기존 단수 함수를 확장했다 — 단일 점 드래그도 원소 하나짜리 배열로 같은 함수를 쓴다. lane은 composite pair 개념이 없어(원본에 lane 자체가 없었다, `[신규]`) `mutateLaneEventCommand`는 단수 그대로 뒀다.
+
+  **클릭(드래그 없이) composite 히트의 선택 동작**은 이 재설계의 기존 단순화(클릭=선택, 원본의 sel-tool 전용 선택과 다름)를 composite에도 일관 적용해 존재하는 양쪽 인덱스를 함께 선택하도록 했다 — 원본은 애초에 `findDotAt`을 sel 툴 선택에 쓰지 않았으니 대응하는 원본 동작이 없다. 이 부분만 해석적 결정이라고 명시한다.
+
+  테스트 신규: `edit-shape-commands.test.ts`에 복수 갱신 1개 undo 확인 1개, `scene-editor-shapes.test.ts`에 4개(pinch 드래그, center 드래그 폭 유지, half-pair center, composite 클릭 시 양쪽 선택) — 전체 1291/1291 통과.
+- **Defined in:** `src/edit/edit-shape-commands.ts`, `src/scene/scene-editor-shapes.ts`, `editor/editor-editing.md` §2·§8, `_plan/build-order.md`, `src/edit/README.md`, `src/scene/README.md`
+- **Rationale:** Not required
+- **Affects:** edit, scene, spec(editor-editing, build-order) — M5-4 D-2026-100의 Deferred Finding 해소
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

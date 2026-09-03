@@ -383,4 +383,109 @@ describe('scene-editor-shapes', () => {
     expect(moved.targetPos).toBe(0.75);
     expect(moved.startTick + moved.duration).toBe(0);
   });
+
+  // ── composite dot 드래그(D-2026-101) ──────────────────────
+
+  it('pinch 쌍(같은 tick, 0.5 미만 차이, 둘 다 non-anchor)을 드래그하면 둘 다 같은 커서 위치로 한 undo에 옮겨진다', () => {
+    const blueTrans: ShapeEvent = {
+      startTick: 0,
+      duration: 500,
+      isBlue: true,
+      targetPos: 4,
+      easing: 'Linear',
+    };
+    const redTrans: ShapeEvent = {
+      startTick: 0,
+      duration: 500,
+      isBlue: false,
+      targetPos: 4.2,
+      easing: 'Linear',
+    };
+    const { canvas, dispatch, getChart } = mount(
+      makeChart({ shapeEvents: [blueInit, redInit, blueTrans, redTrans] }),
+    );
+    const y = pixelYOfTick(500);
+    dragPointer(canvas, { x: pixelXOfExt(4), y }, { x: pixelXOfExt(4) + 50, y }); // rawCenter=5.
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]![0].name).toBe('MutateShapeEvents');
+    expect(getChart().shapeEvents[2]!.targetPos).toBe(5);
+    expect(getChart().shapeEvents[3]!.targetPos).toBe(5);
+  });
+
+  it('center 쌍(같은 tick, 폭 있음)을 드래그하면 폭을 유지한 채 커서를 중심으로 옮겨진다', () => {
+    const blueTrans: ShapeEvent = {
+      startTick: 0,
+      duration: 500,
+      isBlue: true,
+      targetPos: 2,
+      easing: 'Linear',
+    };
+    const redTrans: ShapeEvent = {
+      startTick: 0,
+      duration: 500,
+      isBlue: false,
+      targetPos: 6,
+      easing: 'Linear',
+    };
+    const { canvas, dispatch, getChart } = mount(
+      makeChart({ shapeEvents: [blueInit, redInit, blueTrans, redTrans] }),
+    );
+    const y = pixelYOfTick(500);
+    // 실제 evaluated 중점 = (2+6)/2 = 4 → px = pixelXOfExt(4).
+    dragPointer(canvas, { x: pixelXOfExt(4), y }, { x: pixelXOfExt(4) + 50, y }); // rawCenter=5.
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]![0].name).toBe('MutateShapeEvents');
+    // halfWidth = (6-2)/2 = 2 → newBlue=5-2=3, newRed=5+2=7 (폭 4 유지).
+    expect(getChart().shapeEvents[2]!.targetPos).toBe(3);
+    expect(getChart().shapeEvents[3]!.targetPos).toBe(7);
+  });
+
+  it('half-pair center(반대편 이벤트가 그 tick에 없음)를 드래그하면 존재하는 쪽만 옮겨진다', () => {
+    const blueTrans: ShapeEvent = {
+      startTick: 0,
+      duration: 500,
+      isBlue: true,
+      targetPos: 3,
+      easing: 'Linear',
+    };
+    // redInit(targetPos 2)만 있고 tick 500엔 red 이벤트가 없다 — half-pair.
+    const { canvas, dispatch, getChart } = mount(
+      makeChart({ shapeEvents: [blueInit, redInit, blueTrans] }),
+    );
+    const y = pixelYOfTick(500);
+    // evaluated 중점 = (3+2)/2 = 2.5 → px = pixelXOfExt(2.5).
+    dragPointer(canvas, { x: pixelXOfExt(2.5), y }, { x: pixelXOfExt(2.5) + 50, y }); // rawCenter=3.5.
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    // halfWidth = (2-3)/2 = -0.5 → newBlue = 3.5-(-0.5) = 4.
+    expect(getChart().shapeEvents[2]!.targetPos).toBe(4);
+    expect(getChart().shapeEvents[1]!.targetPos).toBe(2); // redInit 그대로.
+  });
+
+  it('composite 클릭(드래그 없이)은 존재하는 양쪽 인덱스를 모두 선택한다', () => {
+    const blueTrans: ShapeEvent = {
+      startTick: 0,
+      duration: 500,
+      isBlue: true,
+      targetPos: 2,
+      easing: 'Linear',
+    };
+    const redTrans: ShapeEvent = {
+      startTick: 0,
+      duration: 500,
+      isBlue: false,
+      targetPos: 6,
+      easing: 'Linear',
+    };
+    const {
+      canvas,
+      dispatch,
+      target: root,
+      getChart,
+    } = mount(makeChart({ shapeEvents: [blueInit, redInit, blueTrans, redTrans] }));
+    const y = pixelYOfTick(500);
+    click(canvas, pixelXOfExt(4), y); // 중점 클릭, 이동 없음.
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(root.textContent).toContain('2 selected');
+    expect(getChart().shapeEvents).toHaveLength(4); // 배치가 아니라 선택으로 처리됐다.
+  });
 });

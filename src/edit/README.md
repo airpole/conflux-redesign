@@ -106,3 +106,12 @@ M5-4 후속(D-2026-100)이 `MutateShapeEvents`/`MutateLaneEvents`(기존 점
 anchor 삭제 방지와는 다른 규칙이다. normalize는 여기서도 apply/undo
 양쪽에 걸지만, dest(=startTick+duration)가 안 바뀌므로 사실상 값에
 변화가 없다(§6 규칙과의 일관성을 위해 그대로 유지).
+
+M5-4 후속(D-2026-101)이 `mutateShapeEventCommand`(단수)를
+**`mutateShapeEventsCommand`(복수, index/targetPos 쌍 배열)로
+일반화했다** — composite dot(center/pinch로 놓인, 같은 tick의 Blue+Red
+쌍) 드래그가 두 점을 한 undo 단위로 함께 옮기기 때문이다(`AddShapeEvents`가
+이미 "여러 개 → 한 undo"인 것과 같은 패턴). 단일 점 드래그도 원소
+하나짜리 배열로 같은 함수를 쓴다 — 별도 단수 버전을 남기지 않았다.
+lane은 composite pair 개념이 없어 `mutateLaneEventCommand`(단수)를
+그대로 뒀다.

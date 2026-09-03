@@ -12,6 +12,11 @@
  * `duration`은 건드리지 않는다 — 재확인은 `scene-editor-shapes.ts` 헤더).
  * anchor(`easing===null`)도 위치는 옮길 수 있다(삭제만 막는다, §2 "init 이동
  * = 드래그" — `deleteShapeEventsCommand`의 anchor 보호와 다른 규칙).
+ * `mutateShapeEventsCommand`는 D-2026-101(M5-4 후속)에서 **복수형으로
+ * 일반화됐다** — composite dot(같은 tick의 Blue+Red 쌍, `center`/`pinch`로
+ * 놓인 점) 드래그가 두 점을 한 undo 단위로 함께 옮기기 때문이다(원본
+ * `findDotAt`/`onMove`의 `center`/`pinch` 분기 재구현, `scene-editor-shapes.ts`
+ * 헤더 참조). 단일 점 드래그도 원소 하나짜리 배열로 같은 함수를 쓴다.
  *
  * `MirrorShapeEvents`(Ctrl+F)·`ApplyShapeOps`는 여전히 범위 밖이다 —
  * `scene-editor-shapes.ts` 헤더 docstring의 "이번 라운드가 단순화한 지점"
@@ -150,18 +155,25 @@ export function deleteShapeEventsCommand(
   return shapeCommand('DeleteShapeEvents', session, before, after);
 }
 
-/** 기존 shape 이벤트 하나의 위치(`targetPos`)만 바꾼다(§6 MutateShapeEvents,
- *  드래그-end snapshot). tick은 그대로다 — normalize는 여전히 거치지만
- *  dest(=startTick+duration)가 안 바뀌었으니 값에 변화가 없다(호출측
- *  일관성용, 원본도 apply/undo 양쪽에서 normalize한다는 §6 규칙 그대로). */
-export function mutateShapeEventCommand(
+/** 기존 shape 이벤트 하나 이상의 위치(`targetPos`)만 바꾼다(§6
+ *  MutateShapeEvents, 드래그-end snapshot). tick은 그대로다 — normalize는
+ *  여전히 거치지만 dest(=startTick+duration)가 안 바뀌었으니 값에 변화가
+ *  없다(호출측 일관성용, 원본도 apply/undo 양쪽에서 normalize한다는 §6
+ *  규칙 그대로). **한 드래그 제스처 = 한 undo 단위**다(`editor-commands.md`
+ *  §4 "drag-end에 old/new snapshot command 1개") — composite dot(center/
+ *  pinch 쌍, D-2026-101)처럼 한 드래그가 점 둘을 함께 옮겨도 `updates`
+ *  배열에 둘 다 담아 커맨드 하나로 낸다. 단일 점 드래그도 원소 하나짜리
+ *  배열로 이 함수를 그대로 쓴다 — 별도 단수 버전을 두지 않는다
+ *  (`addShapeEventsCommand`가 이미 "여러 개를 배열로 받아 한 undo"인
+ *  것과 같은 패턴). */
+export function mutateShapeEventsCommand(
   session: ShapeSessionLike,
-  index: number,
-  targetPos: number,
+  updates: readonly { readonly index: number; readonly targetPos: number }[],
 ): Command {
   const before = session.chart.shapeEvents;
+  const byIndex = new Map(updates.map((u) => [u.index, u.targetPos]));
   const after = normalizeShapeEvents(
-    before.map((event, i) => (i === index ? { ...event, targetPos } : event)),
+    before.map((event, i) => (byIndex.has(i) ? { ...event, targetPos: byIndex.get(i)! } : event)),
   );
   return shapeCommand('MutateShapeEvents', session, before, after);
 }
@@ -189,7 +201,8 @@ export function deleteLaneEventsCommand(
 }
 
 /** 기존 lane 이벤트 하나의 위치(`targetPos`)만 바꾼다(§6 MutateLaneEvents) —
- *  `mutateShapeEventCommand`와 같은 패턴, tick은 그대로다. */
+ *  `mutateShapeEventsCommand`와 같은 패턴(단, lane은 composite pair 개념이
+ *  없어 단수 그대로 둔다), tick은 그대로다. */
 export function mutateLaneEventCommand(
   session: ShapeSessionLike,
   index: number,

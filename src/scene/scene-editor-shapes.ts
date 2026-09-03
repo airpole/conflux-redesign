@@ -57,15 +57,28 @@
  * `snapPos()`를 부르는 것과 같다(`POS_SNAP_STEP`, shape/lane 공통).
  *
  * **composite dot(center/pinch로 배치된, 같은 tick의 Blue+Red 쌍) 드래그는
- * 이번에도 범위 밖이다** — 원본은 `findDotAt`이 `type: 'center'|'pinch'`
- * 복합 히트를 따로 찾아 두 이벤트를 함께 옮기지만, 이 재설계의
- * `findShapeIndexAt`은 단일 인덱스만 돌려준다(§2 클릭 선택과 같은
- * 히트테스트를 재사용). 복합 드래그를 더하려면 별도 히트테스트가
- * 필요해 후속 라운드로 미룬다 — 개별 점(Q/E로 놓은 단일 체인 이벤트,
- * anchor 포함)의 드래그만 이번에 된다.
+ * D-2026-101(M5-4 후속)이 구현했다** — `findShapeHitAt`이 원본 `findDotAt`
+ * (`shape-input.js`)을 재구현해 단일 점(`dot`/`init`)뿐 아니라 `center`/
+ * `pinch` 복합 후보도 같은 최소거리 경쟁에 넣는다. 원본을 다시 읽어
+ * 정확한 그룹핑 규칙을 확인했다:
+ * - **`pinch` 후보**는 같은 tick에 Blue·Red가 **둘 다** 있고, 위치 차이가
+ *   0.5 미만이며 **둘 다 anchor가 아닐 때만**(`easing !== null`) 생긴다.
+ * - **`center` 후보**는 Blue·Red 중 **하나만 있어도**(half-pair) 생긴다 —
+ *   히트 지점은 그 tick의 실제 evaluated 경계 중점(`shapeGeometryAt`)이지,
+ *   이벤트 자신의 저장값이 아니다(원본 `getShape(tk).left/right`와 동일).
+ *
+ * 드래그 동작도 원본 `onMove`를 그대로 옮겼다: **`pinch`는 두 쪽 다
+ * 커서 위치로**(간격이 있었어도 드래그하면 하나로 모인다), **`center`는
+ * 드래그 시작 시점의 폭(Red−Blue, 부호 있음)을 그대로 유지한 채 커서를
+ * 중심으로** 움직인다(원본은 매 프레임 `getShape()`으로 폭을 다시
+ * 계산하지만, 그 폭이 프레임마다 안 바뀌므로 — 매번 같은 halfW로
+ * 대칭 재배치하니 — 드래그 시작 시 한 번만 캡처해도 결과가 같다).
+ * half-pair `center`는 존재하는 쪽만 갱신한다. **composite 드래그도 한
+ * undo 단위다** — `mutateShapeEventsCommand`가 index/targetPos 쌍을
+ * 배열로 받아 한 커맨드로 묶는다(`editor-commands.md` §4 "drag-end에
+ * snapshot command 1개").
  *
  * **이번 라운드가 단순화한 지점(전부 결정 필요 항목으로 남김)**:
- * - **composite dot(center/pinch) 드래그가 없다** — 위 참조.
  * - **Ctrl+F(선택 mirror)·클립보드(Ctrl+C/V)가 없다** — notes 탭에 이미
  *   구현된 패턴을 shape/lane에 그대로 옮기는 건 후속 라운드로 미룬다.
  * - **symmetry 축은 항상 동적 스냅샷**이다(§3 "배치 지점 기준 쌍 평균") —
@@ -114,7 +127,7 @@ import {
   deleteLaneEventsCommand,
   deleteShapeEventsCommand,
   mutateLaneEventCommand,
-  mutateShapeEventCommand,
+  mutateShapeEventsCommand,
   type ShapeSessionLike,
 } from '../edit/edit-shape-commands.js';
 import type { Command } from '../edit/edit-command.js';
@@ -136,6 +149,25 @@ type ShapeTool = 'blue' | 'center' | 'red' | 'pinch';
 type LaneMode = 'spread' | 'pinch';
 type EasingChoice = 'Arc' | 'In-Sine' | 'Out-Sine' | 'Linear';
 type LineNum = 1 | 2 | 3;
+
+/** 단일 점(Q/E로 놓은 하나의 체인 이벤트, anchor 포함) 히트. */
+interface ShapePointHit {
+  readonly kind: 'point';
+  readonly index: number;
+}
+
+/** composite dot 히트(D-2026-101) — 같은 tick의 Blue+Red 쌍. 원본
+ *  `findDotAt`의 `center`/`pinch` 후보와 같다: `center`는 한쪽만 있어도
+ *  후보가 되고(half-pair), `pinch`는 둘 다 있고 위치가 0.5 미만 차이 +
+ *  둘 다 anchor가 아닐 때만 후보가 된다(아래 `findShapeHitAt`). */
+interface ShapeCompositeHit {
+  readonly kind: 'center' | 'pinch';
+  readonly tick: number;
+  readonly blueIndex: number | null;
+  readonly redIndex: number | null;
+}
+
+type ShapeHit = ShapePointHit | ShapeCompositeHit;
 
 export interface EditorShapesApi {
   readonly session: ShapeSessionLike;
@@ -300,17 +332,46 @@ export function mountEditorShapesBody(
   let shapeSelection = new Set<number>();
   let laneSelection = new Set<number>();
 
-  // 기존 점 드래그 재배치(D-2026-100) — 위치(ext 단위)만 옮긴다, tick은
-  // 그대로. click-vs-drag는 DRAG_THRESHOLD_PX로 가른다(헤더 참조).
-  let drag: {
-    readonly kind: SubMode;
-    readonly index: number;
-    readonly startPx: number;
-    readonly startPy: number;
-    readonly originalExt: number;
-    moved: boolean;
-    currentExt: number;
-  } | null = null;
+  // 기존 점 드래그 재배치(D-2026-100, composite는 D-2026-101) — 위치(ext
+  // 단위)만 옮긴다, tick은 그대로. click-vs-drag는 DRAG_THRESHOLD_PX로
+  // 가른다(헤더 참조). shape는 단일 점(point)과 composite(center/pinch
+  // 쌍) 두 갈래, lane은 항상 단일 점이다.
+  type DragState =
+    | {
+        readonly subject: 'shape-point';
+        readonly index: number;
+        readonly startPx: number;
+        readonly startPy: number;
+        readonly originalExt: number;
+        moved: boolean;
+        currentExt: number;
+      }
+    | {
+        readonly subject: 'shape-composite';
+        readonly type: 'center' | 'pinch';
+        readonly blueIndex: number | null;
+        readonly redIndex: number | null;
+        readonly startPx: number;
+        readonly startPy: number;
+        /** center 전용 — Red−Blue(부호 있음), 드래그 내내 고정. */
+        readonly halfWidth: number;
+        readonly originalBlueExt: number | null;
+        readonly originalRedExt: number | null;
+        moved: boolean;
+        currentBlueExt: number;
+        currentRedExt: number;
+      }
+    | {
+        readonly subject: 'lane';
+        readonly index: number;
+        readonly startPx: number;
+        readonly startPy: number;
+        readonly originalExt: number;
+        moved: boolean;
+        currentExt: number;
+      };
+
+  let drag: DragState | null = null;
 
   function dispatchShapeCommand(build: (s: ShapeSessionLike) => Command): void {
     api.dispatch(build(api.session));
@@ -389,9 +450,15 @@ export function mountEditorShapesBody(
 
     chart.shapeEvents.forEach((event, index) => {
       const tick = event.startTick + event.duration;
-      const isDragging =
-        drag !== null && drag.kind === 'shape' && drag.index === index && drag.moved;
-      const posExt = isDragging ? drag!.currentExt : event.targetPos;
+      let posExt = event.targetPos;
+      if (drag !== null && drag.moved) {
+        if (drag.subject === 'shape-point' && drag.index === index) {
+          posExt = drag.currentExt;
+        } else if (drag.subject === 'shape-composite') {
+          if (drag.blueIndex === index) posExt = drag.currentBlueExt;
+          else if (drag.redIndex === index) posExt = drag.currentRedExt;
+        }
+      }
       const x = extToPx(posExt, cw);
       const y = tickToPixelY(tick, ch, timeline, view.scrollMs, view.viewMs);
       const isSelected = subMode === 'shape' && shapeSelection.has(index);
@@ -408,10 +475,13 @@ export function mountEditorShapesBody(
 
     chart.laneEvents.forEach((event, index) => {
       const tick = event.startTick + event.duration;
-      const isDragging =
-        drag !== null && drag.kind === 'lane' && drag.index === index && drag.moved;
       const { blue, red } = shapeGeometryAt(geometry, tick);
-      const ext = isDragging ? drag!.currentExt : laneRelToExt(event.targetPos, blue, red);
+      const laneDrag =
+        drag !== null && drag.subject === 'lane' && drag.index === index && drag.moved
+          ? drag
+          : null;
+      const ext =
+        laneDrag !== null ? laneDrag.currentExt : laneRelToExt(event.targetPos, blue, red);
       const x = extToPx(ext, cw);
       const y = tickToPixelY(tick, ch, timeline, view.scrollMs, view.viewMs);
       const isSelected = subMode === 'lane' && laneSelection.has(index);
@@ -610,10 +680,70 @@ export function mountEditorShapesBody(
 
   // ── 선택/삭제 ────────────────────────────────────────────
 
-  function findShapeIndexAt(px: number, py: number): number | null {
+  /** shape 캔버스 히트테스트 — 원본 `findDotAt`(`shape-input.js`) 재구현
+   *  (D-2026-101). 단일 점(dot/init)뿐 아니라 같은 tick의 Blue+Red
+   *  composite(center/pinch)도 후보에 넣고, 화면상 가장 가까운 하나를
+   *  고른다 — 원본처럼 composite 후보와 개별 점 후보가 같은 최소거리
+   *  경쟁에 참여한다(순서가 아니라 거리로 이긴다).
+   *
+   *  - `pinch` 후보: 같은 tick에 Blue·Red가 **둘 다** 있고, 위치 차이가
+   *    0.5 미만이며 **둘 다 anchor가 아닐 때만**(easing !== null) 생긴다.
+   *    히트 지점은 Blue의 위치.
+   *  - `center` 후보: Blue·Red 중 **하나만 있어도**(half-pair) 생긴다.
+   *    히트 지점은 그 tick의 실제 평가된 경계 중점(`shapeGeometryAt`) —
+   *    이벤트 자신의 저장값이 아니라 evaluated geometry를 쓴다(원본
+   *    `getShape(tk).left/right`와 동일).
+   */
+  function findShapeHitAt(px: number, py: number): ShapeHit | null {
     const { width: cw, height: ch } = canvas;
-    let best: number | null = null;
+    let best: ShapeHit | null = null;
     let bestDist = HIT_RADIUS_PX;
+
+    const byTick = new Map<number, { blue?: number; red?: number }>();
+    chart.shapeEvents.forEach((event, index) => {
+      const tick = event.startTick + event.duration;
+      const entry = byTick.get(tick) ?? {};
+      if (event.isBlue) entry.blue = index;
+      else entry.red = index;
+      byTick.set(tick, entry);
+    });
+
+    for (const [tick, pair] of byTick) {
+      const y = tickToPixelY(tick, ch, timeline, view.scrollMs, view.viewMs);
+
+      if (pair.blue !== undefined && pair.red !== undefined) {
+        const blueEvt = chart.shapeEvents[pair.blue]!;
+        const redEvt = chart.shapeEvents[pair.red]!;
+        if (
+          Math.abs(blueEvt.targetPos - redEvt.targetPos) < 0.5 &&
+          blueEvt.easing !== null &&
+          redEvt.easing !== null
+        ) {
+          const x = extToPx(blueEvt.targetPos, cw);
+          const d = Math.hypot(px - x, py - y);
+          if (d < bestDist) {
+            bestDist = d;
+            best = { kind: 'pinch', tick, blueIndex: pair.blue, redIndex: pair.red };
+          }
+        }
+      }
+
+      if (pair.blue !== undefined || pair.red !== undefined) {
+        const { blue, red } = shapeGeometryAt(geometry, tick);
+        const x = extToPx((blue + red) / 2, cw);
+        const d = Math.hypot(px - x, py - y);
+        if (d < bestDist) {
+          bestDist = d;
+          best = {
+            kind: 'center',
+            tick,
+            blueIndex: pair.blue ?? null,
+            redIndex: pair.red ?? null,
+          };
+        }
+      }
+    }
+
     chart.shapeEvents.forEach((event, index) => {
       const tick = event.startTick + event.duration;
       const x = extToPx(event.targetPos, cw);
@@ -621,9 +751,10 @@ export function mountEditorShapesBody(
       const d = Math.hypot(px - x, py - y);
       if (d < bestDist) {
         bestDist = d;
-        best = index;
+        best = { kind: 'point', index };
       }
     });
+
     return best;
   }
 
@@ -680,14 +811,20 @@ export function mountEditorShapesBody(
     };
   }
 
-  function toggleShapeSelection(hit: number, shiftKey: boolean): void {
-    if (!shiftKey && !shapeSelection.has(hit)) shapeSelection = new Set([hit]);
-    else if (shiftKey) {
-      const next = new Set(shapeSelection);
-      if (next.has(hit)) next.delete(hit);
-      else next.add(hit);
-      shapeSelection = next;
+  /** shape 선택을 `indices` 집합으로 바꾼다(shiftKey면 토글 병합) —
+   *  composite 클릭(D-2026-101)이 인덱스 둘을 한 번에 넘길 수 있어
+   *  `toggleShapeSelection(단일)` 대신 배열을 받는다. */
+  function selectShapeIndices(indices: readonly number[], shiftKey: boolean): void {
+    if (!shiftKey) {
+      shapeSelection = new Set(indices);
+      return;
     }
+    const next = new Set(shapeSelection);
+    for (const i of indices) {
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+    }
+    shapeSelection = next;
   }
 
   function toggleLaneSelection(hit: number, shiftKey: boolean): void {
@@ -706,17 +843,40 @@ export function mountEditorShapesBody(
     const { x, y } = canvasPoint(event);
     pointerDownShift = event.shiftKey;
     if (subMode === 'shape') {
-      const hit = findShapeIndexAt(x, y);
+      const hit = findShapeHitAt(x, y);
       if (hit !== null) {
-        drag = {
-          kind: 'shape',
-          index: hit,
-          startPx: x,
-          startPy: y,
-          originalExt: chart.shapeEvents[hit]!.targetPos,
-          moved: false,
-          currentExt: chart.shapeEvents[hit]!.targetPos,
-        };
+        if (hit.kind === 'point') {
+          const ext = chart.shapeEvents[hit.index]!.targetPos;
+          drag = {
+            subject: 'shape-point',
+            index: hit.index,
+            startPx: x,
+            startPy: y,
+            originalExt: ext,
+            moved: false,
+            currentExt: ext,
+          };
+        } else {
+          const { blue, red } = shapeGeometryAt(geometry, hit.tick);
+          const originalBlueExt =
+            hit.blueIndex !== null ? chart.shapeEvents[hit.blueIndex]!.targetPos : null;
+          const originalRedExt =
+            hit.redIndex !== null ? chart.shapeEvents[hit.redIndex]!.targetPos : null;
+          drag = {
+            subject: 'shape-composite',
+            type: hit.kind,
+            blueIndex: hit.blueIndex,
+            redIndex: hit.redIndex,
+            startPx: x,
+            startPy: y,
+            halfWidth: (red - blue) / 2,
+            originalBlueExt,
+            originalRedExt,
+            moved: false,
+            currentBlueExt: originalBlueExt ?? blue,
+            currentRedExt: originalRedExt ?? red,
+          };
+        }
         return;
       }
       placeShape(x, y);
@@ -728,7 +888,7 @@ export function mountEditorShapesBody(
         const { blue, red } = shapeGeometryAt(geometry, tick);
         const originalExt = laneRelToExt(event_.targetPos, blue, red);
         drag = {
-          kind: 'lane',
+          subject: 'lane',
           index: hit,
           startPx: x,
           startPy: y,
@@ -751,7 +911,19 @@ export function mountEditorShapesBody(
       drag.moved = true;
     }
     if (drag.moved) {
-      drag.currentExt = snapExt(pxToExt(x, canvas.width));
+      if (drag.subject === 'shape-composite') {
+        const rawCenter = pxToExt(x, canvas.width);
+        if (drag.type === 'pinch') {
+          const v = snapExt(rawCenter);
+          drag.currentBlueExt = v;
+          drag.currentRedExt = v;
+        } else {
+          drag.currentBlueExt = snapExt(rawCenter - drag.halfWidth);
+          drag.currentRedExt = snapExt(rawCenter + drag.halfWidth);
+        }
+      } else {
+        drag.currentExt = snapExt(pxToExt(x, canvas.width));
+      }
       render();
     }
     void event;
@@ -763,21 +935,45 @@ export function mountEditorShapesBody(
     drag = null;
 
     if (!d.moved) {
-      // 이동 없이 뗐다 — 클릭(선택 토글)으로 처리한다.
-      if (d.kind === 'shape') toggleShapeSelection(d.index, pointerDownShift);
-      else toggleLaneSelection(d.index, pointerDownShift);
+      // 이동 없이 뗐다 — 클릭(선택 토글)으로 처리한다. composite면 존재하는
+      // 양쪽 인덱스를 함께 선택한다(D-2026-101 — 이 재설계의 클릭=선택
+      // 단순화를 composite에도 일관 적용한 것뿐, 원본은 sel 툴에서만
+      // 선택했고 findDotAt은 드래그 전용이었다).
+      if (d.subject === 'shape-point') {
+        selectShapeIndices([d.index], pointerDownShift);
+      } else if (d.subject === 'shape-composite') {
+        const indices = [d.blueIndex, d.redIndex].filter((i): i is number => i !== null);
+        if (indices.length > 0) selectShapeIndices(indices, pointerDownShift);
+      } else {
+        toggleLaneSelection(d.index, pointerDownShift);
+      }
       render();
       return;
     }
 
     // 드래그 종료 — 위치만 바꾸는 Mutate 커맨드 1개를 dispatch한다(tick은
     // 그대로, symmetry는 적용하지 않는다 — 헤더 참조).
-    if (d.kind === 'shape') {
+    if (d.subject === 'shape-point') {
       if (d.currentExt === d.originalExt) {
         render();
         return;
       }
-      dispatchShapeCommand((s) => mutateShapeEventCommand(s, d.index, d.currentExt));
+      dispatchShapeCommand((s) =>
+        mutateShapeEventsCommand(s, [{ index: d.index, targetPos: d.currentExt }]),
+      );
+    } else if (d.subject === 'shape-composite') {
+      const updates: { index: number; targetPos: number }[] = [];
+      if (d.blueIndex !== null && d.currentBlueExt !== d.originalBlueExt) {
+        updates.push({ index: d.blueIndex, targetPos: d.currentBlueExt });
+      }
+      if (d.redIndex !== null && d.currentRedExt !== d.originalRedExt) {
+        updates.push({ index: d.redIndex, targetPos: d.currentRedExt });
+      }
+      if (updates.length === 0) {
+        render();
+        return;
+      }
+      dispatchShapeCommand((s) => mutateShapeEventsCommand(s, updates));
     } else {
       const event_ = chart.laneEvents[d.index]!;
       const tick = event_.startTick + event_.duration;
