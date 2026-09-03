@@ -115,3 +115,17 @@ M5-4 후속(D-2026-101)이 `mutateShapeEventCommand`(단수)를
 하나짜리 배열로 같은 함수를 쓴다 — 별도 단수 버전을 남기지 않았다.
 lane은 composite pair 개념이 없어 `mutateLaneEventCommand`(단수)를
 그대로 뒀다.
+
+`edit-meta-commands`는 M5-5 범위다([[editor-commands]] §6 중
+Add/Delete/EditTempo·Add/Delete/EditTimeSignature 6개, D-2026-102).
+notes/shape와 같은 snapshot 패턴이지만 **chain normalize가 없다** —
+`timing.md` §0 "핵심 pattern"이 "startTick 정렬"을 평가 시점(tick→ms
+변환)의 첫 단계로 두고 있어, 저장 배열 자체가 정렬돼 있을 필요가 없다
+(notes/shapeEvents와 같은 전제). 빈 배열 방지도 이 파일이 하지 않는다 —
+`tempos`/`timeSignatures`가 비면 안 된다는 규칙은 domain 검증(보고 전용,
+`core-validate.ts`) 대상이라 마지막 한 줄 삭제 방지는 `scene-editor-meta.ts`
+가 막는다(shape의 anchor 삭제 방지와 같은 위치 — command 계층이 아니라
+scene 계층). metadata·chart identity(chartId/difficulty/subtitle/level/
+chartBy)·asset(musicFile/jacketFile) 필드 편집은 `editor-commands.md`
+§7대로 command가 **아니다** — 이 파일에는 그 경로가 없고,
+`scene-editor-meta.ts`가 `session.updateChart()`를 직접 부른다.

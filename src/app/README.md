@@ -110,3 +110,14 @@ M5-4가 같은 자리에 `mountShapes(container, chart, view)`를 더했다 —
 양쪽에 같은 참조로 넘겨주는 것을 그대로 받아 전달할 뿐이다 —
 `editor-graph.md` §2 "scroll/zoom: notes·shapes 공유"를 그 참조 공유로
 만족한다.
+
+M5-5가 `mountMeta(container, chart)`를 더했다 — `session`/`dispatch`는
+`mountShapes`와 같은 참조를 그대로 넘긴다. `view`는 받지 않는다(폼이라
+공유 zoom 상태가 필요 없다). 새로 더한 건 `notifyChanged: () =>
+editorWorkspaceHandle?.update(editorSession!.chart)` 하나뿐이다 — meta의
+identity/metadata/asset 필드 편집은 command가 아니라 `session.updateChart()`
+직접 호출이라(`editor-commands.md` §7) 기존 `editorCommandHistory.onDispatch`
+구독이 이 경로를 못 본다. 그래서 그 경로 전용으로 이 콜백을 만들어
+`editorWorkspaceHandle`을 명시적으로 새로고침한다 — tempo/timeSignature
+편집은 여전히 command라 `mountNotes`/`mountShapes`와 같은 dispatch
+구독만으로 충분하다.

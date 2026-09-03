@@ -1538,6 +1538,34 @@
 - **Commit:** `1d3a7f4`
 
 
+### D-2026-102 — M5-5: meta scene(identity·metadata·tempo·timeSignature·asset)
+
+- **Status:** Accepted (구현분) / "새 난이도" 파생·`measureLabelOffset`은 Exit 기준 밖으로 결정 필요 — 아래 참조
+- **Decision:** `editor-commands.md` §6의 tempo/timeSignature command 6개(`AddTempo`/`DeleteTempo`/`EditTempo`·`AddTimeSignature`/`DeleteTimeSignature`/`EditTimeSignature`, `edit-meta-commands.ts`)와 편집 폼(`scene-editor-meta.ts`)을 구현해 M5-5 Exit 기준("값 편집이 즉시 timing cache를 재구성한다. music·jacket 교체가 반영된다")을 충족했다.
+
+  **두 편집 경로가 명확히 갈린다**(`editor-commands.md` §6·§7, 이미 확정돼 있던 구분): identity(chartId/difficulty/subtitle/level/chartBy)·metadata 6필드·asset(musicFile/jacketFile)은 command가 아니라 `session.updateChart()` 직접 호출(undo 불가, scope 없음). tempo·timeSignature만 command다(scope `m`, `edit-command.ts`가 이미 알고 있던 필드).
+
+  **direct-edit 경로는 기존 `onDispatch` 자동 새로고침을 못 받는다** — notes/shapes는 command dispatch만 하면 `editorCommandHistory.onDispatch` 구독이 자동으로 `editorWorkspaceHandle.update(chart)`를 불러 주지만, meta의 identity/metadata/asset 편집은 그 구독 경로를 안 거친다. 새 `EditorMetaApi.notifyChanged()` 콜백을 만들어 그 경로 전용으로 `app-main.ts`가 `editorWorkspaceHandle?.update(editorSession!.chart)`를 명시적으로 부르게 했다 — 이게 없으면 meta에서 title을 바꾼 뒤 notes 탭으로 넘어가도 workspace의 `chart` 클로저가 갱신 안 돼 이전 값을 계속 들고 있었을 것이다.
+
+  **timing cache 재구성은 새로 만든 게 없다** — `core-timing.ts`/`edit-command.ts` 둘 다 이미 "캐시도 무효화도 없다, 매번 chart에서 다시 계산" 설계를 헤더에 적어 뒀다. tempo/timeSignature 편집 → command dispatch → 기존 `onDispatch` → `editorWorkspaceHandle.update(chart)` → notes/shapes controller의 `update(chart)`(내부에서 `buildTimeline(next)` 재호출)로 이어지는 이미 있던 경로가 "즉시 재구성"을 그대로 만족한다.
+
+  **asset 교체**는 `env-file.ts`의 `FileOpenHost`(텍스트 전용, chart JSON용)를 재사용하지 않았다 — music/jacket은 바이너리라 다른 표면이 필요했다. 표준 `<input type="file" accept="audio/*|image/*">`를 직접 만들어 클릭을 위임하는 방식을 택했다(파일 선택 자체가 이미 브라우저 네이티브 다이얼로그라 `showOpenFilePicker`류의 File System Access API 표면을 새로 쓸 이유가 없었다 — 그건 저장까지 있는 `Ctrl+S`/`Ctrl+O` 흐름 전용으로 남겨 둔다). 선택 즉시 `session.updateMusicBlob`/`updateJacketBlob`과 `musicFile`/`jacketFile` 필드 갱신을 한 번에 한다(`_meta/persistence.md` §10 "다시 선택한 파일명이 다르면 해당 필드를 새 이름으로 갱신").
+
+  **chartId 자동 규칙**(`editor-graph.md` §4)을 그대로 구현했다: `init` → 0(잠금), subtitle 없는 고정 난이도(Trace/Drift/Surge/Flux/Phase) → 1~5(잠금), 그 외("추가 chart") → 5 이상 직접 입력(미만은 거부, 인라인 에러). **스펙 원문은 예시로 "1/2/3/4"만 들고 Phase(5번 슬롯)를 언급하지 않는데**, `core/data-model.md` §4가 "`chartId 0`은 init, `1~5`는 Trace/Drift/Surge/Flux/Phase 고정 슬롯"이라고 5칸 전부를 못박아 둬서 그 표를 그대로 완성해 구현했다 — 두 문서가 실제로 다른 규칙을 말하는 게 아니라 editor-graph.md 예시가 5번째 칸을 생략한 것으로 판단했다(결정 필요 항목으로 명시).
+
+  **이번 라운드가 범위 밖으로 둔 것(결정 필요 항목)**:
+  1. "새 난이도" 파생(같은 songId의 새 독립 chart 세션 시작, `editor-graph.md` §4 "새 chart 파생" · `persistence.md` §8) — session 교체·dirty confirm 흐름까지 엮인 별도 기능이고 M5-5 Exit 기준에 없다.
+  2. `measureLabelOffset`(editor-graph.md §4 "editor settings") — chart 데이터가 아니라 player 전역 설정이다(`core/data-model.md` §2, `_meta/settings.md`). `game-settings.ts`의 read/writeSettings 저장소를 따로 물려야 하고, 지금은 그 값을 실제로 읽는 렌더 소비자(notes/shapes 마디 라벨)도 없어 넣지 않았다.
+  3. tempo/timeSignature 목록에 정렬·중복 tick 경고 UI는 없다 — 도메인 검증(빈 배열·`timeSignatures[0].startTick≠0` 등)은 `core-validate.ts`가 이미 보고 전용으로 처리하는 자리라 다시 만들지 않았다. 마지막 한 줄 삭제만 이 폼이 막는다(shape의 anchor 삭제 방지와 같은 위치 — command 계층이 아니라 scene 계층).
+
+  테스트 신규: `edit-meta-commands.test.ts` 6개(tempo add/delete/edit, timeSignature add/delete/edit, invalidates), `scene-editor-meta.test.ts` 16개(5섹션 렌더, onKeyDown 항상 false, songId 읽기전용, chartId 자동규칙 3종 + 거부, metadata 즉시반영, tempo add/삭제방지/삭제, timeSignature add, asset music/jacket 교체, destroy/update) — 전체 1313/1313 통과.
+- **Defined in:** `src/edit/edit-meta-commands.ts`, `src/scene/scene-editor-meta.ts`, `src/scene/scene-editor-meta.css`, `src/scene/scene-editor-workspace.ts`, `src/app/app-main.ts`, `_plan/build-order.md`, `src/edit/README.md`, `src/scene/README.md`, `src/app/README.md`
+- **Rationale:** Not required
+- **Affects:** edit, scene, app, spec(build-order) — M5-5 완료(2가지 범위 밖 항목은 결정 필요로 이월)
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

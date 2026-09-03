@@ -22,7 +22,7 @@
  * 넘긴다(consumed 반환 시 여기서 더 처리하지 않는다) — notes 탭 자체
  * 단축키(Q/W/E/R/D/Delete/Ctrl+C/V/F, `Esc` 취소 계단)가 `Tab`/전역
  * `Escape`(뒤로가기)보다 먼저 자기 것부터 챙길 수 있게 하는 자리다.
- * meta/test는 여전히 껍데기다 — M5-5~M5-6.
+ * test는 여전히 껍데기다 — M5-6.
  *
  * **M5-4가 shapes에 같은 자리를 붙였다** — `handlers.mountShapes(container,
  * chart, view)`. `view`(`EditorViewState`, `scene-editor-view.ts`)는 이
@@ -30,6 +30,15 @@
  * `editor-graph.md` §2 "scroll/zoom: notes·shapes 공유"를 그 참조 공유로
  * 만족한다(탭을 넘나들며 `renderBody()`가 body를 통째로 다시 만들어도
  * zoom·scroll 위치는 이 객체 안에 남아 있다).
+ *
+ * **M5-5가 meta에 같은 자리를 붙였다** — `handlers.mountMeta(container,
+ * chart)`. notes/shapes와 달리 canvas가 아니라 폼이라 `view`를 받지
+ * 않는다. `scene-editor-meta.ts`의 필드 편집 대부분(identity·metadata·
+ * asset)은 command가 아니라 `session.updateChart()` 직접 호출이라
+ * (`editor-commands.md` §7) `editorCommandHistory.onDispatch` 구독을
+ * 안 거친다 — 그래서 그 경로는 `app-main.ts`가 별도로 넘기는
+ * `notifyChanged` 콜백으로 이 파일의 `update()`를 직접 부른다(tempo/
+ * timeSignature 편집만 command라 기존 dispatch 구독으로 충분하다).
  */
 import './scene-editor-workspace.css';
 import type { Chart } from '../core/core-chart.js';
@@ -74,6 +83,9 @@ export interface EditorWorkspaceHandlers {
     chart: Chart,
     view: EditorViewState,
   ) => EditorCategoryController;
+  /** meta body를 채운다(M5-5) — notes/shapes와 달리 canvas가 아니라 폼이라
+   *  공유 `view`가 필요 없다. */
+  readonly mountMeta?: (container: HTMLElement, chart: Chart) => EditorCategoryController;
 }
 
 export interface EditorWorkspaceSceneHandle {
@@ -146,9 +158,13 @@ export function mountEditorWorkspaceScene(
       activeController = handlers.mountShapes(body, chart, view);
       return;
     }
+    if (category === 'meta' && handlers.mountMeta !== undefined && chart !== null) {
+      activeController = handlers.mountMeta(body, chart);
+      return;
+    }
 
     const placeholder = el('div', 'editor-body-placeholder');
-    placeholder.textContent = `${CATEGORY_LABEL[category]} — 편집 UI는 이후 milestone 범위(M5-5~M5-6)`;
+    placeholder.textContent = `${CATEGORY_LABEL[category]} — 편집 UI는 이후 milestone 범위(M5-6)`;
     body.append(placeholder);
   }
 

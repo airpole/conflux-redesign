@@ -408,6 +408,8 @@ confirm으로 뒤집혔다. M4.6은 완전히 닫혔다 — 남은 항목 없음
 | M5-3 | notes scene 편집 interaction | 노트 배치·이동·삭제·복사·붙여넣기·flip이 원본과 같은 결과를 낸다. overlap/conflict가 화면에 표시된다. |
 | M5-4 | shapes scene — shape/lane 서브모드 | `T`로 서브모드가 갈리고 선택 필터가 서브모드를 따른다. Q/W/E/R 툴이 정의대로 배치한다. 현재 그룹·symmetry 쌍·`R` 모드가 툴바에 상시 표시된다. |
 | M5-5 | meta scene — metadata·tempo·timeSignature·asset | 값 편집이 즉시 timing cache를 재구성한다. music·jacket 교체가 반영된다. |
+
+**M5-5 진행 상황**: meta scene의 command 6개(`AddTempo`/`DeleteTempo`/`EditTempo`·`AddTimeSignature`/`DeleteTimeSignature`/`EditTimeSignature`, `edit-meta-commands.ts`, D-2026-102)와 편집 폼(`scene-editor-meta.ts`)이 구현됐다 — identity(songId 읽기전용·chartId 자동규칙·difficulty·subtitle·level·chartBy)·metadata 6필드·tempo/timeSignature 목록(마지막 한 줄 삭제 방지)·asset(music/jacket) 교체까지 Exit 기준을 충족했다. identity/metadata/asset은 `editor-commands.md` §7대로 command가 아니라 `session.updateChart()` 직접 호출이라, 그 경로만 새 `notifyChanged` 콜백으로 `editorWorkspaceHandle.update()`를 명시적으로 부른다(tempo/timeSignature는 기존 `onDispatch` 구독으로 충분). asset 교체는 표준 `<input type=file accept="audio/*|image/*">`를 직접 만들어 클릭을 위임했다(`env-file.ts`의 텍스트 전용 `FileOpenHost`는 바이너리에 안 맞아 재사용하지 않았다). chartId 자동 규칙은 `editor-graph.md` §4 예시(1/2/3/4)가 생략한 Phase(5번 슬롯)를 `core/data-model.md` §4의 5칸 표로 완성해 구현했다. **범위 밖으로 둔 것(결정 필요 항목)**: "새 난이도" 파생(session 교체·dirty confirm이 엮인 별도 기능, Exit 기준 밖), `measureLabelOffset`(chart 데이터가 아니라 player 전역 설정, 아직 소비자도 없음) — 자세한 근거는 `scene-editor-meta.ts` 헤더.
 | M5-6 | test scene — engine 재사용, embedded quick options | 같은 engine이 editor host에서 돈다. 현재 위치에서 lead-in 없이 즉시 재생되고 editor-origin은 항상 no-record다. |
 | M5-7 | text events | 배치·편집·삭제가 되고 재생 시 정의된 fade로 표시된다. |
 

@@ -227,3 +227,20 @@ symmetry는 드래그에 적용되지 않는다 — 원본 드래그 분기 어�
 `pinch`는 둘 다 커서 위치로, `center`는 드래그 시작 시점 폭을 유지한 채
 커서를 중심으로 움직인다 — 두 점이 있으면 `mutateShapeEventsCommand`
 (단수에서 복수로 일반화, `edit-shape-commands.ts`)가 한 undo로 묶는다.
+
+**M5-5가 `scene-editor-meta.ts`를 같은 delegation 자리에 붙였다**
+(D-2026-102) — notes/shapes와 달리 canvas가 아니라 폼이라
+`EditorWorkspaceHandlers.mountMeta(container, chart)`는 공유 `view`를
+받지 않는다. identity(songId 읽기전용·chartId 자동규칙·difficulty·
+subtitle·level·chartBy)·metadata 6필드·tempo/timeSignature 목록(마지막
+줄 삭제 방지)·asset(music/jacket) 교체를 구현했다. identity/metadata/
+asset 필드는 `editor-commands.md` §7대로 command가 아니라
+`session.updateChart()` 직접 호출이라 기존 `editorCommandHistory.onDispatch`
+구독이 안 걸린다 — 그래서 `EditorMetaApi.notifyChanged()`라는 새 콜백을
+더해 `app-main.ts`가 그 경로만 `editorWorkspaceHandle.update()`를
+명시적으로 부르게 했다(tempo/timeSignature는 command라 기존 구독으로
+충분). asset 교체는 `env-file.ts`의 텍스트 전용 `FileOpenHost`를
+재사용하지 않고 표준 `<input type=file accept="audio/*|image/*">`를
+직접 만들어 썼다(바이너리라 다른 표면이 필요했다). "새 난이도" 파생·
+`measureLabelOffset`(player 전역 설정, chart 데이터 아님)은 M5-5 Exit
+기준 밖이라 범위 밖으로 뒀다 — 자세한 근거는 `scene-editor-meta.ts` 헤더.

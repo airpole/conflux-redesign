@@ -111,6 +111,7 @@ import {
 } from '../scene/scene-editor-workspace.js';
 import { mountEditorNotesBody } from '../scene/scene-editor-notes.js';
 import { mountEditorShapesBody } from '../scene/scene-editor-shapes.js';
+import { mountEditorMetaBody } from '../scene/scene-editor-meta.js';
 import { createInitChart } from '../edit/edit-chart-init.js';
 import {
   createWorkspaceSession,
@@ -548,6 +549,17 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
           session: editorSession!,
           dispatch: (command) => editorCommandHistory!.dispatch(command),
           view,
+        });
+      },
+      // M5-5: meta body를 실제로 채운다 — identity/metadata/asset 직접
+      // 필드 편집은 command를 안 거쳐(editor-commands.md §7)
+      // editorCommandHistory.onDispatch 구독이 안 걸리므로, 그 경로만
+      // notifyChanged로 editorWorkspaceHandle.update를 직접 부른다.
+      mountMeta(container, chart) {
+        return mountEditorMetaBody(container, chart, {
+          session: editorSession!,
+          dispatch: (command) => editorCommandHistory!.dispatch(command),
+          notifyChanged: () => editorWorkspaceHandle?.update(editorSession!.chart),
         });
       },
     });

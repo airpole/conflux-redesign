@@ -1,0 +1,81 @@
+/* meta 씬(identity·metadata·tempo·timeSignature·asset 폼) — M5-5.
+   scene-editor-notes.css/scene-editor-shapes.css와 같은 최소 기능 토큰
+   (ui-design.md가 아직 editor 화면을 다루지 않는다, src/scene/README.md
+   참조). */
+
+.editor-meta-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2cqw;
+  height: 100%;
+  overflow-y: auto;
+  font-family: var(--sans);
+  color: var(--text, #ececf4);
+  padding: 1cqw;
+}
+
+.editor-meta-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5cqw;
+  border: 1px solid var(--rule, #1e1e30);
+  border-radius: 4px;
+  padding: 0.8cqw;
+}
+
+.editor-meta-section-title {
+  color: var(--cyan);
+  font-size: 0.9cqw;
+}
+
+.editor-meta-field {
+  display: flex;
+  align-items: center;
+  gap: 0.6cqw;
+  font-size: 0.85cqw;
+}
+
+.editor-meta-field label {
+  color: var(--dim);
+  min-width: 8cqw;
+}
+
+.editor-meta-field input,
+.editor-meta-field select {
+  background: #0a0a12;
+  color: inherit;
+  border: 1px solid var(--rule, #1e1e30);
+  border-radius: 3px;
+  padding: 0.2cqw 0.4cqw;
+  font-family: var(--sans);
+  font-size: 0.85cqw;
+}
+
+.editor-meta-error {
+  color: #ff5f70;
+  font-size: 0.8cqw;
+}
+
+.editor-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6cqw;
+  font-size: 0.8cqw;
+}
+
+.editor-meta-row-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3cqw;
+}
+
+.editor-meta-button {
+  background: transparent;
+  border: 1px solid var(--rule, #1e1e30);
+  color: var(--cyan);
+  border-radius: 3px;
+  padding: 0.2cqw 0.6cqw;
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 0.8cqw;
+}
