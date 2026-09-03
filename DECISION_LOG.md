@@ -1535,7 +1535,7 @@
 - **Rationale:** Not required
 - **Affects:** edit, scene, spec(editor-editing, build-order) — M5-4 D-2026-100의 Deferred Finding 해소
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `1d3a7f4`
 
 
 ### D-YYYY-NNN — <Title>
