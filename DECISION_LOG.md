@@ -1618,7 +1618,7 @@
 - **Affects:** game, spec(build-order) — M5-6 Exit 기준 일부 충족, scene 층은
   "current position" 정의가 결정 필요 항목으로 남아 이월
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `388b1f2`
 
 
 ### D-YYYY-NNN — <Title>
