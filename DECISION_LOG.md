@@ -2075,6 +2075,48 @@
 - **Commit:** `4c44af2`
 
 
+### D-2026-113 — `src/core/core-timing.ts` 뮤테이션 게이트 재실행(M5-3 `snapTick` 커버)
+
+- **Status:** Accepted
+- **Decision:** `REVIEW_CHECKLIST.md`가 요구하는 milestone 마감 뮤테이션
+  게이트(`npm run mutate`, `src/core` 전체)가 M5-3에서 `core-timing.ts`에
+  `snapTick`/`cellTickOf`를 추가한 뒤로 이 파일에 대해 재실행된 기록이
+  없었다 — M6-3의 headless smoke pass가 확인한 것과 같은 종류의 "확인
+  누락" 사각지대라 M6 마무리 라운드에서 닫는다.
+
+  `node tools/audit/mutate.mjs src/core/core-timing.ts`를 단독 실행했다
+  (전체 7파일 기본 실행은 `npx vitest run`을 뮤턴트마다 새로 띄워
+  mutant당 15초 안팎이 걸려 세션 예산 안에 못 끝낼 수 있다고 판단,
+  `snapTick`이 실제로 속한 파일 하나로 좁혔다). 결과: **50개 뮤턴트,
+  7개 생존** — `snapTick`/`cellTickOf` 자신은 이 스크립트의 연산자
+  집합(`<`/`<=`/`>`/`>=`/`===`/`!==`/`Math.max`/`Math.min`/`±1`)에 해당하는
+  코드가 없어 뮤턴트가 아예 안 나왔다(나눗셈·곱셈·`Math.round`뿐이라 이
+  스크립트로는 원천적으로 커버 대상이 아니다 — 별도 언급할 사각지대).
+
+  생존 7개를 전부 대조해 보니 **`tools/audit/MUTATION_EQUIVALENTS.md`에
+  이미 등재된 항목들과 정확히 같은 자리**였다(줄 번호만 그 사이 코드가
+  늘어 밀렸다) — M1 시절 첫 게이트 실행 때 이미 발견·등재된 동등
+  뮤턴트 7개가 지금도 그대로 동등임을 재확인한 것뿐, **새 생존은
+  없었다**. 대장의 줄 번호만 현재 파일 기준으로 고쳤다(L344→L351,
+  L355→L362, L375→L382, L427→L434) — 등재 사유 자체는 변경 없음.
+
+  실행 중 사고 하나 있었다: 첫 시도(전체 7파일 기본 실행)를 `timeout
+  590`으로 백그라운드에 올렸다가, 실행이 오래 걸려 직접 `pkill -9`로
+  끊었는데 그 순간이 하필 한 뮤턴트가 파일에 쓰여 있고 아직
+  원본으로 안 돌아온 타이밍이라 `core-timing.ts`에 깨진 뮤턴트가 잠깐
+  남았다 — `git diff`로 즉시 발견해 `git checkout --`로 원복하고
+  전체 스위트(1367/1367)로 clean 상태를 재확인한 뒤 이 재실행을
+  시작했다. 커밋에는 영향 없음(발견 즉시 원복, 아무것도 스테이징
+  안 됨) — 도구 자체의 안전성 문제(SIGKILL이 cleanup을 건너뛴다)로
+  기록해 둔다.
+- **Defined in:** `tools/audit/MUTATION_EQUIVALENTS.md`
+- **Rationale:** `REVIEW_CHECKLIST.md`
+- **Affects:** core(검증) — M5 이후 처음으로 `core-timing.ts` 뮤테이션
+  게이트 재확인, 새 생존 없음
+- **Supersedes:** None
+- **Commit:** PENDING
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

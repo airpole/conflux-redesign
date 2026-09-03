@@ -20,9 +20,9 @@
 | core-overlap.ts overlaps (첫 <) | <→<= | 정렬 뒤 hold끼리는 a.startTick === b.end가 성립할 수 없다(b.duration>0) — 도달 불능 |
 | core-overlap.ts L180 while 경계 | `<→<=` | `endAt`이 `byEnd.length`에 닿는 tick이 sweep에 없다 — 마지막 항목이 만료되는 tick 이후로는 순회하지 않는다 |
 | core-overlap.ts L242 for 경계 | `<→<=` | `pooled[length]`는 `undefined`지만 안쪽 루프가 즉시 끝나 역참조가 없다 — 관측 가능한 차이 없음 |
-| core-timing.ts L344 `startTick < 0` | `<→<=` | `startTick === 0`이면 pre-roll 루프의 `tick < negativeEnd(0)`가 즉시 거짓이라 줄이 하나도 안 생긴다 |
-| core-timing.ts L355 `tick < 0` | `<→<=` | pre-roll 루프는 `tick < negativeEnd ≤ 0`에서만 돌아 `tick === 0`이 들어오지 않는다 |
-| core-timing.ts L375 `segmentEnd <= startTick` | `<=→<` | 건너뛰지 않아도 안쪽 루프가 `tick >= segmentEnd`에서 즉시 break라 줄이 안 생긴다 |
-| core-timing.ts L427 `end > last` | `>→>=` | 같은 값으로 갱신해도 결과가 같다 |
+| core-timing.ts L351 `startTick < 0` | `<→<=` | `startTick === 0`이면 pre-roll 루프의 `tick < negativeEnd(0)`가 즉시 거짓이라 줄이 하나도 안 생긴다 |
+| core-timing.ts L362 `tick < 0` | `<→<=` | pre-roll 루프는 `tick < negativeEnd ≤ 0`에서만 돌아 `tick === 0`이 들어오지 않는다 |
+| core-timing.ts L382 `segmentEnd <= startTick` | `<=→<` | 건너뛰지 않아도 안쪽 루프가 `tick >= segmentEnd`에서 즉시 break라 줄이 안 생긴다 |
+| core-timing.ts L434 `end > last` | `>→>=` | 같은 값으로 갱신해도 결과가 같다 |
 | core-judge.ts L548 `serial > bestSerial` | `>→>=` | `keyPressSerial`은 누를 때마다 증가하는 고유값이라 동률이 생기지 않는다 |
 | core-judge.ts L586 `at > 0` | `>→>=` | `at === 0`이면 `tails[-1]`이 `undefined`라 비교가 항상 거짓 — 검사 결과가 같다 |
