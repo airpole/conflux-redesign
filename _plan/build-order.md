@@ -105,7 +105,7 @@ Vitest `environment: 'node'`. core 테스트는 DOM 없이 돈다 — [[architec
 | M4-3 전 | 결정 | 목록 옵션 overlay 진입 키 · `sortDir` 단축 전환 키 · 가속 스크롤 수치(초기 지연·반복 간격·가속 곡선) |
 | M4-3 전 | 결정 | ~~song row 대표값 출처(title·jacket)~~ — **닫힘**(`_meta/cfx.md` §6 기존 스펙 적용, D-2026-084) · 정보 패널 BPM 표기 방식 · 곡 길이 표시 |
 | M4-6 전 | 결정 | ~~key rebinding UI · volume 슬라이더 조작 단위~~ — **닫힘** (D-2026-091: capture-flow는 즉시 커밋·Esc 취소·충돌 거부, slider는 네이티브 `<input type=range>` + 필드별 `step`) — 기본값·범위는 `[보존]`으로 확정됨([[settings]] §4) |
-| M4-2 전 | 결정 | credits scene 표시 내용 — `ui-design.md` §2.8.5가 남긴 방향: `Project Staff`는 수작업 유지 목록, `Music`/`Chart`/`Jacket` 세 섹션은 library 전체의 `musicBy`/`chartBy`/`jacketBy`를 필드별로 자동 스캔·중복 제거(song/chart로 묶지 않음) — 배선 자체는 이 게이트가 열릴 때 결정 |
+| ~~M4-2 전~~ | ~~결정~~ | ~~credits scene 표시 내용~~ — **`Music`/`Chart`/`Jacket`은 닫힘**(M6-1, D-2026-107: `game-credits.ts`가 library를 스캔해 `musicBy`/`chartBy`/`jacketBy`를 필드별 자동 dedupe한다, song/chart로 안 묶음). `Project Staff`(수작업 유지 목록)의 실제 인원만 여전히 결정 필요 항목(`scene/scene.md` §11 잔여) — placeholder(`[Staff N]`)로 남아 있다 |
 | ~~M5 진입~~ | ~~실측~~ | ~~§3 M5 항목~~ — **재배치됨**(D-2026-094) — §3 "M5-3 전"·"M5-1 이후(notes/shapes 실 렌더) 전"·"M5-4 전" 참조, M5 진입 자체는 더 이상 막혀 있지 않다 |
 | ~~M5-3 전~~ | ~~실측~~ | ~~편집 미세 수치 — 히트 반경, 드래그 임계([[editor-editing]] §8)~~ — **닫힘**(D-2026-096: 히트 반경 `tpp*15`(화면상 15px), 드래그 임계 4px — `_extracted/EXTRACTED_FACTS.md` §13) |
 | ~~M5-1 이후(notes/shapes 실 렌더) 전~~ | ~~실측/결정~~ | ~~`viewMs` 기본값·zoom 범위([[editor-graph]] §6)~~ — **닫힘**(D-2026-098: `viewMs=960000/(edZm×bpm)`, 120bpm 기준 선택 — 기본 8000ms·범위 [1000ms,32000ms]·step ×1.35/÷1.35, Z/X 배선 완료 — `_extracted/EXTRACTED_FACTS.md` §14) |
@@ -552,6 +552,36 @@ difficulty를 init→Trace로 바꾸고 music 연결 → Ctrl+S 두 번(init·Tr
 | M6-2 | `FEATURES` 정리 + public/internal 빌드 검증 | public 빌드 **산출물에 editor 코드가 존재하지 않는다** — 경로 차단이 아니라 번들에서 제거됐음을 산출물 검사로 확인한다([[architecture]] §4). `recordReset` 진입점도 마찬가지다. |
 | M6-3 | 전 시나리오 회귀 패스 | M2~M5의 수동 대조 시나리오를 한 번에 다시 돌려 전부 통과한다. |
 | M6-4 | 스펙↔구현 동기화 | 구현 중 바뀐 결정이 spec과 `DECISION_LOG`에 반영돼 있다. |
+
+**M6-1 진행 상황**(D-2026-107): 레포 전체 spec 문서의 `- [ ]` 잔여 항목을
+훑었다(`editor-graph.md`·`scene/scene.md`·`core/judge.md`·`core/naming.md`·
+`core/lane-events.md`·`_meta/settings.md`·`_plan/build-order.md` 7개 파일).
+**"실측 미완"으로 남아 있던 항목은 없었다** — 전부 이미 이전 milestone에서
+실제로 구현·확정됐는데 체크박스만 안 뒤집혀 있던 문서 동기화 누락이었다:
+`editor-graph.md`의 seek 축 최소 표시 길이(D-2026-097, 5000ms, M5-6이 이미
+구현), `core/judge.md`의 `playJudgQueue`→표시 레이어 연결(M2-5/M4.5-1이 이미
+구현), `core/lane-events.md`의 init 이동 편집 UI(M5-4가 이미 구현),
+`_meta/settings.md`의 key rebinding·volume 슬라이더(D-2026-091, M4-6이 이미
+구현), `core/naming.md`의 입력단계 지역변수 정리(재구현 자체가 처음부터
+`lane`/`targetPos`로 일관 명명해 애초에 문제가 없었다 — `grep -rn linePos
+src/` 결과 없음 확인). 전부 해당 문서에 확정 근거와 함께 체크박스를 옮겼다.
+
+**유일하게 진짜 미완이었던 건 `scene/scene.md`의 "credits scene 표시
+내용"**이었다 — 다만 이것도 "실측"(수치)이 아니라 콘텐츠/배선 항목이라
+M6-1의 좁은 의미("잔여 실측 **수치**")에는 안 들어맞을 수 있다(결정 필요
+항목으로 별도 명시, 아래). `ui-design.md` §2.8.5가 이미 방향을 정해 둔
+대로 `Music`/`Chart`/`Jacket` 세 섹션(library 스캔·자동 dedupe, song/chart
+로 안 묶음)을 실제로 배선했다(`game-credits.ts`) — `scene-credits.ts`가
+매 `onEnter`마다 다시 스캔해 반영한다. `Project Staff`(수작업 유지 목록)는
+그대로 뒀다 — 실제 인원 이름은 이 재구현 프로젝트 자체의 제작진 정보라
+소스에서 추출할 방법이 없다(`scene/scene.md` §11에 결정 필요 항목으로
+남김). 이 라운드가 새로 내린 결정: (1) 목록이 비면 그 섹션을 숨긴다
+(§2.8.5가 "여기서 정하지 않는다"고 열어 둔 자리), (2) 빈 문자열 필드는
+목록에서 제외한다, (3) 정렬은 알파벳순(스펙이 순서를 안 정해 결정적이게
+택함) — 전부 `scene-credits.ts`/`game-credits.ts` 헤더에 명시.
+
+테스트 신규: `game-credits.test.ts` 6개, `scene-credits.test.ts`
+(재작성, 6개) — 전체 통과.
 
 ---
 

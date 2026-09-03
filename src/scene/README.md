@@ -32,11 +32,21 @@ wave/bubble/pulse, credits의 bubble 배경 애니메이션은 이번 범위에 
 선택은 목적지 scene이 아직 없어(M4-3·M4-5·M4-6) 콘솔 로그만 남기고 가짜
 scene으로 억지 연결하지 않는다.
 
-credits의 표시 값은 `ui-design.md` §2.8.4가 승인한 placeholder 그대로다 —
+credits의 표시 값은 `ui-design.md` §2.8.4가 승인한 placeholder 그대로였다 —
 실제 project staff·크레딧이 아니다. `Project Staff`와 `Music`/`Chart`/`Jacket`은
 서로 다른 종류의 목록이라(수작업 유지 vs library 스캔 dedupe) placeholder
 이름 계열도 분리했다(`[Staff N]` vs `[Placeholder N]`) — 처음엔 겹쳐 썼다가
 테스트로 드러나 `ui-design.md` §2.8.4도 함께 정정했다.
+
+**M6-1이 §2.8.5 게이트를 실제로 배선했다**(D-2026-107) — `Music`/`Chart`/
+`Jacket` 세 섹션은 이제 `scene-credits.ts`의 `update(roleNames)`로 받는
+실제 library 스캔 결과(`game-credits.ts`의 `loadCreditsRoleNames`,
+`musicBy`/`chartBy`/`jacketBy`를 필드별 dedupe, song/chart로 안 묶음)를
+그린다 — host가 song-select의 row 재로딩과 같은 관례로 매 `onEnter`마다
+다시 스캔해 넘긴다. 목록이 비면 그 섹션을 숨긴다(이 라운드의 결정,
+§2.8.5가 열어 둔 자리). `Project Staff`는 여전히 placeholder다 — 실제
+인원 이름은 이 프로젝트 자체의 제작진 정보라 소스에서 추출할 수 없다
+(`scene/scene.md` §11에 결정 필요 항목으로 남음).
 
 `scene-song-select.ts`는 M4-3 범위다([[ui-design]] §2.5). `core-song-select.ts`가
 낸 `SongRow[]`를 받아 렌더만 한다 — row+slot(tier 색 박스+state 색 바),

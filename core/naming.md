@@ -353,7 +353,10 @@ app-*     부트스트랩 / 빌드별 진입점 / config
 - [x] gaugeMode+state 단일 표 통합 (AS/AP/FC 중복 제거)
 - [x] 용어 잔재 정리 (Lane/Channel 제목 → Lane, EXTRACTED 옛용어 경고)
 - [x] textEvents 필드 실측 확정 — `{startTick, duration, content, position}`, transition·mode 폐기 → [[data-model]] §8
-- [ ] 입력단계 지역변수(linePos 등) lane/targetPos 기준 정리 (재구현 시)
+- [x] 입력단계 지역변수(linePos 등) lane/targetPos 기준 정리 (재구현 시) —
+  M6-1에서 확인: `src/` 전체에 `linePos` 등 구 용어 잔재가 없다(재구현
+  코드가 처음부터 `lane`/`targetPos`로 일관 명명됐다, `grep -rn linePos
+  src/` 결과 없음).
 - [x] gridDivisor 상세를 timing.md로 이관 (glossary는 링크만)
 - [x] core/timing.md 신설 — tick↔ms·스크롤 진행도·마디 세그먼트·gridDivisor. scrollYAt은 render, clock은 game으로 경계 확정. measure도 BPM과 같은 세그먼트 패턴으로 통일, sub 분할 gridDivisor와 통일(16 폐기)
 - [x] key-demand judgment 재설계(D-2026-024) — `PS.playHoldState` 폐기 → `activeNormalHolds`/`activeWideHold`/`wideOwnerKey`/`keyPressSerial`, `LN_RELEASE_GRACE_MS`→`HOLD_RELEASE_GRACE_MS`(50, 복원 `[번복]`), `advanceJudgmentStateTo`/`reconcileHeldCapacity` 신설 → [[judge]] §5~§9

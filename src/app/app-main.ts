@@ -61,6 +61,7 @@ import { createSceneManager, type Scene, type SceneManager } from '../scene/scen
 import { mountTitleScene, type TitleSceneHandle } from '../scene/scene-title.js';
 import { mountModeSelectScene, type ModeSelectSceneHandle } from '../scene/scene-mode-select.js';
 import { mountCreditsScene, type CreditsSceneHandle } from '../scene/scene-credits.js';
+import { loadCreditsRoleNames } from '../game/game-credits.js';
 import {
   mountSongSelectScene,
   type SongSelectHandlers,
@@ -198,7 +199,12 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
       creditsHandle = mountCreditsScene(root, () => manager.goScene('mode-select'));
     },
     onEnter(): void {
-      creditsHandle!.show();
+      // M6-1: 매 진입마다 library를 다시 스캔한다 — song-select의 row
+      // 재로딩(§11)과 같은 관례. update()가 show()보다 먼저 와야 한다.
+      void (async () => {
+        creditsHandle!.update(await loadCreditsRoleNames(storage));
+        creditsHandle!.show();
+      })();
     },
     onExit(): void {
       creditsHandle!.hide();

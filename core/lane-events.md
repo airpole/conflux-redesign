@@ -108,5 +108,10 @@ shape 이벤트와 동형이다. 차이는 선택자 하나뿐: shape는 `isBlue
 확정(추가):
 - [x] **최소 간격 제한 없음** (D-2026-048) — 원본에도 대응물이 없었고(`_extracted/EXTRACTED_FACTS.md` §12.9), 구분선이 맞붙어 선처럼 좁아지는 것을 의도된 연출로 확정했다. 투영 구속은 경계 클램프 + 순서 클램프뿐이다.
 
-잔여:
-- [ ] init 이동의 편집 UI (shape init 편집과 동일 인터랙션 재사용 가정)
+잔여: (없음)
+
+확정(추가):
+- [x] init 이동의 편집 UI — shape init 편집과 동일 인터랙션(`editor-editing.md`
+  §2 "init 이동 = ... + 드래그", 삭제만 막힌다)을 그대로 재사용했다.
+  `edit-shape-commands.ts`의 `mutateLaneEventCommand`·`scene-editor-shapes.ts`
+  의 드래그 처리(M5-4, D-2026-099·D-2026-100)로 구현됨.

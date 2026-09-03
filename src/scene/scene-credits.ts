@@ -6,17 +6,31 @@
  * scene" — 이 모듈에 클릭·키 선택 로직이 없는 건 누락이 아니라 스펙
  * 그대로다. Back/Esc/Backspace만 받는다.
  *
- * **표시 내용은 placeholder다** — 실제 내용(Project Staff 명단,
- * library 스캔 기반 Music/Chart/Jacket 집계)은 M4-2 前 게이트가 열릴
- * 때 배선한다(`ui-design.md` §2.8.5). 여기 채운 값은 §2.8.4가 이미
- * 승인한 골격 시연용 placeholder를 그대로 옮긴 것이며, 실제 project
- * staff나 실제 크레딧이 아니다.
+ * **M6-1이 §2.8.5 게이트를 배선했다** — `Music`/`Chart`/`Jacket` 세
+ * 섹션은 이제 `update(roleNames)`로 받는 실제 library 스캔 결과
+ * (`game-credits.ts`의 `loadCreditsRoleNames`, host가 매 `onEnter`마다
+ * 다시 읽어 넘긴다 — song-select의 row 재로딩과 같은 관례)를 그린다.
+ * **`Project Staff`는 여전히 placeholder다** — §2.8.5가 이미 "손으로
+ * 유지하는 고정 목록"이라고 방향만 정해 뒀지 실제 인원 이름은 아무 데도
+ * 없다(원본 코드베이스에도 대응물이 없다 — 이건 이 재구현 프로젝트
+ * 자체의 실제 제작진 정보라 소스에서 추출할 수 없다). 실제 이름이
+ * 확정되면 `PROJECT_STAFF` 배열만 바꾸면 된다 — 별도 결정 필요 항목으로
+ * 보고한다.
+ *
+ * **섹션은 목록이 비어 있으면 숨긴다**(library가 비었을 때의 처리는
+ * §2.8.5가 "여기서 정하지 않는다"고 명시해 둔 자리라 이 라운드가 내린
+ * 결정이다) — 빈 헤더만 떠 있는 것보다 자연스럽다고 판단했다. `Project
+ * Staff`는 스캔 대상이 아니라 이 규칙과 무관하게 항상 보인다.
  *
  * bubble 배경 애니메이션은 title과 같은 이유로 Deferred다.
  */
+import type { CreditsRoleNames } from '../game/game-credits.js';
 import './scene-credits.css';
 
 export interface CreditsSceneHandle {
+  /** host(`app-main.ts`)가 매 `onEnter`마다 최신 library 스캔 결과를
+   *  넘긴다 — `show()`보다 먼저 불려야 한다는 계약은 다른 scene들과 같다. */
+  update(roleNames: CreditsRoleNames): void;
   show(): void;
   hide(): void;
 }
@@ -30,25 +44,12 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-interface RoleSection {
-  readonly heading: string;
-  readonly rows: readonly string[];
-}
-
-/** §2.8.4의 placeholder 그대로 — 실제 내용 아님. Project Staff는
- *  Music/Chart/Jacket과 다른 종류의 목록이라 이름 계열도 분리한다
- *  (`[Staff N]` vs `[Placeholder N]`) — 겹치면 "이 사람이 project
- *  staff이면서 동시에 어느 chart의 credit이기도 하다"로 잘못 읽힌다. */
+/** 손으로 유지하는 고정 목록(§2.8.5) — 실제 인원 이름은 결정 필요
+ *  항목이라 여전히 placeholder다(파일 헤더 참조). Music/Chart/Jacket과
+ *  다른 이름 계열(`[Staff N]`)을 써 겸직처럼 잘못 읽히지 않게 한다. */
 const PROJECT_STAFF: readonly { readonly role: string; readonly name: string }[] = [
   { role: 'Direction', name: '[Staff 1]' },
   { role: 'Development', name: '[Staff 2]' },
-];
-
-/** §2.8.4: "[Placeholder A]"가 Music·Chart 둘 다에 나오는 건 겸직 표시 규칙(§2.8.1)의 시연이다. */
-const ROLE_SECTIONS: readonly RoleSection[] = [
-  { heading: 'Music', rows: ['[Placeholder A]', '[Placeholder C]'] },
-  { heading: 'Chart', rows: ['[Placeholder A]', '[Placeholder D]'] },
-  { heading: 'Jacket', rows: ['[Placeholder E]'] },
 ];
 
 export function mountCreditsScene(target: HTMLElement, onBack: () => void): CreditsSceneHandle {
@@ -75,19 +76,31 @@ export function mountCreditsScene(target: HTMLElement, onBack: () => void): Cred
   }
   scroll.append(staffSection);
 
-  for (const section of ROLE_SECTIONS) {
-    const sectionEl = el('div', 'credits-section');
+  const musicSection = el('div', 'credits-section');
+  const chartSection = el('div', 'credits-section');
+  const jacketSection = el('div', 'credits-section');
+  scroll.append(musicSection, chartSection, jacketSection);
+
+  /** library 스캔 섹션 하나를 다시 그린다 — 이름 목록이 비어 있으면
+   *  섹션 전체를 숨긴다(파일 헤더의 결정, §2.8.5가 열어 둔 자리). */
+  function renderScanSection(
+    sectionEl: HTMLElement,
+    heading: string,
+    names: readonly string[],
+  ): void {
+    sectionEl.replaceChildren();
+    sectionEl.hidden = names.length === 0;
+    if (names.length === 0) return;
     const header = el('div', 'section-header');
-    header.textContent = section.heading;
+    header.textContent = heading;
     sectionEl.append(header);
-    for (const name of section.rows) {
+    for (const name of names) {
       const row = el('div', 'credit-row');
       const nameEl = el('span', 'name');
       nameEl.textContent = name;
       row.append(nameEl);
       sectionEl.append(row);
     }
-    scroll.append(sectionEl);
   }
 
   root.append(scroll);
@@ -101,6 +114,11 @@ export function mountCreditsScene(target: HTMLElement, onBack: () => void): Cred
   }
 
   return {
+    update(roleNames: CreditsRoleNames): void {
+      renderScanSection(musicSection, 'Music', roleNames.music);
+      renderScanSection(chartSection, 'Chart', roleNames.chart);
+      renderScanSection(jacketSection, 'Jacket', roleNames.jacket);
+    },
     show(): void {
       root.hidden = false;
       document.addEventListener('keydown', onKeyDown);

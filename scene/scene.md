@@ -248,4 +248,8 @@ CTX 상세 → [[architecture]].
 - [x] pause Resume은 mid-start 시드를 호출하지 않음 — 보존된 활성 Hold를 pause anchor에서 재조정 (D-2026-024)
 
 잔여:
-- [ ] credits scene 표시 내용 (scene 골격은 확정, 내용은 후속 결정)
+- [ ] credits scene의 `Project Staff` 실제 인원 — M6-1이 `Music`/`Chart`/
+  `Jacket` 세 섹션(library 스캔·자동 dedupe, `ui-design.md` §2.8.5)은
+  배선했다(`game-credits.ts`, D-2026-107) — `Project Staff`만 여전히
+  placeholder다(`scene-credits.ts`의 `PROJECT_STAFF`, 손으로 유지하는
+  고정 목록이라는 방향은 이미 정해져 있고 실제 이름만 없다).

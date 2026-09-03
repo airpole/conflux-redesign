@@ -1828,6 +1828,50 @@
 - **Commit:** `658f146`
 
 
+### D-2026-107 — M6-1: 잔여 실측/결정 항목 정리 — credits scene 자동 스캔
+
+- **Status:** Accepted
+- **Decision:** 레포 전체 spec의 `- [ ]` 잔여 항목 7개를 조사해 6개는
+  이미 이전 milestone에서 구현·확정됐는데 체크박스만 안 뒤집힌 문서
+  동기화 누락이었음을 확인하고 정리했다(`editor-graph.md` seek 축 최소
+  길이, `core/judge.md` playJudgQueue→표시 연결, `core/lane-events.md`
+  init 이동 편집 UI, `_meta/settings.md` key rebinding·volume 슬라이더,
+  `core/naming.md` 입력단계 변수명). 각 문서에 확정 근거(구현 파일·기존
+  D-번호)를 남기고 체크박스를 옮겼다 — 새 코드 변경 없음, 순수 문서
+  동기화다.
+
+  유일하게 실제로 미완이었던 건 `scene/scene.md`의 "credits scene 표시
+  내용"이다. `ui-design.md` §2.8.5가 이미 방향을 정해 둔 대로
+  `Music`/`Chart`/`Jacket` 세 섹션을 실제로 배선했다 — 새 `game-credits.ts`
+  의 `loadCreditsRoleNames`가 library 전체를 스캔해 `musicBy`/`chartBy`/
+  `jacketBy`를 필드별로 dedupe한다(song/chart 단위로 안 묶음, §2.8.1).
+  `scene-credits.ts`가 `update(roleNames)`를 받아 그 세 섹션을 다시
+  그린다 — host(`app-main.ts`)가 song-select의 row 재로딩과 같은 관례로
+  매 `onEnter`마다 다시 스캔해 넘긴다. `Project Staff`(수작업 유지 목록)
+  는 건드리지 않았다 — 실제 인원 이름은 이 재구현 프로젝트 자체의
+  제작진 정보라 소스에서 추출할 수 없다, `scene/scene.md`에 결정 필요
+  항목으로 남겼다.
+
+  이 라운드가 새로 내린 결정 셋(§2.8.5가 "여기서 정하지 않는다"고 열어
+  둔 자리): (1) 스캔 결과가 빈 섹션은 숨긴다(빈 헤더만 뜨는 것보다
+  자연스럽다), (2) 빈 문자열 필드는 목록에서 제외한다, (3) 정렬은
+  알파벳순(스펙이 순서를 안 정해 결정적이게 택함).
+
+  테스트 신규: `game-credits.test.ts` 6개(빈 library·필드별 dedupe·같은
+  song 안 중복 제거·겸직 각 섹션 등장·여러 song 걸친 정렬·손상 entry
+  건너뛰기), `scene-credits.test.ts` 재작성 6개(Project Staff 상시 표시·
+  빈 결과 시 섹션 숨김·update() 반영·겸직·재호출 시 교체·Back 키).
+- **Defined in:** `src/game/game-credits.ts`, `src/scene/scene-credits.ts`,
+  `src/app/app-main.ts`, `editor/editor-graph.md`, `scene/scene.md`,
+  `core/judge.md`, `core/naming.md`, `core/lane-events.md`,
+  `_meta/settings.md`, `_plan/build-order.md`
+- **Rationale:** Not required
+- **Affects:** game, scene, app, spec(다수 문서 동기화) — M6-1 사실상 완료
+  (credits의 Project Staff 실명만 결정 필요 항목으로 남음)
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

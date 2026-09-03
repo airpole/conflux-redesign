@@ -168,5 +168,9 @@ player settings와 별도로 editor에서만 쓰는 persistent aid. `.cfx`에 �
 - [x] 기본값 표와 병합 규칙 — 알 수 없는 키 폐기·필드 단위 되돌림 §4 (D-2026-036)
 - [x] `pauseOnBlur`(PLAY, 기본 `true`) — 창 focus 상실 auto-pause 여부, `visibilitychange` auto-pause와는 독립 (D-2026-089)
 
-잔여:
-- [ ] key rebinding UI · volume 슬라이더 조작 단위
+잔여: (없음)
+
+확정(추가):
+- [x] key rebinding UI · volume 슬라이더 조작 단위 — capture-flow는 즉시
+  커밋·Esc 취소·충돌 거부, volume은 네이티브 `<input type=range>` +
+  필드별 `step`. `scene-settings.ts`(M4-6, D-2026-091)로 구현됨.

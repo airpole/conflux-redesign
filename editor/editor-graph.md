@@ -102,5 +102,7 @@ chart field edit는 즉시 적용·undo 밖([[editor-commands]] §7). 삭제는 
 - [x] gameplay 3초 lead-in의 crossing-Hold 재조정은 [[judge]] §10 단일 출처, test 즉시 재생은 lead-in 없어 crossing 불가 `[번복]` (D-2026-024)
 - [x] viewMs 기본값·zoom 범위 — 원본 `edZm`(기본 1·범위 0.25~8·step ×1.35, tick/beat 비례 축 값)을 `viewMs = 960000/(edZm×bpm)`으로 환산(120bpm을 기준 tempo로 선택 — 측정값이 아니라 해석적 결정): `VIEW_MS_DEFAULT=8000ms`·`VIEW_MS_MIN=1000ms`·`VIEW_MS_MAX=32000ms`, step ratio ×1.35/÷1.35는 reciprocal이라 방향만 반전해 그대로 이전(D-2026-098, `[수정]`). 근거 `_extracted/EXTRACTED_FACTS.md` §14.
 
-잔여:
-- [ ] editor timeline(test scene seek 축)의 최소 표시 길이 — 곡이 짧아도 seek 축이 붕괴하지 않게 하는 하한. 플레이 종료 시각([[timing]] §9)과는 별개 값이다. M5-3에서 notes/shapes 세로 스크롤(이미 `minTick()`으로 구현됨)과는 다른 항목임을 확인 — test scene(M5-6) 진입 전으로 재배치.
+잔여: (없음)
+
+확정(추가):
+- [x] editor timeline(test scene seek 축)의 최소 표시 길이 — **5000ms(5초) 하한**. 원본 `load-chart.js`(25행) `ES.totalMs = Math.max(ES.audioMs || 0, getChartEndMs(), 5000)` 실측. 플레이 종료 시각([[timing]] §9)과는 별개 값이다 — `scene-editor-test.ts`의 `SEEK_AXIS_MIN_MS`로 구현됨(D-2026-097 실측, D-2026-103/104가 배선).

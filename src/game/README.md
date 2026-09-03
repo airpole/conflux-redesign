@@ -135,3 +135,13 @@ M4-4가 `loadPreviewAsset`을 더했다 — 커서가 멈춘 chart 하나의 음
 마다 volume을 계단식으로 낮추는 근사다 — 매끄러운 WebAudio 램프가
 필요해지면 `env-audio.ts`에 램프 API를 추가하는 별도 작업(결정 필요
 항목으로 보고).
+
+`game-credits.ts`는 M6-1 범위다(D-2026-107, `scene/ui-design.md` §2.8.5).
+`loadCreditsRoleNames`가 library 전체를 스캔해 `musicBy`/`chartBy`/
+`jacketBy`를 필드별로 중복 제거한 평평한 이름 목록으로 만든다 — song/chart
+단위로 묶지 않는다(§2.8.1, 같은 songId 그룹 안에서도 chart마다 값이 다를
+수 있는 문제를 애초에 우회하는 구조). 겸직(같은 이름이 여러 필드에 등장)
+은 각 목록에 독립적으로 들어가 자동으로 각 섹션에 나타난다 — 합치는 로직이
+없다. `scene-credits.ts`(scene 레이어)가 이 함수를 호출하는 건
+`architecture.md`의 단방향 의존을 어기지 않는다(§2.8.5가 이미 확인해 둔
+경계).

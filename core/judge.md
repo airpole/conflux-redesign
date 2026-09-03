@@ -357,5 +357,10 @@ conflict가 있는 chart를 실행·기록할 수 있는지는 기존 conflict/p
 - [x] visualOffset 배선 `[번복]` — 입력 타임스탬프 보정으로 배선됨 → §1
 - [x] 영속 note ID 미도입 — 동등한 판정 신호는 서로 교환 가능
 
-미해결:
-- [ ] playJudgQueue → 표시 레이어 연결 (render 쪽)
+미해결: (없음)
+
+확정(추가):
+- [x] playJudgQueue → 표시 레이어 연결 — `game-judge-display.ts`의
+  `applyJudgmentEvents`가 `JudgmentEvent[]`를 받아 판정 텍스트/F·S 표시용
+  상태로 번역한다(M2-5). `scene-gameplay.ts`가 매 프레임 그 상태를 읽어
+  HUD를 그린다(M4.5-1, D-2026-090).
