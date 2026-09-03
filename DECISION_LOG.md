@@ -2004,7 +2004,7 @@
 - **Rationale:** `_plan/build-order.md` §9 M6-4
 - **Affects:** scene(spec), app(README) — M6-4 완료(타겟 스코프 기준)
 - **Supersedes:** None
-- **Commit:** PENDING
+- **Commit:** `e801bd9`
 
 
 ### D-YYYY-NNN — <Title>
