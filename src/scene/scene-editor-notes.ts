@@ -15,14 +15,17 @@
  * (edZm × bpm)`으로 환산한 값이다(120bpm을 기준 tempo로 선택 — 측정값이
  * 아니라 코드베이스 자체의 기본/fallback 관례에서 고른 해석, 다른 기준
  * tempo였다면 ms 값이 비례로 달라졌을 것이다 — 근거는
- * `_extracted/EXTRACTED_FACTS.md` §14). `VIEW_MS_DEFAULT`=8000ms(edZm=1),
- * `VIEW_MS_MIN`=1000ms(edZm=8, 최대 확대)·`VIEW_MS_MAX`=32000ms(edZm=0.25,
- * 최대 축소) — reciprocal 관계라 step ratio(×1.35)는 방향만 뒤집혀 그대로
- * 넘어온다. Z/X(`editor-editing.md` §5 배선 확정, `editor-graph.md` §3)가
- * 이 값을 조정한다 — Z=축소(viewMs ×1.35), X=확대(viewMs ÷1.35), 범위는
- * [`VIEW_MS_MIN`, `VIEW_MS_MAX`]로 clamp. 스크롤(마우스 휠)도 지원한다 —
- * `core-timing.ts`의 `minTick`으로 하한을 막는다(원본 `getMinTick` 재사용
- * 위치, 이미 코드로 있었다).
+ * `_extracted/EXTRACTED_FACTS.md` §14). Z/X(`editor-editing.md` §5 배선
+ * 확정, `editor-graph.md` §3)가 이 값을 조정한다 — Z=축소(viewMs ×1.35),
+ * X=확대(viewMs ÷1.35). 스크롤(마우스 휠)도 지원한다 — `core-timing.ts`의
+ * `minTick`으로 하한을 막는다(원본 `getMinTick` 재사용 위치, 이미 코드로
+ * 있었다).
+ *
+ * **`viewMs`/`scrollMs`는 M5-4부터 notes·shapes가 공유한다**
+ * (`editor-graph.md` §2 "scroll/zoom: notes·shapes 공유") — 상수·상태
+ * 타입은 `scene-editor-view.ts`로 옮겼고, `api.view`로 받은 공유 객체를
+ * 그대로 읽고 쓴다. M5-3 때는 이 파일 로컬 상태였다(shapes가 아직 없어
+ * 공유할 대상이 없었다) — M5-4가 shapes 씬을 실제로 만들며 옮겼다.
  *
  * **히트 반경·드래그 임계**는 D-2026-096으로 실측 확정된 값을 그대로
  * 쓴다: 히트 반경 15px, 드래그 임계 4px(모든 축 공통).
@@ -66,16 +69,8 @@ import {
 } from '../edit/edit-notes-commands.js';
 import type { Command } from '../edit/edit-command.js';
 import type { EditorCategoryController } from './scene-editor-workspace.js';
+import { zoomIn, zoomOut, type EditorViewState } from './scene-editor-view.js';
 import './scene-editor-notes.css';
-
-/** `viewMs` 기본값 — D-2026-098(edZm=1, 120bpm 기준 환산). */
-const VIEW_MS_DEFAULT = 8000;
-/** `viewMs` 최소값(최대 확대) — D-2026-098(edZm=8 환산). */
-const VIEW_MS_MIN = 1000;
-/** `viewMs` 최대값(최대 축소) — D-2026-098(edZm=0.25 환산). */
-const VIEW_MS_MAX = 32000;
-/** Z/X 줌 step 비율 — 원본 `edZm` step ×1.35 그대로(D-2026-098, reciprocal이라 방향만 반전). */
-const VIEW_MS_ZOOM_STEP = 1.35;
 
 /** 히트 반경(px) — D-2026-096. */
 const HIT_RADIUS_PX = 15;
@@ -93,6 +88,10 @@ export interface EditorNotesApi {
   readonly session: NotesSessionLike;
   /** 실제 `CommandHistory.dispatch` — 이 파일은 엔진을 모른다(M5-2 경계). */
   dispatch(command: Command): void;
+  /** notes·shapes 공유 scroll/zoom 상태(M5-4, `scene-editor-view.ts`) —
+   *  `scene-editor-workspace.ts`가 만들어 양쪽 mount 함수에 같은 참조로
+   *  넘긴다. */
+  readonly view: EditorViewState;
 }
 
 /** 클릭 좌표 → tick(스냅 전). `msToTick` + 픽셀→ms 환산만 한다. */
@@ -217,8 +216,7 @@ export function mountEditorNotesBody(
   let pendingHold: { readonly lane: Lane; readonly startTick: number } | null = null;
   let savedLNDur = TICKS_PER_BEAT;
   let clipboard: readonly ClipboardEntry[] | null = null;
-  let scrollMs = 0;
-  let viewMs = VIEW_MS_DEFAULT;
+  const view = api.view;
 
   let drag: {
     readonly indices: readonly number[];
@@ -275,7 +273,7 @@ export function mountEditorNotesBody(
     }
 
     // 판정선(tick 0) 표시 — 세로축 기준점.
-    const zeroY = tickToPixelY(0, ch, timeline, scrollMs, viewMs);
+    const zeroY = tickToPixelY(0, ch, timeline, view.scrollMs, view.viewMs);
     ctx.strokeStyle = '#4fbcd0';
     ctx.beginPath();
     ctx.moveTo(0, zeroY);
@@ -286,8 +284,14 @@ export function mountEditorNotesBody(
     chart.notes.forEach((note, index) => {
       const mark = overlapMap.marks[index];
       if (mark?.kind === 'hidden') return;
-      const y0 = tickToPixelY(note.startTick, ch, timeline, scrollMs, viewMs);
-      const y1 = tickToPixelY(note.startTick + note.duration, ch, timeline, scrollMs, viewMs);
+      const y0 = tickToPixelY(note.startTick, ch, timeline, view.scrollMs, view.viewMs);
+      const y1 = tickToPixelY(
+        note.startTick + note.duration,
+        ch,
+        timeline,
+        view.scrollMs,
+        view.viewMs,
+      );
       const isSelected = selection.has(index);
       let dx = 0;
       let dy = 0;
@@ -297,7 +301,7 @@ export function mountEditorNotesBody(
           -(
             tickToMs(timeline, note.startTick + drag.tickDelta) - tickToMs(timeline, note.startTick)
           ) *
-          (ch / viewMs);
+          (ch / view.viewMs);
       }
 
       ctx.fillStyle = markColor(mark);
@@ -320,7 +324,7 @@ export function mountEditorNotesBody(
     });
 
     if (pendingHold !== null) {
-      const y = tickToPixelY(pendingHold.startTick, ch, timeline, scrollMs, viewMs);
+      const y = tickToPixelY(pendingHold.startTick, ch, timeline, view.scrollMs, view.viewMs);
       ctx.strokeStyle = '#4fbcd0';
       ctx.beginPath();
       ctx.moveTo(0, y);
@@ -406,7 +410,7 @@ export function mountEditorNotesBody(
   function pasteClipboard(): void {
     if (clipboard === null || clipboard.length === 0) return;
     const baseTick = snapTick(
-      pixelYToTick(canvas.height / 2, canvas.height, timeline, scrollMs, viewMs),
+      pixelYToTick(canvas.height / 2, canvas.height, timeline, view.scrollMs, view.viewMs),
       GRID_DIVISOR_DEFAULT,
     );
     const existing = new Set(chart.notes.map((n) => `${n.lane}:${n.startTick}:${n.isWide}`));
@@ -459,8 +463,8 @@ export function mountEditorNotesBody(
       canvas.width,
       canvas.height,
       timeline,
-      scrollMs,
-      viewMs,
+      view.scrollMs,
+      view.viewMs,
     );
     if (hitIndex !== null) {
       if (!event.shiftKey && !selection.has(hitIndex)) selection = new Set([hitIndex]);
@@ -472,7 +476,7 @@ export function mountEditorNotesBody(
       }
       const indices = [...selection];
       const startTick = snapTick(
-        pixelYToTick(y, canvas.height, timeline, scrollMs, viewMs),
+        pixelYToTick(y, canvas.height, timeline, view.scrollMs, view.viewMs),
         GRID_DIVISOR_DEFAULT,
       );
       drag = {
@@ -493,7 +497,7 @@ export function mountEditorNotesBody(
     if (tool === 'tap' || tool === 'wideTap') {
       const lane = laneOfX(x, canvas.width);
       const tick = snapTick(
-        pixelYToTick(y, canvas.height, timeline, scrollMs, viewMs),
+        pixelYToTick(y, canvas.height, timeline, view.scrollMs, view.viewMs),
         GRID_DIVISOR_DEFAULT,
       );
       longPressTimer = window.setTimeout(() => {
@@ -517,7 +521,7 @@ export function mountEditorNotesBody(
       if (movedNow) drag.moved = true;
       if (drag.moved) {
         const curTick = snapTick(
-          pixelYToTick(y, canvas.height, timeline, scrollMs, viewMs),
+          pixelYToTick(y, canvas.height, timeline, view.scrollMs, view.viewMs),
           GRID_DIVISOR_DEFAULT,
         );
         drag.tickDelta = curTick - drag.startTick;
@@ -570,14 +574,14 @@ export function mountEditorNotesBody(
       canvas.width,
       canvas.height,
       timeline,
-      scrollMs,
-      viewMs,
+      view.scrollMs,
+      view.viewMs,
     );
     if (hitIndex !== null) return; // 이미 pointerdown에서 선택 처리됨.
 
     const lane = laneOfX(x, canvas.width);
     const tick = snapTick(
-      pixelYToTick(y, canvas.height, timeline, scrollMs, viewMs),
+      pixelYToTick(y, canvas.height, timeline, view.scrollMs, view.viewMs),
       GRID_DIVISOR_DEFAULT,
     );
 
@@ -604,10 +608,10 @@ export function mountEditorNotesBody(
 
   function onWheel(event: WheelEvent): void {
     event.preventDefault();
-    const pxPerMs = canvas.height / viewMs;
+    const pxPerMs = canvas.height / view.viewMs;
     const deltaMs = event.deltaY / pxPerMs;
     const minMs = tickToMs(timeline, minTick(timeline));
-    scrollMs = Math.max(minMs, scrollMs - deltaMs);
+    view.scrollMs = Math.max(minMs, view.scrollMs - deltaMs);
     render();
   }
 
@@ -662,12 +666,12 @@ export function mountEditorNotesBody(
           return true;
         case 'z':
         case 'Z':
-          viewMs = Math.min(VIEW_MS_MAX, viewMs * VIEW_MS_ZOOM_STEP);
+          zoomOut(view);
           render();
           return true;
         case 'x':
         case 'X':
-          viewMs = Math.max(VIEW_MS_MIN, viewMs / VIEW_MS_ZOOM_STEP);
+          zoomIn(view);
           render();
           return true;
         case 'd':

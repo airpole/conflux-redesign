@@ -1458,6 +1458,38 @@
 - **Commit:** `c5a5b6e`
 
 
+### D-2026-099 — M5-4: shapes scene(shape/lane 서브모드) 편집 interaction, shape 보조 툴 gate 해소
+
+- **Status:** Accepted (구현분) / 아래 단순화 항목들은 결정 필요 — 아래 참조
+- **Decision:** `editor-commands.md` §6의 shape/lane 관련 command 4개(`AddShapeEvents`/`DeleteShapeEvents`/`AddLaneEvents`/`DeleteLaneEvents`, `edit-shape-commands.ts`)와 실제 편집 캔버스(`scene-editor-shapes.ts`)를 구현해 M5-4 Exit 기준(`T`로 서브모드가 갈리고 선택 필터가 서브모드를 따른다, Q/W/E/R 툴이 정의대로 배치한다, 현재 그룹·symmetry 쌍·`R` 모드가 툴바에 상시 표시된다)을 충족했다.
+
+  **"M5-4 前" 게이트("shape 보조 툴(normalize 등)의 계승 여부")를 실측으로 닫았다** — `conflux-editor` 전체(`shape-input.js`·`shape-tools.js`·HTML 툴바)에서 "normalize"라는 이름의 사용자 노출 툴/버튼을 찾지 못했다. 유일한 "normalize"는 `shape.js`의 `normalizeShapeChain()`, 매 편집 커맨드 apply/undo마다 자동으로 도는 내부 배열 정합화 함수였다 — 이건 `editor-commands.md` §6이 이미 "shape/lane command는 apply·undo 양쪽에서 chain normalize"로 확정해 둔 요구사항이었으므로, 별도로 "계승할지" 결정할 대상이 아니었다. 근거는 `_extracted/EXTRACTED_FACTS.md` §15.1.
+
+  **chain normalize를 `edit-shape-commands.ts`가 구현했다** — 원본 `normalizeShapeChain`과 같은 알고리즘(보간 이벤트를 dest tick(`startTick+duration`) 오름차순으로 훑어 `startTick`/`duration`을 다시 세운다)이지만, **배열 순서는 바꾸지 않는다** — 선택(`Set<number>` 인덱스, notes와 같은 패턴)이 배열 위치에 의존하므로 원소 자리는 그대로 두고 값만 갈아치운다. symmetry·그룹 배치로 한 클릭에 여러 이벤트가 생기는 경우도 `Add*Command`가 배열로 한 번에 받아 한 undo 단위로 묶는다 — notes의 `AddNotesCommand`와 같은 패턴이라 별도 `ApplyShapeOps` 타입이 필요 없었다.
+
+  **`viewMs`/`scrollMs`를 notes와 공유하도록 옮겼다**(`editor-graph.md` §2 "scroll/zoom: notes·shapes 공유") — `scene-editor-view.ts` 신설, `scene-editor-workspace.ts`가 `EditorViewState` 객체 하나를 만들어 `mountNotes`/`mountShapes` 양쪽에 같은 참조로 넘긴다. M5-3 때는 이 상태가 `scene-editor-notes.ts` 로컬이었다(shapes가 아직 없어 공유할 대상이 없었다) — M5-4가 그 요구를 실현했다.
+
+  **shape 클릭 히트 반경·드래그 판별 임계값을 재실측했다**(`_extracted/EXTRACTED_FACTS.md` §15.2~15.3) — `shape-input.js`의 `findDotAt`/`findShapeEvtAt`/del 툴이 전부 `bd = 35`(px 고정, notes와 달리 zoom 무관) 하나만 쓴다. 드래그 판별 임계는 두 값(notes는 4px 하나였다) — 점 재배치·그룹 이동 3px, 사각 선택·스크롤 4px. 이번 라운드는 점 드래그 재배치를 구현하지 않아 히트 반경(35px)만 실제로 코드에 반영했다.
+
+  **이번 라운드가 의도적으로 단순화한 지점(전부 결정 필요 항목)**:
+  1. 기존 점 드래그 재배치가 없다 — `MutateShapeEvents`/`MutateLaneEvents`를 구현하지 않았다. 배치는 항상 새 이벤트 추가뿐이다.
+  2. Ctrl+F(선택 mirror)·클립보드(Ctrl+C/V)가 없다 — notes 탭에 이미 있는 패턴을 shape/lane에 옮기는 건 후속 라운드로 미뤘다.
+  3. symmetry 축은 항상 동적 스냅샷이다(§3 "배치 지점 기준 쌍 평균") — 드래그로 축을 수동 조절하는 UI·"토글 off까지 유지" 상태는 없다.
+  4. lane 그룹은 토글-누적 방식이다 — 원본은 Q/W/E를 물리적으로 동시에 누르고 있는 상태(`keydown`/`keyup`)로 그룹을 표현하지만, `EditorCategoryController`는 `onKeyDown`만 델리게이션한다. 누를 때마다 그룹 멤버십을 토글하는 방식을 택했다(마지막 1개는 비우지 않는다) — 얻는 그룹 구성 집합은 원본과 같고 입력 메커니즘만 다르다.
+  5. lane symmetry는 그룹이 정확히 2개일 때만 적용된다 — §3의 "쌍" 개념이 2개 조합을 전제하므로, 1개·3개일 때는 symmetry가 켜져 있어도 일반 그룹 배치로 떨어진다.
+  6. `laneGridDivisor` 드롭다운·`V` 위치 스냅 순환 UI가 없다 — 각각 4(spec 기본값)·0.25(최소 단계) 고정.
+  7. 같은 dest tick·같은 체인에 이미 이벤트가 있으면 배치를 조용히 스킵한다 — 원본은 그 자리에서 easing만 갱신했지만(`addShapeEvt` "sameTickSameSide"), 이 command 모델은 추가 전용이라 갱신을 표현하려면 별도 command가 필요해 후속으로 미뤘다.
+  8. init(anchor, `easing===null`) 점은 삭제·선택 대상에서 제외한다(원본 del 툴과 동일).
+  9. pinch 배치는 Blue·Red에 같은 easing 선택을 적용한다 — 원본은 좌/우 드롭다운을 따로 뒀지만(Arc 선택 시엔 `resolveArcEasing`이 side별로 독립 해석되므로 실제 저장값은 이미 갈릴 수 있다), 비-Arc 선택은 양쪽에 동일하게 적용한다(별도 드롭다운 UI 없음).
+
+  테스트 신규: `edit-shape-commands.test.ts` 9개(normalize 알고리즘 3개, add/delete 3개, invalidates 1개, lane 2개), `scene-editor-shapes.test.ts` 17개(서브모드 전환, Q/W/E/R 배치 4종, symmetry, 삭제(init 보호 포함), lane 그룹 토글·최소 1개 유지·R 토글·배치, Escape, Z/X 공유 view, destroy/update) — 전체 1277/1277 통과.
+- **Defined in:** `src/edit/edit-shape-commands.ts`, `src/scene/scene-editor-shapes.ts`, `src/scene/scene-editor-view.ts`, `src/scene/scene-editor-notes.ts`(viewMs 공유로 리팩터), `src/scene/scene-editor-workspace.ts`, `src/app/app-main.ts`
+- **Rationale:** Not required
+- **Affects:** edit, scene, app, spec(shape, editor-editing, editor-graph, build-order) — M5-4 완료(단순화 9항목은 결정 필요로 이월), M5-4 前 게이트 해소
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

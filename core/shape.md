@@ -174,5 +174,8 @@ shape 탭에서 두 체인(Blue·Red)을 raw로 보여주고 직접 편집한다
 - [x] shape/lane 배치 툴·편집 인터랙션 → [[editor-editing]] §2 확정 (구 L/R/C/P = 현 Q/W/E/R)
 
 잔여:
+- (없음)
+
+확정(추가):
 - [x] render 폭 매핑·선 굵기 구체 수치 — `_extracted/EXTRACTED_FACTS.md` §12.3·§12.4 (M2-2 gate 실측, D-2026-046)
-- [ ] normalize 등 원본 shape 보조 툴의 계승 여부 (M5 진입 전 원본 실측 — [[build-order]] §3)
+- [x] normalize 등 원본 shape 보조 툴의 계승 여부 — **닫힘**(D-2026-099): 원본에 "normalize"라는 이름의 사용자 노출 툴/버튼은 없다 — 유일한 "normalize"는 `shape.js`의 `normalizeShapeChain()`, 매 편집 커맨드 apply/undo마다 자동으로 도는 내부 배열 정합화 함수였다. 이건 `editor-commands.md` §6이 이미 "chain normalize"로 확정해 둔 요구사항이라 별도 계승 여부 결정 대상이 아니었다 — `edit-shape-commands.ts`가 구현했다. 근거 `_extracted/EXTRACTED_FACTS.md` §15.

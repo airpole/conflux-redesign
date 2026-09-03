@@ -479,6 +479,83 @@ X(줌 인)는 `viewMs /= 1.35`(clamp `VIEW_MS_MIN`) — `src/scene/scene-editor-
 
 ---
 
+## 15. M5-4 前 게이트 — shape 보조 툴("normalize") 계승 여부, 히트 반경·드래그 임계 (D-2026-099)
+
+### 15.1 "normalize" 보조 툴은 존재하지 않는다
+
+`build-order.md`의 "M5-4 전" 게이트는 "shape 보조 툴(normalize 등)의
+계승 여부"를 결정 필요 항목으로 남겨 뒀다. `conflux-editor` 전체를
+`normalize`로 재귀 검색한 결과(`shape-input.js`·`shape-tools.js`·
+`commands.js`·HTML 툴바 전부):
+
+- **사용자에게 노출된 "Normalize" 버튼/메뉴/툴은 없다** — `shapeP` 패널의
+  HTML(`index.html` 197~236행 부근)에 그런 항목이 없고, `shape-input.js`의
+  툴 목록(`ES.sTool`이 갖는 값: `sel`/`del`/`L`/`R`/`C`/`P`/`line`)에도
+  "normalize"라는 이름의 툴이 없다.
+- 유일하게 존재하는 "normalize"는 `shape.js`의 `normalizeShapeChain(isBlue)`
+  — 체인 하나의 `startTick`/`duration`을 dest tick 기준으로 다시 세우는
+  **내부 배열 정합화 함수**다(§4 이하 인용). 사용자가 직접 부르지 않는다
+  — 모든 편집 command(`commands.js`의 `AddShapeEvents`/`DeleteShapeEvents`/
+  `MutateShapeEvents`/`FlipShapeEvents` 등)의 `apply()`/`undo()` 안에서
+  `_normalizeBothChains()`가 **자동으로** 호출된다(`commands.js` 213~360행
+  부근, 각 커맨드 팩토리 주석: "Both branches normalize both chains so
+  dependent events return to the right ticks").
+
+```js
+// shape.js
+export function normalizeShapeChain(isBlue) {
+  const inits = D.shapeEvents.filter(e => e.isBlue === isBlue && e.easing === null);
+  const trans = D.shapeEvents.filter(e => e.isBlue === isBlue && e.easing !== null);
+  trans.forEach(e => { e._dest = e.startTick + e.duration; e._isStep = (e.duration === 0); });
+  trans.sort((a, b) => a._dest - b._dest);
+  let prevEnd = 0;
+  for (const e of inits) prevEnd = Math.max(prevEnd, e.startTick + (e.duration || 0));
+  for (const e of trans) {
+    const dest = e._dest;
+    if (e._isStep) { e.startTick = dest; e.duration = 0; prevEnd = Math.max(prevEnd, dest); }
+    else { e.startTick = prevEnd; e.duration = Math.max(0, dest - prevEnd); prevEnd = dest; }
+    delete e._dest; delete e._isStep;
+  }
+  invalidateShapeCache();
+}
+```
+
+**결론**: 이 게이트가 걱정한 "보조 툴을 계승할지 말지"는 대상이 없어
+해소됐다 — 유일한 "normalize"는 이미 `editor-commands.md` §6 "shape/lane
+command는 apply·undo 양쪽에서 chain normalize"로 **확정돼 있던
+요구사항**의 원본 구현일 뿐이다. 별도 제품 결정이 필요하지 않았고,
+`edit-shape-commands.ts`의 `normalizeShapeEvents`/`normalizeLaneEvents`가
+같은 알고리즘을 배열 순서를 보존하는 형태로 구현했다(재설계는 선택을
+배열 인덱스로 추적하므로 원소 위치를 바꾸지 않는다 — 값만 고쳐 쓴다,
+`edit-shape-commands.ts` 헤더 참조).
+
+### 15.2 shape 편집 히트 반경·드래그 임계 재실측
+
+`shape-input.js`(§13이 다룬 `notes-input.js`의 shape 대응):
+
+- **히트 반경 35px 고정** — `findDotAt`(드래그용, 33~88행)과
+  `findShapeEvtAt`(`shape-tools.js` 84~96행, 클릭 선택용)·`handleSTap`의
+  del 툴(345~366행 부근) **전부 `let best = null, bd = 35;`** 하나만
+  쓴다. notes(§13, `tpp*15` — 화면 15px를 tick으로 환산)와 달리 **px
+  고정값**이고 zoom(`edZm`)에 따라 커지거나 작아지지 않는다.
+- **드래그 판별 임계는 두 값으로 나뉜다**(notes는 4px 하나였다):
+  - **3px** — 기존 점 재배치(`dragDot`, 154행 `Math.abs(dx) > 3`)·선택
+    그룹 드래그 이동(`dragMoveSel`, 157행 `Math.abs(dx) > 3 ||
+    Math.abs(dy) > 3`).
+  - **4px** — 사각 선택 드래그(`dragSel`, 182행)와 세로 스크롤(219행,
+    `onMove`의 마지막 분기).
+
+### 15.3 확정값
+
+- **히트 반경**: 35px(px 고정, zoom 무관) — 클릭 선택·del 툴 공통.
+- **드래그 임계**: 점 재배치·그룹 이동 3px / 사각 선택·스크롤 4px.
+
+M5-4는 점 드래그 재배치(`MutateShapeEvents`/`MutateLaneEvents`)를 이번
+라운드 범위 밖으로 미뤄(`scene-editor-shapes.ts` 헤더 "단순화" 참조) 드래그
+임계값을 아직 쓰지 않는다 — 히트 반경(35px)만 실제로 코드에 반영했다.
+
+---
+
 ## 부록: 온라인에서 추가 추출 필요한 placeholder 목록
 
 오프라인에서 결정만 하고, 아래는 온라인 복귀 시 정밀 추출:

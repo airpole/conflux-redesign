@@ -1,0 +1,30 @@
+/* shapes 씬(shape/lane 서브모드) 편집 캔버스 — M5-4. scene-editor-notes.css와
+   같은 최소 기능 토큰(ui-design.md가 아직 editor 화면을 다루지 않는다,
+   src/scene/README.md 참조). */
+
+.editor-shapes-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6cqw;
+  height: 100%;
+}
+
+.editor-shapes-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1cqw;
+  font-family: var(--sans);
+  font-size: 0.9cqw;
+  color: var(--dim);
+}
+
+.editor-shapes-tool-label {
+  color: var(--cyan);
+}
+
+.editor-shapes-canvas {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #050508;
+  touch-action: none;
+}

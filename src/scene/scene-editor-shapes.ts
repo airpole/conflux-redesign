@@ -1,0 +1,802 @@
+/**
+ * shapes 씬 — shape/lane 서브모드 편집 캔버스, M5-4. 단일 출처
+ * `editor/editor-editing.md` §2·§3(symmetry)·§4(mirror는 이번 라운드 범위
+ * 밖 — 아래 "단순화"), core 정의는 `core/shape.md`·`core/lane-events.md`.
+ * command는 `edit-shape-commands.ts`(M5-2 엔진 위, Add/Delete 4개).
+ *
+ * `scene-editor-workspace.ts`의 `EditorCategoryController` delegation
+ * 자리에 꽂힌다 — `scene-editor-notes.ts`(M5-3)와 같은 패턴이다.
+ *
+ * **M5-4 前 gate("shape 보조 툴(normalize 등)의 계승 여부")는 실측으로
+ * 닫혔다(D-2026-099)**: `conflux-editor` 전체(`shape-input.js`·
+ * `shape-tools.js`·HTML 툴바)에서 "normalize"라는 이름의 **사용자 노출
+ * 툴/버튼은 찾지 못했다** — 유일한 "normalize"는 `shape.js`의
+ * `normalizeShapeChain()`, 매 편집 커맨드의 apply/undo 안에서 자동으로
+ * 불리는 내부 배열 정합화 함수다. 이건 이미 `editor-commands.md` §6
+ * "shape/lane command는 apply·undo 양쪽에서 chain normalize"로 **확정돼
+ * 있던 요구사항**이고, 이 파일이 `edit-shape-commands.ts`의
+ * `normalizeShapeEvents`/`normalizeLaneEvents`로 구현했다 — 별도로
+ * "계승할지 말지" 결정할 대상이 아니었다. 자세한 근거는
+ * `_extracted/EXTRACTED_FACTS.md` §15.
+ *
+ * **좌표계**: 세로 = 시간(notes와 같은 ms 비례 축, `viewMs`/`scrollMs`를
+ * `scene-editor-view.ts`로 공유 — `editor-graph.md` §2). 가로 = shape
+ * 외부단위 -8~+8(`shape.md` §3)을 캔버스 폭 전체에 선형 매핑한다. lane
+ * 구분선은 그 tick의 Blue·Red 경계 사이 상대 위치(`lane-events.md` §3)를
+ * 같은 외부단위 공간으로 투영해(`left + targetPos×(right-left)`) 함께
+ * 그린다 — 항상 5개 체인(Blue·1·2·3·Red)을 같이 그리고, 활성 서브모드의
+ * 체인만 클릭 대상이 된다(§2 "선택·Ctrl+A는 서브모드 필터").
+ *
+ * **히트 반경 35px·배치 좌표 스냅**은 `shape-input.js`/`shape-tools.js`
+ * 재실측이다 — `findDotAt`/`findShapeEvtAt`/`handleSTap`의 del 툴이 전부
+ * `bd = 35`(px) 하나만 쓴다(D-2026-099, 반경 값은 3px/4px가 섞인 건
+ * **드래그 판별 임계**뿐이었다 — 이번 라운드는 드래그 재배치를 구현하지
+ * 않아 그 값이 필요 없다, 아래 참조).
+ *
+ * **이번 라운드가 단순화한 지점(전부 결정 필요 항목으로 남김)**:
+ * - **기존 점 드래그 재배치가 없다** — `MutateShapeEvents`/
+ *   `MutateLaneEvents`(§6)를 구현하지 않았다. 배치는 항상 새 이벤트
+ *   추가뿐이다. 그래서 드래그 판별 임계값(dot 3px / 사각선택·스크롤
+ *   4px)도 이번 라운드엔 쓰이지 않는다.
+ * - **Ctrl+F(선택 mirror)·클립보드(Ctrl+C/V)가 없다** — notes 탭에 이미
+ *   구현된 패턴을 shape/lane에 그대로 옮기는 건 후속 라운드로 미룬다.
+ * - **symmetry 축은 항상 동적 스냅샷**이다(§3 "배치 지점 기준 쌍 평균") —
+ *   드래그로 축을 수동 조절하는 UI·"토글 off까지 유지" 상태는 없다.
+ * - **lane 그룹은 토글-누적 방식이다** — 원본은 Q/W/E를 물리적으로
+ *   동시에 누르고 있는 상태로 그룹을 표현하지만(`keydown`/`keyup`),
+ *   `EditorCategoryController`가 `onKeyDown`만 위임하고 `keyup`은
+ *   델리게이션 경로가 없다. 이 파일이 직접 `document`에 `keyup`을
+ *   구독할 수도 있었지만, "누르고 있는 동안" 모델은 테스트 신뢰성이
+ *   낮아 **누를 때마다 그룹 멤버십을 토글**하는 방식을 택했다(마지막
+ *   1개는 토글로 비우지 않는다 — 항상 최소 1개 유지). 결과로 얻는 그룹
+ *   구성 집합은 원본과 같다 — 입력 메커니즘만 다르다.
+ * - **lane symmetry는 그룹이 정확히 2개일 때만 적용된다** — §3의 "쌍"
+ *   개념이 2개 조합(1-2/2-3/1-3)을 전제하므로, group.size가 1이나
+ *   3이면 symmetry 토글이 켜져 있어도 대칭 생성 없이 일반 그룹 배치로
+ *   떨어진다.
+ * - **laneGridDivisor 드롭다운·`V` 위치 스냅 순환 UI가 없다** —
+ *   `laneGridDivisor`는 4(spec 기본값) 고정, 위치 스냅은 항상 최소
+ *   단계(0.25, shape/lane 공통)로 고정했다.
+ * - **같은 dest tick·같은 체인에 이미 이벤트가 있으면 배치를 조용히
+ *   건너뛴다** — 원본은 그 자리에서 easing만 갱신했지만(`addShapeEvt`
+ *   "sameTickSameSide"), 이 command 모델은 추가 전용이라 갱신을
+ *   표현하려면 별도 command가 필요하다 — 후속 라운드로 미룬다.
+ * - **init(anchor, `easing===null`) 점은 삭제·선택 대상에서 제외**한다
+ *   (원본 del 툴과 동일 — 조용히 무시).
+ */
+import {
+  buildTimeline,
+  minTick,
+  snapTick,
+  tickToMs,
+  msToTick,
+  type Timeline,
+} from '../core/core-timing.js';
+import { GRID_DIVISOR_DEFAULT } from '../core/core-constants.js';
+import {
+  buildFieldGeometry,
+  laneLayoutAt,
+  resolveArcEasing,
+  shapeGeometryAt,
+} from '../core/core-shape.js';
+import type { Chart, Easing, LaneEvent, ShapeEvent } from '../core/core-chart.js';
+import {
+  addLaneEventsCommand,
+  addShapeEventsCommand,
+  deleteLaneEventsCommand,
+  deleteShapeEventsCommand,
+  type ShapeSessionLike,
+} from '../edit/edit-shape-commands.js';
+import type { Command } from '../edit/edit-command.js';
+import type { EditorCategoryController } from './scene-editor-workspace.js';
+import { zoomIn, zoomOut, type EditorViewState } from './scene-editor-view.js';
+import './scene-editor-shapes.css';
+
+/** 히트 반경(px) — D-2026-099, `shape-input.js` `bd = 35` 재실측. */
+const HIT_RADIUS_PX = 35;
+/** 위치축 스냅 단계 — `shape.md` §3 최소 단계(0.25) 고정(V 순환 UI는 이번 라운드 밖). */
+const POS_SNAP_STEP = 0.25;
+/** lane 가로 그리드 분할 수 — `lane-events.md` §5 기본값(4) 고정(드롭다운은 이번 라운드 밖). */
+const LANE_GRID_DIVISOR = 4;
+
+type SubMode = 'shape' | 'lane';
+type ShapeTool = 'blue' | 'center' | 'red' | 'pinch';
+type LaneMode = 'spread' | 'pinch';
+type EasingChoice = 'Arc' | 'In-Sine' | 'Out-Sine' | 'Linear';
+type LineNum = 1 | 2 | 3;
+
+export interface EditorShapesApi {
+  readonly session: ShapeSessionLike;
+  dispatch(command: Command): void;
+  readonly view: EditorViewState;
+}
+
+// ── 좌표 변환 ────────────────────────────────────────────────
+
+function pixelYToTick(
+  y: number,
+  canvasHeight: number,
+  timeline: Timeline,
+  scrollMs: number,
+  viewMs: number,
+): number {
+  const pxPerMs = canvasHeight / viewMs;
+  const ms = scrollMs + (canvasHeight - y) / pxPerMs;
+  return msToTick(timeline, ms);
+}
+
+function tickToPixelY(
+  tick: number,
+  canvasHeight: number,
+  timeline: Timeline,
+  scrollMs: number,
+  viewMs: number,
+): number {
+  const pxPerMs = canvasHeight / viewMs;
+  const ms = tickToMs(timeline, tick);
+  return canvasHeight - (ms - scrollMs) * pxPerMs;
+}
+
+/** 외부단위(-8~+8) → px(0~canvasWidth). 원본 `sp2f`의 재설계 대응. */
+function extToPx(ext: number, canvasWidth: number): number {
+  return ((ext + 8) / 16) * canvasWidth;
+}
+
+function pxToExt(px: number, canvasWidth: number): number {
+  return (px / canvasWidth) * 16 - 8;
+}
+
+function snapExt(ext: number): number {
+  const snapped = Math.round(ext / POS_SNAP_STEP) * POS_SNAP_STEP;
+  return Math.min(8, Math.max(-8, snapped));
+}
+
+function snapRel(rel: number): number {
+  return Math.round(rel * LANE_GRID_DIVISOR) / LANE_GRID_DIVISOR;
+}
+
+/** lane의 상대 targetPos를 shape와 같은 외부단위 공간으로 투영한다
+ *  (`lane-events.md` §3: `데이터 위치 = lerp(왼쪽 경계, 오른쪽 경계, targetPos)`). */
+function laneRelToExt(rel: number, blue: number, red: number): number {
+  const left = Math.min(blue, red);
+  const right = Math.max(blue, red);
+  return left + rel * (right - left);
+}
+
+function extToLaneRel(ext: number, blue: number, red: number): number {
+  const left = Math.min(blue, red);
+  const right = Math.max(blue, red);
+  if (right === left) return 0;
+  return (ext - left) / (right - left);
+}
+
+// ── easing 선택 ──────────────────────────────────────────────
+
+/** lane 체인의 Arc 해석 — `core-shape.ts`의 `resolveArcEasing`(shape용)과
+ *  같은 알고리즘을 `lineNum` 선택자로 재구현한다. lane 전용 체인이 core에
+ *  없어(§6 "구현도 shape와 한 파일" — 평가만 공유, Arc 해석은 편집 전용
+ *  결정이라 core에 없었다) 이 파일에 최소 범위로 뒀다. */
+function resolveLaneArcEasing(
+  laneEvents: readonly LaneEvent[],
+  lineNum: LineNum,
+  tick: number,
+): 'Out-Sine' | 'In-Sine' {
+  let previous: LaneEvent | undefined;
+  let latestDest = -Infinity;
+  for (const event of laneEvents) {
+    if (event.lineNum !== lineNum || event.easing === null) continue;
+    const dest = event.startTick + event.duration;
+    if (dest >= tick) continue;
+    if (dest >= latestDest) {
+      latestDest = dest;
+      previous = event;
+    }
+  }
+  if (previous === undefined) return 'Out-Sine';
+  if (previous.duration === 0) return 'Out-Sine';
+  return previous.easing === 'Out-Sine' ? 'In-Sine' : 'Out-Sine';
+}
+
+function resolveShapeEasing(
+  choice: EasingChoice,
+  shapeEvents: readonly ShapeEvent[],
+  isBlue: boolean,
+  tick: number,
+): Easing {
+  return choice === 'Arc' ? resolveArcEasing(shapeEvents, isBlue, tick) : choice;
+}
+
+function resolveLaneEasing(
+  choice: EasingChoice,
+  laneEvents: readonly LaneEvent[],
+  lineNum: LineNum,
+  tick: number,
+): Easing {
+  return choice === 'Arc' ? resolveLaneArcEasing(laneEvents, lineNum, tick) : choice;
+}
+
+// ── 존재 여부(중복 dest 배치 스킵) ───────────────────────────
+
+function hasShapeEventAtDest(
+  shapeEvents: readonly ShapeEvent[],
+  isBlue: boolean,
+  tick: number,
+): boolean {
+  return shapeEvents.some(
+    (e) => e.isBlue === isBlue && e.easing !== null && e.startTick + e.duration === tick,
+  );
+}
+
+function hasLaneEventAtDest(
+  laneEvents: readonly LaneEvent[],
+  lineNum: LineNum,
+  tick: number,
+): boolean {
+  return laneEvents.some(
+    (e) => e.lineNum === lineNum && e.easing !== null && e.startTick + e.duration === tick,
+  );
+}
+
+export function mountEditorShapesBody(
+  container: HTMLElement,
+  initialChart: Chart,
+  api: EditorShapesApi,
+): EditorCategoryController {
+  const wrap = document.createElement('div');
+  wrap.className = 'editor-shapes-body';
+  const toolbar = document.createElement('div');
+  toolbar.className = 'editor-shapes-toolbar';
+  const canvas = document.createElement('canvas');
+  canvas.className = 'editor-shapes-canvas';
+  canvas.width = 800;
+  canvas.height = 600;
+  wrap.append(toolbar, canvas);
+  container.append(wrap);
+  const ctx = canvas.getContext('2d');
+
+  let chart = initialChart;
+  let timeline = buildTimeline(chart);
+  let geometry = buildFieldGeometry(chart);
+  const view = api.view;
+
+  let subMode: SubMode = 'shape';
+  let shapeTool: ShapeTool = 'blue';
+  let laneGroup = new Set<LineNum>([1]);
+  let laneMode: LaneMode = 'spread';
+  let easingChoice: EasingChoice = 'Linear';
+  let symmetry = false;
+  let shapeSelection = new Set<number>();
+  let laneSelection = new Set<number>();
+
+  function dispatchShapeCommand(build: (s: ShapeSessionLike) => Command): void {
+    api.dispatch(build(api.session));
+  }
+
+  // ── toolbar ──────────────────────────────────────────────
+
+  function shapeToolLabel(t: ShapeTool): string {
+    return { blue: 'Blue (Q)', center: 'Center (W)', red: 'Red (E)', pinch: 'Pinch (R)' }[t];
+  }
+
+  function laneGroupLabel(): string {
+    return [...laneGroup]
+      .sort((a, b) => a - b)
+      .map((n) => `L${n}`)
+      .join('+');
+  }
+
+  function renderToolbar(): void {
+    toolbar.replaceChildren();
+    const mk = (text: string, cls?: string): HTMLSpanElement => {
+      const span = document.createElement('span');
+      if (cls !== undefined) span.className = cls;
+      span.textContent = text;
+      return span;
+    };
+    toolbar.append(mk(subMode === 'shape' ? 'SHAPE' : 'LANE', 'editor-shapes-tool-label'));
+    if (subMode === 'shape') {
+      toolbar.append(mk(shapeToolLabel(shapeTool)));
+    } else {
+      toolbar.append(mk(`Group: ${laneGroupLabel()}`));
+      toolbar.append(mk(`R: ${laneMode === 'spread' ? '간격유지' : 'pinch'}`));
+    }
+    toolbar.append(mk(`Ease: ${easingChoice}`));
+    toolbar.append(mk(`Sym: ${symmetry ? 'ON' : 'off'}`));
+    const selSize = subMode === 'shape' ? shapeSelection.size : laneSelection.size;
+    if (selSize > 0) toolbar.append(mk(`${selSize} selected`));
+  }
+
+  // ── render ───────────────────────────────────────────────
+
+  function sampleTicks(): number[] {
+    const { height: ch } = canvas;
+    const steps = 48;
+    const ticks: number[] = [];
+    for (let i = 0; i <= steps; i += 1) {
+      const y = (ch * i) / steps;
+      ticks.push(pixelYToTick(y, ch, timeline, view.scrollMs, view.viewMs));
+    }
+    return ticks;
+  }
+
+  function drawChainCurve(
+    valueAt: (tick: number) => number,
+    color: string,
+    ch: number,
+    cw: number,
+  ): void {
+    if (ctx === null) return;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    const ticks = sampleTicks();
+    ticks.forEach((tick, i) => {
+      const x = extToPx(valueAt(tick), cw);
+      const y = tickToPixelY(tick, ch, timeline, view.scrollMs, view.viewMs);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+
+  function drawDots(): void {
+    if (ctx === null) return;
+    const { width: cw, height: ch } = canvas;
+
+    chart.shapeEvents.forEach((event, index) => {
+      const tick = event.startTick + event.duration;
+      const x = extToPx(event.targetPos, cw);
+      const y = tickToPixelY(tick, ch, timeline, view.scrollMs, view.viewMs);
+      const isSelected = subMode === 'shape' && shapeSelection.has(index);
+      ctx.fillStyle = event.isBlue ? '#4fbcff' : '#ff6f6f';
+      ctx.beginPath();
+      ctx.arc(x, y, event.easing === null ? 6 : 4, 0, Math.PI * 2);
+      ctx.fill();
+      if (isSelected) {
+        ctx.strokeStyle = '#4fbcd0';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    });
+
+    chart.laneEvents.forEach((event, index) => {
+      const tick = event.startTick + event.duration;
+      const { blue, red } = shapeGeometryAt(geometry, tick);
+      const ext = laneRelToExt(event.targetPos, blue, red);
+      const x = extToPx(ext, cw);
+      const y = tickToPixelY(tick, ch, timeline, view.scrollMs, view.viewMs);
+      const isSelected = subMode === 'lane' && laneSelection.has(index);
+      ctx.fillStyle = '#ececf4';
+      ctx.beginPath();
+      ctx.arc(x, y, event.easing === null ? 5 : 3, 0, Math.PI * 2);
+      ctx.fill();
+      if (isSelected) {
+        ctx.strokeStyle = '#4fbcd0';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    });
+  }
+
+  function draw(): void {
+    if (ctx === null) return;
+    const { width: cw, height: ch } = canvas;
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.fillStyle = '#050508';
+    ctx.fillRect(0, 0, cw, ch);
+
+    // 판정선(tick 0).
+    const zeroY = tickToPixelY(0, ch, timeline, view.scrollMs, view.viewMs);
+    ctx.strokeStyle = '#1e1e30';
+    ctx.beginPath();
+    ctx.moveTo(0, zeroY);
+    ctx.lineTo(cw, zeroY);
+    ctx.stroke();
+
+    drawChainCurve((t) => shapeGeometryAt(geometry, t).blue, '#4fbcff', ch, cw);
+    drawChainCurve((t) => shapeGeometryAt(geometry, t).red, '#ff6f6f', ch, cw);
+    (['line1', 'line2', 'line3'] as const).forEach((key) => {
+      drawChainCurve(
+        (t) => {
+          const { blue, red } = shapeGeometryAt(geometry, t);
+          const layout = laneLayoutAt(geometry, t);
+          return laneRelToExt(layout[key], blue, red);
+        },
+        '#5a5a72',
+        ch,
+        cw,
+      );
+    });
+
+    drawDots();
+  }
+
+  function render(): void {
+    renderToolbar();
+    draw();
+  }
+
+  // ── 배치 ─────────────────────────────────────────────────
+
+  function placeShape(px: number, py: number): void {
+    const { width: cw, height: ch } = canvas;
+    const tick = snapTick(
+      pixelYToTick(py, ch, timeline, view.scrollMs, view.viewMs),
+      GRID_DIVISOR_DEFAULT,
+    );
+    const pos = snapExt(pxToExt(px, cw));
+    const { blue, red } = shapeGeometryAt(geometry, tick);
+    const shapeCenter = (blue + red) / 2;
+
+    const toAdd: ShapeEvent[] = [];
+
+    if (shapeTool === 'blue' || shapeTool === 'red') {
+      const isBlue = shapeTool === 'blue';
+      if (hasShapeEventAtDest(chart.shapeEvents, isBlue, tick)) return;
+      const easing = resolveShapeEasing(easingChoice, chart.shapeEvents, isBlue, tick);
+      toAdd.push({ startTick: 0, duration: tick, isBlue, targetPos: pos, easing });
+      if (symmetry) {
+        const mirrorPos = snapExt(2 * shapeCenter - pos);
+        if (!hasShapeEventAtDest(chart.shapeEvents, !isBlue, tick)) {
+          toAdd.push({
+            startTick: 0,
+            duration: tick,
+            isBlue: !isBlue,
+            targetPos: mirrorPos,
+            easing,
+          });
+        }
+      }
+    } else if (shapeTool === 'center') {
+      const width = red - blue;
+      const half = width / 2;
+      const newBlue = snapExt(pos - half);
+      const newRed = snapExt(pos + half);
+      const easing = resolveShapeEasing(easingChoice, chart.shapeEvents, false, tick);
+      if (!hasShapeEventAtDest(chart.shapeEvents, true, tick)) {
+        toAdd.push({ startTick: 0, duration: tick, isBlue: true, targetPos: newBlue, easing });
+      }
+      if (!hasShapeEventAtDest(chart.shapeEvents, false, tick)) {
+        toAdd.push({ startTick: 0, duration: tick, isBlue: false, targetPos: newRed, easing });
+      }
+    } else {
+      // pinch — 같은 위치에 Blue·Red 동시 배치.
+      const easingBlue = resolveShapeEasing(easingChoice, chart.shapeEvents, true, tick);
+      const easingRed = resolveShapeEasing(easingChoice, chart.shapeEvents, false, tick);
+      if (!hasShapeEventAtDest(chart.shapeEvents, true, tick)) {
+        toAdd.push({
+          startTick: 0,
+          duration: tick,
+          isBlue: true,
+          targetPos: pos,
+          easing: easingBlue,
+        });
+      }
+      if (!hasShapeEventAtDest(chart.shapeEvents, false, tick)) {
+        toAdd.push({
+          startTick: 0,
+          duration: tick,
+          isBlue: false,
+          targetPos: pos,
+          easing: easingRed,
+        });
+      }
+    }
+
+    if (toAdd.length === 0) return;
+    dispatchShapeCommand((s) => addShapeEventsCommand(s, toAdd));
+  }
+
+  function placeLane(px: number, py: number): void {
+    const { width: cw, height: ch } = canvas;
+    const tick = snapTick(
+      pixelYToTick(py, ch, timeline, view.scrollMs, view.viewMs),
+      GRID_DIVISOR_DEFAULT,
+    );
+    const { blue, red } = shapeGeometryAt(geometry, tick);
+    const clickRel = snapRel(extToLaneRel(pxToExt(px, cw), blue, red));
+    const members = [...laneGroup].sort((a, b) => a - b);
+
+    const toAdd: LaneEvent[] = [];
+
+    if (symmetry && members.length === 2) {
+      const lo = members[0]!;
+      const hi = members[1]!;
+      const currentLayout = laneLayoutAt(geometry, tick);
+      const layoutByLine: Record<LineNum, number> = {
+        1: currentLayout.line1,
+        2: currentLayout.line2,
+        3: currentLayout.line3,
+      };
+      const axis = (layoutByLine[lo] + layoutByLine[hi]) / 2;
+      const hiPos = clickRel;
+      const loPos = snapRel(2 * axis - hiPos);
+      const easingHi = resolveLaneEasing(easingChoice, chart.laneEvents, hi, tick);
+      if (!hasLaneEventAtDest(chart.laneEvents, hi, tick)) {
+        toAdd.push({
+          startTick: 0,
+          duration: tick,
+          lineNum: hi,
+          targetPos: hiPos,
+          easing: easingHi,
+        });
+      }
+      if (!hasLaneEventAtDest(chart.laneEvents, lo, tick)) {
+        toAdd.push({
+          startTick: 0,
+          duration: tick,
+          lineNum: lo,
+          targetPos: loPos,
+          easing: easingHi,
+        });
+      }
+    } else if (members.length === 1) {
+      const lineNum = members[0]!;
+      if (!hasLaneEventAtDest(chart.laneEvents, lineNum, tick)) {
+        const easing = resolveLaneEasing(easingChoice, chart.laneEvents, lineNum, tick);
+        toAdd.push({ startTick: 0, duration: tick, lineNum, targetPos: clickRel, easing });
+      }
+    } else {
+      const rightmost = members[members.length - 1]!;
+      const currentLayout = laneLayoutAt(geometry, tick);
+      const layoutByLine: Record<LineNum, number> = {
+        1: currentLayout.line1,
+        2: currentLayout.line2,
+        3: currentLayout.line3,
+      };
+      for (const lineNum of members) {
+        if (hasLaneEventAtDest(chart.laneEvents, lineNum, tick)) continue;
+        const pos =
+          laneMode === 'pinch'
+            ? clickRel
+            : snapRel(clickRel + (layoutByLine[lineNum] - layoutByLine[rightmost]));
+        const easing = resolveLaneEasing(easingChoice, chart.laneEvents, lineNum, tick);
+        toAdd.push({ startTick: 0, duration: tick, lineNum, targetPos: pos, easing });
+      }
+    }
+
+    if (toAdd.length === 0) return;
+    dispatchShapeCommand((s) => addLaneEventsCommand(s, toAdd));
+  }
+
+  // ── 선택/삭제 ────────────────────────────────────────────
+
+  function findShapeIndexAt(px: number, py: number): number | null {
+    const { width: cw, height: ch } = canvas;
+    let best: number | null = null;
+    let bestDist = HIT_RADIUS_PX;
+    chart.shapeEvents.forEach((event, index) => {
+      const tick = event.startTick + event.duration;
+      const x = extToPx(event.targetPos, cw);
+      const y = tickToPixelY(tick, ch, timeline, view.scrollMs, view.viewMs);
+      const d = Math.hypot(px - x, py - y);
+      if (d < bestDist) {
+        bestDist = d;
+        best = index;
+      }
+    });
+    return best;
+  }
+
+  function findLaneIndexAt(px: number, py: number): number | null {
+    const { width: cw, height: ch } = canvas;
+    let best: number | null = null;
+    let bestDist = HIT_RADIUS_PX;
+    chart.laneEvents.forEach((event, index) => {
+      const tick = event.startTick + event.duration;
+      const { blue, red } = shapeGeometryAt(geometry, tick);
+      const x = extToPx(laneRelToExt(event.targetPos, blue, red), cw);
+      const y = tickToPixelY(tick, ch, timeline, view.scrollMs, view.viewMs);
+      const d = Math.hypot(px - x, py - y);
+      if (d < bestDist) {
+        bestDist = d;
+        best = index;
+      }
+    });
+    return best;
+  }
+
+  function clearSelection(): boolean {
+    const had = subMode === 'shape' ? shapeSelection.size > 0 : laneSelection.size > 0;
+    if (!had) return false;
+    if (subMode === 'shape') shapeSelection = new Set();
+    else laneSelection = new Set();
+    render();
+    return true;
+  }
+
+  function deleteSelection(): void {
+    if (subMode === 'shape') {
+      if (shapeSelection.size === 0) return;
+      const indices = [...shapeSelection].filter((i) => chart.shapeEvents[i]?.easing !== null);
+      shapeSelection = new Set();
+      if (indices.length === 0) return;
+      dispatchShapeCommand((s) => deleteShapeEventsCommand(s, indices));
+    } else {
+      if (laneSelection.size === 0) return;
+      const indices = [...laneSelection].filter((i) => chart.laneEvents[i]?.easing !== null);
+      laneSelection = new Set();
+      if (indices.length === 0) return;
+      dispatchShapeCommand((s) => deleteLaneEventsCommand(s, indices));
+    }
+  }
+
+  // ── pointer ──────────────────────────────────────────────
+
+  function canvasPoint(event: PointerEvent): { x: number; y: number } {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: ((event.clientX - rect.left) / rect.width) * canvas.width,
+      y: ((event.clientY - rect.top) / rect.height) * canvas.height,
+    };
+  }
+
+  function onPointerDown(event: PointerEvent): void {
+    const { x, y } = canvasPoint(event);
+    if (subMode === 'shape') {
+      const hit = findShapeIndexAt(x, y);
+      if (hit !== null) {
+        if (!event.shiftKey && !shapeSelection.has(hit)) shapeSelection = new Set([hit]);
+        else if (event.shiftKey) {
+          const next = new Set(shapeSelection);
+          if (next.has(hit)) next.delete(hit);
+          else next.add(hit);
+          shapeSelection = next;
+        }
+        render();
+        return;
+      }
+      placeShape(x, y);
+    } else {
+      const hit = findLaneIndexAt(x, y);
+      if (hit !== null) {
+        if (!event.shiftKey && !laneSelection.has(hit)) laneSelection = new Set([hit]);
+        else if (event.shiftKey) {
+          const next = new Set(laneSelection);
+          if (next.has(hit)) next.delete(hit);
+          else next.add(hit);
+          laneSelection = next;
+        }
+        render();
+        return;
+      }
+      placeLane(x, y);
+    }
+  }
+
+  function onWheel(event: WheelEvent): void {
+    event.preventDefault();
+    const pxPerMs = canvas.height / view.viewMs;
+    const deltaMs = event.deltaY / pxPerMs;
+    const minMs = tickToMs(timeline, minTick(timeline));
+    view.scrollMs = Math.max(minMs, view.scrollMs - deltaMs);
+    render();
+  }
+
+  canvas.addEventListener('pointerdown', onPointerDown);
+  canvas.addEventListener('wheel', onWheel, { passive: false });
+
+  render();
+
+  return {
+    onKeyDown(event: KeyboardEvent): boolean {
+      switch (event.key) {
+        case 'T':
+        case 't':
+          subMode = subMode === 'shape' ? 'lane' : 'shape';
+          render();
+          return true;
+        case 'S':
+        case 's':
+          symmetry = !symmetry;
+          render();
+          return true;
+        case '1':
+          easingChoice = 'Arc';
+          render();
+          return true;
+        case '2':
+          easingChoice = 'In-Sine';
+          render();
+          return true;
+        case '3':
+          easingChoice = 'Out-Sine';
+          render();
+          return true;
+        case '4':
+          easingChoice = 'Linear';
+          render();
+          return true;
+        case 'Z':
+        case 'z':
+          zoomOut(view);
+          render();
+          return true;
+        case 'X':
+        case 'x':
+          zoomIn(view);
+          render();
+          return true;
+        case 'D':
+        case 'd':
+        case 'Delete': {
+          const hasSel = subMode === 'shape' ? shapeSelection.size > 0 : laneSelection.size > 0;
+          if (!hasSel) return false;
+          event.preventDefault();
+          deleteSelection();
+          return true;
+        }
+        case 'Escape':
+          return clearSelection();
+        default:
+          break;
+      }
+
+      if (subMode === 'shape') {
+        switch (event.key) {
+          case 'Q':
+          case 'q':
+            shapeTool = 'blue';
+            render();
+            return true;
+          case 'W':
+          case 'w':
+            shapeTool = 'center';
+            render();
+            return true;
+          case 'E':
+          case 'e':
+            shapeTool = 'red';
+            render();
+            return true;
+          case 'R':
+          case 'r':
+            shapeTool = 'pinch';
+            render();
+            return true;
+          default:
+            return false;
+        }
+      }
+
+      switch (event.key) {
+        case 'Q':
+        case 'q':
+        case 'W':
+        case 'w':
+        case 'E':
+        case 'e': {
+          const LINE_NUM_OF_KEY: Record<'q' | 'w' | 'e', LineNum> = { q: 1, w: 2, e: 3 };
+          const lineNum = LINE_NUM_OF_KEY[event.key.toLowerCase() as 'q' | 'w' | 'e'];
+          const next = new Set(laneGroup);
+          if (next.has(lineNum)) {
+            if (next.size > 1) next.delete(lineNum);
+          } else {
+            next.add(lineNum);
+          }
+          laneGroup = next;
+          render();
+          return true;
+        }
+        case 'R':
+        case 'r':
+          laneMode = laneMode === 'spread' ? 'pinch' : 'spread';
+          render();
+          return true;
+        default:
+          return false;
+      }
+    },
+    update(next: Chart): void {
+      chart = next;
+      timeline = buildTimeline(next);
+      geometry = buildFieldGeometry(next);
+      render();
+    },
+    destroy(): void {
+      canvas.removeEventListener('pointerdown', onPointerDown);
+      canvas.removeEventListener('wheel', onWheel);
+      wrap.remove();
+    },
+  };
+}

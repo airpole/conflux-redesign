@@ -101,3 +101,12 @@ M5-3이 그 자리를 실제로 채웠다 — `mountEditorWorkspaceIfNeeded()`�
 뿐 새 상태를 추가하지 않았다. `editor-start`를 거치지 않고는 `editor-notes`
 에 닿을 방법이 없어(scene 그래프 구조상) `editorSession`/`editorCommandHistory`
 가 항상 이미 만들어져 있다는 전제(non-null assertion)가 안전하다.
+
+M5-4가 같은 자리에 `mountShapes(container, chart, view)`를 더했다 —
+`scene-editor-shapes.ts`의 `mountEditorShapesBody`를 감싸고, `session`/
+`dispatch`는 `mountNotes`와 똑같이 `editorSession!`/`editorCommandHistory!`를
+그대로 참조한다. `view`(`EditorViewState`)는 이 파일이 만드는 게 아니라
+`scene-editor-workspace.ts`가 한 번만 만들어 `mountNotes`/`mountShapes`
+양쪽에 같은 참조로 넘겨주는 것을 그대로 받아 전달할 뿐이다 —
+`editor-graph.md` §2 "scroll/zoom: notes·shapes 공유"를 그 참조 공유로
+만족한다.

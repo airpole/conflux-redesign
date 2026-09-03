@@ -22,10 +22,18 @@
  * 넘긴다(consumed 반환 시 여기서 더 처리하지 않는다) — notes 탭 자체
  * 단축키(Q/W/E/R/D/Delete/Ctrl+C/V/F, `Esc` 취소 계단)가 `Tab`/전역
  * `Escape`(뒤로가기)보다 먼저 자기 것부터 챙길 수 있게 하는 자리다.
- * shapes/meta/test는 여전히 껍데기다 — M5-4~M5-6.
+ * meta/test는 여전히 껍데기다 — M5-5~M5-6.
+ *
+ * **M5-4가 shapes에 같은 자리를 붙였다** — `handlers.mountShapes(container,
+ * chart, view)`. `view`(`EditorViewState`, `scene-editor-view.ts`)는 이
+ * 파일이 **한 번만 만들어** notes·shapes 양쪽에 같은 참조로 넘긴다 —
+ * `editor-graph.md` §2 "scroll/zoom: notes·shapes 공유"를 그 참조 공유로
+ * 만족한다(탭을 넘나들며 `renderBody()`가 body를 통째로 다시 만들어도
+ * zoom·scroll 위치는 이 객체 안에 남아 있다).
  */
 import './scene-editor-workspace.css';
 import type { Chart } from '../core/core-chart.js';
+import { createEditorViewState, type EditorViewState } from './scene-editor-view.js';
 
 export const EDITOR_CATEGORIES = ['notes', 'shapes', 'meta', 'test'] as const;
 export type EditorCategory = (typeof EDITOR_CATEGORIES)[number];
@@ -54,7 +62,18 @@ export interface EditorWorkspaceHandlers {
   /** notes body를 채운다(M5-3) — 지금 chart를 받아 `EditorCategoryController`
    *  를 돌려준다. 없으면(아직 이 handler를 안 넘긴 호출측) notes도 다른
    *  category처럼 placeholder로 남는다. */
-  readonly mountNotes?: (container: HTMLElement, chart: Chart) => EditorCategoryController;
+  readonly mountNotes?: (
+    container: HTMLElement,
+    chart: Chart,
+    view: EditorViewState,
+  ) => EditorCategoryController;
+  /** shapes body를 채운다(M5-4) — notes와 같은 계약, `view`는 notes와
+   *  공유하는 같은 참조를 받는다. */
+  readonly mountShapes?: (
+    container: HTMLElement,
+    chart: Chart,
+    view: EditorViewState,
+  ) => EditorCategoryController;
 }
 
 export interface EditorWorkspaceSceneHandle {
@@ -95,6 +114,7 @@ export function mountEditorWorkspaceScene(
   let chart: Chart | null = null;
   let category: EditorCategory = 'notes';
   let activeController: EditorCategoryController | null = null;
+  const view = createEditorViewState();
 
   function renderNav(): void {
     nav.replaceChildren();
@@ -119,12 +139,16 @@ export function mountEditorWorkspaceScene(
     body.replaceChildren();
 
     if (category === 'notes' && handlers.mountNotes !== undefined && chart !== null) {
-      activeController = handlers.mountNotes(body, chart);
+      activeController = handlers.mountNotes(body, chart, view);
+      return;
+    }
+    if (category === 'shapes' && handlers.mountShapes !== undefined && chart !== null) {
+      activeController = handlers.mountShapes(body, chart, view);
       return;
     }
 
     const placeholder = el('div', 'editor-body-placeholder');
-    placeholder.textContent = `${CATEGORY_LABEL[category]} — 편집 UI는 이후 milestone 범위(M5-4~M5-6)`;
+    placeholder.textContent = `${CATEGORY_LABEL[category]} — 편집 UI는 이후 milestone 범위(M5-5~M5-6)`;
     body.append(placeholder);
   }
 

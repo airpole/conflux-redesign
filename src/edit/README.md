@@ -84,3 +84,17 @@ API로는 남겨 뒀다. chart field 편집(§7, `WorkspaceSession.updateChart`)
 `MIRROR_LANE_MAP`(1↔4, 2↔3)을 그대로 쓴다 — wide note는 제외(핸드 개념이
 없다). `NotesSessionLike`(`chart`/`updateChart`만 있는 최소 shape)로
 `WorkspaceSession`을 직접 받는다 — 별도 어댑터가 없다.
+
+`edit-shape-commands`는 M5-4 범위다([[editor-commands]] §6 중
+Add/DeleteShapeEvents·Add/DeleteLaneEvents 4개, D-2026-099). notes와 같은
+snapshot 패턴이지만, 추가·삭제 뒤 **chain normalize**를 한 번 더 거친다
+(`normalizeShapeEvents`/`normalizeLaneEvents`) — §6 "shape/lane command는
+apply·undo 양쪽에서 chain normalize"가 이미 확정해 둔 요구사항의 구현이다.
+원본 `shape.js`의 `normalizeShapeChain`과 같은 알고리즘(보간 이벤트를
+dest tick 오름차순으로 훑어 `startTick`/`duration`을 다시 세운다)이지만,
+**배열 순서는 바꾸지 않는다** — 선택(`Set<number>` 인덱스)이 배열
+위치에 의존하므로 원소 자리는 그대로 두고 값만 갈아치운다. `MutateShapeEvents`/
+`MutateLaneEvents`(기존 점 드래그 재배치)·`MirrorShapeEvents`·`ApplyShapeOps`는
+이번 라운드 범위 밖이다(`scene-editor-shapes.ts`가 여러 이벤트를 배열로
+한 번에 넘기는 `Add*` 호출로 "한 undo = 여러 op"를 이미 표현하므로 별도
+`ApplyShapeOps` 타입이 필요 없었다).

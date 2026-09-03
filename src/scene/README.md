@@ -195,3 +195,18 @@ overlap/conflict 검출, `core-judge.ts`의 mirror lane map)을 그대로 이어
 lane 2·3 배치-시점 자동 치환·사각 선택(`A` 드래그)·note 우선순위 등
 6가지는 의도적으로 단순화했다 — 전부 결정 필요 항목으로 D-2026-097에
 기록했다. text 툴(`T`)은 이 파일 범위 밖(M5-7).
+
+**M5-4가 같은 delegation 자리에 `scene-editor-shapes.ts`를 붙였다**
+(D-2026-099) — shape/lane 서브모드(`T` 전환), Q/W/E/R 배치(shape:
+Blue/center/Red/pinch, lane: line1~3 그룹+간격유지/pinch 전환), symmetry(`S`,
+동적 스냅샷 축), easing 선택(`1234`=Arc/In/Out/Linear)까지 구현했다.
+command는 `edit-shape-commands.ts`의 4개(Add/DeleteShapeEvents,
+Add/DeleteLaneEvents) — apply/undo 양쪽에서 chain normalize한다
+(`editor-commands.md` §6 확정 요구사항, 원본 `normalizeShapeChain` 재구현이지만
+배열 순서는 안 바꾼다). `viewMs`/`scrollMs`는 notes와 공유하도록
+`scene-editor-view.ts`로 옮겼다(`editor-graph.md` §2 "scroll/zoom 공유" —
+`scene-editor-workspace.ts`가 한 번 만들어 양쪽에 같은 참조로 넘긴다).
+히트 반경 35px(zoom 무관 고정)는 D-2026-099 실측값이다. 기존 점 드래그
+재배치·Ctrl+F mirror·클립보드·symmetry 축 수동 조절·`laneGridDivisor`
+드롭다운 등은 이번 라운드 범위 밖(결정 필요 항목) — 자세한 목록은
+`scene-editor-shapes.ts` 헤더.

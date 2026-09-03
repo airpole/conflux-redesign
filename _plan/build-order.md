@@ -109,7 +109,7 @@ Vitest `environment: 'node'`. core 테스트는 DOM 없이 돈다 — [[architec
 | ~~M5 진입~~ | ~~실측~~ | ~~§3 M5 항목~~ — **재배치됨**(D-2026-094) — §3 "M5-3 전"·"M5-1 이후(notes/shapes 실 렌더) 전"·"M5-4 전" 참조, M5 진입 자체는 더 이상 막혀 있지 않다 |
 | ~~M5-3 전~~ | ~~실측~~ | ~~편집 미세 수치 — 히트 반경, 드래그 임계([[editor-editing]] §8)~~ — **닫힘**(D-2026-096: 히트 반경 `tpp*15`(화면상 15px), 드래그 임계 4px — `_extracted/EXTRACTED_FACTS.md` §13) |
 | ~~M5-1 이후(notes/shapes 실 렌더) 전~~ | ~~실측/결정~~ | ~~`viewMs` 기본값·zoom 범위([[editor-graph]] §6)~~ — **닫힘**(D-2026-098: `viewMs=960000/(edZm×bpm)`, 120bpm 기준 선택 — 기본 8000ms·범위 [1000ms,32000ms]·step ×1.35/÷1.35, Z/X 배선 완료 — `_extracted/EXTRACTED_FACTS.md` §14) |
-| M5-4 전 | 실측 | shape 보조 툴(normalize 등)의 계승 여부([[shape]] §8) |
+| ~~M5-4 전~~ | ~~실측~~ | ~~shape 보조 툴(normalize 등)의 계승 여부([[shape]] §8)~~ — **닫힘**(D-2026-099: 원본에 "normalize"라는 이름의 사용자 노출 툴/버튼은 없었다 — 유일한 "normalize"는 매 편집 커맨드 apply/undo마다 자동으로 도는 내부 배열 정합화 함수이고, 이건 이미 `editor-commands.md` §6이 "chain normalize"로 확정해 둔 요구사항이었다 — `_extracted/EXTRACTED_FACTS.md` §15) |
 | M5-6 전 | 실측 | editor timeline(test scene seek 축)의 최소 표시 길이([[editor-graph]] §6) — M5-3에서 "notes 세로 스크롤과는 다른 항목"으로 범위 재확인, 여기로 재배치(D-2026-097) |
 
 gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한 뒤 진입한다. build-order는 gate의 **위치**만 갖고 내용은 갖지 않는다.
@@ -137,7 +137,7 @@ gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한
 
 `[수정]` (D-2026-094) — 원래 "M5 진입 전"이었으나, M5-1(scene 그래프·start scene·세션 소유)은 아래 수치를 하나도 쓰지 않는다. D-2026-046과 같은 이유로 값이 실제로 쓰이는 step 바로 앞으로 옮겼다.
 
-- [x] 편집 미세 수치: 히트 반경, 드래그 임계 — [[editor-editing]] §8. `notes-input.js` 재실측(D-2026-096) — 히트 반경 `tpp*15`(화면상 15px, zoom 무관 고정), 드래그 임계 4px(모든 축 공통). shape/lane 서브모드 값(`shape-input.js`, 3px/4px 혼재)은 M5-4 진입 시 별도 재실측.
+- [x] 편집 미세 수치: 히트 반경, 드래그 임계 — [[editor-editing]] §8. `notes-input.js` 재실측(D-2026-096) — 히트 반경 `tpp*15`(화면상 15px, zoom 무관 고정), 드래그 임계 4px(모든 축 공통). shape/lane 서브모드 값(`shape-input.js`)은 M5-4에서 재실측(D-2026-099) — 히트 반경 35px(고정 px, `findDotAt`/`findShapeEvtAt`/del 툴 공통 `bd=35`), 드래그 임계는 dot 재배치 3px/사각선택·스크롤 4px로 나뉘지만 M5-4는 점 드래그 재배치를 구현하지 않아(이번 라운드 단순화 항목) 이번엔 쓰이지 않는다 — 값 자체는 기록해 뒀다(`_extracted/EXTRACTED_FACTS.md` §15).
 
 ### M5-1 이후(notes/shapes 실 렌더) 전 — **해소** (`_extracted/EXTRACTED_FACTS.md` §14)
 
@@ -146,11 +146,11 @@ gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한
 - [x] `viewMs` 기본값·zoom 범위 — [[editor-graph]] §6. M5-3에서 시도했으나 단위 불일치(원본 `edZm`은 tick/beat 비례 축, 이 축은 ms 비례로 재설계됨)로 못 닫았던 것을(D-2026-097), `viewMs = 960000/(edZm×bpm)` 변환식과 120bpm 기준 tempo 선택으로 닫았다(D-2026-098) — 순수 측정이 아니라 번역/해석적 결정이다. 기본 8000ms·범위 [1000ms, 32000ms]·step ×1.35(Z)/÷1.35(X), `src/scene/scene-editor-notes.ts`에 배선 완료.
 - ~~editor timeline 최소 표시 길이~~ — **범위 재확인**(D-2026-097): notes/shapes 세로 스크롤이 아니라 **test scene idle의 seek 축**(가로 스크럽 바) 얘기였다 — M5-3 조사 중 원본에서 대응하는 `getMinTick()`이 notes 세로 스크롤 하한(이미 `core-timing.ts`의 `minTick()`으로 구현됨)일 뿐 "최소 표시 길이" 개념과는 다른 것임을 확인했다. 이 항목은 M5-6(test scene) 진입 전으로 다시 옮긴다.
 
-### M5-4 전
+### M5-4 전 — **해소** (`_extracted/EXTRACTED_FACTS.md` §15)
 
 `[수정]` (D-2026-094) — shape 보조 툴 계승 여부는 M5-4(shapes scene)가 그 툴바를 만들 때만 필요하다.
 
-- shape 보조 툴(normalize 등)의 계승 여부 — [[shape]] §8.
+- [x] shape 보조 툴(normalize 등)의 계승 여부 — [[shape]] §8. D-2026-099로 닫혔다: `shape-input.js`·`shape-tools.js`·HTML 툴바 전체에서 "normalize"라는 이름의 사용자 노출 툴/버튼은 없었다 — 유일한 "normalize"는 `shape.js`의 `normalizeShapeChain()`, 매 편집 커맨드의 apply/undo 안에서 자동으로 도는 내부 배열 정합화 함수였다. 이건 이미 `editor-commands.md` §6 "shape/lane command는 apply·undo 양쪽에서 chain normalize"로 확정돼 있던 요구사항이라 별도로 "계승할지" 결정할 대상이 아니었다 — `edit-shape-commands.ts`의 `normalizeShapeEvents`/`normalizeLaneEvents`로 구현했다.
 
 ### M5-6 전
 
@@ -401,7 +401,9 @@ confirm으로 뒤집혔다. M4.6은 완전히 닫혔다 — 남은 항목 없음
 
 **M5-2 진행 상황**: command/history 엔진(scope 분할·dispatch/undo/redo·listener·history baseline)은 완성됐다(D-2026-095) — chart-agnostic이라 `app-main.ts`가 세션마다 새로 만들어 붙여 뒀다. §6의 구체 command 목록(AddNotes 등 실제 chart 배열 편집)은 이 엔진에 붙는 실 편집 인터랙션이 필요해 M5-3(notes)·M5-4(shapes/lane)·M5-5(tempo/timeSignature)·M5-7(textEvents)로 이월했다 — M5-2 자신의 Exit 기준(모든 편집이 command로 들어감·undo/redo가 원본과 같은 단위로 되감김·chart 구조 편집은 history 밖)은 엔진 단위 테스트와 통합 테스트로 확인했다.
 
-**M5-3 진행 상황**: notes 관련 command 6개(§6, `edit-notes-commands.ts`)와 편집 캔버스(`scene-editor-notes.ts`)가 구현됐다(D-2026-097) — 배치·이동·삭제·복사·붙여넣기·flip과 overlap/conflict 표시(이미 있던 `core-overlap.ts` 재사용) 전부 충족. `viewMs` 기본값·zoom 범위 gate(아래 "M5-1 이후(notes/shapes 실 렌더) 전")는 **아직 못 닫았다** — 원본 값이 tick/beat 비례 축 것이라 ms 비례로 재설계된 이 축엔 단위가 안 맞아 그대로 옮길 수 없고(순수 측정이 아니라 해석이 필요), `VIEW_MS_DEFAULT=8000ms` 임시 상수로 대체하고 Z/X 줌은 배선하지 않았다 — 결정 필요 항목. lane 2·3 자동 치환 등 6가지 단순화도 결정 필요 항목으로 D-2026-097에 남겼다.
+**M5-3 진행 상황**: notes 관련 command 6개(§6, `edit-notes-commands.ts`)와 편집 캔버스(`scene-editor-notes.ts`)가 구현됐다(D-2026-097) — 배치·이동·삭제·복사·붙여넣기·flip과 overlap/conflict 표시(이미 있던 `core-overlap.ts` 재사용) 전부 충족. `viewMs` 기본값·zoom 범위 gate는 D-2026-098로 닫혔다(§3 "M5-1 이후(notes/shapes 실 렌더) 전" 참조). lane 2·3 자동 치환 등 6가지 단순화는 결정 필요 항목으로 D-2026-097에 남겼다.
+
+**M5-4 진행 상황**: shapes scene(shape/lane 서브모드)의 command 4개(`AddShapeEvents`/`DeleteShapeEvents`/`AddLaneEvents`/`DeleteLaneEvents`, `edit-shape-commands.ts`)와 편집 캔버스(`scene-editor-shapes.ts`)가 구현됐다(D-2026-099) — `T` 서브모드 전환·서브모드별 선택 필터·Q/W/E/R 정의대로 배치(Blue/center/Red/pinch, lane 그룹+간격유지/pinch)·symmetry(동적 스냅샷 축)·easing 선택(1/2/3/4, Arc 해석 포함)·현재 그룹/symmetry 상태/`R` 모드 툴바 상시 표시까지 Exit 기준을 충족했다. `viewMs`/`scrollMs`를 notes와 공유하도록 `scene-editor-view.ts`로 옮겼다(`editor-graph.md` §2, M5-3 때는 대상이 없어 로컬이었다). **이번 라운드가 단순화한 지점(전부 결정 필요 항목)**: 기존 점 드래그 재배치(`MutateShapeEvents`/`MutateLaneEvents`) 없음, Ctrl+F mirror·클립보드 없음, symmetry 축 수동 조절 없음(항상 동적 스냅샷), lane 그룹은 물리적 키-hold 대신 토글-누적 방식, lane symmetry는 그룹 정확히 2개일 때만 적용, `laneGridDivisor` 드롭다운·`V` 위치 스냅 순환 UI 없음(각각 4·0.25 고정), 같은 dest tick 중복 배치는 조용히 스킵(원본처럼 easing 갱신 안 함) — 자세한 목록은 `scene-editor-shapes.ts` 헤더.
 | M5-2 | command / history 계약 | 모든 편집이 command로 들어가고 undo/redo가 원본과 같은 단위로 되감긴다. chart 구조 편집은 history 밖이다. |
 | M5-3 | notes scene 편집 interaction | 노트 배치·이동·삭제·복사·붙여넣기·flip이 원본과 같은 결과를 낸다. overlap/conflict가 화면에 표시된다. |
 | M5-4 | shapes scene — shape/lane 서브모드 | `T`로 서브모드가 갈리고 선택 필터가 서브모드를 따른다. Q/W/E/R 툴이 정의대로 배치한다. 현재 그룹·symmetry 쌍·`R` 모드가 툴바에 상시 표시된다. |

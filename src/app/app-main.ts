@@ -110,6 +110,7 @@ import {
   type EditorWorkspaceSceneHandle,
 } from '../scene/scene-editor-workspace.js';
 import { mountEditorNotesBody } from '../scene/scene-editor-notes.js';
+import { mountEditorShapesBody } from '../scene/scene-editor-shapes.js';
 import { createInitChart } from '../edit/edit-chart-init.js';
 import {
   createWorkspaceSession,
@@ -532,10 +533,21 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
       // beginEditorSession()이 먼저 만들어 둔 뒤에만 category가 notes로
       // 들어올 수 있다(editor-start를 거치지 않고는 editor-notes에 닿지
       // 않는다).
-      mountNotes(container, chart) {
+      mountNotes(container, chart, view) {
         return mountEditorNotesBody(container, chart, {
           session: editorSession!,
           dispatch: (command) => editorCommandHistory!.dispatch(command),
+          view,
+        });
+      },
+      // M5-4: shapes body를 실제로 채운다 — notes와 같은 전제(session/
+      // commandHistory는 beginEditorSession()이 먼저 만들어 둔다), `view`는
+      // workspace가 notes와 공유하는 같은 참조를 그대로 넘겨받는다.
+      mountShapes(container, chart, view) {
+        return mountEditorShapesBody(container, chart, {
+          session: editorSession!,
+          dispatch: (command) => editorCommandHistory!.dispatch(command),
+          view,
         });
       },
     });

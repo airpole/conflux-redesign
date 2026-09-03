@@ -5,6 +5,7 @@ import type { Chart } from '../core/core-chart.js';
 import { buildTimeline, tickToMs } from '../core/core-timing.js';
 import type { Command } from '../edit/edit-command.js';
 import { mountEditorNotesBody, type EditorNotesApi } from './scene-editor-notes.js';
+import { createEditorViewState } from './scene-editor-view.js';
 
 function mount(initialChart: Chart = makeChart()): {
   target: HTMLElement;
@@ -29,6 +30,7 @@ function mount(initialChart: Chart = makeChart()): {
       },
     },
     dispatch,
+    view: createEditorViewState(),
   };
   const handle = mountEditorNotesBody(target, initialChart, api);
   const canvas = target.querySelector('.editor-notes-canvas') as HTMLCanvasElement;
