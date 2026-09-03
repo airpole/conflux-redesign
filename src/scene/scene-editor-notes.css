@@ -21,6 +21,10 @@
   color: var(--cyan);
 }
 
+.editor-notes-canvas-wrap {
+  position: relative;
+}
+
 .editor-notes-canvas {
   width: 100%;
   aspect-ratio: 4 / 3;

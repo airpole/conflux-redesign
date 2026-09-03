@@ -431,23 +431,44 @@ mid-start를 검증했고, 기존 94개 game-layer 테스트·전체 1323개 테
 **seek 축 최소 표시 길이(D-2026-097 재배치분)도 실측으로 닫혔다** — 원본
 `conflux-editor`의 `load-chart.js`(25행) `ES.totalMs = Math.max(ES.audioMs || 0,
 getChartEndMs(), 5000)`: **5000ms(5초) 하한**이다. `songEndMs`(플레이 종료 조건,
-[[timing]] §9)와는 다른 값 — seek 축 total은 `Math.max(contentEndMs, 5000)`으로
-쓰면 된다. 이 값 자체는 확정됐지만 실제 seek bar UI가 아직 없어(아래 참조) 코드에는
-아직 반영하지 않았다.
+[[timing]] §9)와는 다른 값 — seek 축 total은 `Math.max(contentEndMs, 5000)`이고,
+`scene-editor-test.ts`의 `SEEK_AXIS_MIN_MS`로 실제 반영됐다(아래).
 
-**scene 층(test scene 화면 자체)은 이번 라운드에 시작하지 못했다 — 결정 필요
-항목으로 막혔다**: `editor-graph.md` §5·`editor-editing.md`가 test scene의 idle
-static preview·Space 즉시재생·Enter→gameplay 전부를 "current position"(현재
-편집 커서 위치) 기준으로 정의하는데, 그 "현재 위치"를 담을 상태가 리포에 없다 —
-`scene-editor-view.ts`의 `EditorViewState`는 scroll/zoom(`viewMs`/`scrollMs`)만
-있고 재생 시작점으로 쓸 playhead/cursor ms 필드가 없다(notes/shapes 어느 씬도
-이런 개념을 안 쓴다 — grep 확인). 이 값이 어디 사니는지(view state에 추가?
-새 필드?), 무엇이 그 값을 갱신하는지(notes/shapes 타임라인 클릭? seek bar
-드래그만?), notes/shapes 탭을 오갈 때 유지되는지가 모두 제품 결정이라 임의로
-만들지 않았다. 이 결정이 나면 나머지(idle 프리뷰·embedded quick options 패널·
-seek bar·Space/Enter 배선·editor-origin no-record 실제 호출·result 생략하고
-편집 화면으로 복귀, [[scene]] §9)는 이미 준비된 engine/session/quick-options/
-records 조각을 그대로 이어 붙이면 된다.
+**후속 라운드(D-2026-104)가 "current position" 결정과 scene 층을 마저 채웠다** —
+사용자 확인: 새 playhead 상태를 만들지 않고 notes/shapes와 이미 공유하는
+`EditorViewState.scrollMs`를 그대로 재생 시작점으로 쓴다("지금 타임라인 맨
+아래에 보이는 시각"이 곧 "현재 위치") — notes/shapes 탭을 오가도 같은 참조라
+자동으로 유지된다. `scene-editor-test.ts`(idle static preview·embedded quick
+options 패널·seek bar·Space=즉시재생[leadInMs=0]·Enter=gameplay 진입 위임)를
+새로 만들고 `scene-editor-workspace.ts`에 `mountTest` 자리를 붙였다(notes/
+shapes/meta와 같은 delegation 패턴). `app-main.ts`가 `enterGameplayFromEditorTest`
+로 `scene-gameplay.ts`(M5-6 확장, `startChartMs`/`leadInMs`/`editorOrigin` 필드
+추가)를 3초 lead-in·editor-origin으로 push하고, `onGameplayFinished`가
+`editorOrigin`이면 result를 건너뛰고 `goBack()`으로 test scene에 복귀한다
+([[scene]] §9). no-record 4조건(`NoRecordConditions.editorOrigin`/`midStart`)도
+이 경로에서 실제로 채워진다(M3-7이 정의해 둔 필드를 처음 실제로 쓴다).
+
+**"seek bar"(D-2026-104의 추가 요구, 사용자 확인)** — notes/shapes/test 우측에
+드래그 가능한 세로 scrollbar를 새로 붙였다(`scene-editor-view.ts`의
+`mountEditorScrollbar`, `scrollMs`를 시각화·드래그-seek). **원본에는 대응하는
+스크롤바가 없다**(`load-chart.js`/`notes-render.js`/`shape-tools.js` 전부 실측
+확인) — 완전히 새 UI 요소이지 재유도가 아니다, 기존 토큰만 재사용한 최소
+트리트먼트다(`scene-editor-view.css` 참조). `editor-editing.md`의 "seek bar"
+문구는 idle의 정적 요소 목록(HUD·conflict 표시·quick options와 나란히)으로만
+쓰여 있어 (a)"현재 위치를 고르는 컨트롤" 하나만 가리킨다 — 재생 **중** 스크럽
+(pause 없이 mid-playback 점프)을 가리키는 문구는 어디에도 없어 (b) 해석은
+기각했다. 5000ms 하한은 (a)에만 적용된다(재생 중 이동 자체가 이번 라운드
+범위 밖 — 정지[Esc]→위치 다시 seek→재시작(Space/Enter)만 지원).
+
+**남은 결정 필요 항목**: notes/shapes 스크롤바의 상한이 고정 총량 없이(원래
+무제한 위쪽 스크롤 모델) 현재 스크롤 위치까지 동적으로 늘어난다 —
+`scene-editor-notes.ts`/`scene-editor-shapes.ts`의 `scrollbarRange()`. Enter가
+quick options row 확정과 gameplay 진입 두 곳에서 겹쳐(embedded 패널이라
+song-select overlay처럼 모달로 못 가른다) "미확정 draft가 있을 때만 quick
+options가 삼킨다"로 절충했다 — `scene-editor-test.ts` 헤더 참조. 즉시재생 HUD는
+playfield·notes·판정선·key 빔·콤보·카운터/퍼센트만 그린다(jacket·sudden
+cover·text event·hit effect는 Exit 기준 밖으로 남겼다). idle static preview의
+conflict 표시는 계산·렌더 배선이 아직 없다.
 | M5-7 | text events | 배치·편집·삭제가 되고 재생 시 정의된 fade로 표시된다. |
 
 **Exit**: 빈 chart에서 시작해 노트·shape·lane·text·메타를 넣고 저장한 뒤 game에서 플레이할 수 있다. 수동 대조 시나리오 — 편집 조작별 결과 비교.

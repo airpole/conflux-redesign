@@ -1621,6 +1621,69 @@
 - **Commit:** `388b1f2`
 
 
+### D-2026-104 — M5-6: test scene 완성 — scrollMs=current position, 새 scrollbar
+
+- **Status:** Accepted
+- **Decision:** M5-6의 남은 결정 필요 항목(D-2026-103이 이월한 "current
+  position")을 사용자 확인으로 닫고 scene 층을 완성했다.
+
+  **"current position" = 새 상태를 만들지 않고 `EditorViewState.scrollMs`를
+  그대로 쓴다.** notes/shapes가 이미 공유하는 필드이고, "지금 타임라인 맨
+  아래에 보이는 시각"이 test scene이 필요로 하는 "재생 시작점" 개념과 정확히
+  같다. 탭 전환 시 유지도 기존 참조 공유로 공짜로 따라온다.
+
+  **새 draggable scrollbar**(`scene-editor-view.ts`의 `mountEditorScrollbar`)를
+  notes/shapes/test 셋 다에 붙였다 — 우측 고정 세로 트랙, `scrollMs`를
+  드래그로 seek. **원본 `conflux-editor`에는 대응하는 요소가 없다**
+  (`load-chart.js`/`notes-render.js`/`shape-tools.js` 실측 확인) — 완전히
+  새 UI다, 기존 CSS 토큰만 재사용했다(`scene-editor-view.css`).
+  notes/shapes의 상한은 원래 무제한 위쪽 스크롤 모델이라 고정 총량이 없어
+  현재 스크롤 위치까지 동적으로 늘어나는 상한을 썼다(결정 필요 항목으로
+  별도 표시) — test scene은 D-2026-097의 5000ms 하한을 고정 상한으로 쓴다.
+
+  **`editor-editing.md`의 "seek bar" 문구는 (a)(위치를 고르는 컨트롤)만
+  가리킨다** — idle의 정적 요소 나열(HUD·conflict·quick options와 나란히)로만
+  등장하고, 재생 **중** 스크럽을 가리키는 별도 문구는 어디에도 없다. (b) 해석
+  (mid-playback pause+jump)은 이 라운드가 만들지 않았다 — 필요하면 별도 결정.
+  5000ms 하한은 (a)에만 적용된다.
+
+  **`scene-editor-test.ts`(신규)**: idle static preview(`drawPlayfield`를
+  `scrollMs`로 한 번)·embedded quick options 패널(`core-quick-options.ts`,
+  song-select overlay와 같은 로직·모달이 아닌 상시 배치)·seek bar·
+  Space(idle 전용, `leadInMs=0` mid-start, D-2026-103)·Enter(host에
+  `onEnterGameplay(scrollMs)` 위임)·Esc(세션 중단). **Enter 충돌**(quick
+  options 확정과 gameplay 진입 모두 Enter) — 패널이 모달이 아니라서 포커스로
+  못 가른다, "확정할 미확정 draft가 있을 때만 quick options가 삼킨다"로
+  절충(해석적 결정, 파일 헤더에 명시).
+
+  **`scene-gameplay.ts`**에 `startChartMs`/`leadInMs`/`editorOrigin`을 더해
+  `GameSessionOptions`로 그대로 흘린다. **`app-main.ts`**의
+  `enterGameplayFromEditorTest`가 `editorSession`의 chart/musicBlob/jacketBlob
+  으로 `pendingGameplayInput`을 채워 `manager.goScene('gameplay')`(push, 기존
+  song-credit의 `'replace'`와 다른 경로 — editor-test가 스택에 남아 있어야
+  `goBack()`이 거기로 돌아간다)로 진입한다. `onGameplayFinished`는
+  `editorOrigin`이면 result를 건너뛰고 `goBack()`한다([[scene]] §9). 이
+  경로에서 `NoRecordConditions.editorOrigin`/`midStart`가 처음 실제 값으로
+  채워진다(M3-7이 정의해 둔 필드, 값 판별 로직 자체는 안 건드렸다).
+
+  즉시재생 HUD는 playfield·notes·판정선·key 빔·콤보·카운터/퍼센트만 그린다
+  (jacket·sudden cover·text event·hit effect는 Exit 기준 밖으로 남김,
+  `scene-editor-test.ts` 헤더).
+
+  테스트 신규: `scene-editor-view.test.ts`(scrollbar mount/update/드래그/
+  destroy, 5개), `scene-editor-test.test.ts`(mount·Enter→onEnterGameplay·
+  idle Space 가로챔·quick options 확정·destroy·update, 6개) — 전체
+  1334/1334 통과.
+- **Defined in:** `src/scene/scene-editor-test.ts`, `src/scene/scene-editor-view.ts`,
+  `src/scene/scene-editor-notes.ts`, `src/scene/scene-editor-shapes.ts`,
+  `src/scene/scene-editor-workspace.ts`, `src/scene/scene-gameplay.ts`,
+  `src/app/app-main.ts`, `_plan/build-order.md`
+- **Rationale:** Not required
+- **Affects:** scene, app, spec(build-order) — M5-6 완료
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

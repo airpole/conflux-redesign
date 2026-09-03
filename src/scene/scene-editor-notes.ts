@@ -69,7 +69,13 @@ import {
 } from '../edit/edit-notes-commands.js';
 import type { Command } from '../edit/edit-command.js';
 import type { EditorCategoryController } from './scene-editor-workspace.js';
-import { zoomIn, zoomOut, type EditorViewState } from './scene-editor-view.js';
+import {
+  mountEditorScrollbar,
+  zoomIn,
+  zoomOut,
+  type EditorScrollbar,
+  type EditorViewState,
+} from './scene-editor-view.js';
 import './scene-editor-notes.css';
 
 /** 히트 반경(px) — D-2026-096. */
@@ -201,11 +207,14 @@ export function mountEditorNotesBody(
   wrap.className = 'editor-notes-body';
   const toolbar = document.createElement('div');
   toolbar.className = 'editor-notes-toolbar';
+  const canvasWrap = document.createElement('div');
+  canvasWrap.className = 'editor-notes-canvas-wrap';
   const canvas = document.createElement('canvas');
   canvas.className = 'editor-notes-canvas';
   canvas.width = 800;
   canvas.height = 600;
-  wrap.append(toolbar, canvas);
+  canvasWrap.append(canvas);
+  wrap.append(toolbar, canvasWrap);
   container.append(wrap);
   const ctx = canvas.getContext('2d');
 
@@ -217,6 +226,15 @@ export function mountEditorNotesBody(
   let savedLNDur = TICKS_PER_BEAT;
   let clipboard: readonly ClipboardEntry[] | null = null;
   const view = api.view;
+
+  // 세로 scrollbar(M5-6, D-2026-104) — 우측 고정, scrollMs를 드래그로 seek.
+  // 상한은 고정 총량이 없어(원래 무제한 스크롤 모델) 현재 스크롤 위치까지
+  // 동적으로 늘어난다(scene-editor-view.ts 헤더 참조, 결정 필요 항목).
+  const scrollbar: EditorScrollbar = mountEditorScrollbar(canvasWrap, view, () => render());
+  function scrollbarRange(): { minMs: number; maxMs: number } {
+    const minMs = tickToMs(timeline, minTick(timeline));
+    return { minMs, maxMs: Math.max(minMs + view.viewMs, view.scrollMs + view.viewMs) };
+  }
 
   let drag: {
     readonly indices: readonly number[];
@@ -340,6 +358,7 @@ export function mountEditorNotesBody(
   function render(): void {
     renderToolbar();
     draw();
+    scrollbar.update(scrollbarRange());
   }
 
   // ── placement ────────────────────────────────────────────
@@ -706,6 +725,7 @@ export function mountEditorNotesBody(
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerup', onPointerUp);
       canvas.removeEventListener('wheel', onWheel);
+      scrollbar.destroy();
       wrap.remove();
     },
   };

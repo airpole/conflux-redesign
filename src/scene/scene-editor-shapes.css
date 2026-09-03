@@ -22,6 +22,10 @@
   color: var(--cyan);
 }
 
+.editor-shapes-canvas-wrap {
+  position: relative;
+}
+
 .editor-shapes-canvas {
   width: 100%;
   aspect-ratio: 4 / 3;

@@ -168,7 +168,7 @@ settings와 같은 "하나의 host, 여러 scene id" 패턴으로 `mountEditorWo
 참조). 세션 자체(`WorkspaceSession`)는 새로 만들지 않고 M3의
 `edit-workspace.ts`를 그대로 쓴다 — 자세한 배선은 `src/edit/README.md`·
 `src/app/README.md`. notes/shapes/meta/test 4 scene은 이번 라운드엔
-chart identity만 보여주는 껍데기다 — 실제 편집 UI는 M5-3~M5-6.
+chart identity만 보여주는 껍데기였다 — 실제 편집 UI는 M5-3~M5-6이 채웠다.
 
 **M5-3이 `EditorCategoryController` delegation을 `scene-editor-workspace.ts`에
 더하고**, notes에 첫 실제 내용(`scene-editor-notes.ts`)을 붙였다.
@@ -244,3 +244,21 @@ asset 필드는 `editor-commands.md` §7대로 command가 아니라
 직접 만들어 썼다(바이너리라 다른 표면이 필요했다). "새 난이도" 파생·
 `measureLabelOffset`(player 전역 설정, chart 데이터 아님)은 M5-5 Exit
 기준 밖이라 범위 밖으로 뒀다 — 자세한 근거는 `scene-editor-meta.ts` 헤더.
+
+**M5-6이 `scene-editor-test.ts`를 마지막 delegation 자리에 붙였다**
+(D-2026-103/104). "현재 위치"는 새 상태를 만들지 않고 notes/shapes와
+공유하는 `EditorViewState.scrollMs`를 그대로 재생 시작점으로 쓴다(사용자
+확인) — idle static preview·embedded quick options 패널(`core-quick-
+options.ts`, song-select overlay와 같은 로직·모달 아닌 상시 배치)·seek
+bar·Space(idle 전용, lead-in 없는 즉시재생 — `game-engine.ts`의 mid-start
+확장, D-2026-103)·Enter(host `app-main.ts`의 `enterGameplayFromEditorTest`에
+위임, `scene-gameplay.ts`를 3초 lead-in·editor-origin으로 push)·Esc(즉시재생
+세션 중단)를 구현했다. gameplay 종료 후 `onGameplayFinished`가
+`editorOrigin`이면 result 없이 `goBack()`으로 test scene에 복귀한다
+([[scene]] §9). **새 draggable scrollbar**(`scene-editor-view.ts`의
+`mountEditorScrollbar`, `scrollMs`를 우측 세로 트랙으로 시각화·드래그-seek)
+를 notes/shapes/test 셋 다에 붙였다 — 원본에는 대응 요소가 없는 완전히 새
+UI다(실측 확인). Enter가 quick options 확정과 gameplay 진입 둘 다에 겹치는
+문제는 "미확정 draft가 있을 때만 quick options가 삼킨다"로 절충했다(해석적
+결정). 자세한 근거·남은 결정 필요 항목은 `scene-editor-test.ts` 헤더와
+`_plan/build-order.md` M5-6 참조.

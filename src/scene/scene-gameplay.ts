@@ -37,6 +37,15 @@
  * 이 파일은 카운트다운 자체를 그리지 않는다 — 카운트다운 중에도 화면은
  * pause 시점 그대로 얼어 있다(엔진 계약, "정지 카운트다운").
  *
+ * **M5-6(D-2026-104)이 mid-start를 재사용한다** — `GameplayStartInput`에
+ * `startChartMs`/`leadInMs`/`editorOrigin`을 더해 `createGameSession`으로
+ * 그대로 흘려보낸다(D-2026-103). editor test scene의 Enter가 이 값들을
+ * 채워 push로 이 scene에 들어온다 — song-credit→gameplay의 기존 replace
+ * 진입과는 별도 경로(`app-main.ts`의 `enterGameplayFromEditorTest` 참조).
+ * editor-origin 종료 후 result를 건너뛰고 편집 화면으로 돌아가는 분기는 이
+ * 파일이 아니라 `app-main.ts`의 `onGameplayFinished`가 판단한다 — 이 파일은
+ * `onFinished(result)`만 그대로 알린다.
+ *
  * **scene 스택 관리**: gameplay→result는 `goScene('result', 'replace')`를
  * 쓰기로 했다(호출측 `app-main.ts`) — `song-credit → gameplay`의 replace
  * 관례를 그대로 이어, Retry를 반복해도 스택이 계속 자라지 않게 한다.
@@ -93,6 +102,16 @@ export interface GameplayStartInput {
   readonly settings: Settings;
   /** `null`이면 배경 없이 진행(`chart.jacketFile`이 없거나 decode 실패). */
   readonly jacket: GameplayJacket | null;
+  /** mid-start(M5-6, D-2026-103) — editor test scene의 Enter 진입은 0이
+   *  아닌 위치에서 연다. 기본 0(기존 song-select 경로와 동일). */
+  readonly startChartMs?: number;
+  /** 기본 `LEAD_IN_MS`(3초) — editor test의 Enter→gameplay는 이 기본값을
+   *  그대로 쓴다(`editor-graph.md` §5 "3초 lead-in"). */
+  readonly leadInMs?: number;
+  /** editor test scene에서 시작한 판이면 `true` — no-record 4조건 중
+   *  하나([[settings]] §2)이자 종료 후 편집 화면으로 복귀하는 신호
+   *  (`scene.md` §9)다. 기본 `false`. */
+  readonly editorOrigin?: boolean;
 }
 
 export interface GameplayHandlers {
@@ -385,6 +404,8 @@ export function mountGameplayScene(
       startNowMs,
       playbackRate: 1,
       hitSound: { ctx: audioCtx, buffer: hitSoundBuffer },
+      ...(input.startChartMs !== undefined ? { startChartMs: input.startChartMs } : {}),
+      ...(input.leadInMs !== undefined ? { leadInMs: input.leadInMs } : {}),
       engineHooks: {
         onAudioStart(fromMs): void {
           audio.stop();

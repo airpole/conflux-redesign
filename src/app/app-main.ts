@@ -112,6 +112,8 @@ import {
 import { mountEditorNotesBody } from '../scene/scene-editor-notes.js';
 import { mountEditorShapesBody } from '../scene/scene-editor-shapes.js';
 import { mountEditorMetaBody } from '../scene/scene-editor-meta.js';
+import { mountEditorTestBody } from '../scene/scene-editor-test.js';
+import { DEFAULT_SETTINGS, type Settings } from '../core/core-settings.js';
 import { createInitChart } from '../edit/edit-chart-init.js';
 import {
   createWorkspaceSession,
@@ -374,14 +376,15 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
     const input = pendingGameplayInput;
     if (input === null) return;
     const { chart, settings } = input;
+    const editorOrigin = input.editorOrigin ?? false;
 
     const timeline = buildTimeline(chart);
     const totalUnits = buildJudgeNotes(chart, timeline).totalUnits;
     const conditions: NoRecordConditions = {
       autoplay: settings.autoplay,
       staticShape: settings.staticShape,
-      midStart: false,
-      editorOrigin: false,
+      midStart: (input.startChartMs ?? 0) !== 0,
+      editorOrigin,
     };
     const candidate: RecordCandidate = {
       judgments: result.counts,
@@ -393,6 +396,14 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
     const prevRecord = await readRecord(storage, chart.songId, chart.chartId);
     const prevBest = prevRecord !== null ? deriveRecordSummary(prevRecord) : null;
     await saveRecordIfEligible(storage, chart.songId, chart.chartId, candidate, conditions);
+
+    if (editorOrigin) {
+      // [[scene]] §9 "editor test host에서는 편집 화면으로 복귀한다" —
+      // autoplay와 마찬가지로 result를 거치지 않는다(editor-origin은 항상
+      // no-record라 result가 보여줄 신기록 갱신 자체가 없다).
+      manager.goBack();
+      return;
+    }
 
     if (settings.autoplay) {
       // [[scene]] §9 "autoplay로 돌린 판은 곡이 끝나면 result를 거치지
@@ -520,6 +531,46 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
   let editorSession: WorkspaceSession | undefined;
   let editorCommandHistory: CommandHistory | undefined;
   let editorWorkspaceHandle: EditorWorkspaceSceneHandle | undefined;
+  // test 탭의 quick options 패널이 여는 순간 스냅샷 출처 — song-select
+  // overlay의 `currentSettings`와 같은 관례(M4-7). editor에는 설정 화면
+  // 진입점이 없어 `editor-test` scene의 onEnter가 매번 다시 읽어 채운다.
+  let editorTestSettings: Settings = DEFAULT_SETTINGS;
+
+  /** editor test scene의 Enter — gameplay scene을 mid-start(3초 lead-in,
+   *  editor-origin)로 push한다(`scene-gameplay.ts` M5-6 확장, D-2026-103).
+   *  song-credit→gameplay의 기존 replace 진입과 별개 경로다 — 여기는 result
+   *  없이 곧장 editor로 돌아와야 해서 스택에 editor-test를 그대로 남겨 둔다
+   *  (`goBack()`이 그리로 돌아간다). */
+  async function enterGameplayFromEditorTest(startChartMs: number): Promise<void> {
+    const session = editorSession;
+    if (session === undefined) return;
+    let musicBuffer: AudioBuffer | null = null;
+    if (session.musicBlob !== null) {
+      try {
+        musicBuffer = await audioEnv.decode(await session.musicBlob.arrayBuffer());
+      } catch {
+        musicBuffer = null;
+      }
+    }
+    let jacket: GameplayStartInput['jacket'] = null;
+    if (session.jacketBlob !== null) {
+      try {
+        const bitmap = await createImageBitmap(session.jacketBlob);
+        jacket = { image: bitmap, width: bitmap.width, height: bitmap.height };
+      } catch {
+        jacket = null;
+      }
+    }
+    pendingGameplayInput = {
+      chart: session.chart,
+      musicBuffer,
+      settings: editorTestSettings,
+      jacket,
+      startChartMs,
+      editorOrigin: true,
+    };
+    manager.goScene('gameplay'); // push(replace 아님) — goBack()이 editor-test로 돌아간다.
+  }
 
   function mountEditorWorkspaceIfNeeded(): void {
     if (editorWorkspaceHandle !== undefined) return;
@@ -560,6 +611,24 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
           session: editorSession!,
           dispatch: (command) => editorCommandHistory!.dispatch(command),
           notifyChanged: () => editorWorkspaceHandle?.update(editorSession!.chart),
+        });
+      },
+      // M5-6: test body를 실제로 채운다 — `editorTestSettings`는
+      // `editor-test` scene의 onEnter가 매번 새로 읽어 채운다(아래
+      // `makeEditorWorkspaceScene`의 test 특수 케이스).
+      mountTest(container, chart, view) {
+        return mountEditorTestBody(container, chart, {
+          session: editorSession!,
+          view,
+          settings: editorTestSettings,
+          audio: audioEnv,
+          onQuickOptionsChange(settings): void {
+            editorTestSettings = settings;
+            void writeSettings(storage, settings);
+          },
+          onEnterGameplay(startChartMs): void {
+            void enterGameplayFromEditorTest(startChartMs);
+          },
         });
       },
     });
@@ -699,6 +768,17 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
         mountEditorWorkspaceIfNeeded();
       },
       onEnter(): void {
+        if (category === 'test') {
+          // quick options 패널 스냅샷을 매 진입마다 새로 읽는다 — editor에는
+          // settings 화면 진입점이 없어(song-select overlay의 `update()`가
+          // settings를 받는 것과 달리) 여기서 직접 읽어 채운다.
+          void (async () => {
+            editorTestSettings = await readSettings(storage);
+            editorWorkspaceHandle!.update(editorSession!.chart);
+            editorWorkspaceHandle!.show(category);
+          })();
+          return;
+        }
         editorWorkspaceHandle!.update(editorSession!.chart);
         editorWorkspaceHandle!.show(category);
       },

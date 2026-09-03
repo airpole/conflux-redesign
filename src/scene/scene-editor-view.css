@@ -1,0 +1,30 @@
+/* notes/shapes/test 공유 scrollbar(M5-6, D-2026-104) — `scrollMs`를 시각화하고
+   드래그로 seek할 수 있게 하는 새 UI 요소. 원본 `conflux-editor`에는 대응하는
+   요소가 없다(notes-render.js/shape-tools.js/load-chart.js 어디에도 스크롤바가
+   없음, 실측 확인) — 기존 토큰(`--rule`/`--rule-strong`/`--cyan`)만 재사용한
+   최소 트리트먼트다. */
+
+.editor-scrollbar-track {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 0.8cqw;
+  background: var(--rule);
+  cursor: pointer;
+  touch-action: none;
+}
+
+.editor-scrollbar-thumb {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: var(--rule-strong);
+  border-radius: 0.2cqw;
+  min-height: 3%;
+}
+
+.editor-scrollbar-track:hover .editor-scrollbar-thumb,
+.editor-scrollbar-track.dragging .editor-scrollbar-thumb {
+  background: var(--cyan);
+}

@@ -84,10 +84,10 @@ phase 동안 `paused`가 `true`라 호출측이 `registerKeyDown`/`registerKeyUp
 [[editor-graph]] §5)용이다. `createGameSession`은 `startChartMs≠0`이면 세션을
 열기 전에 동기로 `seedPlayStateAt`을 한 번 불러 anchor 이전 note를 SYNC로
 미리 채운다. 둘 다 기존 4-인자 호출과 완전히 하위호환이다(default가 기존
-tick-0 동작과 동일). **editor test scene 자체(idle preview·embedded quick
-options·Space/Enter 배선)는 아직 없다** — "현재 편집 커서 위치" 상태가
-리포에 정의돼 있지 않아(`scene-editor-view.ts`에 playhead 개념 없음) 결정
-필요 항목으로 남겼다, `_plan/build-order.md` M5-6 참조.
+tick-0 동작과 동일). **후속 라운드(D-2026-104)가 editor test scene을
+완성했다** — "현재 위치"는 새 상태 없이 notes/shapes와 공유하는
+`EditorViewState.scrollMs`를 그대로 쓰기로 사용자가 확인했다
+(`src/scene/scene-editor-test.ts` 참조).
 
 `game-settings.ts`는 M4-5 범위다([[settings]]). `env-storage`의 `settings`
 store(M3-1, `edit-workspace.ts`의 고정 key 패턴을 따라 key=`'current'`)에서

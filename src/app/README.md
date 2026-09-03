@@ -121,3 +121,18 @@ identity/metadata/asset 필드 편집은 command가 아니라 `session.updateCha
 `editorWorkspaceHandle`을 명시적으로 새로고침한다 — tempo/timeSignature
 편집은 여전히 command라 `mountNotes`/`mountShapes`와 같은 dispatch
 구독만으로 충분하다.
+
+M5-6이 `mountTest(container, chart, view)`를 더했다(D-2026-103/104) —
+notes/shapes와 같은 공유 `view`를 받는다(`scrollMs` = "현재 위치"). 이
+파일이 새로 더한 건 `editorTestSettings`(quick options 패널 스냅샷, `editor-
+test` scene의 `onEnter`가 매번 `readSettings`로 다시 채운다 — editor에는
+settings 화면 진입점이 없어 song-select overlay의 `update()`가 매번
+settings를 받는 것과 달리 직접 읽는다)와 `enterGameplayFromEditorTest`
+(editor test의 Enter가 부르는 함수 — `editorSession`의 chart/musicBlob/
+jacketBlob으로 `pendingGameplayInput`을 채우고 `startChartMs`/
+`editorOrigin: true`를 실어 `manager.goScene('gameplay')`를 **push**한다,
+song-credit의 `'replace'`와 다른 경로다 — editor-test가 스택에 남아 있어야
+`goBack()`이 거기로 돌아간다). `onGameplayFinished`도 `editorOrigin`
+분기를 얻었다 — result를 건너뛰고 곧장 `goBack()`한다([[scene]] §9),
+no-record 4조건 중 `editorOrigin`/`midStart`(M3-7이 이미 정의해 둔 필드)를
+이 경로가 처음 실제 값으로 채운다.

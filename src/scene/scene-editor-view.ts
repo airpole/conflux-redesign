@@ -13,7 +13,20 @@
  * `viewMs` 파생값 자체(D-2026-098: `viewMs = 960000/(edZm×bpm)`, 120bpm
  * 기준)는 여기로 옮기지 않았다 — 이미 `scene-editor-notes.ts`가 유도해 둔
  * 것을 상수만 재사용한다.
+ *
+ * **`mountEditorScrollbar`(M5-6, D-2026-104)** — notes/shapes/test 셋 다 같은
+ * `scrollMs`를 시각화·드래그-seek하는 새 UI 요소다. 원본에는 대응하는
+ * 스크롤바가 없다(실측 확인, `scene-editor-view.css` 참조) — 이 파일이
+ * scroll/zoom 상태를 이미 소유하고 있어 그 상태를 그리는 최소 위젯을 같은
+ * 곳에 뒀다(새 계층을 만든 게 아니라 기존 상태 소유자에 자연스러운 확장).
+ * 세로 트랙(우측 고정) — notes/shapes의 "시간은 위로 흐른다" 관례를 그대로
+ * 따라 트랙 위쪽이 늦은 시각, 아래쪽이 이른 시각이다. `range`(min/maxMs)는
+ * 호출측이 매 update마다 넘긴다 — notes/shapes는 `minTick()` 하한 + 현재
+ * 스크롤 위치까지 동적으로 늘어나는 상한(원래 위·아래 한계가 없는 스크롤
+ * 모델이라 고정 총량이 없다, 결정 필요 항목으로 별도 보고), test scene은
+ * `Math.max(contentEndMs, 5000)`(D-2026-097/103) 고정 상한을 쓴다.
  */
+import './scene-editor-view.css';
 
 /** `viewMs` 기본값 — D-2026-098(edZm=1, 120bpm 기준 환산). */
 export const VIEW_MS_DEFAULT = 8000;
@@ -41,4 +54,105 @@ export function zoomOut(view: EditorViewState): void {
 
 export function zoomIn(view: EditorViewState): void {
   view.viewMs = Math.max(VIEW_MS_MIN, view.viewMs / VIEW_MS_ZOOM_STEP);
+}
+
+/** 스크롤바가 그려질 시간 범위. `maxMs > minMs`를 호출측이 보장한다. */
+export interface ScrollbarRange {
+  readonly minMs: number;
+  readonly maxMs: number;
+}
+
+export interface EditorScrollbar {
+  /** 매 render() 프레임에서 부른다 — 트랙 안 thumb 위치/크기를 다시 잰다. */
+  update(range: ScrollbarRange): void;
+  destroy(): void;
+}
+
+/**
+ * 세로 scrollbar(M5-6, D-2026-104) — `container`는 `position: relative`(또는
+ * 이미 그런 조상)여야 트랙이 우측 고정으로 붙는다. 드래그·클릭 둘 다
+ * 트랙 위 pointer y를 그 지점의 ms로 환산해 `view.scrollMs`를 그 시각이
+ * 창(`viewMs`) 중앙에 오도록 세팅한다. `onSeek`은 값이 바뀔 때마다(드래그
+ * 중 매 프레임 포함) 불린다 — 호출측이 다시 그려야 한다.
+ */
+export function mountEditorScrollbar(
+  container: HTMLElement,
+  view: EditorViewState,
+  onSeek: () => void,
+): EditorScrollbar {
+  const track = document.createElement('div');
+  track.className = 'editor-scrollbar-track';
+  const thumb = document.createElement('div');
+  thumb.className = 'editor-scrollbar-thumb';
+  track.append(thumb);
+  container.append(track);
+
+  let range: ScrollbarRange = { minMs: 0, maxMs: 1 };
+  let dragging = false;
+
+  function msAtPointerY(clientY: number): number {
+    const rect = track.getBoundingClientRect();
+    const frac = rect.height <= 0 ? 0 : (clientY - rect.top) / rect.height;
+    const clamped = Math.max(0, Math.min(1, frac));
+    // 트랙 위쪽 = 늦은 시각(range.maxMs), 아래쪽 = 이른 시각(range.minMs) —
+    // notes/shapes의 "시간은 위로 흐른다" 관례(scene-editor-notes.ts 헤더).
+    return range.maxMs - clamped * (range.maxMs - range.minMs);
+  }
+
+  function seekTo(clientY: number): void {
+    const targetMs = msAtPointerY(clientY);
+    const span = range.maxMs - range.minMs;
+    const maxScroll = Math.max(range.minMs, range.maxMs - view.viewMs);
+    view.scrollMs = Math.max(
+      range.minMs,
+      Math.min(maxScroll, targetMs - view.viewMs / 2, range.minMs + span),
+    );
+    onSeek();
+  }
+
+  function onPointerDown(event: PointerEvent): void {
+    event.preventDefault();
+    dragging = true;
+    track.classList.add('dragging');
+    // jsdom(테스트 환경)엔 없는 메서드라 존재할 때만 부른다 — 실제 브라우저
+    // 에선 포인터가 트랙 밖으로 나가도 드래그가 이어지게 하는 표준 캡처다.
+    track.setPointerCapture?.(event.pointerId);
+    seekTo(event.clientY);
+  }
+
+  function onPointerMove(event: PointerEvent): void {
+    if (!dragging) return;
+    seekTo(event.clientY);
+  }
+
+  function onPointerUp(event: PointerEvent): void {
+    if (!dragging) return;
+    dragging = false;
+    track.classList.remove('dragging');
+    track.releasePointerCapture?.(event.pointerId);
+  }
+
+  track.addEventListener('pointerdown', onPointerDown);
+  track.addEventListener('pointermove', onPointerMove);
+  track.addEventListener('pointerup', onPointerUp);
+
+  return {
+    update(nextRange: ScrollbarRange): void {
+      range = nextRange;
+      const span = Math.max(1, range.maxMs - range.minMs);
+      const heightFrac = Math.max(0.03, Math.min(1, view.viewMs / span));
+      const topFrac = Math.max(
+        0,
+        Math.min(1 - heightFrac, 1 - (view.scrollMs + view.viewMs - range.minMs) / span),
+      );
+      thumb.style.top = `${(topFrac * 100).toFixed(3)}%`;
+      thumb.style.height = `${(heightFrac * 100).toFixed(3)}%`;
+    },
+    destroy(): void {
+      track.removeEventListener('pointerdown', onPointerDown);
+      track.removeEventListener('pointermove', onPointerMove);
+      track.removeEventListener('pointerup', onPointerUp);
+      track.remove();
+    },
+  };
 }

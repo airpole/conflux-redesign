@@ -1,0 +1,121 @@
+/* test 탭 — M5-6. 다른 editor scene과 같은 최소 트리트먼트(픽셀 디자인
+   결정 필요 항목, scene-editor-notes.css와 같은 사유). */
+
+.editor-test-body {
+  display: flex;
+  gap: 1cqw;
+  height: 100%;
+  padding: 1cqw;
+}
+
+.editor-test-frame-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.editor-test-canvas {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #050508;
+  touch-action: none;
+}
+
+.editor-test-quick-options {
+  width: 22cqw;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5cqw;
+  font-family: var(--sans);
+  font-size: 0.9cqw;
+  color: var(--dim);
+}
+
+/* quick options 위젯 — song-select overlay(scene-song-select.css)와 같은
+   class 이름·같은 토큰을 재사용한다(embedded 배치라 여기서도 로컬로 다시
+   정의, scene-song-select.css 헤더의 관례 그대로). */
+.editor-workspace-scene .quick-options-title {
+  font-family: var(--sans);
+  color: var(--cyan);
+  font-size: 1.1cqw;
+}
+
+.editor-workspace-scene .quick-options-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1cqw;
+  padding: 0.3cqw 0.6cqw;
+  border-left: 2px solid transparent;
+}
+
+.editor-workspace-scene .quick-options-row.active {
+  border-left-color: var(--cyan);
+}
+
+.editor-workspace-scene .quick-options-label {
+  font-family: var(--sans);
+  color: var(--text);
+  font-size: 1cqw;
+}
+
+.editor-workspace-scene .quick-options-control {
+  display: flex;
+  align-items: center;
+  gap: 0.6cqw;
+}
+
+.editor-workspace-scene .quick-options-value {
+  font-family: var(--mono);
+  color: var(--cyan);
+  font-size: 0.9cqw;
+  min-width: 3cqw;
+  text-align: right;
+}
+
+.editor-workspace-scene .quick-options-hint {
+  font-family: var(--sans);
+  color: var(--dim);
+  font-size: 0.75cqw;
+  margin-top: 0.4cqw;
+}
+
+.editor-workspace-scene .slider-input {
+  width: 12cqw;
+  accent-color: var(--cyan);
+}
+
+.editor-workspace-scene .segment-group {
+  display: flex;
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.editor-workspace-scene .segment-btn {
+  font-family: var(--sans);
+  background: transparent;
+  border: none;
+  color: var(--dim);
+  padding: 0.3cqw 1cqw;
+  cursor: pointer;
+}
+
+.editor-workspace-scene .segment-btn.active {
+  background: var(--cyan);
+  color: var(--on-accent);
+}
+
+.editor-workspace-scene .toggle-switch {
+  width: 3cqw;
+  height: 1.5cqw;
+  border-radius: 999px;
+  border: 1px solid var(--rule-strong);
+  background: transparent;
+  position: relative;
+  cursor: pointer;
+}
+
+.editor-workspace-scene .toggle-switch.on {
+  background: var(--cyan);
+  border-color: var(--cyan);
+}

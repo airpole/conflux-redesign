@@ -132,7 +132,13 @@ import {
 } from '../edit/edit-shape-commands.js';
 import type { Command } from '../edit/edit-command.js';
 import type { EditorCategoryController } from './scene-editor-workspace.js';
-import { zoomIn, zoomOut, type EditorViewState } from './scene-editor-view.js';
+import {
+  mountEditorScrollbar,
+  zoomIn,
+  zoomOut,
+  type EditorScrollbar,
+  type EditorViewState,
+} from './scene-editor-view.js';
 import './scene-editor-shapes.css';
 
 /** 히트 반경(px) — D-2026-099, `shape-input.js` `bd = 35` 재실측. */
@@ -310,11 +316,14 @@ export function mountEditorShapesBody(
   wrap.className = 'editor-shapes-body';
   const toolbar = document.createElement('div');
   toolbar.className = 'editor-shapes-toolbar';
+  const canvasWrap = document.createElement('div');
+  canvasWrap.className = 'editor-shapes-canvas-wrap';
   const canvas = document.createElement('canvas');
   canvas.className = 'editor-shapes-canvas';
   canvas.width = 800;
   canvas.height = 600;
-  wrap.append(toolbar, canvas);
+  canvasWrap.append(canvas);
+  wrap.append(toolbar, canvasWrap);
   container.append(wrap);
   const ctx = canvas.getContext('2d');
 
@@ -322,6 +331,14 @@ export function mountEditorShapesBody(
   let timeline = buildTimeline(chart);
   let geometry = buildFieldGeometry(chart);
   const view = api.view;
+
+  // 세로 scrollbar(M5-6, D-2026-104) — notes와 같은 위젯/규칙(scene-editor-
+  // notes.ts 참조, 상한은 결정 필요 항목).
+  const scrollbar: EditorScrollbar = mountEditorScrollbar(canvasWrap, view, () => render());
+  function scrollbarRange(): { minMs: number; maxMs: number } {
+    const minMs = tickToMs(timeline, minTick(timeline));
+    return { minMs, maxMs: Math.max(minMs + view.viewMs, view.scrollMs + view.viewMs) };
+  }
 
   let subMode: SubMode = 'shape';
   let shapeTool: ShapeTool = 'blue';
@@ -533,6 +550,7 @@ export function mountEditorShapesBody(
   function render(): void {
     renderToolbar();
     draw();
+    scrollbar.update(scrollbarRange());
   }
 
   // ── 배치 ─────────────────────────────────────────────────
@@ -1123,6 +1141,7 @@ export function mountEditorShapesBody(
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerup', onPointerUp);
       canvas.removeEventListener('wheel', onWheel);
+      scrollbar.destroy();
       wrap.remove();
     },
   };

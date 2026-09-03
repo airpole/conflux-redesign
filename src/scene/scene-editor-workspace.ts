@@ -22,7 +22,10 @@
  * 넘긴다(consumed 반환 시 여기서 더 처리하지 않는다) — notes 탭 자체
  * 단축키(Q/W/E/R/D/Delete/Ctrl+C/V/F, `Esc` 취소 계단)가 `Tab`/전역
  * `Escape`(뒤로가기)보다 먼저 자기 것부터 챙길 수 있게 하는 자리다.
- * test는 여전히 껍데기다 — M5-6.
+ *
+ * **M5-6이 test에 같은 자리를 붙였다** — `handlers.mountTest(container,
+ * chart, view)`. notes/shapes와 `view`(scrollMs="현재 위치", D-2026-104)를
+ * 공유한다 — `scene-editor-test.ts` 참조.
  *
  * **M5-4가 shapes에 같은 자리를 붙였다** — `handlers.mountShapes(container,
  * chart, view)`. `view`(`EditorViewState`, `scene-editor-view.ts`)는 이
@@ -86,6 +89,15 @@ export interface EditorWorkspaceHandlers {
   /** meta body를 채운다(M5-5) — notes/shapes와 달리 canvas가 아니라 폼이라
    *  공유 `view`가 필요 없다. */
   readonly mountMeta?: (container: HTMLElement, chart: Chart) => EditorCategoryController;
+  /** test body를 채운다(M5-6) — notes/shapes와 `view`(scrollMs = "현재
+   *  위치", D-2026-104)를 공유한다. session/settings/audio/gameplay 진입
+   *  콜백은 호출측(`app-main.ts`)이 자기 클로저로 채운다(notes/shapes의
+   *  `session`/`dispatch` 클로저와 같은 패턴). */
+  readonly mountTest?: (
+    container: HTMLElement,
+    chart: Chart,
+    view: EditorViewState,
+  ) => EditorCategoryController;
 }
 
 export interface EditorWorkspaceSceneHandle {
@@ -162,9 +174,13 @@ export function mountEditorWorkspaceScene(
       activeController = handlers.mountMeta(body, chart);
       return;
     }
+    if (category === 'test' && handlers.mountTest !== undefined && chart !== null) {
+      activeController = handlers.mountTest(body, chart, view);
+      return;
+    }
 
     const placeholder = el('div', 'editor-body-placeholder');
-    placeholder.textContent = `${CATEGORY_LABEL[category]} — 편집 UI는 이후 milestone 범위(M5-6)`;
+    placeholder.textContent = `${CATEGORY_LABEL[category]} — 편집 UI는 이후 milestone 범위`;
     body.append(placeholder);
   }
 
