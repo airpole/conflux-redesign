@@ -63,7 +63,7 @@ meta scene 한 화면에서 현재 chart의 모든 편집 필드를 구획한다
 `chartId` 입력 규칙:
 
 - init → 0 자동;
-- subtitle 없는 Trace/Drift/Surge/Flux 기본 chart → 1/2/3/4 자동;
+- subtitle 없는 Trace/Drift/Surge/Flux/Phase 기본 chart → 1/2/3/4/5 자동(고정 슬롯 5개 전부, [[data-model]] §4);
 - 추가 chart → 5+ 직접 입력;
 - 5 미만의 추가 id 거부.
 
