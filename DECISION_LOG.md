@@ -2024,7 +2024,7 @@
 - **Rationale:** Not required
 - **Affects:** build-order(spec) — 잔여 항목 정리
 - **Supersedes:** None
-- **Commit:** PENDING
+- **Commit:** `f29c4ef`
 
 
 ### D-YYYY-NNN — <Title>
