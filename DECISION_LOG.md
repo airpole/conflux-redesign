@@ -1403,7 +1403,7 @@
 - **Rationale:** Not required
 - **Affects:** editor-editing(spec), build-order(spec) — M5-3 진입 gate 해소
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `5d5c98b970d9cdeb8d367d701dc168a23f5501d6`
 
 
 ### D-YYYY-NNN — <Title>
