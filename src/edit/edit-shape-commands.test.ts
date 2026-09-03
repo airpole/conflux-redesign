@@ -6,6 +6,8 @@ import {
   addShapeEventsCommand,
   deleteLaneEventsCommand,
   deleteShapeEventsCommand,
+  mutateLaneEventCommand,
+  mutateShapeEventCommand,
   normalizeLaneEvents,
   normalizeShapeEvents,
   type ShapeSessionLike,
@@ -203,6 +205,60 @@ describe('edit-shape-commands', () => {
       const out = normalizeLaneEvents([line1Init, line2Init, line3Init, t1, t2]);
       expect(out[3]!.duration).toBe(1000);
       expect(out[4]!.duration).toBe(3000);
+    });
+  });
+
+  describe('mutateShapeEventCommand / mutateLaneEventCommand', () => {
+    it('targetPos만 바꾸고 dest tick(startTick+duration)은 그대로 둔다', () => {
+      // normalize가 매 커맨드마다 도니, 이 fixture처럼 normalize된 형태로
+      // 미리 둔다(dest=1000, prevEnd=0이므로 startTick=0·duration=1000).
+      const target: ShapeEvent = {
+        startTick: 0,
+        duration: 1000,
+        isBlue: true,
+        targetPos: 4,
+        easing: 'Linear',
+      };
+      const chart = makeChart({ shapeEvents: [blueInit, redInit, target] });
+      const s = session(chart);
+      const cmd = mutateShapeEventCommand(s, 2, 6);
+      cmd.apply();
+      const moved = s.getChart().shapeEvents[2]!;
+      expect(moved.targetPos).toBe(6);
+      expect(moved.startTick + moved.duration).toBe(1000);
+      cmd.undo();
+      expect(s.getChart().shapeEvents[2]).toEqual(target);
+    });
+
+    it('anchor(init)도 위치를 옮길 수 있다 — 삭제 방지와는 다른 규칙', () => {
+      const chart = makeChart({ shapeEvents: [blueInit, redInit] });
+      const s = session(chart);
+      const cmd = mutateShapeEventCommand(s, 0, -3);
+      cmd.apply();
+      expect(s.getChart().shapeEvents[0]!.targetPos).toBe(-3);
+      expect(s.getChart().shapeEvents[0]!.easing).toBe(null);
+    });
+
+    it('lane도 같은 패턴으로 targetPos만 바꾼다', () => {
+      const chart = makeChart({ laneEvents: [line1Init, line2Init, line3Init] });
+      const s = session(chart);
+      const cmd = mutateLaneEventCommand(s, 1, 0.8);
+      cmd.apply();
+      expect(s.getChart().laneEvents[1]!.targetPos).toBe(0.8);
+      expect(s.getChart().laneEvents[1]!.startTick).toBe(0);
+      cmd.undo();
+      expect(s.getChart().laneEvents[1]).toEqual(line2Init);
+    });
+
+    it('invalidates는 각각 shapeEvents/laneEvents 하나뿐이다', () => {
+      const shapeChart = makeChart({ shapeEvents: [blueInit, redInit] });
+      const laneChart = makeChart({ laneEvents: [line1Init, line2Init, line3Init] });
+      expect(mutateShapeEventCommand(session(shapeChart), 0, -1).invalidates).toEqual([
+        'shapeEvents',
+      ]);
+      expect(mutateLaneEventCommand(session(laneChart), 0, 0.1).invalidates).toEqual([
+        'laneEvents',
+      ]);
     });
   });
 });

@@ -168,5 +168,7 @@ ON이면 배치 시 대칭축 반대편에 자동 생성한다. **축 기본값 
 - [x] shape 클릭 히트 반경·드래그 판별 임계값 — `shape-input.js`/`shape-tools.js` 재실측(D-2026-099): 히트 반경은 px 고정 35(notes와 달리 zoom에 따라 늘거나 줄지 않는다), 드래그 임계는 점 재배치·그룹 이동 3px / 사각 선택·스크롤 4px로 나뉜다 — `_extracted/EXTRACTED_FACTS.md` §15
 - [x] shape 보조 툴("normalize" 등)의 계승 여부 — **닫힘**(D-2026-099): 원본에 그런 이름의 사용자 노출 툴은 없었다. 유일한 "normalize"는 매 커맨드 apply/undo마다 자동으로 도는 내부 배열 정합화 함수이고, `editor-commands.md` §6이 이미 "chain normalize"로 확정해 둔 요구사항이었다.
 
+- [x] shape/lane 기존 점 드래그 재배치 — **닫힘**(D-2026-100): `MutateShapeEvents`/`MutateLaneEvents`가 위치(`targetPos`)만 바꾼다(tick은 안 바뀐다, §2 "dot 드래그 = 위치 수정" 그대로). 원본 재확인 결과 symmetry는 드래그에 적용되지 않는다(`shape-input.js`의 `dragDot`/`dragMoveSel`에 `sMirror` 참조 없음) — click-vs-drag는 3px 임계(D-2026-099)로 가른다.
+
 잔여:
-- **shapes/lane 서브모드는 M5-4에서 축소된 범위로 구현했다** — 기존 점 드래그 재배치(`MutateShapeEvents`/`MutateLaneEvents`) 없음, Ctrl+F mirror·클립보드 없음, symmetry 축 수동 조절 없음(항상 동적 스냅샷), lane 그룹은 물리적 키-hold 대신 토글-누적 방식, lane symmetry는 그룹 정확히 2개일 때만 적용, `laneGridDivisor` 드롭다운·`V` 위치 스냅 순환 UI 없음(4·0.25 고정), 같은 dest tick 중복 배치는 조용히 스킵 — 전부 결정 필요 항목, `src/scene/scene-editor-shapes.ts` 헤더가 상세.
+- **shapes/lane 서브모드는 M5-4에서 축소된 범위로 구현했다** — composite dot(center/pinch 쌍) 드래그 없음(단일 점만), Ctrl+F mirror·클립보드 없음, symmetry 축 수동 조절 없음(항상 동적 스냅샷), lane 그룹은 물리적 키-hold 대신 토글-누적 방식, lane symmetry는 그룹 정확히 2개일 때만 적용, `laneGridDivisor` 드롭다운·`V` 위치 스냅 순환 UI 없음(4·0.25 고정), 같은 dest tick 중복 배치는 조용히 스킵 — 전부 결정 필요 항목, `src/scene/scene-editor-shapes.ts` 헤더가 상세.

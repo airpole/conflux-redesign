@@ -1,11 +1,19 @@
 /**
  * shapes 씬(shape/lane 서브모드) command — `editor/editor-commands.md` §6
- * 중 `AddShapeEvents`/`DeleteShapeEvents`·`AddLaneEvents`/`DeleteLaneEvents`
- * 4개. `edit-command.ts`(M5-2) 엔진에 꽂는다. `invalidates`가
- * `shapeEvents`/`laneEvents`뿐이라 전부 scope `s`다(`edit-command.ts` §2).
+ * 중 `AddShapeEvents`/`DeleteShapeEvents`/`MutateShapeEvents`·
+ * `AddLaneEvents`/`DeleteLaneEvents`/`MutateLaneEvents` 6개. `edit-command.ts`
+ * (M5-2) 엔진에 꽂는다. `invalidates`가 `shapeEvents`/`laneEvents`뿐이라
+ * 전부 scope `s`다(`edit-command.ts` §2).
  *
- * `MutateShapeEvents`/`MutateLaneEvents`(기존 점 드래그 이동)·
- * `MirrorShapeEvents`(Ctrl+F)·`ApplyShapeOps`는 이번 라운드 범위 밖이다 —
+ * `MutateShapeEvents`/`MutateLaneEvents`(기존 점 드래그 이동)는 D-2026-100
+ * (M5-4 후속)이 구현했다 — **위치(`targetPos`)만 바꾼다, tick은 안 바꾼다**
+ * (`editor-editing.md` §2 "기존 이벤트 dot 드래그 = 위치 수정", 원본
+ * `shape-input.js`의 `dragDot` 분기도 `targetPos`만 갱신하고 `startTick`/
+ * `duration`은 건드리지 않는다 — 재확인은 `scene-editor-shapes.ts` 헤더).
+ * anchor(`easing===null`)도 위치는 옮길 수 있다(삭제만 막는다, §2 "init 이동
+ * = 드래그" — `deleteShapeEventsCommand`의 anchor 보호와 다른 규칙).
+ *
+ * `MirrorShapeEvents`(Ctrl+F)·`ApplyShapeOps`는 여전히 범위 밖이다 —
  * `scene-editor-shapes.ts` 헤더 docstring의 "이번 라운드가 단순화한 지점"
  * 참조. symmetry로 한 클릭에 여러 이벤트가 생기는 경우도 `add*Command`
  * 하나에 배열로 다 담아 한 undo 단위로 만든다 — 별도 `ApplyShapeOps`
@@ -142,6 +150,22 @@ export function deleteShapeEventsCommand(
   return shapeCommand('DeleteShapeEvents', session, before, after);
 }
 
+/** 기존 shape 이벤트 하나의 위치(`targetPos`)만 바꾼다(§6 MutateShapeEvents,
+ *  드래그-end snapshot). tick은 그대로다 — normalize는 여전히 거치지만
+ *  dest(=startTick+duration)가 안 바뀌었으니 값에 변화가 없다(호출측
+ *  일관성용, 원본도 apply/undo 양쪽에서 normalize한다는 §6 규칙 그대로). */
+export function mutateShapeEventCommand(
+  session: ShapeSessionLike,
+  index: number,
+  targetPos: number,
+): Command {
+  const before = session.chart.shapeEvents;
+  const after = normalizeShapeEvents(
+    before.map((event, i) => (i === index ? { ...event, targetPos } : event)),
+  );
+  return shapeCommand('MutateShapeEvents', session, before, after);
+}
+
 /** 새 lane 이벤트 여러 개를 추가한다(§6 AddLaneEvents) — 그룹 배치·symmetry
  *  쌍도 한 undo 단위로 묶인다. */
 export function addLaneEventsCommand(
@@ -162,4 +186,18 @@ export function deleteLaneEventsCommand(
   const removeSet = new Set(indices);
   const after = normalizeLaneEvents(before.filter((_, i) => !removeSet.has(i)));
   return laneCommand('DeleteLaneEvents', session, before, after);
+}
+
+/** 기존 lane 이벤트 하나의 위치(`targetPos`)만 바꾼다(§6 MutateLaneEvents) —
+ *  `mutateShapeEventCommand`와 같은 패턴, tick은 그대로다. */
+export function mutateLaneEventCommand(
+  session: ShapeSessionLike,
+  index: number,
+  targetPos: number,
+): Command {
+  const before = session.chart.laneEvents;
+  const after = normalizeLaneEvents(
+    before.map((event, i) => (i === index ? { ...event, targetPos } : event)),
+  );
+  return laneCommand('MutateLaneEvents', session, before, after);
 }

@@ -206,7 +206,16 @@ Add/DeleteLaneEvents) — apply/undo 양쪽에서 chain normalize한다
 배열 순서는 안 바꾼다). `viewMs`/`scrollMs`는 notes와 공유하도록
 `scene-editor-view.ts`로 옮겼다(`editor-graph.md` §2 "scroll/zoom 공유" —
 `scene-editor-workspace.ts`가 한 번 만들어 양쪽에 같은 참조로 넘긴다).
-히트 반경 35px(zoom 무관 고정)는 D-2026-099 실측값이다. 기존 점 드래그
-재배치·Ctrl+F mirror·클립보드·symmetry 축 수동 조절·`laneGridDivisor`
-드롭다운 등은 이번 라운드 범위 밖(결정 필요 항목) — 자세한 목록은
-`scene-editor-shapes.ts` 헤더.
+히트 반경 35px(zoom 무관 고정)는 D-2026-099 실측값이다. Ctrl+F mirror·
+클립보드·symmetry 축 수동 조절·`laneGridDivisor` 드롭다운 등은 이번
+라운드 범위 밖(결정 필요 항목) — 자세한 목록은 `scene-editor-shapes.ts` 헤더.
+
+**M5-4 후속(D-2026-100)이 기존 점 드래그 재배치를 더했다** —
+`MutateShapeEvents`/`MutateLaneEvents`(`edit-shape-commands.ts`). 클릭 대상이
+기존 점이면 즉시 선택하지 않고 드래그 임계(3px, D-2026-099)로 click-vs-drag를
+가른다(`scene-editor-notes.ts`의 판별 패턴과 동일). **위치만 바꾸고 tick은
+그대로 둔다** — `editor-editing.md` §2 "dot 드래그 = 위치 수정"과 원본
+`shape-input.js`의 `dragDot` 분기(둘 다 `targetPos`만 갱신) 재확인 결과다.
+symmetry는 드래그에 적용되지 않는다 — 원본 드래그 분기 어디에도 `sMirror`
+참조가 없다(배치에만 적용). composite dot(center/pinch 쌍) 드래그는 여전히
+범위 밖이다 — 단일 점(anchor 포함)만 옮길 수 있다.

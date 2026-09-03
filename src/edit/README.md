@@ -93,8 +93,16 @@ apply·undo 양쪽에서 chain normalize"가 이미 확정해 둔 요구사항�
 원본 `shape.js`의 `normalizeShapeChain`과 같은 알고리즘(보간 이벤트를
 dest tick 오름차순으로 훑어 `startTick`/`duration`을 다시 세운다)이지만,
 **배열 순서는 바꾸지 않는다** — 선택(`Set<number>` 인덱스)이 배열
-위치에 의존하므로 원소 자리는 그대로 두고 값만 갈아치운다. `MutateShapeEvents`/
-`MutateLaneEvents`(기존 점 드래그 재배치)·`MirrorShapeEvents`·`ApplyShapeOps`는
-이번 라운드 범위 밖이다(`scene-editor-shapes.ts`가 여러 이벤트를 배열로
-한 번에 넘기는 `Add*` 호출로 "한 undo = 여러 op"를 이미 표현하므로 별도
-`ApplyShapeOps` 타입이 필요 없었다).
+위치에 의존하므로 원소 자리는 그대로 두고 값만 갈아치운다. `MirrorShapeEvents`·
+`ApplyShapeOps`는 여전히 범위 밖이다(`scene-editor-shapes.ts`가 여러
+이벤트를 배열로 한 번에 넘기는 `Add*` 호출로 "한 undo = 여러 op"를 이미
+표현하므로 별도 `ApplyShapeOps` 타입이 필요 없었다).
+
+M5-4 후속(D-2026-100)이 `MutateShapeEvents`/`MutateLaneEvents`(기존 점
+드래그 재배치)를 더했다 — **`targetPos`만 바꾸고 tick(`startTick`/
+`duration`)은 그대로 둔다**(`editor-editing.md` §2 "dot 드래그 = 위치
+수정", 원본 `shape-input.js`의 `dragDot` 분기도 위치만 갱신). anchor
+(`easing===null`)도 위치는 옮길 수 있다 — `deleteShapeEventsCommand`의
+anchor 삭제 방지와는 다른 규칙이다. normalize는 여기서도 apply/undo
+양쪽에 걸지만, dest(=startTick+duration)가 안 바뀌므로 사실상 값에
+변화가 없다(§6 규칙과의 일관성을 위해 그대로 유지).

@@ -57,6 +57,9 @@ function click(canvas: HTMLCanvasElement, x: number, y: number, opts: PointerEve
   canvas.dispatchEvent(
     new PointerEvent('pointerdown', { clientX: x, clientY: y, bubbles: true, ...opts }),
   );
+  canvas.dispatchEvent(
+    new PointerEvent('pointerup', { clientX: x, clientY: y, bubbles: true, ...opts }),
+  );
 }
 
 const blueInit: ShapeEvent = {
@@ -278,5 +281,106 @@ describe('scene-editor-shapes', () => {
   it('update()는 새 chart로 다시 그린다(크래시 없음)', () => {
     const { handle } = mount();
     expect(() => handle.update(makeChart({ level: 99 }))).not.toThrow();
+  });
+
+  // ── 드래그 재배치(D-2026-100) ──────────────────────────────
+
+  function dragPointer(
+    canvas: HTMLCanvasElement,
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+  ): void {
+    canvas.dispatchEvent(
+      new PointerEvent('pointerdown', { clientX: from.x, clientY: from.y, bubbles: true }),
+    );
+    canvas.dispatchEvent(
+      new PointerEvent('pointermove', { clientX: to.x, clientY: to.y, bubbles: true }),
+    );
+    canvas.dispatchEvent(
+      new PointerEvent('pointerup', { clientX: to.x, clientY: to.y, bubbles: true }),
+    );
+  }
+
+  it('shape 점을 드래그하면 MutateShapeEvents로 targetPos만 바뀌고 tick은 그대로다', () => {
+    const target: ShapeEvent = {
+      startTick: 0,
+      duration: 500,
+      isBlue: true,
+      targetPos: 4,
+      easing: 'Linear',
+    };
+    const { canvas, dispatch, getChart } = mount(
+      makeChart({ shapeEvents: [blueInit, redInit, target] }),
+    );
+    const y = pixelYOfTick(500);
+    dragPointer(canvas, { x: pixelXOfExt(4), y }, { x: pixelXOfExt(4) + 50, y });
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]![0].name).toBe('MutateShapeEvents');
+    const moved = getChart().shapeEvents[2]!;
+    expect(moved.targetPos).toBe(5);
+    expect(moved.startTick + moved.duration).toBe(500);
+  });
+
+  it('임계(3px) 미만 이동은 드래그가 아니라 클릭(선택)으로 처리한다', () => {
+    const target: ShapeEvent = {
+      startTick: 0,
+      duration: 500,
+      isBlue: true,
+      targetPos: 4,
+      easing: 'Linear',
+    };
+    const {
+      canvas,
+      dispatch,
+      target: root,
+    } = mount(makeChart({ shapeEvents: [blueInit, redInit, target] }));
+    const y = pixelYOfTick(500);
+    dragPointer(canvas, { x: pixelXOfExt(4), y }, { x: pixelXOfExt(4) + 2, y });
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(root.textContent).toContain('1 selected');
+  });
+
+  it('symmetry ON이어도 드래그는 반대편 이벤트를 만들거나 옮기지 않는다(원본 dragDot에 sMirror 참조 없음)', () => {
+    const target: ShapeEvent = {
+      startTick: 0,
+      duration: 500,
+      isBlue: true,
+      targetPos: 4,
+      easing: 'Linear',
+    };
+    const { canvas, handle, dispatch, getChart } = mount(
+      makeChart({ shapeEvents: [blueInit, redInit, target] }),
+    );
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 's' })); // symmetry ON.
+    const y = pixelYOfTick(500);
+    dragPointer(canvas, { x: pixelXOfExt(4), y }, { x: pixelXOfExt(4) + 50, y });
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(getChart().shapeEvents).toHaveLength(3); // red 쪽에 새 이벤트가 생기지 않았다.
+    expect(getChart().shapeEvents.find((e) => !e.isBlue && e.easing !== null)).toBeUndefined();
+  });
+
+  it('anchor(init) 점도 드래그로 위치를 옮길 수 있다', () => {
+    const { canvas, dispatch, getChart } = mount(makeChart({ shapeEvents: [blueInit, redInit] }));
+    const y = pixelYOfTick(0);
+    dragPointer(canvas, { x: pixelXOfExt(-2), y }, { x: pixelXOfExt(-2) + 100, y });
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]![0].name).toBe('MutateShapeEvents');
+    const moved = getChart().shapeEvents[0]!;
+    expect(moved.targetPos).toBe(0);
+    expect(moved.easing).toBe(null);
+  });
+
+  it('lane 점을 드래그하면 MutateLaneEvents로 상대 targetPos가 바뀐다', () => {
+    const { canvas, handle, dispatch, getChart } = mount(
+      makeChart({ laneEvents: [line1Init, line2Init, line3Init] }),
+    );
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 't' })); // lane 모드.
+    const y = pixelYOfTick(0);
+    dragPointer(canvas, { x: pixelXOfExt(0), y }, { x: pixelXOfExt(0) + 50, y });
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]![0].name).toBe('MutateLaneEvents');
+    const moved = getChart().laneEvents[1]!;
+    expect(moved.targetPos).toBe(0.75);
+    expect(moved.startTick + moved.duration).toBe(0);
   });
 });

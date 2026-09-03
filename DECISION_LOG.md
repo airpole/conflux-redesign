@@ -1490,6 +1490,29 @@
 - **Commit:** `830c05f`
 
 
+### D-2026-100 — M5-4 후속: shape/lane 기존 점 드래그 재배치
+
+- **Status:** Accepted (구현분) / composite dot(center/pinch) 드래그·symmetry 축 수동 조절 등은 여전히 결정 필요 — 아래 참조
+- **Decision:** D-2026-099의 단순화 항목 #1("기존 점 드래그 재배치가 없다")을 이번 라운드에서 구현했다. `edit-shape-commands.ts`에 `mutateShapeEventCommand`/`mutateLaneEventCommand`(§6 `MutateShapeEvents`/`MutateLaneEvents`)를 추가하고, `scene-editor-shapes.ts`에 click-vs-drag 판별·드래그 렌더 프리뷰·drag-end dispatch를 배선했다.
+
+  **드래그는 위치(`targetPos`)만 바꾼다 — tick(`startTick`/`duration`)은 바뀌지 않는다.** 두 근거를 확인했다: (1) `editor-editing.md` §2가 이미 "기존 이벤트 dot 드래그 = 위치 수정(drag-end 커맨드)"라고 명시해 뒀다. (2) `conflux-editor`의 `shape-input.js` `onMove`의 `dragDot` 분기를 다시 읽어도 `targetPos`만 갱신하고 `startTick`/`duration`은 건드리지 않는다(세로=시간축은 드래그 대상이 아니다). anchor(`easing===null`)도 위치는 옮길 수 있다 — §2 "init 이동 = 프롬프트 숫자 입력 + 드래그"가 명시하며, `deleteShapeEventsCommand`의 anchor 삭제 방지와는 별개 규칙이다.
+
+  **사용자가 명시적으로 flag한 두 설계 질문("symmetry-pair·grid-snap이 드래그에도 적용돼야 하는가")을 원본 코드로 직접 답을 확인했다** — 추측이 아니라 재확인이다:
+  - **grid-snap은 적용된다** — 원본 `dragDot` 분기가 매 `onMove`마다 `snapPos()`를 부른다. 이 재설계도 같다: `snapExt`(shape)/`snapRel`(lane, 자체 chain-projection을 거쳐)을 드래그 중 계속 적용한다.
+  - **symmetry는 적용되지 않는다** — 원본 `dragDot`/`dragMoveSel` 분기 어디에도 `ES.sMirror` 참조가 없다. mirror는 `handleSTap`(배치 경로)에만 있다. 드래그는 항상 단일 이벤트 하나만 옮긴다 — 켜져 있어도 짝이 자동으로 따라 움직이지 않는다. 테스트로 확인했다("symmetry ON이어도 드래그는 반대편 이벤트를 만들거나 옮기지 않는다").
+
+  click-vs-drag는 D-2026-099가 이미 실측해 둔 드래그 임계 3px(점 재배치·그룹 이동)를 그대로 쓴다. 기존 점 클릭 처리를 pointerdown에서 즉시 선택하던 것을, "잠정 드래그 시작 → pointerup에서 이동 여부로 분기"로 바꿨다(`scene-editor-notes.ts`의 click-vs-drag 판별과 같은 패턴) — 이동이 없으면 기존 선택 토글 로직 그대로, 이동이 있으면 `Mutate*Command` 1개를 dispatch한다.
+
+  **composite dot(center/pinch로 놓인, 같은 tick의 Blue+Red 쌍) 드래그는 이번에도 범위 밖이다** — 원본 `findDotAt`은 `type: 'center'|'pinch'` 복합 히트를 별도로 찾아 두 이벤트를 함께 옮기지만, 이 재설계의 `findShapeIndexAt`은 단일 인덱스만 돌려준다(§2 클릭 선택 히트테스트 재사용). 개별 점(Q/E 단일 체인 이벤트, anchor 포함)의 드래그만 이번에 구현했다 — 복합 드래그는 별도 히트테스트가 필요해 후속 라운드로 미룬다.
+
+  테스트 신규: `edit-shape-commands.test.ts` 4개(targetPos만 변경·dest 불변, anchor 이동 허용, lane 대응, invalidates), `scene-editor-shapes.test.ts` 5개(드래그로 MutateShapeEvents dispatch, 임계 미만은 클릭 처리, symmetry 무시 확인, anchor 드래그, lane MutateLaneEvents) — 전체 1286/1286 통과.
+- **Defined in:** `src/edit/edit-shape-commands.ts`, `src/scene/scene-editor-shapes.ts`, `editor/editor-editing.md` §2·§8, `src/edit/README.md`, `src/scene/README.md`
+- **Rationale:** Not required
+- **Affects:** edit, scene, spec(editor-editing) — M5-4 단순화 항목 #1 해소
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred
