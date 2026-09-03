@@ -202,4 +202,60 @@ describe('scene-editor-notes', () => {
     const { handle } = mount();
     expect(() => handle.update(makeChart({ level: 99 }))).not.toThrow();
   });
+
+  /** Z/X 줌(D-2026-098) — `viewMs`를 ×1.35/÷1.35로 바꾼 뒤, 그 새 축
+   *  기준으로 다시 계산한 픽셀 y에서 note가 여전히 히트되는지로 간접
+   *  검증한다(viewMs가 실제로 렌더/히트테스트에 반영됐다는 뜻). */
+  function pixelYOfTickAtViewMs(tick: number, viewMs: number, canvasHeight = 600): number {
+    const timeline = buildTimeline(makeChart());
+    const ms = tickToMs(timeline, tick);
+    const pxPerMs = canvasHeight / viewMs;
+    return canvasHeight - ms * pxPerMs;
+  }
+
+  it('Z는 viewMs를 ×1.35 늘리고(축소), consumed=true', () => {
+    const notes = [{ startTick: 960, duration: 0, lane: 1 as const, isWide: false }];
+    const { canvas, handle } = mount(makeChart({ notes }));
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'z' }));
+    expect(consumed).toBe(true);
+    const y = pixelYOfTickAtViewMs(960, 8000 * 1.35);
+    click(canvas, 100, y);
+    const consumed2 = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'D' }));
+    expect(consumed2).toBe(true);
+  });
+
+  it('X는 viewMs를 ÷1.35 줄이고(확대), consumed=true', () => {
+    const notes = [{ startTick: 960, duration: 0, lane: 1 as const, isWide: false }];
+    const { canvas, handle } = mount(makeChart({ notes }));
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'X' }));
+    expect(consumed).toBe(true);
+    const y = pixelYOfTickAtViewMs(960, 8000 / 1.35);
+    click(canvas, 100, y);
+    const consumed2 = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'D' }));
+    expect(consumed2).toBe(true);
+  });
+
+  it('Z를 반복하면 VIEW_MS_MAX(32000ms)에서 clamp된다', () => {
+    const notes = [{ startTick: 960, duration: 0, lane: 1 as const, isWide: false }];
+    const { canvas, handle } = mount(makeChart({ notes }));
+    for (let i = 0; i < 20; i += 1) {
+      handle.onKeyDown(new KeyboardEvent('keydown', { key: 'z' }));
+    }
+    const y = pixelYOfTickAtViewMs(960, 32000);
+    click(canvas, 100, y);
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'D' }));
+    expect(consumed).toBe(true);
+  });
+
+  it('X를 반복하면 VIEW_MS_MIN(1000ms)에서 clamp된다', () => {
+    const notes = [{ startTick: 960, duration: 0, lane: 1 as const, isWide: false }];
+    const { canvas, handle } = mount(makeChart({ notes }));
+    for (let i = 0; i < 20; i += 1) {
+      handle.onKeyDown(new KeyboardEvent('keydown', { key: 'x' }));
+    }
+    const y = pixelYOfTickAtViewMs(960, 1000);
+    click(canvas, 100, y);
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'D' }));
+    expect(consumed).toBe(true);
+  });
 });

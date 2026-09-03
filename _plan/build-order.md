@@ -108,7 +108,7 @@ Vitest `environment: 'node'`. core 테스트는 DOM 없이 돈다 — [[architec
 | M4-2 전 | 결정 | credits scene 표시 내용 — `ui-design.md` §2.8.5가 남긴 방향: `Project Staff`는 수작업 유지 목록, `Music`/`Chart`/`Jacket` 세 섹션은 library 전체의 `musicBy`/`chartBy`/`jacketBy`를 필드별로 자동 스캔·중복 제거(song/chart로 묶지 않음) — 배선 자체는 이 게이트가 열릴 때 결정 |
 | ~~M5 진입~~ | ~~실측~~ | ~~§3 M5 항목~~ — **재배치됨**(D-2026-094) — §3 "M5-3 전"·"M5-1 이후(notes/shapes 실 렌더) 전"·"M5-4 전" 참조, M5 진입 자체는 더 이상 막혀 있지 않다 |
 | ~~M5-3 전~~ | ~~실측~~ | ~~편집 미세 수치 — 히트 반경, 드래그 임계([[editor-editing]] §8)~~ — **닫힘**(D-2026-096: 히트 반경 `tpp*15`(화면상 15px), 드래그 임계 4px — `_extracted/EXTRACTED_FACTS.md` §13) |
-| M5-1 이후(notes/shapes 실 렌더) 전 | 실측/결정 | `viewMs` 기본값·zoom 범위([[editor-graph]] §6) — M5-3에서 시도했으나 단위 불일치(tick/beat 비례 원본 값 vs ms 비례 재설계)로 못 닫음(D-2026-097), 결정 필요 |
+| ~~M5-1 이후(notes/shapes 실 렌더) 전~~ | ~~실측/결정~~ | ~~`viewMs` 기본값·zoom 범위([[editor-graph]] §6)~~ — **닫힘**(D-2026-098: `viewMs=960000/(edZm×bpm)`, 120bpm 기준 선택 — 기본 8000ms·범위 [1000ms,32000ms]·step ×1.35/÷1.35, Z/X 배선 완료 — `_extracted/EXTRACTED_FACTS.md` §14) |
 | M5-4 전 | 실측 | shape 보조 툴(normalize 등)의 계승 여부([[shape]] §8) |
 | M5-6 전 | 실측 | editor timeline(test scene seek 축)의 최소 표시 길이([[editor-graph]] §6) — M5-3에서 "notes 세로 스크롤과는 다른 항목"으로 범위 재확인, 여기로 재배치(D-2026-097) |
 
@@ -139,11 +139,11 @@ gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한
 
 - [x] 편집 미세 수치: 히트 반경, 드래그 임계 — [[editor-editing]] §8. `notes-input.js` 재실측(D-2026-096) — 히트 반경 `tpp*15`(화면상 15px, zoom 무관 고정), 드래그 임계 4px(모든 축 공통). shape/lane 서브모드 값(`shape-input.js`, 3px/4px 혼재)은 M5-4 진입 시 별도 재실측.
 
-### M5-1 이후(notes/shapes 실 렌더) 전
+### M5-1 이후(notes/shapes 실 렌더) 전 — **해소** (`_extracted/EXTRACTED_FACTS.md` §14)
 
 `[수정]` (D-2026-094) — `viewMs`는 notes/shapes canvas가 실제로 그려지는 시점에야 필요하다. M5-1의 4 형제 scene은 아직 껍데기라 이 값을 안 쓴다.
 
-- [ ] `viewMs` 기본값·zoom 범위 — [[editor-graph]] §6. M5-3에서 시도했으나 못 닫았다(D-2026-097) — 원본 `edZm`(기본 1·범위 0.25~8·step ×1.35, `notes-tools.js` 실측)은 tick/beat 비례 축 값인데 이 축은 §3에서 ms 비례로 재설계돼(`[수정]`) 단위가 안 맞는다. 순수 측정이 아니라 번역/해석이 필요한 자리라 결정 필요 항목으로 남는다. 지금은 `VIEW_MS_DEFAULT=8000ms` 임시 상수로 대체.
+- [x] `viewMs` 기본값·zoom 범위 — [[editor-graph]] §6. M5-3에서 시도했으나 단위 불일치(원본 `edZm`은 tick/beat 비례 축, 이 축은 ms 비례로 재설계됨)로 못 닫았던 것을(D-2026-097), `viewMs = 960000/(edZm×bpm)` 변환식과 120bpm 기준 tempo 선택으로 닫았다(D-2026-098) — 순수 측정이 아니라 번역/해석적 결정이다. 기본 8000ms·범위 [1000ms, 32000ms]·step ×1.35(Z)/÷1.35(X), `src/scene/scene-editor-notes.ts`에 배선 완료.
 - ~~editor timeline 최소 표시 길이~~ — **범위 재확인**(D-2026-097): notes/shapes 세로 스크롤이 아니라 **test scene idle의 seek 축**(가로 스크럽 바) 얘기였다 — M5-3 조사 중 원본에서 대응하는 `getMinTick()`이 notes 세로 스크롤 하한(이미 `core-timing.ts`의 `minTick()`으로 구현됨)일 뿐 "최소 표시 길이" 개념과는 다른 것임을 확인했다. 이 항목은 M5-6(test scene) 진입 전으로 다시 옮긴다.
 
 ### M5-4 전

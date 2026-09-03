@@ -1437,6 +1437,27 @@
 - **Commit:** `4561682ad2f88f00a3aa76c7944af7d63146861a`
 
 
+### D-2026-098 — `viewMs` 기본값·zoom 범위 파생, Z/X 줌 배선
+
+- **Status:** Accepted
+- **Decision:** D-2026-097이 못 닫은 "M5-1 이후(notes/shapes 실 렌더) 前" 게이트(`viewMs` 기본값·zoom 범위)를 닫았다. 원본 `edZm`(tick/beat 비례 줌 계수, 기본 1·범위 0.25~8·step ×1.35)을 ms 비례로 재설계된 세로축(`editor-graph.md` §3)으로 옮기려면 기준 tempo가 필요하다 — **이 절은 §13(D-2026-096)류의 순수 실측이 아니라 해석적 결정이다**.
+
+  유도: 원본 `tpp = (TPB*16)/(ch*edZm)`에서 캔버스에 보이는 tick 폭 `visTk = tpp*ch = TPB*16/edZm`(`ch` 상쇄) — 여기에 `msPerTick = 60000/(bpm*TPB)`를 곱하면 `TPB`도 상쇄돼 `viewMs = 960000/(edZm×bpm)`이 나온다. `bpm`은 캔버스 높이·TPB 어느 쪽에도 없던 새 자유도라 값 하나를 선택해야 한다 — **120bpm을 기준 tempo로 선택했다**(측정값이 아니라 선택: 근거는 `_extracted/EXTRACTED_FACTS.md` §9의 `state.js` 기본 차트 `tempo: [{tick:0, bpm:120}]` — 코드베이스 자체가 이미 이 값을 "기준" 관례로 쓰고 있다는 사실을 재사용했다). 다른 기준 tempo였다면 아래 ms 값은 전부 비례로 달라졌을 것이다 — 반면 step ratio(×1.35)는 reciprocal 관계라 기준 tempo 선택과 무관하게 방향만 뒤집혀 그대로 넘어온다(`edZm`×1.35 ⇔ `viewMs`÷1.35).
+
+  확정값(120bpm 기준): `VIEW_MS_DEFAULT=8000ms`(edZm=1)·`VIEW_MS_MIN=1000ms`(edZm=8, 최대 확대)·`VIEW_MS_MAX=32000ms`(edZm=0.25, 최대 축소).
+
+  `scene-editor-notes.ts`에서 `viewMs`를 상수에서 mutable 상태로 바꾸고, `pixelYToTick`/`tickToPixelY`/`noteHitAt`/`findNoteIndexAt`에 명시적 매개변수로 threading했다(기존 함수들의 "순수 함수·명시적 인자" 스타일 그대로 확장). `editor-editing.md` §5가 이미 확정해 둔 Z/X 키(줄 111, "구 +/-"에서 개명)를 `onKeyDown`에 배선했다 — Z=줌 아웃(`viewMs *= 1.35`, `VIEW_MS_MAX` clamp), X=줌 인(`viewMs /= 1.35`, `VIEW_MS_MIN` clamp), 매번 `render()` 호출·consumed=true. 마우스 휠 스크롤은 그대로 유지(로컬 view 상태라 command/history를 거치지 않는다).
+
+  측정·유도 결과를 `_extracted/EXTRACTED_FACTS.md` §14에 기록하고, `editor-editing.md` §8·`editor-graph.md` §6·`_plan/build-order.md`의 해당 게이트를 닫았으며 `src/scene/README.md`의 서술도 갱신했다.
+
+  테스트 신규: `scene-editor-notes.test.ts`에 Z/X 각 1개(줌 후에도 새 축 기준 히트테스트 성공 확인)·양 끝 clamp 확인 2개(20회 반복 후 `VIEW_MS_MAX`/`VIEW_MS_MIN`에서 여전히 히트) 총 4개 추가 — 전체 1251/1251 통과.
+- **Defined in:** `src/scene/scene-editor-notes.ts`, `_extracted/EXTRACTED_FACTS.md` §14, `editor/editor-editing.md` §8, `editor/editor-graph.md` §3·§6, `_plan/build-order.md`, `src/scene/README.md`
+- **Rationale:** Not required
+- **Affects:** scene, spec(editor-editing, editor-graph, build-order) — M5-1 이후 gate 해소, Z/X 줌 인터랙션 완료
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

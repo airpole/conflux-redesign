@@ -430,6 +430,55 @@ if (Math.abs(dy) > 4) { moved = true; ... }      // 일반 이동(줄 200)
 
 ---
 
+## 14. viewMs 기본값·zoom 범위 파생 (D-2026-098) — 실측이 아니라 해석적 결정
+
+§13과 달리 **원본 값을 그대로 옮긴 것이 아니다** — 원본 `edZm`(기본 1·범위
+0.25~8·step ×1.35, `notes-render.js`/`notes-tools.js`/`shape-tools.js`가
+공유하는 `ES.edZm`)은 **tick/beat 비례 축의 줌 계수**인데, 재설계된 세로축은
+ms 비례(`editor-graph.md` §3)라 단위가 다르다. 그래서 이 절은 §13의
+"원본 값 재실측"이 아니라, 기준 tempo를 하나 **선택**해 두 축을 연결하는
+번역/해석이다.
+
+### 14.1 유도
+
+원본 `tpp = (TPB*16)/(ch*edZm)`(§13.1)에서 `visTk`(캔버스에 보이는 tick
+폭) = `tpp * ch` = `TPB*16/edZm` — 캔버스 높이 `ch`가 상쇄돼 없어진다.
+여기에 `msPerTick = 60000/(bpm*TPB)`를 곱하면 `TPB`도 상쇄된다:
+
+```
+viewMs = visTk * msPerTick = (TPB*16/edZm) * (60000/(bpm*TPB))
+       = 960000 / (edZm * bpm)
+```
+
+즉 `viewMs`는 `edZm`의 순수 reciprocal(기준 tempo가 상수일 때)이다 —
+캔버스 높이·TPB 어느 쪽에도 의존하지 않는다.
+
+### 14.2 기준 tempo 선택 — 120bpm
+
+공식은 임의의 `bpm`에 대해 성립하지만, 상수로 확정하려면 기준값 하나가
+필요하다. **120bpm은 측정값이 아니라 선택이다** — 근거는 §9의 `state.js`
+기본 차트 스니펫(`tempo: [{tick: 0, bpm: 120}]`, 빈 차트/신규 chart의
+기본값)이며, 이 코드베이스 자체가 이미 120bpm을 "기준 tempo" 관례로 쓰고
+있다는 사실을 그대로 재사용한 것이다. **다른 기준 tempo를 선택했다면
+아래 ms 값은 전부 비례로 달라졌을 것이다** — 예를 들어 60bpm을 기준으로
+잡았다면 모든 값이 2배가 된다. 반면 step ratio(×1.35)는 기준 tempo 선택과
+무관하다 — reciprocal 관계이므로 `edZm`을 ×1.35 하는 것은 `viewMs`를
+÷1.35 하는 것과 항상 동치다.
+
+### 14.3 확정값 (120bpm 기준)
+
+| edZm | 의미 | viewMs |
+| --- | --- | --- |
+| 1(기본) | — | 8000ms → `VIEW_MS_DEFAULT` |
+| 8(원본 최대 확대) | 최소 viewMs | 1000ms → `VIEW_MS_MIN` |
+| 0.25(원본 최대 축소) | 최대 viewMs | 32000ms → `VIEW_MS_MAX` |
+
+Z(줌 아웃, `editor-editing.md` §5)는 `viewMs *= 1.35`(clamp `VIEW_MS_MAX`),
+X(줌 인)는 `viewMs /= 1.35`(clamp `VIEW_MS_MIN`) — `src/scene/scene-editor-notes.ts`
+구현.
+
+---
+
 ## 부록: 온라인에서 추가 추출 필요한 placeholder 목록
 
 오프라인에서 결정만 하고, 아래는 온라인 복귀 시 정밀 추출:

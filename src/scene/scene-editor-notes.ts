@@ -9,17 +9,20 @@
  * 위임한다 — 이 파일은 캔버스 좌표·마우스/키보드 이벤트만 다룬다.
  *
  * **좌표계**: 세로 = 시간(ms 비례, `editor-graph.md` §3), 시간은 위로
- *흐른다(원본 `tk2y` 관례 보존). 가로 = lane 1~4 균등 4칸. `viewMs`(한
- * 화면에 보이는 시간 폭)는 **아직 확정되지 않았다** — `editor-graph.md`
- * §6 "viewMs 기본·범위는 재구현 시 실측 잔여"가 M5-1 이후 notes/shapes
- * 실 렌더 앞으로 재배치됐는데(D-2026-094), 원본의 해당 값(`edZm` 줌
- * 계수, 기본 1·범위 0.25~8·step ×1.35)은 **tick/beat 비례 축의 값**이라
- * ms 비례로 재설계된 이 축에 그대로 옮길 수 없다(단위 자체가 다르다) —
- * 그래서 이번 라운드에서 그 gate를 닫지 않았다. **`VIEW_MS_DEFAULT`
- * 상수(8000ms)는 확정값이 아니라 임시 자리표시자다**(결정 필요 항목) —
- * Z/X 줌 키(§5)도 이 gate가 닫히기 전까지는 배선하지 않는다. 스크롤
- * (마우스 휠)만 지원한다 — `core-timing.ts`의 `minTick`으로 하한을
- * 막는다(원본 `getMinTick` 재사용 위치, 이미 코드로 있었다).
+ * 흐른다(원본 `tk2y` 관례 보존). 가로 = lane 1~4 균등 4칸. `viewMs`(한
+ * 화면에 보이는 시간 폭)는 D-2026-098로 확정됐다 — 원본의 `edZm`(tick/beat
+ * 비례 줌 계수, 기본 1·범위 0.25~8·step ×1.35)을 `viewMs = 960000 /
+ * (edZm × bpm)`으로 환산한 값이다(120bpm을 기준 tempo로 선택 — 측정값이
+ * 아니라 코드베이스 자체의 기본/fallback 관례에서 고른 해석, 다른 기준
+ * tempo였다면 ms 값이 비례로 달라졌을 것이다 — 근거는
+ * `_extracted/EXTRACTED_FACTS.md` §14). `VIEW_MS_DEFAULT`=8000ms(edZm=1),
+ * `VIEW_MS_MIN`=1000ms(edZm=8, 최대 확대)·`VIEW_MS_MAX`=32000ms(edZm=0.25,
+ * 최대 축소) — reciprocal 관계라 step ratio(×1.35)는 방향만 뒤집혀 그대로
+ * 넘어온다. Z/X(`editor-editing.md` §5 배선 확정, `editor-graph.md` §3)가
+ * 이 값을 조정한다 — Z=축소(viewMs ×1.35), X=확대(viewMs ÷1.35), 범위는
+ * [`VIEW_MS_MIN`, `VIEW_MS_MAX`]로 clamp. 스크롤(마우스 휠)도 지원한다 —
+ * `core-timing.ts`의 `minTick`으로 하한을 막는다(원본 `getMinTick` 재사용
+ * 위치, 이미 코드로 있었다).
  *
  * **히트 반경·드래그 임계**는 D-2026-096으로 실측 확정된 값을 그대로
  * 쓴다: 히트 반경 15px, 드래그 임계 4px(모든 축 공통).
@@ -65,8 +68,14 @@ import type { Command } from '../edit/edit-command.js';
 import type { EditorCategoryController } from './scene-editor-workspace.js';
 import './scene-editor-notes.css';
 
-/** 결정 필요 항목 — `viewMs` gate가 닫히기 전까지의 임시 자리표시자. */
+/** `viewMs` 기본값 — D-2026-098(edZm=1, 120bpm 기준 환산). */
 const VIEW_MS_DEFAULT = 8000;
+/** `viewMs` 최소값(최대 확대) — D-2026-098(edZm=8 환산). */
+const VIEW_MS_MIN = 1000;
+/** `viewMs` 최대값(최대 축소) — D-2026-098(edZm=0.25 환산). */
+const VIEW_MS_MAX = 32000;
+/** Z/X 줌 step 비율 — 원본 `edZm` step ×1.35 그대로(D-2026-098, reciprocal이라 방향만 반전). */
+const VIEW_MS_ZOOM_STEP = 1.35;
 
 /** 히트 반경(px) — D-2026-096. */
 const HIT_RADIUS_PX = 15;
@@ -92,8 +101,9 @@ function pixelYToTick(
   canvasHeight: number,
   timeline: Timeline,
   scrollMs: number,
+  viewMs: number,
 ): number {
-  const pxPerMs = canvasHeight / VIEW_MS_DEFAULT;
+  const pxPerMs = canvasHeight / viewMs;
   const ms = scrollMs + (canvasHeight - y) / pxPerMs;
   return msToTick(timeline, ms);
 }
@@ -103,8 +113,9 @@ function tickToPixelY(
   canvasHeight: number,
   timeline: Timeline,
   scrollMs: number,
+  viewMs: number,
 ): number {
-  const pxPerMs = canvasHeight / VIEW_MS_DEFAULT;
+  const pxPerMs = canvasHeight / viewMs;
   const ms = tickToMs(timeline, tick);
   return canvasHeight - (ms - scrollMs) * pxPerMs;
 }
@@ -128,13 +139,20 @@ function noteHitAt(
   canvasHeight: number,
   timeline: Timeline,
   scrollMs: number,
+  viewMs: number,
 ): boolean {
   if (!note.isWide) {
     const cx = laneCenterX(note.lane, canvasWidth);
     if (Math.abs(px - cx) > canvasWidth / 8) return false;
   }
-  const yStart = tickToPixelY(note.startTick, canvasHeight, timeline, scrollMs);
-  const yEnd = tickToPixelY(note.startTick + note.duration, canvasHeight, timeline, scrollMs);
+  const yStart = tickToPixelY(note.startTick, canvasHeight, timeline, scrollMs, viewMs);
+  const yEnd = tickToPixelY(
+    note.startTick + note.duration,
+    canvasHeight,
+    timeline,
+    scrollMs,
+    viewMs,
+  );
   const top = Math.min(yStart, yEnd) - HIT_RADIUS_PX;
   const bottom = Math.max(yStart, yEnd) + HIT_RADIUS_PX;
   return py >= top && py <= bottom;
@@ -148,12 +166,14 @@ function findNoteIndexAt(
   canvasHeight: number,
   timeline: Timeline,
   scrollMs: number,
+  viewMs: number,
 ): number | null {
   // 우선순위(가까운 히트가 여럿이면 나중에 그려진, 즉 배치가 늦은 쪽이 위)
   // — 원본은 tap > hold > wideTap > wideHold 우선이지만 이 라운드는 단순화해
   // "가장 최근에 배치된 것"으로 고른다(결정 필요 항목).
   for (let i = notes.length - 1; i >= 0; i -= 1) {
-    if (noteHitAt(notes[i]!, px, py, canvasWidth, canvasHeight, timeline, scrollMs)) return i;
+    if (noteHitAt(notes[i]!, px, py, canvasWidth, canvasHeight, timeline, scrollMs, viewMs))
+      return i;
   }
   return null;
 }
@@ -198,6 +218,7 @@ export function mountEditorNotesBody(
   let savedLNDur = TICKS_PER_BEAT;
   let clipboard: readonly ClipboardEntry[] | null = null;
   let scrollMs = 0;
+  let viewMs = VIEW_MS_DEFAULT;
 
   let drag: {
     readonly indices: readonly number[];
@@ -254,7 +275,7 @@ export function mountEditorNotesBody(
     }
 
     // 판정선(tick 0) 표시 — 세로축 기준점.
-    const zeroY = tickToPixelY(0, ch, timeline, scrollMs);
+    const zeroY = tickToPixelY(0, ch, timeline, scrollMs, viewMs);
     ctx.strokeStyle = '#4fbcd0';
     ctx.beginPath();
     ctx.moveTo(0, zeroY);
@@ -265,8 +286,8 @@ export function mountEditorNotesBody(
     chart.notes.forEach((note, index) => {
       const mark = overlapMap.marks[index];
       if (mark?.kind === 'hidden') return;
-      const y0 = tickToPixelY(note.startTick, ch, timeline, scrollMs);
-      const y1 = tickToPixelY(note.startTick + note.duration, ch, timeline, scrollMs);
+      const y0 = tickToPixelY(note.startTick, ch, timeline, scrollMs, viewMs);
+      const y1 = tickToPixelY(note.startTick + note.duration, ch, timeline, scrollMs, viewMs);
       const isSelected = selection.has(index);
       let dx = 0;
       let dy = 0;
@@ -276,7 +297,7 @@ export function mountEditorNotesBody(
           -(
             tickToMs(timeline, note.startTick + drag.tickDelta) - tickToMs(timeline, note.startTick)
           ) *
-          (ch / VIEW_MS_DEFAULT);
+          (ch / viewMs);
       }
 
       ctx.fillStyle = markColor(mark);
@@ -299,7 +320,7 @@ export function mountEditorNotesBody(
     });
 
     if (pendingHold !== null) {
-      const y = tickToPixelY(pendingHold.startTick, ch, timeline, scrollMs);
+      const y = tickToPixelY(pendingHold.startTick, ch, timeline, scrollMs, viewMs);
       ctx.strokeStyle = '#4fbcd0';
       ctx.beginPath();
       ctx.moveTo(0, y);
@@ -385,7 +406,7 @@ export function mountEditorNotesBody(
   function pasteClipboard(): void {
     if (clipboard === null || clipboard.length === 0) return;
     const baseTick = snapTick(
-      pixelYToTick(canvas.height / 2, canvas.height, timeline, scrollMs),
+      pixelYToTick(canvas.height / 2, canvas.height, timeline, scrollMs, viewMs),
       GRID_DIVISOR_DEFAULT,
     );
     const existing = new Set(chart.notes.map((n) => `${n.lane}:${n.startTick}:${n.isWide}`));
@@ -439,6 +460,7 @@ export function mountEditorNotesBody(
       canvas.height,
       timeline,
       scrollMs,
+      viewMs,
     );
     if (hitIndex !== null) {
       if (!event.shiftKey && !selection.has(hitIndex)) selection = new Set([hitIndex]);
@@ -450,7 +472,7 @@ export function mountEditorNotesBody(
       }
       const indices = [...selection];
       const startTick = snapTick(
-        pixelYToTick(y, canvas.height, timeline, scrollMs),
+        pixelYToTick(y, canvas.height, timeline, scrollMs, viewMs),
         GRID_DIVISOR_DEFAULT,
       );
       drag = {
@@ -471,7 +493,7 @@ export function mountEditorNotesBody(
     if (tool === 'tap' || tool === 'wideTap') {
       const lane = laneOfX(x, canvas.width);
       const tick = snapTick(
-        pixelYToTick(y, canvas.height, timeline, scrollMs),
+        pixelYToTick(y, canvas.height, timeline, scrollMs, viewMs),
         GRID_DIVISOR_DEFAULT,
       );
       longPressTimer = window.setTimeout(() => {
@@ -495,7 +517,7 @@ export function mountEditorNotesBody(
       if (movedNow) drag.moved = true;
       if (drag.moved) {
         const curTick = snapTick(
-          pixelYToTick(y, canvas.height, timeline, scrollMs),
+          pixelYToTick(y, canvas.height, timeline, scrollMs, viewMs),
           GRID_DIVISOR_DEFAULT,
         );
         drag.tickDelta = curTick - drag.startTick;
@@ -549,11 +571,15 @@ export function mountEditorNotesBody(
       canvas.height,
       timeline,
       scrollMs,
+      viewMs,
     );
     if (hitIndex !== null) return; // 이미 pointerdown에서 선택 처리됨.
 
     const lane = laneOfX(x, canvas.width);
-    const tick = snapTick(pixelYToTick(y, canvas.height, timeline, scrollMs), GRID_DIVISOR_DEFAULT);
+    const tick = snapTick(
+      pixelYToTick(y, canvas.height, timeline, scrollMs, viewMs),
+      GRID_DIVISOR_DEFAULT,
+    );
 
     if (pendingHold !== null) {
       confirmPendingHold(tick);
@@ -578,7 +604,7 @@ export function mountEditorNotesBody(
 
   function onWheel(event: WheelEvent): void {
     event.preventDefault();
-    const pxPerMs = canvas.height / VIEW_MS_DEFAULT;
+    const pxPerMs = canvas.height / viewMs;
     const deltaMs = event.deltaY / pxPerMs;
     const minMs = tickToMs(timeline, minTick(timeline));
     scrollMs = Math.max(minMs, scrollMs - deltaMs);
@@ -632,6 +658,16 @@ export function mountEditorNotesBody(
         case 'r':
         case 'R':
           tool = 'wideHold';
+          render();
+          return true;
+        case 'z':
+        case 'Z':
+          viewMs = Math.min(VIEW_MS_MAX, viewMs * VIEW_MS_ZOOM_STEP);
+          render();
+          return true;
+        case 'x':
+        case 'X':
+          viewMs = Math.max(VIEW_MS_MIN, viewMs / VIEW_MS_ZOOM_STEP);
           render();
           return true;
         case 'd':

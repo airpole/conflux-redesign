@@ -34,7 +34,7 @@ editor 진입 ─▶ start (새 chart / 파일 열기 / .cfx 열기 / 이어서 
 - zoom=`viewMs`, step ×1.35.
 - grid/snap은 tick으로 계산 후 ms로 투영.
 - BPM 변경 구간의 시각 간격 변화는 정확한 결과.
-- viewMs 기본·범위는 재구현 시 실측 잔여.
+- viewMs 기본값 8000ms, 범위 [1000ms, 32000ms], step ×1.35/÷1.35 — D-2026-098(§6).
 
 ## 4. meta scene — 독립 chart session `[번복]`
 
@@ -100,7 +100,7 @@ chart field edit는 즉시 적용·undo 밖([[editor-commands]] §7). 삭제는 
 - [x] ms-proportional vertical axis
 - [x] test/gameplay shared engine·editor-origin no-record
 - [x] gameplay 3초 lead-in의 crossing-Hold 재조정은 [[judge]] §10 단일 출처, test 즉시 재생은 lead-in 없어 crossing 불가 `[번복]` (D-2026-024)
+- [x] viewMs 기본값·zoom 범위 — 원본 `edZm`(기본 1·범위 0.25~8·step ×1.35, tick/beat 비례 축 값)을 `viewMs = 960000/(edZm×bpm)`으로 환산(120bpm을 기준 tempo로 선택 — 측정값이 아니라 해석적 결정): `VIEW_MS_DEFAULT=8000ms`·`VIEW_MS_MIN=1000ms`·`VIEW_MS_MAX=32000ms`, step ratio ×1.35/÷1.35는 reciprocal이라 방향만 반전해 그대로 이전(D-2026-098, `[수정]`). 근거 `_extracted/EXTRACTED_FACTS.md` §14.
 
 잔여:
-- [ ] viewMs 기본값·zoom 범위 — M5-3에서 재실측을 시도했으나 원본 `edZm`(기본 1·범위 0.25~8·step ×1.35)이 tick/beat 비례 축 값이라 §3의 ms 비례 재설계와 단위가 안 맞아 못 닫았다(D-2026-097). 순수 측정이 아니라 번역/해석이 필요한 결정 필요 항목.
 - [ ] editor timeline(test scene seek 축)의 최소 표시 길이 — 곡이 짧아도 seek 축이 붕괴하지 않게 하는 하한. 플레이 종료 시각([[timing]] §9)과는 별개 값이다. M5-3에서 notes/shapes 세로 스크롤(이미 `minTick()`으로 구현됨)과는 다른 항목임을 확인 — test scene(M5-6) 진입 전으로 재배치.
