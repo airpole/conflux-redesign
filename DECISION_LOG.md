@@ -1434,7 +1434,7 @@
 - **Rationale:** Not required
 - **Affects:** edit, scene, core, app — M5-3 완료(단순화 6항목·`viewMs` gate는 결정 필요로 이월)
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `4561682ad2f88f00a3aa76c7944af7d63146861a`
 
 
 ### D-YYYY-NNN — <Title>
