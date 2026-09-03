@@ -79,3 +79,9 @@ expandedFolderIndex)`가 folder 헤더까지 포함한 상하 이동 대상을 �
 — 정보 패널 §9의 기록 격자 `judge` 모드(sync/perfect/good/miss 4값)가
 쓸 데이터가 `SlotView`에 없었을 뿐 `records`(M3-7)에는 이미 있었다 —
 새 결정이 아니라 배선 보완이다.
+
+M5-3이 `core-timing.ts`에 `snapTick(tick, gridDivisor)`을 더했다 —
+`cellTickOf`를 감싸 가장 가까운 격자 칸으로 반올림하는 최소 함수다
+(editor notes/shapes 배치·이동 스냅, `editor-graph.md` §1). `core-overlap.ts`
+(`buildOverlapMap`)는 M5-3에서 처음 소비자(notes 편집 캔버스)가 붙었다 —
+이미 완성돼 있던 모듈을 그대로 재사용했을 뿐 새 로직은 없다.

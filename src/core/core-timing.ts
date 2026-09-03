@@ -193,6 +193,13 @@ export function cellTickOf(gridDivisor: number): number {
   return (TPB * 4) / gridDivisor;
 }
 
+/** 가장 가까운 격자 칸으로 반올림한다(M5-3, notes/shapes 배치·이동 스냅
+ *  — `editor-graph.md` §1 "grid/snap은 tick으로 계산 후 ms로 투영"). */
+export function snapTick(tick: number, gridDivisor: number): number {
+  const cellTick = cellTickOf(gridDivisor);
+  return Math.round(tick / cellTick) * cellTick;
+}
+
 function formatMeasure(
   measure: number,
   beat: number,

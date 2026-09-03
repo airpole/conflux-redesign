@@ -109,6 +109,7 @@ import {
   type EditorCategory,
   type EditorWorkspaceSceneHandle,
 } from '../scene/scene-editor-workspace.js';
+import { mountEditorNotesBody } from '../scene/scene-editor-notes.js';
 import { createInitChart } from '../edit/edit-chart-init.js';
 import {
   createWorkspaceSession,
@@ -526,6 +527,16 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
       },
       onBack(): void {
         void leaveEditor();
+      },
+      // M5-3: notes body를 실제로 채운다 — session/commandHistory는 항상
+      // beginEditorSession()이 먼저 만들어 둔 뒤에만 category가 notes로
+      // 들어올 수 있다(editor-start를 거치지 않고는 editor-notes에 닿지
+      // 않는다).
+      mountNotes(container, chart) {
+        return mountEditorNotesBody(container, chart, {
+          session: editorSession!,
+          dispatch: (command) => editorCommandHistory!.dispatch(command),
+        });
       },
     });
   }

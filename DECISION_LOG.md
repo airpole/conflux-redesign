@@ -1406,6 +1406,37 @@
 - **Commit:** `5d5c98b970d9cdeb8d367d701dc168a23f5501d6`
 
 
+### D-2026-097 — M5-3: notes scene 편집 interaction
+
+- **Status:** Accepted (구현분) / `viewMs` 여전히 결정 필요, 아래 단순화 항목들도 결정 필요 — 아래 참조
+- **Decision:** `editor-commands.md` §6의 note 관련 command 6개(Add/Delete/Move/Mirror/SetDuration/ReplaceNotes, `edit-notes-commands.ts`)와 실제 편집 캔버스(`scene-editor-notes.ts`)를 구현해 M5-3 Exit 기준(배치·이동·삭제·복사·붙여넣기·flip이 원본과 같은 결과, overlap/conflict 화면 표시)을 충족했다.
+
+  **command는 전부 snapshot 기반이다** — apply()/undo()가 `notes` 배열 전체를 "이후"/"이전" 스냅샷으로 교체한다. 배열 끝에서 개수만큼 잘라내는 위치 추정 방식을 안 써서 undo가 항상 정확히 원래 배열로 돌아간다.
+
+  **overlap/conflict 검출은 이미 core에 있던 `core-overlap.ts`(`buildOverlapMap`)를 그대로 재사용했다** — 새로 만들지 않았다. mirror도 이미 있던 `core-judge.ts`의 `MIRROR_LANE_MAP`(1↔4, 2↔3)을 재사용했다.
+
+  **좌표계 grid-snap을 위해 `core-timing.ts`에 `snapTick(tick, gridDivisor)`를 신설했다**(`cellTickOf`를 감싼 최소 함수) — 직접 필요한 최소 의존 추가.
+
+  **`EditorCategoryController` delegation을 `scene-editor-workspace.ts`(M5-1)에 새로 얹었다** — category(지금은 notes만)가 자기 body의 키 입력을 workspace의 Tab/Backspace/Escape보다 먼저 가로챌 수 있게 하는 자리(§5 "Esc 취소 계단"이 전역 뒤로가기보다 먼저 와야 하므로). chart가 command dispatch로 바뀔 때는 body를 통째로 다시 만들지 않고 controller의 가벼운 `update(chart)`만 부른다 — 매 편집마다 선택 툴·선택 상태가 초기화되지 않게 하려는 목적이다.
+
+  **M5-1 이후(notes/shapes 실 렌더) 前 게이트("`viewMs` 기본값·zoom 범위")는 이번 라운드에서도 닫지 못했다** — 원본의 `edZm`(줌 계수, 기본 1·범위 0.25~8·step ×1.35, `notes-tools.js` 실측)은 **tick/beat 비례 축의 값**인데, `editor-graph.md` §3이 이 축을 ms 비례로 재설계(`[수정]`)해 둬서 단위 자체가 달라 그대로 옮길 수 없다 — 순수 측정이 아니라 해석이 필요한 자리라 이 세션이 임의로 확정하지 않았다. `VIEW_MS_DEFAULT = 8000`(ms)을 임시 상수로 두고 Z/X 줌 키는 배선하지 않았다(마우스 휠 스크롤만 지원, `core-timing.ts`의 기존 `minTick`으로 하한을 막는다) — 결정 필요 항목으로 보고한다. 참고로 `savedLNDur`(quick-hold 길이) 기본값은 원본 `editor-state.js`의 `TPB`(1 beat)를 그대로 썼다 — 이건 단위가 안 바뀐 순수 측정값이라 바로 채택했다.
+
+  **이번 라운드가 의도적으로 단순화한 지점(전부 결정 필요 항목)**:
+  1. 배치는 항상 `AddNotesCommand`(추가)뿐이다 — 원본의 "lane 2·3 용량 초과 시 기존 tap 자동 치환" 같은 배치-시점 자동 해소 규칙은 구현하지 않았다. `core-overlap.ts`의 conflict 표시가 문제를 시각적으로 보여주고 유저가 delete로 해소한다(conflict 해소 삭제 자체는 `deleteNotesCommand`로 구현돼 있다 — 자동 치환만 뺐다).
+  2. `A` 드래그 사각 선택 모디파이어가 없다 — 클릭(단일)·Shift+클릭(추가/제거)만 지원한다.
+  3. note 우선순위(같은 히트 반경에 여럿 겹칠 때 tap>hold>wideTap>wideHold 우선, 원본 규칙)를 "가장 최근에 배치된 것" 우선으로 단순화했다.
+  4. 붙여넣기 충돌 시 토스트 안내가 없다(조용히 스킵만) — 토스트 UI 시스템 자체가 아직 없다.
+  5. text 툴(`T`)은 이 라운드 범위 밖이다 — textEvent는 M5-7(text events) 소관.
+  6. `editor-editing.md`의 편집 화면 픽셀 디자인은 여전히 `ui-design.md`가 안 다뤄 최소 기능 미디자인 캔버스로 뒀다(M5-1과 같은 상황).
+
+  테스트 신규: `core-timing.test.ts`에 `snapTick` 4개, `edit-notes-commands.test.ts` 10개, `scene-editor-workspace.test.ts`는 기존 8개 그대로(controller delegation은 회귀 없음 확인), `scene-editor-notes.test.ts`(신규) 15개(tool 전환, tap/wideTap/hold 2클릭 배치, quick-hold 아님 확인, Escape 취소 계단, 클릭 선택+D 삭제, Ctrl+F mirror, Ctrl+C/V 복사-붙여넣기, drag-end 1-command 이동, 4px 미만은 클릭 취급, destroy/update 안전성) — 전체 1247/1247 통과.
+- **Defined in:** `src/edit/edit-notes-commands.ts`, `src/scene/scene-editor-notes.ts`, `src/scene/scene-editor-workspace.ts`, `src/core/core-timing.ts`, `src/app/app-main.ts`
+- **Rationale:** Not required
+- **Affects:** edit, scene, core, app — M5-3 완료(단순화 6항목·`viewMs` gate는 결정 필요로 이월)
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

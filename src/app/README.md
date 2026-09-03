@@ -91,3 +91,13 @@ baseline"을 `resetBaseline()` 호출 없이 만족하는 가장 단순한 방�
 를 부르도록 미리 구독해 뒀다 — §3 "active scene redraw"의 최소 배선으로,
 지금은 notes/shapes/meta/test가 전부 M5-1의 껍데기라 실제로 dispatch될
 command가 없지만 M5-3+이 command를 만들기 시작하면 바로 작동한다.
+
+M5-3이 그 자리를 실제로 채웠다 — `mountEditorWorkspaceIfNeeded()`가
+`EditorWorkspaceHandlers.mountNotes(container, chart)`를 넘긴다.
+`scene-editor-notes.ts`의 `mountEditorNotesBody`를 그대로 감싸고,
+`session: editorSession!`(진짜 `WorkspaceSession`)과
+`dispatch: (command) => editorCommandHistory!.dispatch(command)`를
+넘긴다 — 둘 다 이미 `beginEditorSession()`이 만들어 둔 것을 그대로 참조할
+뿐 새 상태를 추가하지 않았다. `editor-start`를 거치지 않고는 `editor-notes`
+에 닿을 방법이 없어(scene 그래프 구조상) `editorSession`/`editorCommandHistory`
+가 항상 이미 만들어져 있다는 전제(non-null assertion)가 안전하다.

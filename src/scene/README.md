@@ -169,3 +169,28 @@ settings와 같은 "하나의 host, 여러 scene id" 패턴으로 `mountEditorWo
 `edit-workspace.ts`를 그대로 쓴다 — 자세한 배선은 `src/edit/README.md`·
 `src/app/README.md`. notes/shapes/meta/test 4 scene은 이번 라운드엔
 chart identity만 보여주는 껍데기다 — 실제 편집 UI는 M5-3~M5-6.
+
+**M5-3이 `EditorCategoryController` delegation을 `scene-editor-workspace.ts`에
+더하고**, notes에 첫 실제 내용(`scene-editor-notes.ts`)을 붙였다.
+category가 `onKeyDown(event): boolean`을 구현하면 workspace 자신의
+Tab/Backspace/Escape 처리보다 **먼저** 그 키를 받는다 — notes 탭 자체
+단축키(Q/W/E/R/D/Ctrl+C/V/F, `Esc` 취소 계단)가 전역 뒤로가기보다 먼저
+자기 것부터 챙길 수 있게 하는 자리다. chart가 command dispatch로 바뀔
+때는(`editorCommandHistory.onDispatch` → `update(chart)`) body를 통째로
+다시 만들지 않고 controller의 가벼운 `update()`만 부른다 — 매 편집마다
+선택 툴·선택 상태가 초기화되지 않게 하려는 목적이다(전체 remount는
+category 전환(`show()`) 때만 일어난다).
+
+`scene-editor-notes.ts`는 `editor-commands.md` §6의 note command 6개
+(`edit-notes-commands.ts`, M5-3)와 이미 있던 core 모듈(`core-overlap.ts`의
+overlap/conflict 검출, `core-judge.ts`의 mirror lane map)을 그대로 이어
+붙인 캔버스다 — 배치(Q tap/W hold/E wideTap/R wideHold, hold는 2클릭)·
+드래그 이동(가로 히스테리시스 포함, drag-end 1-command)·삭제(D/Delete)·
+복사/붙여넣기(Ctrl+C/V)·mirror(Ctrl+F)를 구현했다. 히트 반경 15px·드래그
+임계 4px는 D-2026-096의 실측값을 그대로 쓴다. `viewMs`(canvas에 보이는
+시간 폭)는 원본 값이 tick/beat 비례 축 것이라 ms 비례로 재설계된 이
+축에 그대로 옮길 수 없어(단위 불일치) 여전히 결정 필요 항목이다 —
+`VIEW_MS_DEFAULT=8000ms` 임시 상수만 두고 Z/X 줌은 배선하지 않았다.
+lane 2·3 배치-시점 자동 치환·사각 선택(`A` 드래그)·note 우선순위 등
+6가지는 의도적으로 단순화했다 — 전부 결정 필요 항목으로 D-2026-097에
+기록했다. text 툴(`T`)은 이 파일 범위 밖(M5-7).

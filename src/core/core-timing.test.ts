@@ -22,6 +22,7 @@ import {
 import {
   buildTimeline,
   cellTickOf,
+  snapTick,
   gridLines,
   measureSegmentAt,
   measureToTick,
@@ -216,6 +217,14 @@ describe('[TM-7] sub 분할 = gridDivisor', () => {
   it('cellTick이 온음표를 V등분한다', () => {
     expect(cellTickOf(8)).toBe(960);
     expect(cellTickOf(256)).toBe(30);
+  });
+
+  it('snapTick이 가장 가까운 격자 칸으로 반올림한다(M5-3)', () => {
+    // cellTickOf(8) === 960 — 격자는 0, 960, 1920, …
+    expect(snapTick(400, 8)).toBe(0); // 960의 절반(480)보다 작아 0으로.
+    expect(snapTick(500, 8)).toBe(960); // 480보다 커서 960으로.
+    expect(snapTick(0, 8)).toBe(0);
+    expect(snapTick(-500, 8)).toBe(-960);
   });
 
   it('격자 밖 tick은 근사하지 않고 t 표기로 떨어진다 (D-2026-045)', () => {

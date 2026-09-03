@@ -1,0 +1,29 @@
+/* notes 탭 편집 캔버스 — M5-3. ui-design.md가 editor 화면을 아직 다루지
+   않아(M5-1 README 참조) 픽셀 디자인은 결정 필요 항목이다 — 다른 editor
+   scene과 같은 기존 토큰만으로 최소 기능 캔버스를 뒀다. */
+
+.editor-notes-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6cqw;
+  height: 100%;
+}
+
+.editor-notes-toolbar {
+  display: flex;
+  gap: 1cqw;
+  font-family: var(--sans);
+  font-size: 0.9cqw;
+  color: var(--dim);
+}
+
+.editor-notes-tool-label {
+  color: var(--cyan);
+}
+
+.editor-notes-canvas {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #050508;
+  touch-action: none;
+}

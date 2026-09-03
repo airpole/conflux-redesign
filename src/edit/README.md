@@ -75,3 +75,12 @@ M5-3~M5-5·M5-7이 만든다). "cache invalidate" 단계는 `core-timing.ts`/
 만족한다 — `resetBaseline()`은 엔진 계약 자체의 단위 테스트를 위해
 API로는 남겨 뒀다. chart field 편집(§7, `WorkspaceSession.updateChart`)이
 이 엔진을 전혀 거치지 않는다는 것도 통합 테스트로 확인했다.
+
+`edit-notes-commands`는 M5-3 범위다([[editor-commands]] §6 중 note 관련
+6개 — Add/Delete/Move/Mirror/SetDuration/ReplaceNotes). `edit-command.ts`
+엔진에 꽂는 첫 실제 command다 — 전부 snapshot 기반(apply/undo가 `notes`
+배열 전체를 이후/이전 스냅샷으로 교체)이라 배열 위치 추정 없이 항상
+정확히 원래 배열로 되돌아간다. mirror는 `core-judge.ts`의 기존
+`MIRROR_LANE_MAP`(1↔4, 2↔3)을 그대로 쓴다 — wide note는 제외(핸드 개념이
+없다). `NotesSessionLike`(`chart`/`updateChart`만 있는 최소 shape)로
+`WorkspaceSession`을 직접 받는다 — 별도 어댑터가 없다.

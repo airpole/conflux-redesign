@@ -108,8 +108,9 @@ Vitest `environment: 'node'`. core 테스트는 DOM 없이 돈다 — [[architec
 | M4-2 전 | 결정 | credits scene 표시 내용 — `ui-design.md` §2.8.5가 남긴 방향: `Project Staff`는 수작업 유지 목록, `Music`/`Chart`/`Jacket` 세 섹션은 library 전체의 `musicBy`/`chartBy`/`jacketBy`를 필드별로 자동 스캔·중복 제거(song/chart로 묶지 않음) — 배선 자체는 이 게이트가 열릴 때 결정 |
 | ~~M5 진입~~ | ~~실측~~ | ~~§3 M5 항목~~ — **재배치됨**(D-2026-094) — §3 "M5-3 전"·"M5-1 이후(notes/shapes 실 렌더) 전"·"M5-4 전" 참조, M5 진입 자체는 더 이상 막혀 있지 않다 |
 | ~~M5-3 전~~ | ~~실측~~ | ~~편집 미세 수치 — 히트 반경, 드래그 임계([[editor-editing]] §8)~~ — **닫힘**(D-2026-096: 히트 반경 `tpp*15`(화면상 15px), 드래그 임계 4px — `_extracted/EXTRACTED_FACTS.md` §13) |
-| M5-1 이후(notes/shapes 실 렌더) 전 | 실측 | `viewMs` 기본값·zoom 범위, editor timeline 최소 표시 길이([[editor-graph]] §6) |
+| M5-1 이후(notes/shapes 실 렌더) 전 | 실측/결정 | `viewMs` 기본값·zoom 범위([[editor-graph]] §6) — M5-3에서 시도했으나 단위 불일치(tick/beat 비례 원본 값 vs ms 비례 재설계)로 못 닫음(D-2026-097), 결정 필요 |
 | M5-4 전 | 실측 | shape 보조 툴(normalize 등)의 계승 여부([[shape]] §8) |
+| M5-6 전 | 실측 | editor timeline(test scene seek 축)의 최소 표시 길이([[editor-graph]] §6) — M5-3에서 "notes 세로 스크롤과는 다른 항목"으로 범위 재확인, 여기로 재배치(D-2026-097) |
 
 gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한 뒤 진입한다. build-order는 gate의 **위치**만 갖고 내용은 갖지 않는다.
 
@@ -142,13 +143,20 @@ gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한
 
 `[수정]` (D-2026-094) — `viewMs`는 notes/shapes canvas가 실제로 그려지는 시점에야 필요하다. M5-1의 4 형제 scene은 아직 껍데기라 이 값을 안 쓴다.
 
-- `viewMs` 기본값·zoom 범위, editor timeline 최소 표시 길이 — [[editor-graph]] §6.
+- [ ] `viewMs` 기본값·zoom 범위 — [[editor-graph]] §6. M5-3에서 시도했으나 못 닫았다(D-2026-097) — 원본 `edZm`(기본 1·범위 0.25~8·step ×1.35, `notes-tools.js` 실측)은 tick/beat 비례 축 값인데 이 축은 §3에서 ms 비례로 재설계돼(`[수정]`) 단위가 안 맞는다. 순수 측정이 아니라 번역/해석이 필요한 자리라 결정 필요 항목으로 남는다. 지금은 `VIEW_MS_DEFAULT=8000ms` 임시 상수로 대체.
+- ~~editor timeline 최소 표시 길이~~ — **범위 재확인**(D-2026-097): notes/shapes 세로 스크롤이 아니라 **test scene idle의 seek 축**(가로 스크럽 바) 얘기였다 — M5-3 조사 중 원본에서 대응하는 `getMinTick()`이 notes 세로 스크롤 하한(이미 `core-timing.ts`의 `minTick()`으로 구현됨)일 뿐 "최소 표시 길이" 개념과는 다른 것임을 확인했다. 이 항목은 M5-6(test scene) 진입 전으로 다시 옮긴다.
 
 ### M5-4 전
 
 `[수정]` (D-2026-094) — shape 보조 툴 계승 여부는 M5-4(shapes scene)가 그 툴바를 만들 때만 필요하다.
 
 - shape 보조 툴(normalize 등)의 계승 여부 — [[shape]] §8.
+
+### M5-6 전
+
+`[신규]` (D-2026-097) — 원래 "M5-1 이후(notes/shapes 실 렌더) 전"에 `viewMs`와 함께 묶여 있었으나, M5-3 조사 중 이 항목이 실제로는 notes/shapes 세로 스크롤이 아니라 **test scene idle의 seek 축**(가로 스크럽 바) 얘기임을 확인했다 — 그 화면 자체가 M5-6 전에는 없다.
+
+- editor timeline(test scene seek 축)의 최소 표시 길이 — [[editor-graph]] §6. 곡이 짧아도 seek 축이 붕괴하지 않게 하는 하한, 플레이 종료 시각([[timing]] §9)과는 별개 값.
 
 ---
 
@@ -392,6 +400,8 @@ confirm으로 뒤집혔다. M4.6은 완전히 닫혔다 — 남은 항목 없음
 **M5-1 진행 상황**: `.cfx` 열기를 뺀 나머지(scene 그래프·New Chart·Open JSON·Continue Editing·세션 소유)는 구현됐다(D-2026-094) — `.cfx` 열기는 `env-file.ts`의 binary open 확장이 필요해 결정 필요 항목으로 별도 보고했다. notes/shapes/meta/test 4 scene은 이번 라운드엔 chart identity만 표시하는 껍데기다 — 실제 내용은 M5-3~M5-6.
 
 **M5-2 진행 상황**: command/history 엔진(scope 분할·dispatch/undo/redo·listener·history baseline)은 완성됐다(D-2026-095) — chart-agnostic이라 `app-main.ts`가 세션마다 새로 만들어 붙여 뒀다. §6의 구체 command 목록(AddNotes 등 실제 chart 배열 편집)은 이 엔진에 붙는 실 편집 인터랙션이 필요해 M5-3(notes)·M5-4(shapes/lane)·M5-5(tempo/timeSignature)·M5-7(textEvents)로 이월했다 — M5-2 자신의 Exit 기준(모든 편집이 command로 들어감·undo/redo가 원본과 같은 단위로 되감김·chart 구조 편집은 history 밖)은 엔진 단위 테스트와 통합 테스트로 확인했다.
+
+**M5-3 진행 상황**: notes 관련 command 6개(§6, `edit-notes-commands.ts`)와 편집 캔버스(`scene-editor-notes.ts`)가 구현됐다(D-2026-097) — 배치·이동·삭제·복사·붙여넣기·flip과 overlap/conflict 표시(이미 있던 `core-overlap.ts` 재사용) 전부 충족. `viewMs` 기본값·zoom 범위 gate(아래 "M5-1 이후(notes/shapes 실 렌더) 전")는 **아직 못 닫았다** — 원본 값이 tick/beat 비례 축 것이라 ms 비례로 재설계된 이 축엔 단위가 안 맞아 그대로 옮길 수 없고(순수 측정이 아니라 해석이 필요), `VIEW_MS_DEFAULT=8000ms` 임시 상수로 대체하고 Z/X 줌은 배선하지 않았다 — 결정 필요 항목. lane 2·3 자동 치환 등 6가지 단순화도 결정 필요 항목으로 D-2026-097에 남겼다.
 | M5-2 | command / history 계약 | 모든 편집이 command로 들어가고 undo/redo가 원본과 같은 단위로 되감긴다. chart 구조 편집은 history 밖이다. |
 | M5-3 | notes scene 편집 interaction | 노트 배치·이동·삭제·복사·붙여넣기·flip이 원본과 같은 결과를 낸다. overlap/conflict가 화면에 표시된다. |
 | M5-4 | shapes scene — shape/lane 서브모드 | `T`로 서브모드가 갈리고 선택 필터가 서브모드를 따른다. Q/W/E/R 툴이 정의대로 배치한다. 현재 그룹·symmetry 쌍·`R` 모드가 툴바에 상시 표시된다. |
