@@ -75,8 +75,12 @@ scene의 세 경로(New Chart/Open Chart JSON/Continue Editing)가 성공하면
 (`showOpenFilePicker`)에 연결했다 — 그 타입이 DOM lib에 아직 없어
 최소 duck-type으로 지역 선언했다(D-2026-062가 이미 "폴백은 범위 밖"이라고
 정해 둔 자리를 그대로 따른다 — 미지원 브라우저는 취소로 처리). `Open
-.cfx`는 이 확장으로도 못 연다(바이너리) — 결정 필요 항목으로 별도
-보고했다. Back(Backspace/Esc)은 `edit-session-transition.ts`의
+.cfx`는 이 확장으로도 못 연다(바이너리) — 이 시점엔 결정 필요 항목으로
+별도 보고했다. **(M5-8/D-2026-106이 binary read 자체는 닫았다 —
+`pickBinaryFiles` 추가, D-2026-062 해소. `Open .cfx` 버튼이 여전히
+disabled인 건 이제 binary 불가 때문이 아니라 chart-선택 UI가 없어서다 —
+`scene-editor-start.ts` 헤더 참조.)** Back(Backspace/Esc)은
+`edit-session-transition.ts`의
 `resolveSessionTransition`을 그대로 호출하지만, 이 라운드엔 chart 편집
 인터랙션이 없어(M5-2·M5-5 이후에야 생김) dirty가 실제로 true가 될 경로가
 없다 — `saveNewVersion` 콜백은 저장 창 UI가 붙기 전까지의 자리표시자

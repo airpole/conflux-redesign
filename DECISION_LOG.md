@@ -1966,6 +1966,47 @@
 - **Commit:** `afd9dbf`
 
 
+### D-2026-110 — M6-4: 스펙↔구현 동기화, 3갈래 위험도 기반 타겟 감사
+
+- **Status:** Accepted
+- **Decision:** `DECISION_LOG` 109건 전체를 줄 단위로 재감사하는 대신
+  (사용자 확인 하에) 위험도 높은 세 갈래로 좁혀 실행했다: (1) spec
+  문서에 남아 있는 `결정 필요 항목` 표기 6곳(`_extracted/
+  EXTRACTED_FACTS.md`, `editor/editor-editing.md`, `src/scene/README.md`,
+  `src/app/README.md`, `src/core/README.md`, `render/theme.md`)을 각각
+  후속 결정으로 이미 닫혔는지 확인, (2) `Defined in`이 `.md` spec
+  파일을 하나도 안 가리키는 결정(다단 줄 파싱까지 정확히 해 10건으로
+  확정) 각각이 실제로 spec 불변경이 맞는지 확인, (3) `[수정]` 태그가
+  붙은 결정 7건의 대상 spec이 실제 수정된 값을 담고 있는지 확인.
+
+  drift 2건을 찾아 고쳤다:
+  1. `src/app/README.md`의 M5-1 단락이 "`Open .cfx`는 binary 확장으로도
+     못 연다"고 여전히 적혀 있었는데, M5-8(D-2026-106)이 `pickBinaryFiles`
+     로 binary read 자체는 이미 닫아(D-2026-062 해소) stale이었다 —
+     "binary는 이제 가능하지만 버튼이 disabled인 진짜 이유는 chart-선택
+     UI 부재"라는 주석을 추가해 바로잡았다.
+  2. `scene/scene.md` §6이 `song-credit → gameplay`의 `replace` 관례만
+     명시하고, D-2026-088(M4-5)이 `gameplay → result`에도 같은 관례를
+     확장한 것(당시 "스펙이 명시하지 않은 이 세션의 결정"으로 보고만
+     되고 spec에는 한 번도 안 실렸다)이 전혀 문서화돼 있지 않았다 —
+     `[수정]` 문단을 §6에 추가했다.
+
+  나머지는 전부 이미 정확했다: 열린 `결정 필요 항목` 6곳 중 5곳은
+  아직 정당하게 열려 있는 잔여 스코프(원본과 대조 대상이 아니거나
+  후속 milestone이 손대지 않은 항목)였고, code-only `Defined in` 10건은
+  전부 "이미 있는 spec을 그대로 구현"이라 spec을 바꿀 필요가 애초에
+  없던 결정이었으며, `[수정]` 7건 중 나머지 5건은 이미 올바른 spec
+  파일이 `Defined in`에 있었다. 스코프 밖(M1~M5의 settled 결정 전체에
+  대한 줄 단위 재검증)은 의도적으로 건드리지 않았다 — 사용자가 승인한
+  타겟 스코프.
+- **Defined in:** `src/app/README.md`, `scene/scene.md` §6,
+  `_plan/build-order.md`
+- **Rationale:** `_plan/build-order.md` §9 M6-4
+- **Affects:** scene(spec), app(README) — M6-4 완료(타겟 스코프 기준)
+- **Supersedes:** None
+- **Commit:** PENDING
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

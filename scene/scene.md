@@ -131,6 +131,8 @@ song-select와 editor test가 같은 component를 사용한다. no-record 단일
 
 `song-credit → gameplay`는 `goScene('gameplay', replace)`로 통과점을 stack에서 제거한다. Retry/Back은 credit을 다시 거치지 않는다.
 
+`[수정]`(M4-5, D-2026-088): `gameplay → result`도 같은 이유로 `goScene('result', replace)`를 쓴다 — Retry를 반복해도 스택이 `song-select → result`로 고정되고 자라지 않는다(Retry는 다시 `goScene('gameplay', replace)`). 이 문서가 `song-credit → gameplay` 한 쌍만 명시하던 자리를 `gameplay → result`까지 넓힌 확장이다 — 자세한 이유는 `src/scene/scene-gameplay.ts` 헤더.
+
 ---
 
 ## 7. credits `[신규]`
