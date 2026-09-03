@@ -2114,7 +2114,7 @@
 - **Affects:** core(검증) — M5 이후 처음으로 `core-timing.ts` 뮤테이션
   게이트 재확인, 새 생존 없음
 - **Supersedes:** None
-- **Commit:** PENDING
+- **Commit:** `bce4784`
 
 
 ### D-YYYY-NNN — <Title>
