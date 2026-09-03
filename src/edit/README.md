@@ -129,3 +129,11 @@ scene 계층). metadata·chart identity(chartId/difficulty/subtitle/level/
 chartBy)·asset(musicFile/jacketFile) 필드 편집은 `editor-commands.md`
 §7대로 command가 **아니다** — 이 파일에는 그 경로가 없고,
 `scene-editor-meta.ts`가 `session.updateChart()`를 직접 부른다.
+
+`edit-text-commands`는 M5-7 범위다([[editor-commands]] §6의
+AddTextEvents/DeleteTextEvents/EditTextEvent 3개, D-2026-105). notes/
+shape/meta와 같은 snapshot 패턴이고 `invalidates: ['textEvents']`라
+scope는 `editor-commands.md` §2 "notes, textEvents | n" 그대로 notes와
+같다 — 원본이 text 툴을 notes 탭 안에 두고 선택·클립보드를 note와 함께
+다루는 것과 같은 이유다. 실제 T 툴·편집 모달은 `scene-editor-notes.ts`가
+갖는다(별도 tab이 아니다) — 이 파일에는 command 3개뿐이다.

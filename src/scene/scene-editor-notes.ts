@@ -44,10 +44,32 @@
  *   가로 히스테리시스(칸폭×0.5마다 ±1 lane)는 구현했다.
  * - `A` 드래그 사각 선택 모디파이어는 없다 — 클릭(단일)·Shift+클릭(추가/
  *   제거)만 지원한다. 사각 선택은 아직 없다.
- * - text 툴(`T`)은 이 파일 범위 밖이다 — textEvent는 M5-7(text events)
- *   소관.
  * - 붙여넣기 충돌 시 토스트 안내는 없다(조용히 스킵만 한다) — 토스트
  *   UI 자체가 아직 없다.
+ *
+ * **M5-7이 text 툴(`T`)을 채웠다**(`edit-text-commands.ts`, D-2026-105).
+ * `editor-editing.md` §1은 "textEvent 2클릭(시작→끝)"까지만 정하고
+ * content·position을 어떻게 입력받는지는 정하지 않는다 — 원본
+ * `text-events.js`처럼 모달 폼(content textarea·position select)을 그
+ * 2클릭 뒤에 연다. **원본과 달리 클릭 자체는 모달을 열지 않는다** — 이
+ * 코드베이스가 notes에 이미 확립해 둔 "클릭=선택, Shift+클릭=토글" 모델을
+ * text event에도 그대로 적용해(§1 "선택에 textEvents가 포함되면 함께
+ * 복사·붙여넣기") 별도 `textSelection: Set<number>`로 note와 나란히
+ * 관리한다 — **더블클릭이 기존 이벤트의 편집 모달을 연다**(원본의
+ * click=모달 대신). 이 갈림은 해석적 결정이라 별도 보고했다.
+ *
+ * tick 범위(startTick/duration)는 배치 시점(2클릭)에 고정되고 편집 모달
+ * 에서는 다시 못 바꾼다 — 원본은 모달에 시작/끝 measure 입력이 있었지만
+ * (`teSave`), 이번 라운드는 content·position 두 필드만 다룬다(결정 필요
+ * 항목, 범위 밖으로 뒀다). `transition`/`mode` 필드는 애초에
+ * `core-chart.ts`의 `TextEvent`에 없다 — `data-model.md` §8이 이미
+ * "폐기"로 정해 둔 걸 반영한 결과다.
+ *
+ * delete(`D`/`Delete`)는 선택된 note와 text event를 **각각 별도
+ * dispatch**로 지운다(한 커맨드로 합치지 않았다 — undo가 note/text 두 번
+ * 걸린다는 뜻, 결정 필요 항목). copy/paste(`Ctrl+C`/`Ctrl+V`)는 두 종류를
+ * 한 클립보드에 같이 담되(§1 "함께 복사·붙여넣기"), 실제 배치는 역시
+ * 두 번의 별도 dispatch다.
  */
 import {
   buildTimeline,
@@ -59,7 +81,13 @@ import {
 } from '../core/core-timing.js';
 import { buildOverlapMap, type OverlapMark } from '../core/core-overlap.js';
 import { TICKS_PER_BEAT, GRID_DIVISOR_DEFAULT } from '../core/core-constants.js';
-import type { Chart, Lane, Note } from '../core/core-chart.js';
+import {
+  TEXT_POSITIONS,
+  type Chart,
+  type Lane,
+  type Note,
+  type TextEvent,
+} from '../core/core-chart.js';
 import {
   addNotesCommand,
   deleteNotesCommand,
@@ -67,6 +95,12 @@ import {
   moveNotesCommand,
   type NotesSessionLike,
 } from '../edit/edit-notes-commands.js';
+import {
+  addTextEventsCommand,
+  deleteTextEventsCommand,
+  editTextEventCommand,
+  type TextEventsSessionLike,
+} from '../edit/edit-text-commands.js';
 import type { Command } from '../edit/edit-command.js';
 import type { EditorCategoryController } from './scene-editor-workspace.js';
 import {
@@ -85,13 +119,14 @@ const DRAG_THRESHOLD_PX = 4;
 /** 가로 lane 이동 히스테리시스 비율 — `editor-editing.md` §1(칸폭×0.5). */
 const LANE_HYSTERESIS_RATIO = 0.5;
 
-type NoteTool = 'tap' | 'hold' | 'wideTap' | 'wideHold';
+type NoteTool = 'tap' | 'hold' | 'wideTap' | 'wideHold' | 'text';
 
 export interface EditorNotesApi {
   /** 실제 `WorkspaceSession`(또는 그 shape) — `chart`/`updateChart`가 진짜
    *  세션에 그대로 쓴다. command의 `apply()`/`undo()`가 이 객체를 직접
-   *  받아 부른다(`edit-notes-commands.ts`). */
-  readonly session: NotesSessionLike;
+   *  받아 부른다(`edit-notes-commands.ts`/`edit-text-commands.ts`, 둘 다
+   *  같은 `{chart, updateChart}` shape라 `session` 하나로 충분하다). */
+  readonly session: NotesSessionLike & TextEventsSessionLike;
   /** 실제 `CommandHistory.dispatch` — 이 파일은 엔진을 모른다(M5-2 경계). */
   dispatch(command: Command): void;
   /** notes·shapes 공유 scroll/zoom 상태(M5-4, `scene-editor-view.ts`) —
@@ -191,11 +226,45 @@ function markColor(mark: OverlapMark | null | undefined): string {
   return '#ececf4';
 }
 
+/** text event는 lane과 무관하게 전체 폭 띠로 그려진다 — y(tick 범위)만
+ *  히트 판정한다(note와 달리 x 제약이 없다). */
+function findTextEventIndexAt(
+  events: readonly TextEvent[],
+  py: number,
+  canvasHeight: number,
+  timeline: Timeline,
+  scrollMs: number,
+  viewMs: number,
+): number | null {
+  for (let i = events.length - 1; i >= 0; i -= 1) {
+    const event = events[i]!;
+    const yStart = tickToPixelY(event.startTick, canvasHeight, timeline, scrollMs, viewMs);
+    const yEnd = tickToPixelY(
+      event.startTick + event.duration,
+      canvasHeight,
+      timeline,
+      scrollMs,
+      viewMs,
+    );
+    const top = Math.min(yStart, yEnd) - HIT_RADIUS_PX;
+    const bottom = Math.max(yStart, yEnd) + HIT_RADIUS_PX;
+    if (py >= top && py <= bottom) return i;
+  }
+  return null;
+}
+
 interface ClipboardEntry {
   readonly lane: Lane;
   readonly relTick: number;
   readonly duration: number;
   readonly isWide: boolean;
+}
+
+interface TextClipboardEntry {
+  readonly relTick: number;
+  readonly duration: number;
+  readonly content: string;
+  readonly position: TextEvent['position'];
 }
 
 export function mountEditorNotesBody(
@@ -214,7 +283,36 @@ export function mountEditorNotesBody(
   canvas.width = 800;
   canvas.height = 600;
   canvasWrap.append(canvas);
-  wrap.append(toolbar, canvasWrap);
+  // text 편집 폼(M5-7, D-2026-105) — 2클릭 배치 뒤 또는 기존 이벤트
+  // 더블클릭 시 연다. content textarea + position select + Save/Delete/
+  // Cancel. 기본 숨김.
+  const textEditorPanel = document.createElement('div');
+  textEditorPanel.className = 'editor-text-editor';
+  textEditorPanel.hidden = true;
+  const textContentInput = document.createElement('textarea');
+  textContentInput.className = 'editor-text-editor-content';
+  const textPositionSelect = document.createElement('select');
+  textPositionSelect.className = 'editor-text-editor-position';
+  for (const pos of TEXT_POSITIONS) {
+    const opt = document.createElement('option');
+    opt.value = pos;
+    opt.textContent = pos;
+    textPositionSelect.append(opt);
+  }
+  const textEditorButtons = document.createElement('div');
+  textEditorButtons.className = 'editor-text-editor-buttons';
+  const textSaveBtn = document.createElement('button');
+  textSaveBtn.type = 'button';
+  textSaveBtn.textContent = 'Save';
+  const textDeleteBtn = document.createElement('button');
+  textDeleteBtn.type = 'button';
+  textDeleteBtn.textContent = 'Delete';
+  const textCancelBtn = document.createElement('button');
+  textCancelBtn.type = 'button';
+  textCancelBtn.textContent = 'Cancel';
+  textEditorButtons.append(textSaveBtn, textDeleteBtn, textCancelBtn);
+  textEditorPanel.append(textContentInput, textPositionSelect, textEditorButtons);
+  wrap.append(toolbar, canvasWrap, textEditorPanel);
   container.append(wrap);
   const ctx = canvas.getContext('2d');
 
@@ -222,9 +320,21 @@ export function mountEditorNotesBody(
   let timeline = buildTimeline(chart);
   let tool: NoteTool = 'tap';
   let selection = new Set<number>();
+  let textSelection = new Set<number>();
   let pendingHold: { readonly lane: Lane; readonly startTick: number } | null = null;
+  /** T 툴 2클릭 중 첫 클릭(시작 tick) — pendingHold와 같은 자리. */
+  let pendingText: { readonly startTick: number } | null = null;
+  /** 편집 모달이 지금 다루는 대상. `index === null`이면 새 배치
+   *  (`pendingText`가 확정된 startTick/endTick), 아니면 기존 이벤트 편집
+   *  (tick 범위는 재편집하지 않는다 — 파일 헤더 "결정 필요 항목"). */
+  let textEditor: {
+    readonly index: number | null;
+    readonly startTick: number;
+    readonly endTick: number;
+  } | null = null;
   let savedLNDur = TICKS_PER_BEAT;
   let clipboard: readonly ClipboardEntry[] | null = null;
+  let textClipboard: readonly TextClipboardEntry[] | null = null;
   const view = api.view;
 
   // 세로 scrollbar(M5-6, D-2026-104) — 우측 고정, scrollMs를 드래그로 seek.
@@ -255,10 +365,18 @@ export function mountEditorNotesBody(
     api.dispatch(build(api.session));
   }
 
+  function dispatchTextCommand(build: (s: TextEventsSessionLike) => Command): void {
+    api.dispatch(build(api.session));
+  }
+
   function toolbarLabel(t: NoteTool): string {
-    return { tap: 'Tap (Q)', hold: 'Hold (W)', wideTap: 'Wide Tap (E)', wideHold: 'Wide Hold (R)' }[
-      t
-    ];
+    return {
+      tap: 'Tap (Q)',
+      hold: 'Hold (W)',
+      wideTap: 'Wide Tap (E)',
+      wideHold: 'Wide Hold (R)',
+      text: 'Text (T)',
+    }[t];
   }
 
   function renderToolbar(): void {
@@ -268,7 +386,8 @@ export function mountEditorNotesBody(
     label.textContent = toolbarLabel(tool);
     const sel = document.createElement('span');
     sel.className = 'editor-notes-sel-label';
-    sel.textContent = selection.size > 0 ? `${selection.size} selected` : '';
+    const selectedCount = selection.size + textSelection.size;
+    sel.textContent = selectedCount > 0 ? `${selectedCount} selected` : '';
     toolbar.append(label, sel);
   }
 
@@ -349,6 +468,38 @@ export function mountEditorNotesBody(
       ctx.lineTo(cw, y);
       ctx.stroke();
     }
+
+    // text event(M5-7) — lane과 무관한 전체 폭 띠, 왼쪽에 content 미리보기.
+    const textStripW = 10;
+    chart.textEvents.forEach((event, index) => {
+      const y0 = tickToPixelY(event.startTick, ch, timeline, view.scrollMs, view.viewMs);
+      const y1 = tickToPixelY(
+        event.startTick + event.duration,
+        ch,
+        timeline,
+        view.scrollMs,
+        view.viewMs,
+      );
+      const top = Math.min(y0, y1);
+      const height = Math.max(4, Math.abs(y1 - y0));
+      const isSelected = textSelection.has(index);
+      ctx.fillStyle = isSelected ? '#4fbcd0' : '#ffd23f';
+      ctx.fillRect(0, top, textStripW, height);
+      ctx.fillStyle = '#ececf4';
+      ctx.font = '11px sans-serif';
+      ctx.textBaseline = 'top';
+      const preview = event.content.split('\n')[0]!.slice(0, 24);
+      ctx.fillText(`[${event.position}] ${preview}`, textStripW + 4, top + 2);
+    });
+
+    if (pendingText !== null) {
+      const y = tickToPixelY(pendingText.startTick, ch, timeline, view.scrollMs, view.viewMs);
+      ctx.strokeStyle = '#ffd23f';
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(cw, y);
+      ctx.stroke();
+    }
   }
 
   function clampLane(lane: number): Lane {
@@ -398,50 +549,148 @@ export function mountEditorNotesBody(
     dispatchNoteCommand((s) => addNotesCommand(s, [note]));
   }
 
+  // ── text event 배치·편집(M5-7) ──────────────────────────────
+
+  function beginPendingText(tick: number): void {
+    pendingText = { startTick: tick };
+    render();
+  }
+
+  /** T 툴 2번째 클릭 — tick 범위가 확정되면 새 이벤트용 편집 모달을 연다
+   *  (원본 `teNewRange`처럼 content가 비어 있는 채로). 아직 dispatch하지
+   *  않는다 — Save를 눌러야 실제로 추가된다. */
+  function confirmPendingText(tick: number): void {
+    if (pendingText === null) return;
+    const startTick = Math.min(pendingText.startTick, tick);
+    const endTick = Math.max(cellTick() + startTick, Math.max(pendingText.startTick, tick));
+    pendingText = null;
+    openTextEditor(null, startTick, endTick);
+  }
+
+  function openTextEditor(index: number | null, startTick: number, endTick: number): void {
+    textEditor = { index, startTick, endTick };
+    const existing = index !== null ? chart.textEvents[index] : null;
+    textContentInput.value = existing?.content ?? '';
+    textPositionSelect.value = existing?.position ?? 'middle';
+    textDeleteBtn.hidden = index === null;
+    textEditorPanel.hidden = false;
+    textContentInput.focus();
+  }
+
+  function closeTextEditor(): void {
+    textEditor = null;
+    textEditorPanel.hidden = true;
+  }
+
+  function saveTextEditor(): void {
+    if (textEditor === null) return;
+    const { index, startTick, endTick } = textEditor;
+    const content = textContentInput.value;
+    const position = textPositionSelect.value as TextEvent['position'];
+    closeTextEditor();
+    if (index === null) {
+      const event: TextEvent = { startTick, duration: endTick - startTick, content, position };
+      dispatchTextCommand((s) => addTextEventsCommand(s, [event]));
+    } else {
+      dispatchTextCommand((s) => editTextEventCommand(s, index, { content, position }));
+    }
+  }
+
+  function deleteTextEditorTarget(): void {
+    if (textEditor === null || textEditor.index === null) return;
+    const index = textEditor.index;
+    closeTextEditor();
+    dispatchTextCommand((s) => deleteTextEventsCommand(s, [index]));
+    textSelection = new Set();
+  }
+
+  textSaveBtn.addEventListener('click', saveTextEditor);
+  textDeleteBtn.addEventListener('click', deleteTextEditorTarget);
+  textCancelBtn.addEventListener('click', () => {
+    closeTextEditor();
+    render();
+  });
+
   // ── selection / delete / clipboard / mirror ────────────────
 
   function clearSelection(): boolean {
-    if (selection.size === 0) return false;
+    if (selection.size === 0 && textSelection.size === 0) return false;
     selection = new Set();
+    textSelection = new Set();
     render();
     return true;
   }
 
+  /** note·text 선택을 각각 별도 dispatch로 지운다(파일 헤더 "결정 필요
+   *  항목" — 한 undo로 합치지 않았다). */
   function deleteSelection(): void {
-    if (selection.size === 0) return;
-    const indices = [...selection];
-    dispatchNoteCommand((s) => deleteNotesCommand(s, indices));
-    selection = new Set();
+    if (selection.size > 0) {
+      const indices = [...selection];
+      dispatchNoteCommand((s) => deleteNotesCommand(s, indices));
+      selection = new Set();
+    }
+    if (textSelection.size > 0) {
+      const indices = [...textSelection];
+      dispatchTextCommand((s) => deleteTextEventsCommand(s, indices));
+      textSelection = new Set();
+    }
   }
 
+  /** note·textEvent 선택을 하나의 클립보드에 함께 담는다(`editor-editing.md`
+   *  §1 "선택에 textEvents가 포함돼 있으면 함께 복사·붙여넣기"). 기준점은
+   *  둘을 합친 전체의 최소 tick이다. */
   function copySelection(): void {
-    if (selection.size === 0) return;
+    if (selection.size === 0 && textSelection.size === 0) return;
     const notes = [...selection].map((i) => chart.notes[i]!);
-    const minStart = Math.min(...notes.map((n) => n.startTick));
-    clipboard = notes.map((n) => ({
-      lane: n.lane,
-      relTick: n.startTick - minStart,
-      duration: n.duration,
-      isWide: n.isWide,
-    }));
+    const texts = [...textSelection].map((i) => chart.textEvents[i]!);
+    const starts = [...notes.map((n) => n.startTick), ...texts.map((e) => e.startTick)];
+    const minStart = Math.min(...starts);
+    clipboard =
+      notes.length > 0
+        ? notes.map((n) => ({
+            lane: n.lane,
+            relTick: n.startTick - minStart,
+            duration: n.duration,
+            isWide: n.isWide,
+          }))
+        : null;
+    textClipboard =
+      texts.length > 0
+        ? texts.map((e) => ({
+            relTick: e.startTick - minStart,
+            duration: e.duration,
+            content: e.content,
+            position: e.position,
+          }))
+        : null;
   }
 
+  /** note·text 붙여넣기도 각각 별도 dispatch다(delete와 같은 이유). */
   function pasteClipboard(): void {
-    if (clipboard === null || clipboard.length === 0) return;
     const baseTick = snapTick(
       pixelYToTick(canvas.height / 2, canvas.height, timeline, view.scrollMs, view.viewMs),
       GRID_DIVISOR_DEFAULT,
     );
-    const existing = new Set(chart.notes.map((n) => `${n.lane}:${n.startTick}:${n.isWide}`));
-    const toAdd: Note[] = [];
-    for (const entry of clipboard) {
-      const startTick = baseTick + entry.relTick;
-      const key = `${entry.lane}:${startTick}:${entry.isWide}`;
-      if (existing.has(key)) continue; // 같은 lane+tick+isWide 충돌은 조용히 스킵.
-      toAdd.push({ startTick, duration: entry.duration, lane: entry.lane, isWide: entry.isWide });
+    if (clipboard !== null && clipboard.length > 0) {
+      const existing = new Set(chart.notes.map((n) => `${n.lane}:${n.startTick}:${n.isWide}`));
+      const toAdd: Note[] = [];
+      for (const entry of clipboard) {
+        const startTick = baseTick + entry.relTick;
+        const key = `${entry.lane}:${startTick}:${entry.isWide}`;
+        if (existing.has(key)) continue; // 같은 lane+tick+isWide 충돌은 조용히 스킵.
+        toAdd.push({ startTick, duration: entry.duration, lane: entry.lane, isWide: entry.isWide });
+      }
+      if (toAdd.length > 0) dispatchNoteCommand((s) => addNotesCommand(s, toAdd));
     }
-    if (toAdd.length === 0) return;
-    dispatchNoteCommand((s) => addNotesCommand(s, toAdd));
+    if (textClipboard !== null && textClipboard.length > 0) {
+      const toAdd: TextEvent[] = textClipboard.map((entry) => ({
+        startTick: baseTick + entry.relTick,
+        duration: entry.duration,
+        content: entry.content,
+        position: entry.position,
+      }));
+      dispatchTextCommand((s) => addTextEventsCommand(s, toAdd));
+    }
   }
 
   function mirrorSelection(): void {
@@ -508,6 +757,29 @@ export function mountEditorNotesBody(
         laneDelta: 0,
         colShiftAccum: 0,
       };
+      render();
+      return;
+    }
+
+    // text event 히트(M5-7) — note와 같은 클릭=선택/Shift=토글 모델이지만
+    // 드래그 이동은 없다(파일 헤더 "결정 필요 항목").
+    const textHitIndex = findTextEventIndexAt(
+      chart.textEvents,
+      y,
+      canvas.height,
+      timeline,
+      view.scrollMs,
+      view.viewMs,
+    );
+    if (textHitIndex !== null) {
+      if (!event.shiftKey && !textSelection.has(textHitIndex))
+        textSelection = new Set([textHitIndex]);
+      else if (event.shiftKey) {
+        const next = new Set(textSelection);
+        if (next.has(textHitIndex)) next.delete(textHitIndex);
+        else next.add(textHitIndex);
+        textSelection = next;
+      }
       render();
       return;
     }
@@ -598,6 +870,16 @@ export function mountEditorNotesBody(
     );
     if (hitIndex !== null) return; // 이미 pointerdown에서 선택 처리됨.
 
+    const textHitIndex = findTextEventIndexAt(
+      chart.textEvents,
+      y,
+      canvas.height,
+      timeline,
+      view.scrollMs,
+      view.viewMs,
+    );
+    if (textHitIndex !== null) return; // 이미 pointerdown에서 선택 처리됨.
+
     const lane = laneOfX(x, canvas.width);
     const tick = snapTick(
       pixelYToTick(y, canvas.height, timeline, view.scrollMs, view.viewMs),
@@ -606,6 +888,11 @@ export function mountEditorNotesBody(
 
     if (pendingHold !== null) {
       confirmPendingHold(tick);
+      render();
+      return;
+    }
+    if (pendingText !== null) {
+      confirmPendingText(tick);
       render();
       return;
     }
@@ -621,8 +908,28 @@ export function mountEditorNotesBody(
       case 'wideHold':
         beginPendingHold(lane, tick);
         break;
+      case 'text':
+        beginPendingText(tick);
+        break;
     }
     void event;
+  }
+
+  function onDoubleClick(event: MouseEvent): void {
+    const rect = canvas.getBoundingClientRect();
+    const y = ((event.clientY - rect.top) / rect.height) * canvas.height;
+    const textHitIndex = findTextEventIndexAt(
+      chart.textEvents,
+      y,
+      canvas.height,
+      timeline,
+      view.scrollMs,
+      view.viewMs,
+    );
+    if (textHitIndex === null) return;
+    event.preventDefault();
+    const target = chart.textEvents[textHitIndex]!;
+    openTextEditor(textHitIndex, target.startTick, target.startTick + target.duration);
   }
 
   function onWheel(event: WheelEvent): void {
@@ -638,11 +945,22 @@ export function mountEditorNotesBody(
   canvas.addEventListener('pointermove', onPointerMove);
   canvas.addEventListener('pointerup', onPointerUp);
   canvas.addEventListener('wheel', onWheel, { passive: false });
+  canvas.addEventListener('dblclick', onDoubleClick);
 
   render();
 
   return {
     onKeyDown(event: KeyboardEvent): boolean {
+      if (textEditor !== null) {
+        // 모달이 열린 동안은 이 파일의 단축키를 전부 죽인다 — `true`만
+        // 돌려주고 `preventDefault()`는 안 하므로 네이티브 textarea 입력
+        // (Ctrl+C/V 포함)은 그대로 통과한다. `Escape`만 취소로 가로챈다.
+        if (event.key === 'Escape') {
+          closeTextEditor();
+          render();
+        }
+        return true;
+      }
       if (event.ctrlKey || event.metaKey) {
         if (event.key === 'c' || event.key === 'C') {
           event.preventDefault();
@@ -683,6 +1001,11 @@ export function mountEditorNotesBody(
           tool = 'wideHold';
           render();
           return true;
+        case 't':
+        case 'T':
+          tool = 'text';
+          render();
+          return true;
         case 'z':
         case 'Z':
           zoomOut(view);
@@ -696,7 +1019,7 @@ export function mountEditorNotesBody(
         case 'd':
         case 'D':
         case 'Delete':
-          if (selection.size > 0) {
+          if (selection.size > 0 || textSelection.size > 0) {
             event.preventDefault();
             deleteSelection();
             return true;
@@ -705,6 +1028,11 @@ export function mountEditorNotesBody(
         case 'Escape':
           if (pendingHold !== null) {
             pendingHold = null;
+            render();
+            return true;
+          }
+          if (pendingText !== null) {
+            pendingText = null;
             render();
             return true;
           }
@@ -725,6 +1053,7 @@ export function mountEditorNotesBody(
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerup', onPointerUp);
       canvas.removeEventListener('wheel', onWheel);
+      canvas.removeEventListener('dblclick', onDoubleClick);
       scrollbar.destroy();
       wrap.remove();
     },

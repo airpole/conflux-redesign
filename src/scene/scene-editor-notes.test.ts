@@ -260,4 +260,120 @@ describe('scene-editor-notes', () => {
     const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'D' }));
     expect(consumed).toBe(true);
   });
+
+  // ── text event(M5-7, D-2026-105) ────────────────────────────────────
+
+  it('T 키가 tool을 text로 바꾼다', () => {
+    const { target, handle } = mount();
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 't' }));
+    expect(target.querySelector('.editor-notes-tool-label')?.textContent).toBe('Text (T)');
+  });
+
+  it('T 툴 2클릭이 편집 모달을 연다(아직 dispatch 없음), Save가 AddTextEvents를 dispatch한다', () => {
+    const { target, canvas, handle, dispatch, getChart } = mount();
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 't' }));
+    click(canvas, 100, 500); // 시작(늦은 시점 = 아래쪽)
+    click(canvas, 100, 100); // 끝(이른 시점 = 위쪽)
+    expect(dispatch).not.toHaveBeenCalled(); // 아직 모달만 열렸다.
+
+    const panel = target.querySelector('.editor-text-editor') as HTMLElement;
+    expect(panel.hidden).toBe(false);
+    const content = target.querySelector('.editor-text-editor-content') as HTMLTextAreaElement;
+    content.value = 'Hello';
+    content.dispatchEvent(new Event('input'));
+    const saveBtn = [...target.querySelectorAll('.editor-text-editor-buttons button')].find(
+      (b) => b.textContent === 'Save',
+    ) as HTMLButtonElement;
+    saveBtn.click();
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]![0].name).toBe('AddTextEvents');
+    expect(getChart().textEvents).toHaveLength(1);
+    expect(getChart().textEvents[0]!.content).toBe('Hello');
+    expect(panel.hidden).toBe(true); // Save 후 모달이 닫힌다.
+  });
+
+  it('Cancel은 dispatch 없이 모달만 닫는다', () => {
+    const { target, canvas, handle, dispatch } = mount();
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 't' }));
+    click(canvas, 100, 500);
+    click(canvas, 100, 100);
+    const cancelBtn = [...target.querySelectorAll('.editor-text-editor-buttons button')].find(
+      (b) => b.textContent === 'Cancel',
+    ) as HTMLButtonElement;
+    cancelBtn.click();
+    expect(dispatch).not.toHaveBeenCalled();
+    expect((target.querySelector('.editor-text-editor') as HTMLElement).hidden).toBe(true);
+  });
+
+  it('모달이 열린 동안 단축키는 전부 이 파일 몫이 아니다(Escape 제외, consumed=true)', () => {
+    const { canvas, handle } = mount();
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 't' }));
+    click(canvas, 100, 500);
+    click(canvas, 100, 100);
+    // 'w'는 hold 툴 전환 단축키지만 모달이 열린 동안은 textarea 입력으로
+    // 통과해야 한다 — consumed=true(workspace의 Tab/Escape-back만 막는다).
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'w' }));
+    expect(consumed).toBe(true);
+  });
+
+  it('기존 text event 더블클릭이 편집 모달을 연다 — Delete가 DeleteTextEvents를 dispatch한다', () => {
+    const textEvents = [
+      { startTick: 100, duration: 480, content: 'Hi', position: 'middle' as const },
+    ];
+    const { target, canvas, dispatch, getChart } = mount(makeChart({ textEvents }));
+    const y = pixelYOfTick(100 + 240); // 범위 중앙 근처.
+    canvas.dispatchEvent(new MouseEvent('dblclick', { clientX: 100, clientY: y, bubbles: true }));
+
+    const panel = target.querySelector('.editor-text-editor') as HTMLElement;
+    expect(panel.hidden).toBe(false);
+    const content = target.querySelector('.editor-text-editor-content') as HTMLTextAreaElement;
+    expect(content.value).toBe('Hi');
+
+    const deleteBtn = [...target.querySelectorAll('.editor-text-editor-buttons button')].find(
+      (b) => b.textContent === 'Delete',
+    ) as HTMLButtonElement;
+    deleteBtn.click();
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]![0].name).toBe('DeleteTextEvents');
+    expect(getChart().textEvents).toHaveLength(0);
+  });
+
+  it('클릭(단일)으로 text event를 선택하고 D로 지운다', () => {
+    const textEvents = [
+      { startTick: 100, duration: 480, content: 'Hi', position: 'middle' as const },
+    ];
+    const { canvas, handle, dispatch, getChart } = mount(makeChart({ textEvents }));
+    const y = pixelYOfTick(100 + 240);
+    click(canvas, 100, y);
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'D' }));
+    expect(consumed).toBe(true);
+    expect(dispatch.mock.calls[0]![0].name).toBe('DeleteTextEvents');
+    expect(getChart().textEvents).toHaveLength(0);
+  });
+
+  it('Ctrl+C·Ctrl+V가 선택된 note와 text event를 함께 복제한다(각각 별도 dispatch)', () => {
+    const notes = [{ startTick: 100, duration: 0, lane: 1 as const, isWide: false }];
+    // note와 hit 반경(15px)이 안 겹치게 충분히 떨어뜨린다 — 안 그러면 두
+    // 번째 클릭도 note를 다시 히트해 text event까지 안 내려간다.
+    const textEvents = [
+      { startTick: 2000, duration: 480, content: 'Hi', position: 'middle' as const },
+    ];
+    const { canvas, handle, dispatch, getChart } = mount(makeChart({ notes, textEvents }));
+
+    // note 선택.
+    click(canvas, 100, pixelYOfTick(100));
+    // text event 선택 — 서로 다른 배열(selection/textSelection)이라 섞이지 않는다.
+    click(canvas, 100, pixelYOfTick(2000 + 240));
+
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'c', ctrlKey: true }));
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'v', ctrlKey: true }));
+
+    expect(dispatch).toHaveBeenCalledTimes(2); // AddNotes + AddTextEvents.
+    const names = dispatch.mock.calls.map((c) => (c[0] as Command).name);
+    expect(names).toContain('AddNotes');
+    expect(names).toContain('AddTextEvents');
+    expect(getChart().notes).toHaveLength(2);
+    expect(getChart().textEvents).toHaveLength(2);
+  });
 });

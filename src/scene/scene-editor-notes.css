@@ -31,3 +31,54 @@
   background: #050508;
   touch-action: none;
 }
+
+/* text 편집 폼(M5-7, D-2026-105) — content textarea + position select +
+   Save/Delete/Cancel. 다른 editor 폼과 같은 최소 트리트먼트. */
+.editor-text-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5cqw;
+  padding: 0.8cqw;
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  background: #0a0a12;
+}
+
+.editor-text-editor-content {
+  font-family: var(--sans);
+  font-size: 0.9cqw;
+  color: var(--text);
+  background: #050508;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.4cqw;
+  min-height: 4cqw;
+  resize: vertical;
+}
+
+.editor-text-editor-position {
+  font-family: var(--sans);
+  font-size: 0.9cqw;
+  color: var(--text);
+  background: #050508;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.2cqw;
+  width: fit-content;
+}
+
+.editor-text-editor-buttons {
+  display: flex;
+  gap: 0.6cqw;
+}
+
+.editor-text-editor-buttons button {
+  font-family: var(--sans);
+  font-size: 0.85cqw;
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  color: var(--text);
+  border-radius: 3px;
+  padding: 0.3cqw 0.8cqw;
+  cursor: pointer;
+}

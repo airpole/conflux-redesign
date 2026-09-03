@@ -194,7 +194,22 @@ overlap/conflict 검출, `core-judge.ts`의 mirror lane map)을 그대로 이어
 ×1.35)/X(확대 ÷1.35) 줌 키를 배선했다.
 lane 2·3 배치-시점 자동 치환·사각 선택(`A` 드래그)·note 우선순위 등
 6가지는 의도적으로 단순화했다 — 전부 결정 필요 항목으로 D-2026-097에
-기록했다. text 툴(`T`)은 이 파일 범위 밖(M5-7).
+기록했다.
+
+**M5-7이 같은 파일에 text 툴(`T`)을 채웠다**(`edit-text-commands.ts`,
+D-2026-105) — 2클릭(시작→끝)으로 tick 범위를 잡은 뒤 content textarea·
+position select가 있는 편집 모달을 연다(`transition`/`mode`는
+`data-model.md` §8이 이미 폐기). **클릭 자체는 모달을 안 연다** — notes에
+이미 있던 "클릭=선택, Shift+클릭=토글" 모델을 text event에도 적용해
+(`editor-editing.md` §1 "선택에 textEvents가 포함되면 함께 복사·붙여넣기")
+별도 `textSelection`으로 관리하고, **더블클릭이 기존 이벤트의 편집
+모달을 연다**(원본 `text-events.js`의 click=모달과 다른 해석적 결정).
+모달이 열린 동안은 이 파일의 단축키를 전부 끈다(`Escape`만 취소로
+처리) — textarea 네이티브 입력·Ctrl+C/V는 그대로 통과한다. delete/copy-
+paste는 note와 textEvent를 각각 별도 dispatch로 처리한다(결정 필요
+항목). 재생 시 fade 표시는 이미 M4.5-1이 구현해 뒀다 — `scene-gameplay.ts`
+가 이미 `computeActiveTextEvents`/`drawTextEvent`를 호출하고 있어 이번
+라운드는 편집 쪽만 채웠다.
 
 **M5-4가 같은 delegation 자리에 `scene-editor-shapes.ts`를 붙였다**
 (D-2026-099) — shape/lane 서브모드(`T` 전환), Q/W/E/R 배치(shape:

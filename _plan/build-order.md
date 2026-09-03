@@ -471,6 +471,36 @@ cover·text event·hit effect는 Exit 기준 밖으로 남겼다). idle static p
 conflict 표시는 계산·렌더 배선이 아직 없다.
 | M5-7 | text events | 배치·편집·삭제가 되고 재생 시 정의된 fade로 표시된다. |
 
+**M5-7 진행 상황**: `edit-text-commands.ts`(AddTextEvents/DeleteTextEvents/
+EditTextEvent, D-2026-105)와 `scene-editor-notes.ts`의 새 `T` 툴이 구현됐다 —
+2클릭(시작→끝)으로 tick 범위를 잡은 뒤 content textarea·position select가 있는
+편집 모달을 연다(원본 `text-events.js`의 모달 폼 재확인, `transition`/`mode`
+필드는 `data-model.md` §8이 이미 폐기해 둬 없다). **원본과 달리 클릭 자체는
+모달을 열지 않는다** — 이 코드베이스가 notes에 이미 세워 둔 "클릭=선택,
+Shift+클릭=토글" 모델을 text event에도 그대로 적용해(`editor-editing.md` §1
+"선택에 textEvents가 포함되면 함께 복사·붙여넣기") 별도 `textSelection`으로
+관리하고, **더블클릭이 기존 이벤트의 편집 모달을 연다**(해석적 결정으로 별도
+보고). tick 범위는 배치 시점에 고정되고 모달에서 재편집하지 않는다(원본의
+measure 입력 재현은 범위 밖). delete/copy-paste는 note와 textEvent를 각각
+별도 dispatch로 처리한다(한 undo로 합치지 않음, 결정 필요 항목). 재생 시
+fade 표시는 이미 M4.5-1(`render-playfield.ts`의 `computeActiveTextEvents`/
+`drawTextEvent`, `scene-gameplay.ts`가 이미 호출)이 구현해 뒀다 — 이번
+라운드는 그 소비자를 위한 데이터를 만드는 편집 쪽만 채웠다. 테스트 신규:
+`edit-text-commands.test.ts` 4개, `scene-editor-notes.test.ts` +7 — 전체
+1345/1345 통과.
+
+**M5 자체 Exit 기준은 아직 안 닫혔다** — "노트·shape·lane·text·메타를 넣고
+**저장한 뒤** game에서 플레이할 수 있다"의 "저장" 단계가 에디터 UI에 없다.
+`app-main.ts`의 `leaveEditor()`가 부르는 `saveNewVersion`은 M5-1부터
+`async () => 'cancelled'`(저장 창 UI가 열리기 전까지의 자리표시자, M5-1
+결정 필요 항목으로 이미 보고돼 있었다)로 남아 있고, `.cfx` 내보내기
+(`edit-cfx-package.ts`, M3-4)를 부르는 UI도 없다 — 즉 에디터에서 만든 chart가
+song-select/game이 읽는 library로 실제로 넘어가는 경로 자체가 아직 없다.
+M5-2~M5-7 각자의 Exit 기준은 이 경로 없이도(command 엔진 단위 테스트로)
+확인 가능해 지금까지 막힌 적이 없었지만, M5 전체 Exit는 이 마지막 연결
+없이는 닫을 수 없다 — 별도 결정 필요 항목(저장 창 UI 자체를 M5 범위에
+넣을지, M6 이후로 미룰지)으로 보고한다.
+
 **Exit**: 빈 chart에서 시작해 노트·shape·lane·text·메타를 넣고 저장한 뒤 game에서 플레이할 수 있다. 수동 대조 시나리오 — 편집 조작별 결과 비교.
 
 ---

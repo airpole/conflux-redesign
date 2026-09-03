@@ -1684,6 +1684,67 @@
 - **Commit:** `4114fb1`
 
 
+### D-2026-105 — M5-7: text events — 배치·편집·삭제
+
+- **Status:** Accepted (구현분) / 저장 UI 없음은 M5 전체 Exit 기준 결정 필요 항목으로 별도 보고
+- **Decision:** `editor-commands.md` §6의 text command 3개(`AddTextEvents`/
+  `DeleteTextEvents`/`EditTextEvent`, `edit-text-commands.ts`)와 `scene-editor-
+  notes.ts`의 새 `T` 툴로 M5-7 Exit 기준("배치·편집·삭제가 되고 재생 시 정의된
+  fade로 표시된다")을 충족했다.
+
+  **배치**: `editor-editing.md` §1 "textEvent 2클릭(시작→끝)" 그대로 tick
+  범위를 잡은 뒤, content·position을 원본 `text-events.js`처럼 모달 폼
+  (textarea + select)으로 받는다 — `transition`/`mode` 필드는 `data-model.md`
+  §8이 이미 폐기해 둬 만들지 않았다.
+
+  **클릭 모델은 원본과 다르게 재해석했다** — 원본은 클릭 자체가 모달을
+  연다(`teEdit`)지만, 이 코드베이스는 notes에 이미 "클릭=선택, Shift+클릭=
+  토글" 모델을 세워 뒀고 `editor-editing.md` §1 "선택에 textEvents가 포함되면
+  함께 복사·붙여넣기"가 text event도 그 선택 모델 안에 있어야 함을 요구한다.
+  그래서 클릭은 선택(별도 `textSelection: Set<number>`)만 하고, **더블클릭이
+  기존 이벤트의 편집 모달을 연다** — 해석적 결정이라 명시한다.
+
+  **모달이 열린 동안은 이 파일의 단축키를 전부 끈다** — `onKeyDown`이
+  `textEditor !== null`이면 `Escape`(취소)만 처리하고 그 외에는 `true`만
+  돌려준다(`preventDefault()` 안 함 — workspace의 Tab/Backspace-back만 막고
+  textarea 네이티브 입력·Ctrl+C/V 복사는 그대로 통과한다).
+
+  **tick 범위는 배치 시점에 고정, 모달에서 재편집하지 않는다** — 원본
+  `teSave`의 시작/끝 measure 입력 재현은 범위 밖(결정 필요 항목)으로 뒀다.
+
+  **delete/copy-paste는 note와 textEvent를 각각 별도 dispatch로 처리한다** —
+  한 undo로 합치지 않았다(결정 필요 항목). copy는 note+text 선택을 한
+  클립보드에 같이 담아 "함께 복사·붙여넣기" 요구를 만족하되, 실제 배치는
+  여전히 두 번의 dispatch(paste가 두 undo 단위)다.
+
+  **재생 시 fade 표시는 이미 M4.5-1이 구현해 뒀다** —
+  `render-playfield.ts`의 `computeActiveTextEvents`/`drawTextEvent`
+  (`TEXT_FADE_MS`, [[constants]] §6)를 `scene-gameplay.ts`가 이미 호출한다.
+  이번 라운드는 그 데이터를 만드는 편집 쪽만 채웠다 — 재생 쪽은 한 줄도
+  안 건드렸다.
+
+  **M5 전체 Exit 기준은 이걸로 안 닫힌다** — "저장한 뒤 game에서 플레이할 수
+  있다"의 저장 단계가 에디터 UI에 없다. `app-main.ts`의 `saveNewVersion`은
+  M5-1부터 `async () => 'cancelled'`(자리표시자, 이미 M5-1 때 결정 필요
+  항목으로 보고됨)이고 `.cfx` 내보내기 UI도 없다 — 에디터에서 만든 chart가
+  song-select/game library로 넘어가는 경로 자체가 아직 없다. M5-2~M5-7은
+  전부 이 경로 없이 단위/통합 테스트만으로 각자의 Exit 기준을 확인할 수 있어
+  이번까지 드러나지 않았다.
+
+  테스트 신규: `edit-text-commands.test.ts`(Add/Delete/Edit, scope 검증
+  4개), `scene-editor-notes.test.ts` +7(T 키·2클릭+Save·Cancel·모달-열림-중
+  단축키 차단·더블클릭 편집+Delete·클릭 선택+D 삭제·Ctrl+C/V 함께 복제) —
+  전체 1345/1345 통과.
+- **Defined in:** `src/edit/edit-text-commands.ts`, `src/scene/scene-editor-notes.ts`,
+  `src/scene/scene-editor-notes.css`, `_plan/build-order.md`, `src/edit/README.md`,
+  `src/scene/README.md`
+- **Rationale:** Not required
+- **Affects:** edit, scene, spec(build-order) — M5-7 완료, M5 전체 Exit는
+  저장 UI 부재로 미결(별도 결정 필요 항목)
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred
