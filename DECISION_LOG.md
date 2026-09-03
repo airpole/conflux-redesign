@@ -1906,7 +1906,7 @@
 - **Affects:** app — M6-2 완료(editor/recordReset 둘 다 산출물 검사로
   public 번들 부재 확인)
 - **Supersedes:** None
-- **Commit:** PENDING
+- **Commit:** `1d190f6`
 
 
 ### D-YYYY-NNN — <Title>
