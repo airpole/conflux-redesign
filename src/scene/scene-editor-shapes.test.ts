@@ -196,6 +196,49 @@ describe('scene-editor-shapes', () => {
     expect(getChart().shapeEvents).toHaveLength(2);
   });
 
+  it('선택 후 Ctrl+F가 shape 이벤트를 제자리 mirror한다', () => {
+    const target: ShapeEvent = {
+      startTick: 0,
+      duration: 500,
+      isBlue: true,
+      targetPos: 3,
+      easing: 'Linear',
+    };
+    const { canvas, handle, getChart, dispatch } = mount(
+      makeChart({ shapeEvents: [blueInit, redInit, target] }),
+    );
+    click(canvas, pixelXOfExt(3), pixelYOfTick(500));
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'f', ctrlKey: true }));
+    expect(consumed).toBe(true);
+    expect(dispatch).toHaveBeenCalled();
+    const mirrored = getChart().shapeEvents.find((e) => e.targetPos === -3);
+    expect(mirrored).toBeDefined();
+    expect(mirrored!.isBlue).toBe(false);
+  });
+
+  it('lane 선택 후 Ctrl+F가 위치를 0.5축 기준으로 뒤집는다(lineNum 불변)', () => {
+    const { canvas, handle, getChart, dispatch } = mount(
+      makeChart({ laneEvents: [line1Init, line2Init, line3Init] }),
+    );
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 't' })); // → lane 모드.
+    // lane은 shape와 같은 외부단위(-8~+8) 공간에 투영해 그린다(파일 헤더) —
+    // 기본 chart의 Blue(-2)·Red(2) 사이에서 line1(targetPos 0.25)의 위치는
+    // -2 + 0.25*4 = -1.
+    click(canvas, pixelXOfExt(-1), pixelYOfTick(0));
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'f', ctrlKey: true }));
+    expect(consumed).toBe(true);
+    expect(dispatch).toHaveBeenCalled();
+    expect(getChart().laneEvents[0]!.targetPos).toBe(0.75);
+    expect(getChart().laneEvents[0]!.lineNum).toBe(1);
+  });
+
+  it('선택이 없으면 Ctrl+F는 아무 것도 하지 않는다(consumed=false)', () => {
+    const { handle, dispatch } = mount(makeChart({ shapeEvents: [blueInit, redInit] }));
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'f', ctrlKey: true }));
+    expect(consumed).toBe(false);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
   it('lane 모드 Q/W/E는 그룹 멤버십을 토글한다(툴바에 표시)', () => {
     const { target, handle } = mount(makeChart({ laneEvents: [line1Init, line2Init, line3Init] }));
     handle.onKeyDown(new KeyboardEvent('keydown', { key: 't' })); // → lane 모드.

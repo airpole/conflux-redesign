@@ -18,12 +18,26 @@
  * `findDotAt`/`onMove`의 `center`/`pinch` 분기 재구현, `scene-editor-shapes.ts`
  * 헤더 참조). 단일 점 드래그도 원소 하나짜리 배열로 같은 함수를 쓴다.
  *
- * `MirrorShapeEvents`(Ctrl+F)·`ApplyShapeOps`는 여전히 범위 밖이다 —
- * `scene-editor-shapes.ts` 헤더 docstring의 "이번 라운드가 단순화한 지점"
- * 참조. symmetry로 한 클릭에 여러 이벤트가 생기는 경우도 `add*Command`
- * 하나에 배열로 다 담아 한 undo 단위로 만든다 — 별도 `ApplyShapeOps`
- * 타입이 필요 없다(notes의 `AddNotesCommand`가 여러 note를 한 번에
- * 받는 것과 같은 패턴, `edit-notes-commands.ts` 참조).
+ * `mirrorEventsCommand`(Ctrl+F, M6-후속)가 shape·lane mirror를 구현한다 —
+ * `editor-editing.md` §4 "선택물 제자리 mirror, 축은 항상 중앙 0 고정"
+ * (구 flip-paste에서 갈라진 `[수정]` 재설계라 원본 수치를 그대로 옮기지
+ * 않는다). 축은 좌표계마다의 **고정 중심**이다: shape는 -8~+8이라 중심이
+ * 곧 0(`targetPos′ = -targetPos`) + `isBlue` 반전. lane은 0(왼쪽 경계)~1
+ * (오른쪽 경계)이라 중심이 0.5(`targetPos′ = 1 - targetPos`, `lineNum`은
+ * 그대로) — `_extracted/EXTRACTED_FACTS.md` §12.4의 "mirror 시
+ * `1 - fraction`"(0..1 정규화 좌표를 그 범위 중심으로 뒤집는 일반형)과
+ * 같은 산수다. "shapes 씬에서 걸면 shape·lane 선택을 합쳐 한 번에
+ * 건다"(§4)를 만족하려면 한 커맨드가 두 배열을 동시에 바꿔야 해서
+ * `shapeCommand`/`laneCommand` 패턴을 안 쓰고 직접 `invalidates:
+ * ['shapeEvents','laneEvents']`를 낸다(둘 중 실제로 안 바뀐 배열도
+ * 함께 올린다 — 값이 같아 결과엔 차이가 없고, 선택이 한쪽 서브모드에만
+ * 있으면 다른 배열은 원본 참조 그대로 돌아간다).
+ *
+ * `ApplyShapeOps`는 범위 밖이다 — symmetry로 한 클릭에 여러 이벤트가
+ * 생기는 경우도 `add*Command` 하나에 배열로 다 담아 한 undo 단위로
+ * 만든다 — 별도 `ApplyShapeOps` 타입이 필요 없다(notes의
+ * `AddNotesCommand`가 여러 note를 한 번에 받는 것과 같은 패턴,
+ * `edit-notes-commands.ts` 참조).
  *
  * **chain normalize** — `editor-commands.md` §6 "shape/lane command는
  * apply·undo 양쪽에서 chain normalize"를 그대로 구현한다. 원본
@@ -213,4 +227,38 @@ export function mutateLaneEventCommand(
     before.map((event, i) => (i === index ? { ...event, targetPos } : event)),
   );
   return laneCommand('MutateLaneEvents', session, before, after);
+}
+
+/** 선택물 제자리 mirror(Ctrl+F, §4) — shape·lane 선택을 합쳐 한 undo로
+ *  낸다. shape는 축(중심) 0 기준 `targetPos′ = -targetPos` + `isBlue`
+ *  반전, lane은 축(중심) 0.5 기준 `targetPos′ = 1 - targetPos`(`lineNum`
+ *  불변) — 파일 헤더 docstring 참조. anchor(`easing===null`)는 선택
+ *  자체에서 제외돼 있어(호출측) 별도 방어가 필요 없다. */
+export function mirrorEventsCommand(
+  session: ShapeSessionLike,
+  shapeIndices: readonly number[],
+  laneIndices: readonly number[],
+): Command {
+  const beforeShape = session.chart.shapeEvents;
+  const beforeLane = session.chart.laneEvents;
+  const shapeSet = new Set(shapeIndices);
+  const laneSet = new Set(laneIndices);
+  const afterShape = normalizeShapeEvents(
+    beforeShape.map((event, i) =>
+      shapeSet.has(i) ? { ...event, targetPos: -event.targetPos, isBlue: !event.isBlue } : event,
+    ),
+  );
+  const afterLane = normalizeLaneEvents(
+    beforeLane.map((event, i) =>
+      laneSet.has(i) ? { ...event, targetPos: 1 - event.targetPos } : event,
+    ),
+  );
+  return {
+    name: 'MirrorEvents',
+    invalidates: ['shapeEvents', 'laneEvents'],
+    apply: () =>
+      session.updateChart({ ...session.chart, shapeEvents: afterShape, laneEvents: afterLane }),
+    undo: () =>
+      session.updateChart({ ...session.chart, shapeEvents: beforeShape, laneEvents: beforeLane }),
+  };
 }

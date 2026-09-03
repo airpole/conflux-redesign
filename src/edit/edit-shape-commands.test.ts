@@ -6,6 +6,7 @@ import {
   addShapeEventsCommand,
   deleteLaneEventsCommand,
   deleteShapeEventsCommand,
+  mirrorEventsCommand,
   mutateLaneEventCommand,
   mutateShapeEventsCommand,
   normalizeLaneEvents,
@@ -286,6 +287,68 @@ describe('edit-shape-commands', () => {
         mutateShapeEventsCommand(session(shapeChart), [{ index: 0, targetPos: -1 }]).invalidates,
       ).toEqual(['shapeEvents']);
       expect(mutateLaneEventCommand(session(laneChart), 0, 0.1).invalidates).toEqual([
+        'laneEvents',
+      ]);
+    });
+  });
+
+  describe('mirrorEventsCommand', () => {
+    it('shape는 축 0 기준 위치를 뒤집고 isBlue를 반전한다', () => {
+      const target: ShapeEvent = {
+        startTick: 500,
+        duration: 500,
+        isBlue: true,
+        targetPos: 3,
+        easing: 'Linear',
+      };
+      const chart = makeChart({ shapeEvents: [blueInit, redInit, target] });
+      const s = session(chart);
+      const cmd = mirrorEventsCommand(s, [2], []);
+      cmd.apply();
+      const mirrored = s.getChart().shapeEvents.find((e) => e.targetPos === -3);
+      expect(mirrored).toBeDefined();
+      expect(mirrored!.isBlue).toBe(false);
+      cmd.undo();
+      expect(s.getChart().shapeEvents).toEqual([blueInit, redInit, target]);
+    });
+
+    it('lane은 축 0.5 기준 위치를 뒤집고 lineNum은 그대로 둔다', () => {
+      const chart = makeChart({ laneEvents: [line1Init, line2Init, line3Init] });
+      const s = session(chart);
+      const cmd = mirrorEventsCommand(s, [], [0]);
+      cmd.apply();
+      expect(s.getChart().laneEvents[0]!.targetPos).toBe(0.75); // 1 - 0.25
+      expect(s.getChart().laneEvents[0]!.lineNum).toBe(1);
+      cmd.undo();
+      expect(s.getChart().laneEvents).toEqual([line1Init, line2Init, line3Init]);
+    });
+
+    it('shape·lane 선택을 한 번에 합쳐 한 undo로 낸다', () => {
+      const shapeTarget: ShapeEvent = {
+        startTick: 500,
+        duration: 500,
+        isBlue: false,
+        targetPos: -5,
+        easing: 'Linear',
+      };
+      const chart = makeChart({
+        shapeEvents: [blueInit, redInit, shapeTarget],
+        laneEvents: [line1Init, line2Init, line3Init],
+      });
+      const s = session(chart);
+      const cmd = mirrorEventsCommand(s, [2], [2]);
+      cmd.apply();
+      expect(s.getChart().shapeEvents.some((e) => e.targetPos === 5 && e.isBlue)).toBe(true);
+      expect(s.getChart().laneEvents[2]!.targetPos).toBe(0.25); // 1 - 0.75
+      cmd.undo();
+      expect(s.getChart().shapeEvents).toEqual([blueInit, redInit, shapeTarget]);
+      expect(s.getChart().laneEvents).toEqual([line1Init, line2Init, line3Init]);
+    });
+
+    it('invalidates는 shapeEvents·laneEvents 둘 다다', () => {
+      const chart = makeChart({ shapeEvents: [blueInit, redInit], laneEvents: [line1Init] });
+      expect(mirrorEventsCommand(session(chart), [], []).invalidates).toEqual([
+        'shapeEvents',
         'laneEvents',
       ]);
     });

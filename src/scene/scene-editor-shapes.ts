@@ -78,9 +78,17 @@
  * 배열로 받아 한 커맨드로 묶는다(`editor-commands.md` §4 "drag-end에
  * snapshot command 1개").
  *
+ * **Ctrl+F(선택 mirror)는 M6-후속이 닫았다** — `mirrorSelection()`이
+ * `shapeSelection`·`laneSelection`(서브모드와 무관하게 둘 다 항상 유지되는
+ * Set)을 합쳐 `mirrorEventsCommand`(`edit-shape-commands.ts`) 하나로
+ * 낸다 — §4 "shape·lane 선택을 합쳐 한 번에 건다"를 그대로 만족한다.
+ * shape는 축(중심) 0 기준 `targetPos′=-targetPos`+`isBlue` 반전, lane은
+ * 축(중심) 0.5 기준 `targetPos′=1-targetPos`(`lineNum` 불변) — 자세한
+ * 유도는 `edit-shape-commands.ts` 헤더.
+ *
  * **이번 라운드가 단순화한 지점(전부 결정 필요 항목으로 남김)**:
- * - **Ctrl+F(선택 mirror)·클립보드(Ctrl+C/V)가 없다** — notes 탭에 이미
- *   구현된 패턴을 shape/lane에 그대로 옮기는 건 후속 라운드로 미룬다.
+ * - **클립보드(Ctrl+C/V)가 없다** — notes 탭에 이미 구현된 패턴을
+ *   shape/lane에 그대로 옮기는 건 후속 라운드로 미룬다.
  * - **symmetry 축은 항상 동적 스냅샷**이다(§3 "배치 지점 기준 쌍 평균") —
  *   드래그로 축을 수동 조절하는 UI·"토글 off까지 유지" 상태는 없다.
  * - **lane 그룹은 토글-누적 방식이다** — 원본은 Q/W/E를 물리적으로
@@ -126,6 +134,7 @@ import {
   addShapeEventsCommand,
   deleteLaneEventsCommand,
   deleteShapeEventsCommand,
+  mirrorEventsCommand,
   mutateLaneEventCommand,
   mutateShapeEventsCommand,
   type ShapeSessionLike,
@@ -819,6 +828,14 @@ export function mountEditorShapesBody(
     }
   }
 
+  /** Ctrl+F — shape·lane 선택을 합쳐 한 undo로 제자리 mirror한다(§4
+   *  "shapes 씬에서 걸면 shape·lane 선택을 합쳐 한 번에 건다"). 서브모드
+   *  필터의 유일한 예외라 `subMode`를 안 보고 두 선택 Set을 그대로 쓴다. */
+  function mirrorSelection(): void {
+    if (shapeSelection.size === 0 && laneSelection.size === 0) return;
+    dispatchShapeCommand((s) => mirrorEventsCommand(s, [...shapeSelection], [...laneSelection]));
+  }
+
   // ── pointer ──────────────────────────────────────────────
 
   function canvasPoint(event: PointerEvent): { x: number; y: number } {
@@ -1023,6 +1040,13 @@ export function mountEditorShapesBody(
 
   return {
     onKeyDown(event: KeyboardEvent): boolean {
+      if ((event.ctrlKey || event.metaKey) && (event.key === 'f' || event.key === 'F')) {
+        if (shapeSelection.size === 0 && laneSelection.size === 0) return false;
+        event.preventDefault();
+        mirrorSelection();
+        return true;
+      }
+
       switch (event.key) {
         case 'T':
         case 't':

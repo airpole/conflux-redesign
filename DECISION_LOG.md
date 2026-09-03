@@ -2027,6 +2027,54 @@
 - **Commit:** `f29c4ef`
 
 
+### D-2026-112 — M5-4 후속: shapes/lane Ctrl+F mirror 구현
+
+- **Status:** Accepted
+- **Decision:** M5-4가 "결정 필요 항목"으로 남겼던 6개 단순화 지점 중
+  Ctrl+F(선택 mirror)를 닫는다. `editor-editing.md` §4가 이미 확정해 둔
+  규칙("선택물 제자리 mirror, 축은 항상 중앙 0 고정, shape는 위치+isBlue
+  반전, lane은 구분선 순서 유지·위치만 대칭, shapes 씬에서 걸면 shape·
+  lane 선택을 합산")을 그대로 구현했다 — 새 product 결정은 없었다.
+
+  구현: `edit-shape-commands.ts`에 `mirrorEventsCommand(session,
+  shapeIndices, laneIndices)`를 추가했다. shape·lane 선택을 **한
+  undo**로 합쳐 걸어야 해서(§4) 기존 `shapeCommand`/`laneCommand`
+  헬퍼(배열 하나만 건드림) 대신 `invalidates: ['shapeEvents',
+  'laneEvents']`를 직접 낸다. `scene-editor-shapes.ts`가 Ctrl+F를
+  `onKeyDown` 맨 앞(서브모드 필터를 안 거치는 유일한 예외)에서
+  가로채 `shapeSelection`·`laneSelection`(서브모드와 무관하게 항상
+  유지되는 두 Set) 그대로를 넘긴다.
+
+  **좌표계별 mirror 공식을 새로 유도했다** — §4는 "축 0 고정"만 말하고
+  수식은 안 준다(구 flip-paste에서 갈라진 `[수정]` 재설계라 원본
+  수치를 그대로 옮길 수 없다). shape(-8~+8, 중심 0)는 `targetPos′=
+  -targetPos`가 그대로 축 0 기준 반전이지만, lane(0=왼쪽 경계~1=오른쪽
+  경계, 중심 0.5)에 같은 "0"을 문자 그대로 적용하면 왼쪽 경계 기준
+  반전이 돼 버려 원래 의도(그 좌표계의 **고정 중심** 기준 반전)와
+  어긋난다. "각 좌표계의 고정 중심 기준 반전"이라는 §4의 원래 취지를
+  lane의 실제 중심(0.5)에 적용해 `targetPos′=1-targetPos`를 썼다 —
+  `_extracted/EXTRACTED_FACTS.md` §12.4의 "mirror 시 `1-fraction`"
+  (0..1 정규화 좌표를 그 범위 중심으로 뒤집는 원본의 일반형, 다른
+  서브시스템의 렌더 mirror 수식이지만 같은 산수)과 일치해 근거로
+  삼았다.
+
+  Ctrl+D(구간 복제, §4가 서술만 하고 이번 라운드도 범위 밖으로 남긴
+  항목)와 클립보드(Ctrl+C/V)는 여전히 안 건드렸다 — 각각 별도
+  결정 필요 항목/후속 라운드로 남는다.
+
+  테스트 신규: `edit-shape-commands.test.ts` +4(shape 반전·lane
+  반전·shape+lane 합산 한 undo·invalidates), `scene-editor-shapes.test.ts`
+  +3(shape Ctrl+F·lane Ctrl+F·선택 없으면 no-op) — 전체 1374/1374 통과.
+- **Defined in:** `src/edit/edit-shape-commands.ts`,
+  `src/scene/scene-editor-shapes.ts`, `editor/editor-editing.md` §8
+- **Rationale:** `editor/editor-editing.md` §4
+- **Affects:** edit, scene — M5-4 잔여 단순화 지점 6개 중 1개 닫힘
+  (클립보드·symmetry 수동축·lane group hold·lane symmetry 3그룹·
+  laneGridDivisor UI·Ctrl+D는 잔여)
+- **Supersedes:** None
+- **Commit:** PENDING
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

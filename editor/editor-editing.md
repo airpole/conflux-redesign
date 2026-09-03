@@ -171,5 +171,7 @@ ON이면 배치 시 대칭축 반대편에 자동 생성한다. **축 기본값 
 - [x] shape/lane 기존 점 드래그 재배치 — **닫힘**(D-2026-100): `MutateShapeEvents`/`MutateLaneEvents`가 위치(`targetPos`)만 바꾼다(tick은 안 바뀐다, §2 "dot 드래그 = 위치 수정" 그대로). 원본 재확인 결과 symmetry는 드래그에 적용되지 않는다(`shape-input.js`의 `dragDot`/`dragMoveSel`에 `sMirror` 참조 없음) — click-vs-drag는 3px 임계(D-2026-099)로 가른다.
 - [x] composite dot(center/pinch 쌍) 드래그 — **닫힘**(D-2026-101): 원본 `findDotAt`을 재확인해 그룹핑 규칙을 그대로 옮겼다. `pinch` 후보 = 같은 tick에 Blue·Red 둘 다 있고 위치 차이 0.5 미만·둘 다 non-anchor; `center` 후보 = 한쪽만 있어도(half-pair) 성립, 히트 지점은 evaluated 경계 중점. 드래그하면 `pinch`는 둘 다 커서 위치로, `center`는 드래그 시작 시점 폭(Red−Blue)을 유지한 채 커서를 중심으로 움직인다 — 두 점 갱신이 있으면 `mutateShapeEventsCommand`(단수 → 복수로 일반화)가 한 undo로 묶는다.
 
+- [x] Ctrl+F mirror(shape·lane) — **닫힘**(M6-후속): `mirrorEventsCommand`(`edit-shape-commands.ts`)가 shape·lane 선택을 합쳐 한 undo로 제자리 mirror한다. shape는 축(중심) 0 기준 `targetPos′=-targetPos`+`isBlue` 반전, lane은 축(중심) 0.5 기준 `targetPos′=1-targetPos`(`lineNum` 불변) — `_extracted/EXTRACTED_FACTS.md` §12.4의 "mirror 시 `1-fraction`"과 같은 산수를 좌표계별 중심에 적용한 것. Ctrl+D 구간 복제(§4 서술)는 이번 라운드도 범위 밖이다.
+
 잔여:
-- **shapes/lane 서브모드는 M5-4에서 축소된 범위로 구현했다** — Ctrl+F mirror·클립보드 없음, symmetry 축 수동 조절 없음(항상 동적 스냅샷), lane 그룹은 물리적 키-hold 대신 토글-누적 방식, lane symmetry는 그룹 정확히 2개일 때만 적용, `laneGridDivisor` 드롭다운·`V` 위치 스냅 순환 UI 없음(4·0.25 고정), 같은 dest tick 중복 배치는 조용히 스킵 — 전부 결정 필요 항목, `src/scene/scene-editor-shapes.ts` 헤더가 상세.
+- **shapes/lane 서브모드는 M5-4에서 축소된 범위로 구현했다** — 클립보드(Ctrl+C/V) 없음, symmetry 축 수동 조절 없음(항상 동적 스냅샷), lane 그룹은 물리적 키-hold 대신 토글-누적 방식, lane symmetry는 그룹 정확히 2개일 때만 적용, `laneGridDivisor` 드롭다운·`V` 위치 스냅 순환 UI 없음(4·0.25 고정), 같은 dest tick 중복 배치는 조용히 스킵, Ctrl+D 구간 복제 없음 — 전부 결정 필요 항목, `src/scene/scene-editor-shapes.ts` 헤더가 상세.
