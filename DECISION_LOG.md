@@ -1745,6 +1745,89 @@
 - **Commit:** `97e69d0`
 
 
+### D-2026-106 — M5-8: chart JSON 저장·`.cfx` 내보내기·library 등록 UI
+
+- **Status:** Accepted
+- **Decision:** M5-7이 드러낸 "M5 자체 Exit 기준 미충족"(저장 후 game에서
+  플레이하는 경로가 통째로 없음)을 조사해 실제로는 세 개의 분리된 gap이라는
+  걸 확인하고 전부 닫았다.
+
+  **조사 결과(구현 전 보고)**: (1) chart JSON 저장(`Ctrl+S`) — `edit-chart-
+  save.ts`(M3-2)에 순수 로직만 있고 UI가 없었다. (2) `.cfx` 내보내기 —
+  `edit-cfx-package.ts`(M3-4)의 `packageAndSaveCfx`를 부르는 UI가 없었다.
+  (3) `.cfx` → library 등록 — `edit-cfx-library.ts`(M3-6)의
+  `commitLibraryRegistration`을 부르는 UI가 없었다. `game-song-select.ts`가
+  `library` store만 읽으므로 (1)만 닫아도 게임에서 안 보인다 — 세 개
+  전부 필요했다. (3)은 binary(`.cfx`) 읽기가 필요한데 `env-file.ts`의
+  `FileOpenHost`는 텍스트 전용이었다 — M5-1이 "Open .cfx" 버튼을 disabled로
+  남기며 결정 필요 항목(D-2026-062)으로 미뤄 둔 지점과 같다.
+
+  **env-file.ts 확장 설계**(구현 전 별도 보고, 사용자 확인): `saveFile`의
+  `contents: string | Uint8Array`처럼 기존 메서드의 파라미터 타입을 넓히는
+  방식은 여기 안 맞다고 판단했다 — 그건 호출측이 이미 들고 있는 값을
+  넘기는 자리라 union이 자연스럽지만, `pickFile`의 반환값은 **호스트가
+  만드는** 값이고 텍스트/binary는 `File.text()` vs `File.arrayBuffer()`로
+  아예 다른 읽기 경로다. 그래서 `pickFile`/`open`(단일·텍스트)은 그대로
+  두고 `pickFiles`(다중 텍스트)·`pickBinaryFiles`(binary, `multiple` 플래그)
+  두 메서드를 `FileOpenHost`에 **선택(optional)**으로 추가했다 — 기존
+  호출부(`app-main.ts`의 `jsonOpenHost`, `edit-chart-open.test.ts`) 무변경,
+  그 능력이 필요 없는 host는 구현 안 해도 되고 `FileEnv.openMultiple`/
+  `openBinary`가 없는 host에 부르면 명시적으로 던진다.
+
+  **(1) chart JSON 저장**: `scene-editor-save.ts`(신규, version 입력·파일명
+  표시·Save/Cancel)를 `app-main.ts`가 `proposeSaveVersion`/`saveChartVersion`
+  /`suggestChartFileName`(기존 M3-2 로직, 무변경)에 그대로 잇는다. 성공하면
+  `WorkspaceSession.updateChart`+`onFileSaveSuccess`로 dirty를 해제한다 —
+  이후 Backspace/Esc로 나갈 때 `leaveEditor()`의 `resolveSessionTransition`
+  이 `dirty=false`라 확인 없이 바로 나간다(그 확인 다이얼로그 UI 자체는
+  M5-1부터 여전히 자리표시자다 — save-then-leave 정상 경로에서는 안 걸려
+  이번 라운드가 건드릴 이유가 없었다). `Ctrl+S`는 어느 scene의 `onKeyDown`
+  도 거치지 않는 완전히 독립된 `document` 리스너다 — 이 레포는
+  `stopPropagation`을 쓰지 않으므로 다른 컨트롤러(예: M5-7의 text 편집
+  모달, 열린 동안 자기 단축키를 전부 삼킨다)가 뭘 하든 항상 실행돼
+  `editor-editing.md` §6 "text input에 focus가 있어도 Ctrl+S는 예외"를
+  구조적으로 만족한다.
+
+  **(2) `.cfx` 내보내기·(3) library 등록**: `editor-start` 화면에 "Package
+  .cfx"/"Import .cfx" 버튼 2개를 더했다(`app-main.ts`에 로직, 별도 화면
+  없음). Package는 `_meta/cfx.md` §9 "패키징 진입점은 직접 다중 파일 선택
+  하나다" 그대로 여러 chart JSON을 골라 `groupBySongId`→`recommendCandidates`
+  (동률 충돌은 그 songId 그룹만 건너뜀, 자동 선택 안 함)→참조 asset을
+  binary로 별도 선택→`packageAndSaveCfx`로 저장한다. Import는 `.cfx` binary
+  하나를 읽어 `validateCfxForImport`(구조+decode 검증)→`planLibraryRegistration`
+  (재등록이면 `confirm()`으로 변경 요약 표시, D-2026-018 다운그레이드 허용
+  그대로)→`commitLibraryRegistration`.
+
+  **"Package .cfx"는 init(chartId 0) + playable(1개 이상)의 group을
+  요구한다**(`validatePackageGroup`) — 한 editor 세션에서 M5-5가 이미 만든
+  meta 탭의 difficulty 전환(자동 chartId 규칙)으로 init→Trace처럼 바꿔
+  가며 Ctrl+S를 두 번 쓰면 이 조합이 만들어진다. 새 "여러 chart를 한 세션
+  안에서 나란히" 편집 UI는 만들지 않았다("새 난이도" 파생은 M5-5가 이미
+  범위 밖으로 남겨 둔 별도 기능).
+
+  **버튼 배치는 spec에 안 정해져 있다**(결정 필요 항목) — `_meta/cfx.md`가
+  "패키징 화면"이라고만 부르지 위치는 안 정한다. mode-select 항목 목록은
+  이미 확정 spec이라 새 항목을 안 넣었고, song-select(더 자연스러울 수
+  있는 후보)는 이미 완성된 화면이라 건드리지 않았다 — 이미 파일-흐름
+  진입점이 모인 `editor-start`를 재사용했다.
+
+  **M5 자체 Exit 기준이 이걸로 end-to-end 충족된다**(수동 다중 단계) —
+  New Chart → 편집 → meta에서 difficulty 전환 + music 연결 → Ctrl+S 두 번
+  → Package .cfx → Import .cfx → song-select에서 플레이. 빠진 단계 없음.
+
+  테스트 신규: `env-file.test.ts` +6(`openMultiple`/`openBinary` 성공·취소·
+  미구현 host), `scene-editor-save.test.ts` 6개(open 프리필·Save·Cancel·
+  showError·close), `scene-editor-start.test.ts` +2(새 버튼 2개 클릭) —
+  전체 1359/1359 통과.
+- **Defined in:** `src/env/env-file.ts`, `src/scene/scene-editor-save.ts`,
+  `src/scene/scene-editor-save.css`, `src/scene/scene-editor-start.ts`,
+  `src/app/app-main.ts`, `_plan/build-order.md`, `src/env/README.md`
+- **Rationale:** Not required
+- **Affects:** env, scene, app, spec(build-order) — M5 전체 Exit 기준 충족
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

@@ -161,11 +161,12 @@ settings와 같은 "하나의 host, 여러 scene id" 패턴으로 `mountEditorWo
 을 공유한다 — `editorState`(scroll/zoom·selection)가 notes·shapes 사이에
 공유된다는 §2 요구와도 맞는다. **Tab 순환이 settings와 다르다** — §1
 "notes → shapes → test → notes"(meta 제외, meta는 click 진입만)를 그대로
-구현했다. `.cfx` 열기는 결정 필요 항목으로 뺐다 — `env-file.ts`의
-`FileOpenHost.pickFile`이 텍스트 전용 계약이라 바이너리 `.cfx`를 열 방법이
-없고, 그 계약을 넓히는 건 architecture 확장이라 이 라운드에서 조용히
-하지 않았다(disabled 버튼으로 자리만 확보, `scene-editor-start.ts` 헤더
-참조). 세션 자체(`WorkspaceSession`)는 새로 만들지 않고 M3의
+구현했다. `.cfx` 열기(이 chart를 편집 세션으로 여는 것)는 여전히 disabled다 —
+chart 선택 UI(`persistence.md` §9)가 아직 없다. **binary open 자체는
+M5-8이 닫았다**(D-2026-062, `env-file.ts`의 `pickFiles`/`pickBinaryFiles`)
+— 그 능력으로 이 화면에 "Package .cfx"/"Import .cfx" 버튼 2개가 붙었다
+(D-2026-106, M5 자체 Exit 기준을 닫는 마지막 두 연결 고리 — 자세한 근거는
+`scene-editor-start.ts` 헤더와 `src/app/README.md`). 세션 자체(`WorkspaceSession`)는 새로 만들지 않고 M3의
 `edit-workspace.ts`를 그대로 쓴다 — 자세한 배선은 `src/edit/README.md`·
 `src/app/README.md`. notes/shapes/meta/test 4 scene은 이번 라운드엔
 chart identity만 보여주는 껍데기였다 — 실제 편집 UI는 M5-3~M5-6이 채웠다.
@@ -210,6 +211,12 @@ paste는 note와 textEvent를 각각 별도 dispatch로 처리한다(결정 필�
 항목). 재생 시 fade 표시는 이미 M4.5-1이 구현해 뒀다 — `scene-gameplay.ts`
 가 이미 `computeActiveTextEvents`/`drawTextEvent`를 호출하고 있어 이번
 라운드는 편집 쪽만 채웠다.
+
+**`scene-editor-save.ts`는 M5-8 범위다**(D-2026-106, `editor-editing.md`
+§7 "Ctrl+S = 저장 창 매번 표시"). version 숫자 입력(제안값 프리필)·파일명
+표시(읽기전용)·Save/Cancel뿐인 얇은 폼이다 — 실제 파일 쓰기·
+`WorkspaceSession` 갱신은 `app-main.ts`가 한다(자세한 배선은
+`src/app/README.md`).
 
 **M5-4가 같은 delegation 자리에 `scene-editor-shapes.ts`를 붙였다**
 (D-2026-099) — shape/lane 서브모드(`T` 전환), Q/W/E/R 배치(shape:

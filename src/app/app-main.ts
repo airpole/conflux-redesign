@@ -100,7 +100,7 @@ import { readSettings, writeSettings } from '../game/game-settings.js';
 import { createPreviewController } from '../game/game-song-preview.js';
 import { createAudioEnv } from '../env/env-audio.js';
 import { createIndexedDbBackend, createStorageEnv, type StorageEnv } from '../env/env-storage.js';
-import { createFileEnv, type FileOpenHost } from '../env/env-file.js';
+import { createFileEnv, type FileOpenHost, type FileSaveHost } from '../env/env-file.js';
 import type { GameplayStartInput } from '../scene/scene-gameplay.js';
 import { mountEditorStartScene, type EditorStartSceneHandle } from '../scene/scene-editor-start.js';
 import {
@@ -123,6 +123,19 @@ import {
 import { resolveSessionTransition } from '../edit/edit-session-transition.js';
 import { createCommandHistory, type CommandHistory } from '../edit/edit-command.js';
 import { openChartJson } from '../format/format-chart-open.js';
+import {
+  proposeSaveVersion,
+  saveChartVersion,
+  suggestChartFileName,
+} from '../edit/edit-chart-save.js';
+import { mountEditorSaveModal, type EditorSaveModalHandle } from '../scene/scene-editor-save.js';
+import { groupBySongId, type CandidateChart } from '../format/format-cfx-package.js';
+import { recommendCandidates, packageAndSaveCfx } from '../edit/edit-cfx-package.js';
+import {
+  validateCfxForImport,
+  planLibraryRegistration,
+  commitLibraryRegistration,
+} from '../edit/edit-cfx-library.js';
 
 console.info(`Conflux — build profile: ${BUILD_PROFILE}`);
 
@@ -504,11 +517,29 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
     multiple?: boolean;
   }) => Promise<readonly MinimalFileHandle[]>;
 
+  interface MinimalWritable {
+    write(data: Uint8Array | string): Promise<void>;
+    close(): Promise<void>;
+  }
+  interface MinimalSaveFileHandle {
+    readonly name: string;
+    createWritable(): Promise<MinimalWritable>;
+  }
+  type ShowSaveFilePicker = (options: {
+    suggestedName?: string;
+    types?: readonly { accept: Record<string, readonly string[]> }[];
+  }) => Promise<MinimalSaveFileHandle>;
+
   // File System Access API는 DOM lib 타입에 아직 없어(관련 패키지 미설치)
   // 이 파일에서만 최소 표면으로 duck-type한다 — `env-file.ts`가 이미
   // "실제 브라우저 지원 폭·폴백은 범위 밖"이라고 명시해 둔 자리다
   // (D-2026-062). 여기서 그 결정을 다시 열지 않고 그대로 따른다:
   // 미지원 브라우저에서는 `null`(취소)로 처리한다.
+  //
+  // M5-8이 `pickFiles`(다중 텍스트, `.cfx` 패키징의 chart JSON 선택)·
+  // `pickBinaryFiles`(binary, `.cfx` import·패키징의 asset)를 이 같은 host
+  // 객체에 추가했다 — D-2026-062가 "binary open 확장"으로 열어 둔 자리를
+  // 여기서 닫는다. `pickFile`(단일 텍스트) 계약은 그대로다.
   const jsonOpenHost: FileOpenHost = {
     async pickFile(accept) {
       const picker = (window as unknown as { showOpenFilePicker?: ShowOpenFilePicker })
@@ -526,6 +557,69 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
       const file = await handles[0]!.getFile();
       return { name: file.name, text: await file.text() };
     },
+    async pickFiles(accept) {
+      const picker = (window as unknown as { showOpenFilePicker?: ShowOpenFilePicker })
+        .showOpenFilePicker;
+      if (picker === undefined) return null;
+      let handles: readonly MinimalFileHandle[];
+      try {
+        handles = await picker({
+          types: [{ accept: { 'application/json': accept } }],
+          multiple: true,
+        });
+      } catch {
+        return null;
+      }
+      const files = await Promise.all(handles.map((h) => h.getFile()));
+      return Promise.all(files.map(async (file) => ({ name: file.name, text: await file.text() })));
+    },
+    async pickBinaryFiles(accept, multiple) {
+      const picker = (window as unknown as { showOpenFilePicker?: ShowOpenFilePicker })
+        .showOpenFilePicker;
+      if (picker === undefined) return null;
+      let handles: readonly MinimalFileHandle[];
+      try {
+        handles = await picker({
+          types: [{ accept: { 'application/octet-stream': accept } }],
+          multiple,
+        });
+      } catch {
+        return null;
+      }
+      const files = await Promise.all(handles.map((h) => h.getFile()));
+      return Promise.all(
+        files.map(async (file) => ({
+          name: file.name,
+          bytes: new Uint8Array(await file.arrayBuffer()),
+        })),
+      );
+    },
+  };
+
+  // chart JSON 저장(Ctrl+S)·`.cfx` 내보내기 둘 다 이 host로 쓴다 —
+  // 저장할 내용(`contents: string | Uint8Array`)만 다르고 대화상자
+  // 자체는 같다.
+  const browserSaveHost: FileSaveHost = {
+    async saveFile(suggestedName, contents) {
+      const picker = (window as unknown as { showSaveFilePicker?: ShowSaveFilePicker })
+        .showSaveFilePicker;
+      if (picker === undefined) return null;
+      let handle: MinimalSaveFileHandle;
+      try {
+        handle = await picker({
+          suggestedName,
+          types: [
+            { accept: { 'application/octet-stream': [`.${suggestedName.split('.').pop()}`] } },
+          ],
+        });
+      } catch {
+        return null; // 사용자 취소.
+      }
+      const writable = await handle.createWritable();
+      await writable.write(contents);
+      await writable.close();
+      return { name: handle.name };
+    },
   };
 
   let editorSession: WorkspaceSession | undefined;
@@ -535,6 +629,75 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
   // overlay의 `currentSettings`와 같은 관례(M4-7). editor에는 설정 화면
   // 진입점이 없어 `editor-test` scene의 onEnter가 매번 다시 읽어 채운다.
   let editorTestSettings: Settings = DEFAULT_SETTINGS;
+
+  // ── M5-8: chart JSON 저장(Ctrl+S) — editor-editing.md §7, persistence.md
+  // §4. 순수 결정 로직(`edit-chart-save.ts`)은 M3-2 때 이미 있었다 — 이
+  // 라운드는 실제 UI(`scene-editor-save.ts`)와 배선만 더한다. ─────────────
+  const editorSaveModal: EditorSaveModalHandle = mountEditorSaveModal(root, {
+    onConfirm(chosenVersion): void {
+      void handleSaveConfirm(chosenVersion);
+    },
+    onCancel(): void {
+      editorSaveModal.close();
+    },
+  });
+
+  function openSaveModal(): void {
+    const session = editorSession;
+    if (session === undefined) return;
+    const proposal = proposeSaveVersion(session.chart, session.baseVersion);
+    const fileName = suggestChartFileName(session.chart, proposal.proposedVersion);
+    editorSaveModal.open(proposal, fileName);
+  }
+
+  async function handleSaveConfirm(chosenVersion: number): Promise<void> {
+    const session = editorSession;
+    if (session === undefined) return;
+    const outcome = await saveChartVersion(
+      session.chart,
+      chosenVersion,
+      session.baseVersion,
+      () => new Date().toISOString(),
+      async (candidate) => {
+        const fileName = suggestChartFileName(candidate, candidate.version);
+        const result = await fileEnv.save(
+          browserSaveHost,
+          fileName,
+          JSON.stringify(candidate, null, 2),
+        );
+        return result.kind === 'saved'
+          ? { kind: 'saved', name: result.name }
+          : { kind: 'cancelled' };
+      },
+    );
+    if (outcome.kind === 'invalid-version') {
+      editorSaveModal.showError('버전은 현재 열린 버전보다 커야 한다.');
+      return;
+    }
+    if (outcome.kind === 'cancelled') {
+      editorSaveModal.close();
+      return;
+    }
+    // §4 "파일 저장에 성공한 경우에만 메모리의 version을 확정한다" —
+    // updateChart가 dirty를 다시 켜지만(edit-workspace.ts) 바로 뒤
+    // onFileSaveSuccess가 그걸 꺼서 최종 상태는 clean이다.
+    session.updateChart(outcome.chart);
+    await session.onFileSaveSuccess(outcome.chart.version);
+    editorWorkspaceHandle?.update(session.chart);
+    editorSaveModal.close();
+  }
+
+  // Ctrl+S는 `editor-editing.md` §6 "text input에 focus가 있어도 예외로
+  // 동작한다"의 대상이다 — 이 리스너는 어느 scene-*.ts의 onKeyDown도 거치지
+  // 않는 완전히 독립된 document 리스너라(이 레포는 stopPropagation을 쓰지
+  // 않는다) 다른 컨트롤러가 뭘 하든 항상 실행된다.
+  document.addEventListener('keydown', (event) => {
+    if ((event.ctrlKey || event.metaKey) && (event.key === 's' || event.key === 'S')) {
+      if (editorSession === undefined) return;
+      event.preventDefault();
+      openSaveModal();
+    }
+  });
 
   /** editor test scene의 Enter — gameplay scene을 mid-start(3초 lead-in,
    *  editor-origin)로 push한다(`scene-gameplay.ts` M5-6 확장, D-2026-103).
@@ -667,6 +830,142 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
     editorStartHandle!.update({ hasRecoverableWorkspace: slot !== null, error });
   }
 
+  // ── M5-8: "Package .cfx"/"Import .cfx" — M5 Exit의 마지막 두 연결 고리.
+  // 둘 다 별도 화면 없이 editor-start의 상태줄(`refreshEditorStartAvailability`
+  // 의 `error` 슬롯 — 이름은 error지만 성공 메시지도 여기로 보여준다, 별도
+  // toast UI가 없어 재사용했다, 결정 필요 항목)로 결과를 알린다. ─────────
+
+  function describeCfxLoadFailure(
+    result: Extract<Awaited<ReturnType<typeof validateCfxForImport>>, { readonly ok: false }>,
+  ): string {
+    switch (result.reason) {
+      case 'corrupt-zip':
+        return `손상된 .cfx: ${result.message}`;
+      case 'invalid-chart':
+        return `"${result.fileName}"이 유효한 chart가 아니다: ${result.message}`;
+      case 'invalid-package':
+        return `package 검증 실패: ${result.issues.map((i) => i.message).join('; ')}`;
+      case 'audio-decode-failed':
+        return `"${result.fileName}" 음원 decode 실패: ${result.message}`;
+    }
+  }
+
+  /** "Package .cfx" — 여러 chart JSON을 골라 songId별로 `.cfx`를 만든다
+   *  (`_meta/cfx.md` §9 "패키징 진입점은 직접 다중 파일 선택 하나다").
+   *  동률 version 충돌은 자동 선택하지 않고 그 songId 그룹만 건너뛴다(§9). */
+  async function handlePackageCfx(): Promise<void> {
+    const opened = await fileEnv.openMultiple(jsonOpenHost, ['.json']);
+    if (opened.kind === 'cancelled') return;
+
+    const candidates: CandidateChart[] = [];
+    const rejected: string[] = [];
+    for (const file of opened.files) {
+      const parsed = openChartJson(file.text);
+      if (parsed.kind !== 'opened') {
+        rejected.push(file.name);
+        continue;
+      }
+      candidates.push({ chart: parsed.chart, fileName: file.name });
+    }
+    if (candidates.length === 0) {
+      await refreshEditorStartAvailability(`chart로 읽지 못한 파일: ${rejected.join(', ')}`);
+      return;
+    }
+
+    const groups = groupBySongId(candidates);
+    const referencedAssetNames = new Set<string>();
+    for (const group of groups) {
+      for (const candidate of group.charts) {
+        if (candidate.chart.musicFile !== null) referencedAssetNames.add(candidate.chart.musicFile);
+        if (candidate.chart.jacketFile !== null)
+          referencedAssetNames.add(candidate.chart.jacketFile);
+      }
+    }
+
+    let assetBytesByName = new Map<string, Uint8Array>();
+    if (referencedAssetNames.size > 0) {
+      // 참조된 파일명과 정확히 일치하는 것만 쓴다 — "다른 파일명 asset으로
+      // 참조를 바꾸지 않는다"(persistence.md §11). 취소해도 계속 진행한다
+      // — asset 없이 시도하면 검증이 unresolved-asset으로 정확히 알려준다.
+      const openedAssets = await fileEnv.openBinary(jsonOpenHost, [], true);
+      if (openedAssets.kind === 'opened') {
+        assetBytesByName = new Map(openedAssets.files.map((f) => [f.name, f.bytes]));
+      }
+    }
+
+    const results: string[] = [];
+    for (const group of groups) {
+      const recommended = recommendCandidates(group.charts);
+      const conflicted = recommended.filter((r) => r.recommended === null);
+      if (conflicted.length > 0) {
+        results.push(
+          `${group.songId}: chartId ${conflicted.map((c) => c.chartId).join(',')} version 동률 충돌 — 건너뜀`,
+        );
+        continue;
+      }
+      const selected = recommended.map((r) => r.recommended!);
+      const assetNames = new Set<string>();
+      for (const candidate of selected) {
+        if (candidate.chart.musicFile !== null) assetNames.add(candidate.chart.musicFile);
+        if (candidate.chart.jacketFile !== null) assetNames.add(candidate.chart.jacketFile);
+      }
+      const assets = [...assetNames]
+        .filter((name) => assetBytesByName.has(name))
+        .map((name) => ({ name, bytes: assetBytesByName.get(name)! }));
+
+      const outcome = await packageAndSaveCfx({ selected, assets }, async (fileName, bytes) => {
+        const result = await fileEnv.save(browserSaveHost, fileName, bytes);
+        return result.kind;
+      });
+      if (outcome.kind === 'saved') results.push(`${group.songId}: "${outcome.fileName}" 저장됨`);
+      else if (outcome.kind === 'cancelled') results.push(`${group.songId}: 취소됨`);
+      else
+        results.push(
+          `${group.songId}: 검증 실패 — ${outcome.issues.map((i) => i.message).join('; ')}`,
+        );
+    }
+    await refreshEditorStartAvailability(results.join(' / '));
+  }
+
+  /** "Import .cfx" — `.cfx` 하나를 골라 game library(song-select/game이
+   *  읽는 `library` store)에 등록한다. `_meta/persistence.md` §12. */
+  async function handleImportCfx(): Promise<void> {
+    const opened = await fileEnv.openBinary(jsonOpenHost, ['.cfx'], false);
+    if (opened.kind === 'cancelled') return;
+    const file = opened.files[0]!;
+
+    const validated = await validateCfxForImport(file.bytes, {
+      decodeAudio: (buf) => audioEnv.decode(buf),
+    });
+    if (!validated.ok) {
+      await refreshEditorStartAvailability(
+        `.cfx import 실패: ${describeCfxLoadFailure(validated)}`,
+      );
+      return;
+    }
+    const songId = validated.charts[0]?.chart.songId;
+    if (songId === undefined) {
+      await refreshEditorStartAvailability('.cfx import 실패: chart가 없다.');
+      return;
+    }
+
+    const plan = await planLibraryRegistration(storage, songId, validated.charts);
+    if (plan.kind === 'reimport-confirm-needed') {
+      const summary = plan.changes.map((c) => `chartId ${c.chartId}: ${c.kind}`).join('\n');
+      // 다운그레이드 포함 reimport confirm(D-2026-018) — 되돌릴 수 없는
+      // 동작에 대한 최소 방어로 `confirm()`을 썼다(record-reset과 같은
+      // 관례, `scene-song-select.ts`의 D-2026-093 참조).
+      if (!confirm(`이미 등록된 songId다 — 교체할까요?\n${summary}`)) return;
+    }
+
+    await commitLibraryRegistration(storage, songId, file.bytes);
+    const jacketWarning =
+      validated.jacketWarnings.length > 0
+        ? ` (jacket decode 실패: ${validated.jacketWarnings.join(', ')})`
+        : '';
+    await refreshEditorStartAvailability(`"${songId}" library에 등록됨${jacketWarning}`);
+  }
+
   /** 새 세션을 시작할 때마다 부른다 — command history도 함께 새로 만들어
    *  session 교체 시 모든 scope stack이 비어 있게 한다(editor-commands.md
    *  §5 "history baseline", 매번 새 인스턴스를 만드는 게 가장 단순한
@@ -749,6 +1048,12 @@ function boot(root: HTMLElement, storage: StorageEnv): void {
         },
         onBack(): void {
           manager.goScene('mode-select');
+        },
+        onPackageCfx(): void {
+          void handlePackageCfx();
+        },
+        onImportCfx(): void {
+          void handleImportCfx();
         },
       });
     },

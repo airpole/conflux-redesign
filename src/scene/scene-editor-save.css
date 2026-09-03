@@ -1,0 +1,73 @@
+/* chart 저장 창(M5-8) — 다른 editor 폼과 같은 최소 트리트먼트(픽셀 디자인은
+   결정 필요 항목, scene-editor-notes.css의 text 편집 폼과 같은 사유). */
+
+.editor-save-overlay {
+  position: fixed;
+  inset: 0;
+  background: #000000aa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.editor-save-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+  padding: 1.2em;
+  min-width: 20em;
+  border: 1px solid #3a3a54;
+  border-radius: 4px;
+  background: #0a0a12;
+  font-family: 'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, sans-serif;
+  color: #ececf4;
+}
+
+.editor-save-title {
+  font-size: 1.1em;
+  color: #4fbcd0;
+}
+
+.editor-save-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8em;
+}
+
+.editor-save-version {
+  width: 6em;
+  background: #050508;
+  border: 1px solid #1e1e30;
+  border-radius: 3px;
+  color: #ececf4;
+  padding: 0.2em 0.4em;
+}
+
+.editor-save-filename {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.9em;
+  color: #9a9ab4;
+}
+
+.editor-save-error {
+  color: #ff5f70;
+  font-size: 0.9em;
+}
+
+.editor-save-buttons {
+  display: flex;
+  gap: 0.6em;
+  justify-content: flex-end;
+}
+
+.editor-save-btn {
+  font-family: inherit;
+  background: transparent;
+  border: 1px solid #3a3a54;
+  color: #ececf4;
+  border-radius: 3px;
+  padding: 0.3em 1em;
+  cursor: pointer;
+}

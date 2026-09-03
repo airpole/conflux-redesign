@@ -14,6 +14,21 @@
  * `saveFile`의 `contents`는 `.cfx`(binary ZIP) 저장을 위해 M3-4에서
  * `string | Uint8Array`로 넓혔다 — 기존 chart JSON 저장(M3-2, 문자열)은
  * 그대로 동작한다.
+ *
+ * **M5-8(D-2026-062 해소)이 binary 읽기·다중 선택을 더했다** — `.cfx`
+ * 패키징(선택된 chart JSON 여러 개 + 참조 asset)·`.cfx` import(library
+ * 등록용 binary 읽기) 둘 다 필요했다. `saveFile`처럼 기존 메서드의
+ * `contents` 파라미터 타입을 넓히는 방식은 여기 안 맞는다 — 그건 호출측이
+ * 이미 들고 있는 값을 넘기는 자리라 union이 자연스럽지만, `pickFile`의
+ * 반환값은 **호스트가 만드는** 값이고 텍스트/binary는 `File.text()`
+ * vs `File.arrayBuffer()`로 아예 다른 읽기 경로다. 그래서 기존
+ * `pickFile`/`open`(단일·텍스트)은 그대로 두고 새 메서드 2개를
+ * **추가**했다 — 기존 호출부(`app-main.ts`의 `jsonOpenHost`,
+ * `edit-chart-open.test.ts`) 무변경. 새 메서드 둘은 **선택**이다 — 그
+ * 능력이 필요 없는 host(예: 단일 chart JSON 열기만 하는 기존
+ * `jsonOpenHost`)까지 강제로 구현하게 만들지 않는다. 없는 host에서
+ * `openMultiple`/`openBinary`를 부르면 명시적으로 던진다(프로그래밍
+ * 오류로 취급 — 사용자 취소와 구분).
  */
 
 export interface OpenedFile {
@@ -21,9 +36,24 @@ export interface OpenedFile {
   readonly text: string;
 }
 
+export interface OpenedBinaryFile {
+  readonly name: string;
+  readonly bytes: Uint8Array;
+}
+
 /** `showOpenFilePicker` 모양의 최소 표면. 사용자가 취소하면 `null`. */
 export interface FileOpenHost {
   pickFile(accept: readonly string[]): Promise<OpenedFile | null>;
+  /** 텍스트 파일 다중 선택(`.cfx` 패키징의 chart JSON 여러 개, `_meta/cfx.md`
+   *  §9 "패키징 진입점은 직접 다중 파일 선택 하나다"). 취소는 `null`. */
+  pickFiles?(accept: readonly string[]): Promise<readonly OpenedFile[] | null>;
+  /** binary 파일 선택(`.cfx` import·패키징의 asset). `multiple`이 `false`면
+   *  단일 선택이라도 배열(길이 0 또는 1)로 돌아온다 — 호출측이 한 표면만
+   *  다루면 된다. 취소는 `null`. */
+  pickBinaryFiles?(
+    accept: readonly string[],
+    multiple: boolean,
+  ): Promise<readonly OpenedBinaryFile[] | null>;
 }
 
 /** `showSaveFilePicker` 모양의 최소 표면. 사용자가 취소하면 `null`. */
@@ -37,12 +67,28 @@ export interface FileSaveHost {
 export type OpenOutcome =
   { readonly kind: 'opened'; readonly file: OpenedFile } | { readonly kind: 'cancelled' };
 
+export type OpenMultipleOutcome =
+  | { readonly kind: 'opened'; readonly files: readonly OpenedFile[] }
+  | { readonly kind: 'cancelled' };
+
+export type OpenBinaryOutcome =
+  | { readonly kind: 'opened'; readonly files: readonly OpenedBinaryFile[] }
+  | { readonly kind: 'cancelled' };
+
 export type SaveFileOutcome =
   { readonly kind: 'saved'; readonly name: string } | { readonly kind: 'cancelled' };
 
 export interface FileEnv {
   /** 취소는 `cancelled`로 돌아온다. 읽기 실패는 던진다. */
   open(host: FileOpenHost, accept: readonly string[]): Promise<OpenOutcome>;
+  /** 텍스트 파일 여러 개. 취소는 `cancelled`. */
+  openMultiple(host: FileOpenHost, accept: readonly string[]): Promise<OpenMultipleOutcome>;
+  /** binary 파일. 취소 또는(단일 모드에서) 미선택은 `cancelled`. */
+  openBinary(
+    host: FileOpenHost,
+    accept: readonly string[],
+    multiple: boolean,
+  ): Promise<OpenBinaryOutcome>;
   /** 취소는 `cancelled`로 돌아온다. 쓰기 실패는 던진다. */
   save(
     host: FileSaveHost,
@@ -56,6 +102,26 @@ export function createFileEnv(): FileEnv {
     async open(host, accept) {
       const file = await host.pickFile(accept);
       return file === null ? { kind: 'cancelled' } : { kind: 'opened', file };
+    },
+
+    async openMultiple(host, accept) {
+      if (host.pickFiles === undefined) {
+        throw new Error('이 FileOpenHost는 pickFiles(다중 텍스트 선택)를 구현하지 않는다');
+      }
+      const files = await host.pickFiles(accept);
+      return files === null || files.length === 0
+        ? { kind: 'cancelled' }
+        : { kind: 'opened', files };
+    },
+
+    async openBinary(host, accept, multiple) {
+      if (host.pickBinaryFiles === undefined) {
+        throw new Error('이 FileOpenHost는 pickBinaryFiles(binary 선택)를 구현하지 않는다');
+      }
+      const files = await host.pickBinaryFiles(accept, multiple);
+      return files === null || files.length === 0
+        ? { kind: 'cancelled' }
+        : { kind: 'opened', files };
     },
 
     async save(host, suggestedName, contents) {

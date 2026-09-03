@@ -21,6 +21,8 @@ function mount(handlers: Partial<EditorStartHandlers> = {}): {
     onOpenJson,
     onContinueEditing,
     onBack,
+    onPackageCfx: vi.fn(),
+    onImportCfx: vi.fn(),
     ...handlers,
   });
   return { target, handle, onNewChart, onOpenJson, onContinueEditing, onBack };
@@ -80,6 +82,26 @@ describe('scene-editor-start', () => {
       (b) => b.textContent === 'Open .cfx',
     ) as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
+  });
+
+  it('Package .cfx 클릭이 onPackageCfx를 부른다(M5-8)', () => {
+    const onPackageCfx = vi.fn();
+    const { target } = mount({ onPackageCfx });
+    const btn = [...target.querySelectorAll('.editor-start-btn')].find(
+      (b) => b.textContent === 'Package .cfx',
+    ) as HTMLButtonElement;
+    btn.click();
+    expect(onPackageCfx).toHaveBeenCalledTimes(1);
+  });
+
+  it('Import .cfx 클릭이 onImportCfx를 부른다(M5-8)', () => {
+    const onImportCfx = vi.fn();
+    const { target } = mount({ onImportCfx });
+    const btn = [...target.querySelectorAll('.editor-start-btn')].find(
+      (b) => b.textContent === 'Import .cfx',
+    ) as HTMLButtonElement;
+    btn.click();
+    expect(onImportCfx).toHaveBeenCalledTimes(1);
   });
 
   it('update()로 hasRecoverableWorkspace가 true면 Continue Editing이 보인다', () => {

@@ -17,6 +17,18 @@ Node에서 mock으로 계약을 검사한다.
 `showSaveFilePicker`)으로 호스트를 추상화했다. 실제 브라우저 미지원 시 폴백은
 아직 결정하지 않았다 — Deferred 항목.
 
+**M5-8이 D-2026-062("binary open 확장")를 닫았다** — `FileOpenHost`에
+`pickFiles`(다중 텍스트, `.cfx` 패키징의 chart JSON 여러 개)·`pickBinaryFiles`
+(binary, `.cfx` import·패키징 asset)를 **추가**했다(둘 다 선택 메서드 —
+그 능력이 필요 없는 host는 구현 안 해도 되고, `FileEnv.openMultiple`/
+`openBinary`가 없으면 명시적으로 던진다). `saveFile`의 `contents: string |
+Uint8Array`처럼 기존 메서드를 넓히지 않았다 — 그건 호출측이 이미 들고
+있는 값을 넘기는 자리라 union이 자연스럽지만, `pickFile`의 반환값은
+호스트가 만드는 값이고 텍스트/binary는 `File.text()` vs `File.arrayBuffer()`
+로 아예 다른 읽기 경로라 새 메서드가 더 맞았다 — 기존 `pickFile`/`open`
+(단일·텍스트) 호출부(`app-main.ts`의 `jsonOpenHost`, `edit-chart-open.test.ts`)
+는 무변경이다.
+
 `createZipArchive`는 M3-4 범위다([[cfx]] §8, `architecture.md` §1: "ZIP
 인코딩·디코딩은 env-file 소관"). store(무압축) 방식만 쓰는 의존성 없는 ZIP
 writer다 — 이 레포가 런타임 의존성 0을 유지하는 것과 같은 이유. `unzip`·

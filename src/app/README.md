@@ -136,3 +136,18 @@ song-credit의 `'replace'`와 다른 경로다 — editor-test가 스택에 남�
 분기를 얻었다 — result를 건너뛰고 곧장 `goBack()`한다([[scene]] §9),
 no-record 4조건 중 `editorOrigin`/`midStart`(M3-7이 이미 정의해 둔 필드)를
 이 경로가 처음 실제 값으로 채운다.
+
+M5-8(D-2026-106)이 chart JSON 저장·`.cfx` 내보내기·library 등록을 더했다.
+`jsonOpenHost`가 `pickFiles`(다중 텍스트)·`pickBinaryFiles`(binary)를
+구현해 `.cfx` 패키징·import에 필요한 binary 읽기를 채운다(D-2026-062
+해소). `browserSaveHost`(신규, `showSaveFilePicker` duck-type)는 chart
+JSON 저장과 `.cfx` 내보내기 둘 다 쓴다 — 저장할 내용만 다르고 대화상자는
+같다. `Ctrl+S`는 `editorSession !== undefined`로만 게이팅된 완전히 독립된
+`document` keydown 리스너다 — 어떤 scene의 `onKeyDown`도 거치지 않아
+(이 레포는 `stopPropagation`을 안 쓴다) 다른 컨트롤러가 뭘 삼키든 항상
+실행된다. `handlePackageCfx`/`handleImportCfx`는 `editor-start` scene의
+새 버튼 2개에 연결된 순수 오케스트레이션 함수다 — `format-cfx-package.ts`
+(`groupBySongId`)·`edit-cfx-package.ts`(`recommendCandidates`/
+`packageAndSaveCfx`)·`edit-cfx-library.ts`(`validateCfxForImport`/
+`planLibraryRegistration`/`commitLibraryRegistration`) 전부 기존 순수
+로직 그대로 잇는다 — 이 파일이 새로 계산하는 건 없다.

@@ -5,6 +5,8 @@ import {
   readZipArchive,
   type FileOpenHost,
   type FileSaveHost,
+  type OpenedBinaryFile,
+  type OpenedFile,
 } from './env-file.js';
 
 describe('env-file — open', () => {
@@ -38,6 +40,66 @@ describe('env-file — open', () => {
     const env = createFileEnv();
 
     await expect(env.open(host, ['.json'])).rejects.toThrow('읽기 실패');
+  });
+});
+
+describe('env-file — openMultiple(M5-8, D-2026-062 해소)', () => {
+  it('사용자가 여러 개를 고르면 opened(files)를 돌려준다', async () => {
+    const files: OpenedFile[] = [
+      { name: 'a.json', text: '{}' },
+      { name: 'b.json', text: '{}' },
+    ];
+    const host: FileOpenHost = { pickFile: vi.fn(), pickFiles: vi.fn(async () => files) };
+    const env = createFileEnv();
+
+    const outcome = await env.openMultiple(host, ['.json']);
+
+    expect(outcome).toEqual({ kind: 'opened', files });
+    expect(host.pickFiles).toHaveBeenCalledWith(['.json']);
+  });
+
+  it('취소(null) 또는 빈 선택은 cancelled다', async () => {
+    const host: FileOpenHost = { pickFile: vi.fn(), pickFiles: vi.fn(async () => []) };
+    const env = createFileEnv();
+
+    expect(await env.openMultiple(host, ['.json'])).toEqual({ kind: 'cancelled' });
+  });
+
+  it('pickFiles를 구현 안 한 host는 명시적으로 던진다', async () => {
+    const host: FileOpenHost = { pickFile: vi.fn() };
+    const env = createFileEnv();
+
+    await expect(env.openMultiple(host, ['.json'])).rejects.toThrow();
+  });
+});
+
+describe('env-file — openBinary(M5-8, D-2026-062 해소)', () => {
+  it('binary 파일을 고르면 opened(files)를 돌려준다', async () => {
+    const files: OpenedBinaryFile[] = [{ name: 'pack.cfx', bytes: new Uint8Array([1, 2]) }];
+    const host: FileOpenHost = {
+      pickFile: vi.fn(),
+      pickBinaryFiles: vi.fn(async () => files),
+    };
+    const env = createFileEnv();
+
+    const outcome = await env.openBinary(host, ['.cfx'], false);
+
+    expect(outcome).toEqual({ kind: 'opened', files });
+    expect(host.pickBinaryFiles).toHaveBeenCalledWith(['.cfx'], false);
+  });
+
+  it('취소 또는 빈 선택은 cancelled다', async () => {
+    const host: FileOpenHost = { pickFile: vi.fn(), pickBinaryFiles: vi.fn(async () => null) };
+    const env = createFileEnv();
+
+    expect(await env.openBinary(host, ['.cfx'], false)).toEqual({ kind: 'cancelled' });
+  });
+
+  it('pickBinaryFiles를 구현 안 한 host는 명시적으로 던진다', async () => {
+    const host: FileOpenHost = { pickFile: vi.fn() };
+    const env = createFileEnv();
+
+    await expect(env.openBinary(host, ['.cfx'], false)).rejects.toThrow();
   });
 });
 

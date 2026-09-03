@@ -489,17 +489,56 @@ fade 표시는 이미 M4.5-1(`render-playfield.ts`의 `computeActiveTextEvents`/
 `edit-text-commands.test.ts` 4개, `scene-editor-notes.test.ts` +7 — 전체
 1345/1345 통과.
 
-**M5 자체 Exit 기준은 아직 안 닫혔다** — "노트·shape·lane·text·메타를 넣고
-**저장한 뒤** game에서 플레이할 수 있다"의 "저장" 단계가 에디터 UI에 없다.
-`app-main.ts`의 `leaveEditor()`가 부르는 `saveNewVersion`은 M5-1부터
-`async () => 'cancelled'`(저장 창 UI가 열리기 전까지의 자리표시자, M5-1
-결정 필요 항목으로 이미 보고돼 있었다)로 남아 있고, `.cfx` 내보내기
-(`edit-cfx-package.ts`, M3-4)를 부르는 UI도 없다 — 즉 에디터에서 만든 chart가
-song-select/game이 읽는 library로 실제로 넘어가는 경로 자체가 아직 없다.
-M5-2~M5-7 각자의 Exit 기준은 이 경로 없이도(command 엔진 단위 테스트로)
-확인 가능해 지금까지 막힌 적이 없었지만, M5 전체 Exit는 이 마지막 연결
-없이는 닫을 수 없다 — 별도 결정 필요 항목(저장 창 UI 자체를 M5 범위에
-넣을지, M6 이후로 미룰지)으로 보고한다.
+**M5-8이 저장 UI 갭을 닫았다(D-2026-106)** — 조사 결과 갭은 세 개였다(M5-7
+보고 당시엔 하나로만 보였다):
+
+1. **chart JSON 저장(Ctrl+S)** — `edit-chart-save.ts`(M3-2)가 이미 갖고 있던
+   순수 로직(`proposeSaveVersion`/`saveChartVersion`/`suggestChartFileName`)
+   위에 실제 저장 창(`scene-editor-save.ts`, version 입력·파일명 표시·
+   Save/Cancel)을 얹었다. `Ctrl+S`는 어느 scene의 `onKeyDown`도 거치지 않는
+   완전히 독립된 `document` 리스너다(이 레포는 `stopPropagation`을 쓰지
+   않아 항상 실행된다) — `editor-editing.md` §6 "text input에 focus가
+   있어도 Ctrl+S는 예외"를 이 구조가 공짜로 만족한다.
+2. **`.cfx` 내보내기** — song-select/game은 `library` store(`.cfx` blob)만
+   읽는다(`game-song-select.ts`) — chart JSON 저장만으로는 게임에서 안
+   보인다. `_meta/cfx.md` §9 "패키징 진입점은 직접 다중 파일 선택 하나다"
+   그대로, `editor-start` 화면에 "Package .cfx" 버튼을 더했다 — 여러 chart
+   JSON을 골라 `songId`별로 그룹화(`groupBySongId`)하고, `chartId`별 최고
+   version을 추천(`recommendCandidates`, 동률 충돌은 그 그룹만 건너뜀)한
+   뒤, 참조된 asset(binary)을 별도로 골라 `packageAndSaveCfx`로 묶는다.
+   **`.cfx`는 init(chartId 0) + playable chart(1개 이상) 조합을 요구한다**
+   (`validatePackageGroup`) — 한 editor 세션에서 meta 탭의 difficulty
+   전환(init→Trace 등, M5-5가 이미 구현해 둔 chartId 자동 규칙)으로 같은
+   songId의 두 chart를 각각 Ctrl+S로 저장하면 이 조합이 만들어진다.
+3. **`.cfx` → library 등록** — `.cfx`를 만들어도 `library` store에 넣는
+   UI가 없으면 song-select가 여전히 못 본다. 같은 화면에 "Import .cfx"
+   버튼을 더했다 — `.cfx` binary를 읽어 `validateCfxForImport`(구조 검증
+   + playable music decode 검증)을 통과시키고, 이미 등록된 songId면
+   `planLibraryRegistration`의 비교 결과를 `confirm()`으로 보여준 뒤
+   `commitLibraryRegistration`으로 등록한다.
+
+2·3번 둘 다 binary 파일을 읽어야 했는데 `env-file.ts`의 `FileOpenHost`는
+텍스트 전용이었다 — M5-1이 "Open .cfx" 버튼을 disabled로 남기며 결정
+필요 항목으로 미뤄 뒀던 바로 그 지점(D-2026-062)이다. `pickFiles`(다중
+텍스트)·`pickBinaryFiles`(binary) 두 메서드를 **추가**해(기존 `pickFile`
+계약은 안 건드림) 닫았다.
+
+**"Package .cfx"/"Import .cfx" 배치는 spec에 위치가 정해져 있지 않다**
+(결정 필요 항목) — `_meta/cfx.md`는 "패키징 화면"이라고만 부르지 어디
+있어야 하는지 안 정한다. 이미 파일-흐름 진입점들이 모인 `editor-start`
+화면을 재사용했다 — mode-select의 항목 목록(play/editor/settings/credits)
+은 이미 확정된 spec이라 새 항목을 추가하지 않았고, song-select(더
+자연스러울 수 있는 후보)는 이미 완성된 M4-3/M4-4/M4-6/M4-7 화면이라
+건드리지 않았다.
+
+이걸로 M5 자체 Exit 기준("빈 chart에서 시작해 노트·shape·lane·text·메타를
+넣고 저장한 뒤 game에서 플레이할 수 있다")이 **수동 다중 단계 경로로
+end-to-end 충족된다**: New Chart → notes/shapes/lane/text 편집 → meta에서
+difficulty를 init→Trace로 바꾸고 music 연결 → Ctrl+S 두 번(init·Trace 각각)
+→ editor-start의 "Package .cfx"(두 JSON + music 파일 선택) → "Import .cfx"
+→ song-select에서 플레이. 빠진 단계 없음. 테스트 신규: `env-file.test.ts`
++6(`openMultiple`/`openBinary`), `scene-editor-save.test.ts` 6개,
+`scene-editor-start.test.ts` +2 — 전체 1359/1359 통과.
 
 **Exit**: 빈 chart에서 시작해 노트·shape·lane·text·메타를 넣고 저장한 뒤 game에서 플레이할 수 있다. 수동 대조 시나리오 — 편집 조작별 결과 비교.
 
