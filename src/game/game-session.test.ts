@@ -351,6 +351,137 @@ describe('createGameSession — pause·Resume', () => {
   });
 });
 
+describe('createGameSession — mid-start(M5-6, judge.md §10)', () => {
+  it('startChartMs 이전 note는 세션을 여는 순간 이미 SYNC로 시드돼 있다', () => {
+    const chart = makeChart({
+      notes: [
+        { startTick: 0, duration: 0, lane: 1, isWide: false },
+        { startTick: 480 * 10, duration: 0, lane: 2, isWide: false },
+      ],
+    });
+    const timeline = buildTimeline(chart);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+    const midMs = tickToMs(timeline, 480 * 5); // 두 note 사이 — 첫 note만 지났다.
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+      startChartMs: midMs,
+      leadInMs: LEAD_IN_MS,
+    });
+
+    expect(session.judgeState.hits[0]).toBe('hit'); // 이미 SYNC로 시드됨.
+    expect(session.judgeState.hits[1]).toBe('pending'); // 아직 anchor 이후 note.
+    expect(session.gaugeState.counts.SYNC).toBe(1);
+  });
+
+  it('leadInMs=0(test scene 즉시 재생)이면 lead-in 없이 곧바로 anchor에서 시작한다', () => {
+    const chart = makeChart({
+      notes: [{ startTick: 480 * 5, duration: 0, lane: 1, isWide: false }],
+    });
+    const timeline = buildTimeline(chart);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+    const midMs = tickToMs(timeline, 480 * 5);
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+      startChartMs: midMs,
+      leadInMs: 0,
+    });
+
+    session.advance(0); // chartStartMs===startChartMs이므로 첫 프레임에 바로 anchor를 넘는다.
+    expect(session.engine.paused).toBe(false); // 카운트다운 없이 바로 running.
+    expect(ctx.sharedMs).toBeCloseTo(midMs, 5);
+    session.input.onKeyDown(fakeKeyEvent('KeyE', 0));
+    expect(session.judgeState.hits[0]).toBe('hit');
+    expect(session.display.lastJudgment?.judgment).toBe('SYNC');
+  });
+
+  it('anchor 이전(leadIn) 구간의 입력은 keysHeld만 갱신하고 판정을 만들지 않는다', () => {
+    const chart = makeChart({
+      notes: [{ startTick: 480 * 5, duration: 0, lane: 1, isWide: false }],
+    });
+    const timeline = buildTimeline(chart);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+    const midMs = tickToMs(timeline, 480 * 5);
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+      startChartMs: midMs,
+      leadInMs: LEAD_IN_MS,
+    });
+
+    session.advance(LEAD_IN_MS - 100); // 아직 anchor 전 — leadIn.
+    expect(session.engine.paused).toBe(true);
+
+    session.input.onKeyDown(fakeKeyEvent('KeyE', LEAD_IN_MS - 100));
+    expect(session.judgeState.hits[0]).toBe('pending');
+    expect(session.judgeState.keysHeld.has('key1')).toBe(true);
+  });
+
+  it('startChartMs===0이면 시드가 no-op이라 기존 tick-0 gameplay와 동일하다', () => {
+    const chart = makeChart({ notes: [{ startTick: 0, duration: 0, lane: 1, isWide: false }] });
+    const timeline = buildTimeline(chart);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+    });
+
+    expect(session.judgeState.hits[0]).toBe('pending');
+    session.advance(LEAD_IN_MS);
+    session.input.onKeyDown(fakeKeyEvent('KeyE', LEAD_IN_MS));
+    expect(session.judgeState.hits[0]).toBe('hit');
+  });
+});
+
 describe('createGameSession — result 필드 (D-2026-054)', () => {
   it('자연 종료(clear) 시 gaugeTrace가 정확히 200개, progress는 1이다', () => {
     const chart = makeChart({ notes: [{ startTick: 0, duration: 0, lane: 1, isWide: false }] });

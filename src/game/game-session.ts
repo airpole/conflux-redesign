@@ -13,10 +13,12 @@ import {
   createJudgeState,
   judgeAdvance,
   laneMapOf,
+  seedPlayStateAt,
   type CandidateContext,
   type JudgeState,
   type JudgmentEvent,
 } from '../core/core-judge.js';
+import { LEAD_IN_MS } from '../core/core-constants.js';
 import {
   applyGaugeChange,
   computeResult,
@@ -62,6 +64,18 @@ export interface GameSessionOptions {
   readonly playbackRate: number;
   readonly engineHooks: EngineHooks;
   readonly hitSound: HitSoundSource | null;
+  /**
+   * mid-start(M5-6) — chart의 0이 아닌 위치에서 세션을 연다. `judge.md` §10
+   * 대로 `seedPlayStateAt`을 세션을 만들기 전에 동기로 한 번 불러 그 위치
+   * 이전 판정을 미리 채운다(`game-engine.ts` 헤더 docstring 참조). 기본 0.
+   */
+  readonly startChartMs?: number;
+  /**
+   * mid-start의 lead-in 길이. editor test scene의 "즉시 재생"(lead-in 없음,
+   * `editor-graph.md` §5)은 0을 넘긴다. 기본 `LEAD_IN_MS`(tick-0 gameplay와
+   * Enter→gameplay mid-start 둘 다 이 기본값을 쓴다).
+   */
+  readonly leadInMs?: number;
 }
 
 /**
@@ -113,6 +127,9 @@ export function createGameSession(options: GameSessionOptions): GameSession {
     notes: buildJudgeNotes(options.chart, options.timeline),
     laneMap: laneMapOf(options.mirror),
   };
+  const startChartMs = options.startChartMs ?? 0;
+  const leadInMs = options.leadInMs ?? LEAD_IN_MS;
+
   const judgeState = createJudgeState(context.notes);
   const display = createJudgeDisplayState();
   const gaugeState = resetGauge(options.gaugeMode, context.notes.totalUnits);
@@ -174,14 +191,6 @@ export function createGameSession(options: GameSessionOptions): GameSession {
     };
   };
 
-  const engine = startEngineSession(options.ctx, options.startNowMs, options.playbackRate, {
-    onAudioStart: options.engineHooks.onAudioStart,
-    onSongEnd: () => {
-      finalize();
-      options.engineHooks.onSongEnd();
-    },
-  });
-
   const applyEvents = (events: readonly JudgmentEvent[], atMs: number): void => {
     applyJudgmentEvents(display, events, atMs);
     lastCurMs = atMs;
@@ -202,6 +211,29 @@ export function createGameSession(options: GameSessionOptions): GameSession {
     }
     sampleGaugeTrace(atMs);
   };
+
+  // mid-start(M5-6): 세션을 열기 전에 동기로 한 번 시드한다(`judge.md` §10,
+  // `game-engine.ts` 헤더 docstring). startChartMs===0이면 시드 대상 노트가
+  // 없어 사실상 no-op이다.
+  if (startChartMs !== 0) {
+    const seedEvents = seedPlayStateAt(judgeState, context, startChartMs);
+    applyEvents(seedEvents, startChartMs);
+  }
+
+  const engine = startEngineSession(
+    options.ctx,
+    options.startNowMs,
+    options.playbackRate,
+    {
+      onAudioStart: options.engineHooks.onAudioStart,
+      onSongEnd: () => {
+        finalize();
+        options.engineHooks.onSongEnd();
+      },
+    },
+    startChartMs,
+    leadInMs,
+  );
 
   const input = createJudgeInputHandlers(
     judgeState,

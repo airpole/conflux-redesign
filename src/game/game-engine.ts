@@ -20,6 +20,24 @@
  * 흐르지 않는 카운트다운 구간"을 갖지만, `paused`는 둘을 구분하지 않는다 —
  * 호출측(game-judge-input)이 볼 때 둘 다 "keydown/keyup을 등록만 하고 판정은
  * 안 한다"로 동일하기 때문이다.
+ *
+ * **mid-start(M5-6)** — `startChartMs`(기본 0)를 넘기면 0이 아닌 위치에서
+ * 세션을 연다. 시계는 여전히 **흐른다**(`chartStartMs = startChartMs -
+ * leadInMs`) — tick0 lead-in과 같은 이유로, 노트 스크롤-인 연출이 그대로
+ * 나오게 하려는 것이다. 다만 `startChartMs`보다 이른 실제 노트가 있을 수
+ * 있어(tick0 lead-in과 다른 점 — 그쪽은 음수 tick에 노트가 없다는 사실로
+ * "판정 없음"이 공짜였지만, mid-start는 그렇지 않다) 이 구간 동안 `paused`가
+ * `true`를 돌려주게 해 호출측이 `registerKeyDown`/`registerKeyUp`(판정
+ * 시도 없음, `judge.md` §10)만 쓰게 한다. anchor(`startChartMs`)에 도달하는
+ * 순간 `phase`가 `running`으로 바뀌지만 — **시드 자체(`seedPlayStateAt`)는
+ * 이 파일이 부르지 않는다.** `anchorMs`가 세션을 열기 전부터 이미 알려진
+ * 값이라 프레임을 기다릴 이유가 없다 — `game-session.ts`가
+ * `createGameSession()` 안에서 세션을 만들기 전에 동기로 한 번 부른다.
+ *
+ * **`leadInMs`**(기본 `LEAD_IN_MS`)도 함께 받는다 — editor test scene의
+ * "즉시 재생"(`editor-graph.md` §5, lead-in 없음)은 `leadInMs=0`으로
+ * 넘긴다: `chartStartMs`가 `startChartMs`와 같아져 `leadIn` phase가 사실상
+ * 첫 프레임에 바로 끝난다(카운트다운 없이 즉시 `running`).
  */
 
 import { LEAD_IN_MS, RESUME_LEAD_MS, SONG_END_TAIL_MS } from '../core/core-constants.js';
@@ -63,36 +81,42 @@ export interface EngineSession {
  * (`performance.now()` 등, env-time이 공급). `ctx.contentEndMs +
  * SONG_END_TAIL_MS`가 종료 조건이다(`songEndOf`와 같은 식, [[timing]] §9).
  *
- * mid-start(0이 아닌 위치에서 시작)는 여기 없다 — 이 함수는 "처음부터"만
- * 다룬다. mid-start의 `seedPlayStateAt` 배선은 editor test scene(M5) 몫이다.
+ * `startChartMs`(기본 0)·`leadInMs`(기본 `LEAD_IN_MS`)는 M5-6 mid-start
+ * 확장이다 — 헤더 docstring 참조. 세션을 연 뒤 anchor(`startChartMs`)에
+ * 닿기 전까지는 `paused`가 `true`다(새 `leadIn` phase) — **시드
+ * (`seedPlayStateAt`) 자체는 이 함수가 부르지 않는다**, `game-session.ts`가
+ * 세션을 만들기 전에 동기로 한 번 부른다.
  */
 export function startEngineSession(
   ctx: CTX,
   startNowMs: number,
   playbackRate: number,
   hooks: EngineHooks,
+  startChartMs = 0,
+  leadInMs = LEAD_IN_MS,
 ): EngineSession {
   const songEndMs = ctx.contentEndMs + SONG_END_TAIL_MS;
 
   // "지금 흐르는 시계"를 (chartStartMs, wallStartMs) 기준점 하나로 표현한다 —
   // curMs = chartStartMs + (nowMs - wallStartMs) × rate. resume은 이 기준점을
   // anchor로 다시 잡는 것으로 표현된다.
-  let chartStartMs = -LEAD_IN_MS;
+  let chartStartMs = startChartMs - leadInMs;
   let wallStartMs = startNowMs;
   let audioStarted = false;
-  let audioStartThresholdMs = 0;
+  let audioStartThresholdMs = startChartMs;
   let finished = false;
 
-  type Phase = 'running' | 'paused' | 'resuming';
-  let phase: Phase = 'running';
+  type Phase = 'running' | 'paused' | 'resuming' | 'leadIn';
+  let phase: Phase = startChartMs === 0 && leadInMs === LEAD_IN_MS ? 'running' : 'leadIn';
   let anchorMs = 0;
   let resumeStartWallMs = 0;
 
-  // paused/resuming 동안 시계가 얼려 있는 값. tick()과 toChartMs() 둘 다 이
+  // paused/resuming 동안만 시계가 얼려 있다 — leadIn은 흐른다(노트 스크롤-인
+  // 연출을 유지하려고, 헤더 docstring 참조). tick()과 toChartMs() 둘 다 이
   // 기준점(chartStartMs/wallStartMs 또는 anchorMs)만 보고 계산하므로 항상
   // 서로 같은 값을 낸다 — 재개 이후 별도 공식으로 다시 계산할 필요가 없다.
   function currentChartMs(nowMs: number): number {
-    if (phase !== 'running') return anchorMs;
+    if (phase === 'paused' || phase === 'resuming') return anchorMs;
     return chartStartMs + (nowMs - wallStartMs) * playbackRate;
   }
 
@@ -104,7 +128,7 @@ export function startEngineSession(
       return phase !== 'running';
     },
     pause() {
-      if (finished || phase !== 'running') return;
+      if (finished || phase === 'paused' || phase === 'resuming') return;
       anchorMs = ctx.sharedMs;
       phase = 'paused';
     },
@@ -133,6 +157,12 @@ export function startEngineSession(
       }
 
       const curMs = currentChartMs(nowMs);
+
+      if (phase === 'leadIn' && curMs >= startChartMs) {
+        // mid-start anchor 도달 — 시드는 이미 세션을 열기 전에 끝나 있다
+        // (game-session.ts). 여기서는 판정을 막던 phase만 푼다.
+        phase = 'running';
+      }
 
       if (!audioStarted && curMs >= audioStartThresholdMs) {
         audioStarted = true;

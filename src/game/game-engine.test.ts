@@ -156,3 +156,102 @@ describe('startEngineSession — pause·Resume (judge.md §10 "Pause Resume")', 
     expect(ctx.sharedMs).toBeCloseTo(600, 5);
   });
 });
+
+describe('startEngineSession — mid-start(M5-6, judge.md §10)', () => {
+  it('startChartMs를 넘기면 세션을 연 순간 시계는 startChartMs - leadInMs다', () => {
+    const ctx = fakeCtx(10000);
+    const session = startEngineSession(
+      ctx,
+      0,
+      1,
+      { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      3000,
+      LEAD_IN_MS,
+    );
+    session.tick(0);
+    expect(ctx.sharedMs).toBeCloseTo(3000 - LEAD_IN_MS, 5);
+    expect(session.paused).toBe(true); // leadIn phase — 판정 없음, keydown/up만.
+  });
+
+  it('anchor(startChartMs)에 도달하면 leadIn이 끝나고 paused가 풀린다', () => {
+    const ctx = fakeCtx(10000);
+    const session = startEngineSession(
+      ctx,
+      0,
+      1,
+      { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      3000,
+      LEAD_IN_MS,
+    );
+    session.tick(LEAD_IN_MS - 1);
+    expect(session.paused).toBe(true);
+    expect(ctx.sharedMs).toBeCloseTo(3000 - 1, 5);
+
+    session.tick(LEAD_IN_MS);
+    expect(session.paused).toBe(false);
+    expect(ctx.sharedMs).toBeCloseTo(3000, 5);
+  });
+
+  it('leadInMs=0이면 카운트다운 없이 첫 프레임부터 즉시 running이다(test scene 즉시 재생)', () => {
+    const ctx = fakeCtx(10000);
+    const session = startEngineSession(
+      ctx,
+      0,
+      1,
+      { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      3000,
+      0,
+    );
+    session.tick(0);
+    expect(session.paused).toBe(false);
+    expect(ctx.sharedMs).toBeCloseTo(3000, 5);
+
+    session.tick(200);
+    expect(ctx.sharedMs).toBeCloseTo(3200, 5);
+  });
+
+  it('audioStartThreshold는 startChartMs다', () => {
+    const ctx = fakeCtx(10000);
+    const onAudioStart = vi.fn();
+    const session = startEngineSession(
+      ctx,
+      0,
+      1,
+      { onAudioStart, onSongEnd: vi.fn() },
+      3000,
+      LEAD_IN_MS,
+    );
+    session.tick(LEAD_IN_MS - 1);
+    expect(onAudioStart).not.toHaveBeenCalled();
+    session.tick(LEAD_IN_MS);
+    expect(onAudioStart).toHaveBeenCalledWith(3000);
+  });
+
+  it('leadIn 구간에서도 pause할 수 있다(anchor 이전에 얼어붙는다)', () => {
+    const ctx = fakeCtx(10000);
+    const session = startEngineSession(
+      ctx,
+      0,
+      1,
+      { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      3000,
+      LEAD_IN_MS,
+    );
+    session.tick(1000);
+    expect(session.paused).toBe(true); // 아직 leadIn.
+    const frozenAt = ctx.sharedMs;
+
+    session.pause();
+    expect(session.paused).toBe(true);
+    session.tick(5000);
+    expect(ctx.sharedMs).toBeCloseTo(frozenAt, 5); // pause가 leadIn 값을 그대로 얼렸다.
+  });
+
+  it('startChartMs===0·leadInMs 기본값이면 기존 tick-0 lead-in과 동일하다', () => {
+    const ctx = fakeCtx(10000);
+    const session = startEngineSession(ctx, 0, 1, { onAudioStart: vi.fn(), onSongEnd: vi.fn() });
+    session.tick(0);
+    expect(session.paused).toBe(false); // 기존 동작: tick-0 lead-in은 애초부터 'running'.
+    expect(ctx.sharedMs).toBeCloseTo(-LEAD_IN_MS, 5);
+  });
+});

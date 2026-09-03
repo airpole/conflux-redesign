@@ -1566,6 +1566,61 @@
 - **Commit:** `58de2d0`
 
 
+### D-2026-103 — M5-6(부분): engine/session mid-start
+
+- **Status:** Accepted (engine/session 층) / scene 층("current position" 정의 없음)은 Deferred — 아래 참조
+- **Decision:** `game-engine.ts`의 `startEngineSession`에 `startChartMs`(기본
+  0)·`leadInMs`(기본 `LEAD_IN_MS`) 두 선택 인자를 추가해 0이 아닌 위치에서
+  세션을 여는 mid-start를 지원한다([[judge]] §10). chart 시계는 anchor
+  이전에도 계속 흐르되(`chartStartMs = startChartMs - leadInMs`, tick-0
+  lead-in의 노트 스크롤-in 연출을 그대로 유지하려는 것) 새 `leadIn` phase
+  동안 `paused`가 `true`를 돌려줘 호출측이 keydown/keyup만 등록하고 judging을
+  시도하지 않게 막는다. `leadInMs=0`이면 첫 프레임에 바로 anchor를 넘어
+  test scene의 즉시재생(lead-in 없음, [[editor-graph]] §5)을 그대로 표현한다.
+  `pause()`의 가드를 `phase !== 'running'`에서 `phase === 'paused' ||
+  phase === 'resuming'` 제외로 일반화해, 새 `leadIn` phase에서도(=mid-start의
+  카운트다운 중에도) pause가 그대로 동작하게 했다(그러지 않으면 mid-start
+  세션만 lead-in 중 pause 못 하는 회귀가 생긴다).
+
+  `game-session.ts`의 `createGameSession`은 `GameSessionOptions`에
+  `startChartMs?`/`leadInMs?`를 더해, `startChartMs !== 0`이면 세션(=engine)을
+  열기 전에 동기로 `seedPlayStateAt(judgeState, context, startChartMs)`을 한 번
+  불러 그 위치 이전 note를 SYNC로 미리 채우고 반환된 이벤트를 기존
+  `applyEvents`로 라우팅한다 — [[judge]] §10이 이미 정한 알고리즘 그대로다.
+  둘 다 기존 4-인자/필수-필드 호출과 100% 하위호환(default가 기존 tick-0
+  동작과 byte-for-byte 동일 — 기존 94개 game-layer 테스트 무수정 통과로 확인).
+
+  **seek 축 최소 표시 길이**(D-2026-097이 M5-6 전으로 재배치한 gate)도 이번에
+  실측으로 닫혔다 — 원본 `conflux-editor`의 `load-chart.js`(25행)
+  `Math.max(ES.audioMs || 0, getChartEndMs(), 5000)`: 5000ms 하한, `songEndMs`
+  ([[timing]] §9)와 다른 값이다. seek bar UI 자체가 아직 없어 코드 반영은 이후
+  라운드로 미룬다.
+
+  **scene 층(test scene 화면)은 이번 라운드에 시작하지 못했다** —
+  `editor-graph.md` §5·`editor-editing.md`의 idle/Space/Enter 세 인터랙션
+  전부가 "current position"(에디터 재생 커서 위치)을 전제하는데, 그 상태가
+  리포에 없다(`scene-editor-view.ts`의 `EditorViewState`는 scroll/zoom만
+  있고 playhead 필드가 없다 — notes/shapes 어디에도 이 개념이 없음을 확인).
+  값이 어디 살고 무엇이 갱신하며 탭 전환에 유지되는지가 제품 결정이라 추측하지
+  않고 결정 필요 항목으로 보고한다. embedded quick options 패널(이미 있는
+  `core-quick-options.ts` 재사용)·editor-origin no-record 실제 배선
+  (`game-records.ts`의 `NoRecordConditions` 필드는 이미 있다)·gameplay 진입 후
+  result 생략하고 편집 화면 복귀([[scene]] §9)는 이 결정이 나면 바로 이어
+  붙일 수 있는 상태로 남겨 뒀다.
+
+  테스트 신규: `game-engine.test.ts` +6(leadIn phase, anchor 도달, `leadInMs=0`
+  즉시 running, audioStartThreshold, leadIn 중 pause, 기존 tick-0 동작 회귀
+  없음), `game-session.test.ts` +4(anchor 이전 seed, `leadInMs=0`, leadIn 중
+  입력 무판정, `startChartMs===0` no-op) — 전체 1323/1323 + 신규 10개 포함
+  94/94(game 폴더) 통과.
+- **Defined in:** `src/game/game-engine.ts`, `src/game/game-session.ts`, `_plan/build-order.md`
+- **Rationale:** Not required
+- **Affects:** game, spec(build-order) — M5-6 Exit 기준 일부 충족, scene 층은
+  "current position" 정의가 결정 필요 항목으로 남아 이월
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

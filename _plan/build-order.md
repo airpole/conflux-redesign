@@ -411,6 +411,43 @@ confirm으로 뒤집혔다. M4.6은 완전히 닫혔다 — 남은 항목 없음
 
 **M5-5 진행 상황**: meta scene의 command 6개(`AddTempo`/`DeleteTempo`/`EditTempo`·`AddTimeSignature`/`DeleteTimeSignature`/`EditTimeSignature`, `edit-meta-commands.ts`, D-2026-102)와 편집 폼(`scene-editor-meta.ts`)이 구현됐다 — identity(songId 읽기전용·chartId 자동규칙·difficulty·subtitle·level·chartBy)·metadata 6필드·tempo/timeSignature 목록(마지막 한 줄 삭제 방지)·asset(music/jacket) 교체까지 Exit 기준을 충족했다. identity/metadata/asset은 `editor-commands.md` §7대로 command가 아니라 `session.updateChart()` 직접 호출이라, 그 경로만 새 `notifyChanged` 콜백으로 `editorWorkspaceHandle.update()`를 명시적으로 부른다(tempo/timeSignature는 기존 `onDispatch` 구독으로 충분). asset 교체는 표준 `<input type=file accept="audio/*|image/*">`를 직접 만들어 클릭을 위임했다(`env-file.ts`의 텍스트 전용 `FileOpenHost`는 바이너리에 안 맞아 재사용하지 않았다). chartId 자동 규칙은 `editor-graph.md` §4 예시(1/2/3/4)가 생략한 Phase(5번 슬롯)를 `core/data-model.md` §4의 5칸 표로 완성해 구현했다. **범위 밖으로 둔 것(결정 필요 항목)**: "새 난이도" 파생(session 교체·dirty confirm이 엮인 별도 기능, Exit 기준 밖), `measureLabelOffset`(chart 데이터가 아니라 player 전역 설정, 아직 소비자도 없음) — 자세한 근거는 `scene-editor-meta.ts` 헤더.
 | M5-6 | test scene — engine 재사용, embedded quick options | 같은 engine이 editor host에서 돈다. 현재 위치에서 lead-in 없이 즉시 재생되고 editor-origin은 항상 no-record다. |
+
+**M5-6 진행 상황(부분)**: engine/session 층의 mid-start를 구현했다(D-2026-103) —
+`game-engine.ts`의 `startEngineSession`이 `startChartMs`(기본 0)·`leadInMs`(기본
+`LEAD_IN_MS`)를 새로 받아, 0이 아닌 위치에서 chart 시계를 계속 흐르게 열되([[judge]]
+§10, 노트 스크롤-in 연출 유지) anchor(`startChartMs`)에 닿기 전까지는 `paused`가
+`true`인 새 `leadIn` phase로 입력을 `registerKeyDown`/`registerKeyUp`만 받게 막는다
+(judging 시도 없음). `leadInMs=0`이면 카운트다운 없이 첫 프레임에 바로 anchor를
+넘어 test scene의 "즉시 재생"(lead-in 없음, [[editor-graph]] §5)을 그대로
+표현한다. `game-session.ts`의 `createGameSession`은 `startChartMs≠0`이면 세션을
+열기 전에 동기로 `seedPlayStateAt`을 한 번 불러 anchor 이전 note를 SYNC로 미리
+채운다([[judge]] §10) — `game-records.ts`의 `NoRecordConditions.midStart`/
+`editorOrigin` 필드는 M3-7에서 이미 정의돼 있어 host가 그 값만 채우면 된다(이
+변경 자체는 안 건드렸다). `game-engine.test.ts`(+6)·`game-session.test.ts`(+4)로
+mid-start를 검증했고, 기존 94개 game-layer 테스트·전체 1323개 테스트가 그대로
+통과한다(default 인자라 `startChartMs===0 && leadInMs===LEAD_IN_MS`는 byte-for-byte
+기존 동작과 같다).
+
+**seek 축 최소 표시 길이(D-2026-097 재배치분)도 실측으로 닫혔다** — 원본
+`conflux-editor`의 `load-chart.js`(25행) `ES.totalMs = Math.max(ES.audioMs || 0,
+getChartEndMs(), 5000)`: **5000ms(5초) 하한**이다. `songEndMs`(플레이 종료 조건,
+[[timing]] §9)와는 다른 값 — seek 축 total은 `Math.max(contentEndMs, 5000)`으로
+쓰면 된다. 이 값 자체는 확정됐지만 실제 seek bar UI가 아직 없어(아래 참조) 코드에는
+아직 반영하지 않았다.
+
+**scene 층(test scene 화면 자체)은 이번 라운드에 시작하지 못했다 — 결정 필요
+항목으로 막혔다**: `editor-graph.md` §5·`editor-editing.md`가 test scene의 idle
+static preview·Space 즉시재생·Enter→gameplay 전부를 "current position"(현재
+편집 커서 위치) 기준으로 정의하는데, 그 "현재 위치"를 담을 상태가 리포에 없다 —
+`scene-editor-view.ts`의 `EditorViewState`는 scroll/zoom(`viewMs`/`scrollMs`)만
+있고 재생 시작점으로 쓸 playhead/cursor ms 필드가 없다(notes/shapes 어느 씬도
+이런 개념을 안 쓴다 — grep 확인). 이 값이 어디 사니는지(view state에 추가?
+새 필드?), 무엇이 그 값을 갱신하는지(notes/shapes 타임라인 클릭? seek bar
+드래그만?), notes/shapes 탭을 오갈 때 유지되는지가 모두 제품 결정이라 임의로
+만들지 않았다. 이 결정이 나면 나머지(idle 프리뷰·embedded quick options 패널·
+seek bar·Space/Enter 배선·editor-origin no-record 실제 호출·result 생략하고
+편집 화면으로 복귀, [[scene]] §9)는 이미 준비된 engine/session/quick-options/
+records 조각을 그대로 이어 붙이면 된다.
 | M5-7 | text events | 배치·편집·삭제가 되고 재생 시 정의된 fade로 표시된다. |
 
 **Exit**: 빈 chart에서 시작해 노트·shape·lane·text·메타를 넣고 저장한 뒤 game에서 플레이할 수 있다. 수동 대조 시나리오 — 편집 조작별 결과 비교.
