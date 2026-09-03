@@ -1563,7 +1563,7 @@
 - **Rationale:** Not required
 - **Affects:** edit, scene, app, spec(build-order) — M5-5 완료(2가지 범위 밖 항목은 결정 필요로 이월)
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `58de2d0`
 
 
 ### D-YYYY-NNN — <Title>
