@@ -1825,7 +1825,7 @@
 - **Rationale:** Not required
 - **Affects:** env, scene, app, spec(build-order) — M5 전체 Exit 기준 충족
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `658f146`
 
 
 ### D-YYYY-NNN — <Title>
