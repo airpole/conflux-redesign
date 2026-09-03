@@ -395,6 +395,41 @@ x = gx + fraction * gw          // mirror 시 gx + (1 - fraction) * gw
 
 ---
 
+## 13. M5-3 전 게이트 — 히트 반경·드래그 임계 (`editor-editing.md` §8 잔여)
+
+> 출처: `airpole/conflux-editor` commit `09aa8dad4`(main HEAD, 2026-09-03 재확인) — `notes-input.js`. D-2026-046과 같은 이유로 M5 진입 gate에서 이 항목으로 옮겨진 자리(D-2026-094)를 여기서 닫는다.
+
+### 13.1 note 클릭 히트 반경
+
+`findNoteAt(clickTk, ci, ch_n, tpp, selMode)`(`notes-input.js`):
+
+```js
+const tol = tpp * 15;
+```
+
+`tpp`는 "ticks per pixel"(`notes-render.js`: `tpp = (TPB * 16) / (ch * ES.edZm)`, 캔버스 높이·zoom에서 유도) — 즉 히트 허용치는 **고정 15px를 tick 단위로 환산한 값**이다. zoom이 바뀌어도 화면상 15px 반경은 그대로 유지된다(tick 폭만 달라진다). tap 우선순위(같은 tolerance 안에 여러 note가 겹칠 때 tap(0) > hold(1) > wideTap(2) > wideHold(3) 순, 동순위는 tick 거리가 가까운 쪽)도 `findNoteAt`이 함께 정한다 — `notePriority()` 참조.
+
+### 13.2 클릭↔드래그 판별 임계값
+
+`notes-input.js`의 `onMove`가 `moved` 플래그를 세우는 모든 지점에서 **일관되게 4px**를 쓴다:
+
+```js
+if (Math.abs(dy) > 4) moved = true;             // 스크롤 드래그(줄 148)
+if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true; // 사각 선택 드래그(줄 191)
+if (Math.abs(dy) > 4) { moved = true; ... }      // 일반 이동(줄 200)
+```
+
+가로 lane 이동의 히스테리시스(`colW * 0.5`, editor-editing.md §1이 이미 스펙에 반영)와는 **별개의 값**이다 — `colW*0.5`는 "드래그가 시작된 뒤 몇 px마다 lane이 넘어가는가"고, 이 4px는 "클릭이 언제 드래그로 바뀌는가"다.
+
+참고로 `shape-input.js`는 3px/4px가 섞여 있다(줄마다 다름) — M5-3은 notes 탭만 다루므로 여기서는 notes-input.js의 값(4px)만 채택하고 shape 쪽 불일치는 M5-4 진입 시 다시 실측·보고한다.
+
+### 13.3 확정값
+
+- **히트 반경**: `tpp * 15`(=화면상 15px, zoom에 따라 tick 폭 환산) — `core-shape.ts`류의 "buildXxxAt(chart, tick)" 패턴처럼 순수 함수로 재구현할 때 이 15px 상수를 그대로 쓴다.
+- **드래그 임계**: 4px(모든 축 공통).
+
+---
+
 ## 부록: 온라인에서 추가 추출 필요한 placeholder 목록
 
 오프라인에서 결정만 하고, 아래는 온라인 복귀 시 정밀 추출:

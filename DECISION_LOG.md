@@ -1391,6 +1391,21 @@
 - **Commit:** `b25d77d5d65928960cfc55a2ae443f81a3fb060a`
 
 
+### D-2026-096 — M5-3 前 게이트 해소: note 히트 반경·드래그 임계값 원본 재실측
+
+- **Status:** Accepted
+- **Decision:** `editor-editing.md` §8 잔여("히트 반경·드래그 임계 등 미세 수치")를 기억이 아니라 `airpole/conflux-editor`(commit `09aa8dad4`) `notes-input.js`를 직접 읽어 닫았다. **히트 반경**: `findNoteAt()`의 `const tol = tpp * 15` — `tpp`("ticks per pixel", `notes-render.js`에서 캔버스 높이·zoom으로 유도)와 곱해 tick 단위로 쓰지만 실질은 **화면상 고정 15px**다(zoom이 바뀌어도 15px 유지, tick 폭만 달라짐). **드래그 임계**: `onMove`가 `moved` 플래그를 세우는 모든 지점(스크롤 드래그·사각 선택 드래그·일반 이동)에서 일관되게 **4px**. 가로 lane 이동 히스테리시스(`colW*0.5`, 이미 스펙 반영됨)와는 별개 값이라는 것도 확인했다.
+
+  `shape-input.js`는 3px/4px가 혼재해(줄마다 다름) 이번엔 notes 탭 범위(M5-3)만 닫고 shapes/lane 서브모드 값은 M5-4 진입 시 별도 재실측하기로 남겼다.
+
+  측정 결과를 `_extracted/EXTRACTED_FACTS.md` §13에 출처(commit, 파일, 코드 인용)와 함께 기록하고, `editor-editing.md` §8과 `_plan/build-order.md`의 "M5-3 전" 게이트를 닫았다.
+- **Defined in:** `_extracted/EXTRACTED_FACTS.md` §13, `editor/editor-editing.md` §8, `_plan/build-order.md`
+- **Rationale:** Not required
+- **Affects:** editor-editing(spec), build-order(spec) — M5-3 진입 gate 해소
+- **Supersedes:** None
+- **Commit:** `PENDING`
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

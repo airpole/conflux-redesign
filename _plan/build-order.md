@@ -107,7 +107,7 @@ Vitest `environment: 'node'`. core 테스트는 DOM 없이 돈다 — [[architec
 | M4-6 전 | 결정 | ~~key rebinding UI · volume 슬라이더 조작 단위~~ — **닫힘** (D-2026-091: capture-flow는 즉시 커밋·Esc 취소·충돌 거부, slider는 네이티브 `<input type=range>` + 필드별 `step`) — 기본값·범위는 `[보존]`으로 확정됨([[settings]] §4) |
 | M4-2 전 | 결정 | credits scene 표시 내용 — `ui-design.md` §2.8.5가 남긴 방향: `Project Staff`는 수작업 유지 목록, `Music`/`Chart`/`Jacket` 세 섹션은 library 전체의 `musicBy`/`chartBy`/`jacketBy`를 필드별로 자동 스캔·중복 제거(song/chart로 묶지 않음) — 배선 자체는 이 게이트가 열릴 때 결정 |
 | ~~M5 진입~~ | ~~실측~~ | ~~§3 M5 항목~~ — **재배치됨**(D-2026-094) — §3 "M5-3 전"·"M5-1 이후(notes/shapes 실 렌더) 전"·"M5-4 전" 참조, M5 진입 자체는 더 이상 막혀 있지 않다 |
-| M5-3 전 | 실측 | 편집 미세 수치 — 히트 반경, 드래그 임계([[editor-editing]] §8) |
+| ~~M5-3 전~~ | ~~실측~~ | ~~편집 미세 수치 — 히트 반경, 드래그 임계([[editor-editing]] §8)~~ — **닫힘**(D-2026-096: 히트 반경 `tpp*15`(화면상 15px), 드래그 임계 4px — `_extracted/EXTRACTED_FACTS.md` §13) |
 | M5-1 이후(notes/shapes 실 렌더) 전 | 실측 | `viewMs` 기본값·zoom 범위, editor timeline 최소 표시 길이([[editor-graph]] §6) |
 | M5-4 전 | 실측 | shape 보조 툴(normalize 등)의 계승 여부([[shape]] §8) |
 
@@ -132,11 +132,11 @@ gate가 닫히면 해당 spec 문서에 반영하고 `DECISION_LOG`에 기록한
 - [x] shape render 폭 매핑·선 굵기 — §12.3·§12.4, [[shape]] §8.
 - [x] lane 최소 간격 px — **제한 없음으로 확정** (D-2026-048). 원본에도 대응물이 없었고(§12.9), 구분선이 붙어 선처럼 좁아지는 것을 의도된 연출로 승인받았다 — [[lane-events]] §7.
 
-### M5-3 전
+### M5-3 전 — **해소** (`_extracted/EXTRACTED_FACTS.md` §13)
 
 `[수정]` (D-2026-094) — 원래 "M5 진입 전"이었으나, M5-1(scene 그래프·start scene·세션 소유)은 아래 수치를 하나도 쓰지 않는다. D-2026-046과 같은 이유로 값이 실제로 쓰이는 step 바로 앞으로 옮겼다.
 
-- 편집 미세 수치: 히트 반경, 드래그 임계 — [[editor-editing]] §8.
+- [x] 편집 미세 수치: 히트 반경, 드래그 임계 — [[editor-editing]] §8. `notes-input.js` 재실측(D-2026-096) — 히트 반경 `tpp*15`(화면상 15px, zoom 무관 고정), 드래그 임계 4px(모든 축 공통). shape/lane 서브모드 값(`shape-input.js`, 3px/4px 혼재)은 M5-4 진입 시 별도 재실측.
 
 ### M5-1 이후(notes/shapes 실 렌더) 전
 

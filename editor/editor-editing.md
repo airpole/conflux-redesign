@@ -163,5 +163,7 @@ ON이면 배치 시 대칭축 반대편에 자동 생성한다. **축 기본값 
 - [x] A 드래그 선택(모디파이어 — 대체/Shift 추가) / D 삭제 / Delete만 / Z·X 줌 / F·G 유지 / 에디터 키 고정
 - [x] 선택·Ctrl+A 서브모드 필터(mirror만 합산) / Ctrl+S=새 version 저장·Ctrl+O=OS 픽커, Ctrl+E·Ctrl+Shift+S(derive) 제거 `[번복]` / **키 유일 출처 = 본 문서**
 
+- [x] note 클릭 히트 반경·클릭↔드래그 판별 임계값 — `notes-input.js` 재실측(D-2026-096): 히트 반경은 `tpp * 15`(화면상 15px를 tick으로 환산, zoom과 무관하게 15px 유지), 드래그 임계는 4px(모든 축 공통) — `_extracted/EXTRACTED_FACTS.md` §13
+
 잔여:
-- [ ] 히트 반경·드래그 임계 등 미세 수치 (재구현 시 원본 재실측 — 롱프레스 300ms는 실측 완료)
+- (없음 — notes 탭 범위. shapes/lane 서브모드의 값은 `shape-input.js`가 3px/4px 혼재라 M5-4 진입 시 별도 재실측)
