@@ -1742,7 +1742,7 @@
 - **Affects:** edit, scene, spec(build-order) — M5-7 완료, M5 전체 Exit는
   저장 UI 부재로 미결(별도 결정 필요 항목)
 - **Supersedes:** None
-- **Commit:** `PENDING`
+- **Commit:** `97e69d0`
 
 
 ### D-YYYY-NNN — <Title>
