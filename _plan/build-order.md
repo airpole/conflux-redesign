@@ -605,6 +605,30 @@ M5-8이 쌓아 온 editor scene·`edit-*`·`format-cfx-*` 모듈이 전부
 동작은 그대로다(behavior-preserving 이동) — `tsc`/`eslint`/`prettier`/
 `vitest`(1367개) 전체 통과.
 
+**M6-3 진행 상황**(D-2026-109): M6-3의 "수동 대조 시나리오"를 문자
+그대로 실행하려면 원본 `conflux-editor`와의 실측 대조·사람의 wall-clock
+관찰이 필요한데 이 세션엔 둘 다 없다 — `_meta/manual-qa.md`의 QA-1~3은
+여전히 `(미실시)`로 남는다(결정 필요 항목, 이 라운드는 이걸 닫지 않는다).
+대신 자동화 가능한 범위로 좁혀 실행했다: `npm run check` 전체 재실행 +
+미리 설치된 headless Chromium(Playwright, repo에 임시 설치 — 커밋에는
+안 남음)으로 internal 빌드 산출물을 실제로 클릭해 도는 smoke walkthrough
+(title→mode-select→credits→settings→song-select→editor-start→New
+Chart→notes/shapes/meta/test→Ctrl+S→editor-test Enter로 gameplay
+진입(mid-start)→Esc pause→Resume→Exit). `.cfx` 왕복은 headless
+Chromium이 File System Access API를 지원하지 않아 버튼 클릭이 크래시
+없이 graceful cancel되는 것만 확인했다.
+
+이 pass가 **실제 회귀를 발견했다**: `hidden` attribute의 UA
+`display: none`을 각 scene·오버레이 CSS의 무조건적 `display: flex/grid`
+선언이 덮어써(author stylesheet 우선), `.hidden = true`인데도 계속
+렌더링되고 있었다 — scene root 8개 + 오버레이 5개(gameplay pause overlay
+포함) 전부. jsdom 기반 vitest는 실제 CSS cascade를 안 걸어 한 번도 못
+잡았다(수정 전후 1367/1367 동일하게 통과) — 브라우저 실측 확인이 정확히
+이런 결함을 잡으려고 있다는 걸 실증한 사례다. 각 CSS에
+`<selector>[hidden] { display: none; }`을 추가해 고쳤다(동작 변경 없음,
+원래 의도 복원이라 자율 수정 범위로 판단). gameplay pause overlay가
+상시 렌더링되고 있었다는 건 QA-3이 왜 아직 `(미실시)`인지와도 맞물린다.
+
 ---
 
 ## 10. 결정 완료 / 잔여

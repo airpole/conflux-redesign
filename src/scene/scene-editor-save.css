@@ -11,6 +11,15 @@
   z-index: 1000;
 }
 
+/* `hidden` attribute는 UA stylesheet의 `display: none`을 따르지만, 위
+   `.editor-save-overlay { display: flex }`가 author-stylesheet 우선순위로
+   그걸 덮어써 `overlay.hidden = true`(닫힌 초기 상태)여도 계속 보이는
+   버그가 있었다(M6-3 headless smoke pass가 발견) — `[hidden]`을 명시적으로
+   다시 이겨서 닫는다. */
+.editor-save-overlay[hidden] {
+  display: none;
+}
+
 .editor-save-panel {
   display: flex;
   flex-direction: column;

@@ -44,6 +44,15 @@
   font-family: var(--sans);
 }
 
+/* `hidden` attribute는 UA stylesheet의 `display: none`을 따르지만, 위
+   `.pause-overlay { display: flex }`가 author-stylesheet 우선순위로 그걸
+   덮어써 `pauseOverlay.hidden = true`(재생 중 닫힌 상태)여도 계속 화면을
+   덮는 버그가 있었다(M6-3 headless smoke pass가 발견) — `[hidden]`을
+   명시적으로 다시 이겨서 닫는다. */
+.gameplay-scene .pause-overlay[hidden] {
+  display: none;
+}
+
 .gameplay-scene .pause-btn {
   font-size: max(12px, 2cqw);
   padding: 0.6em 2em;

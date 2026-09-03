@@ -46,6 +46,15 @@
   grid-template-rows: auto auto 1fr;
 }
 
+/* `hidden` attribute는 UA stylesheet의 `display: none`을 따르지만, 위
+   .song-select-scene { display: ... }가 author-stylesheet 우선순위로 그걸
+   덮어써 `root.hidden = true`(닫힌 상태)여도 계속 보이는
+   버그가 있었다(M6-3 headless smoke pass가 발견) — `[hidden]`을
+   명시적으로 다시 이겨서 닫는다. */
+.song-select-scene[hidden] {
+  display: none;
+}
+
 .song-select-scene .tab-bar {
   display: flex;
   gap: 0.6cqw;
@@ -213,6 +222,15 @@
   align-items: center;
   justify-content: center;
   background: rgb(5 5 8 / 70%);
+}
+
+/* `hidden` attribute는 UA stylesheet의 `display: none`을 따르지만, 위
+   `.quick-options-overlay { display: flex }`가 author-stylesheet
+   우선순위로 그걸 덮어써 `quickOptionsOverlay.hidden = true`(닫힌 초기
+   상태)여도 계속 보이는 버그가 있었다(M6-3 headless smoke pass가 발견) —
+   `[hidden]`을 명시적으로 다시 이겨서 닫는다. */
+.song-select-scene .quick-options-overlay[hidden] {
+  display: none;
 }
 
 .song-select-scene .quick-options-panel {

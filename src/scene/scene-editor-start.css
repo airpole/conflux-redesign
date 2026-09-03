@@ -30,6 +30,15 @@
   gap: 1.2cqw;
 }
 
+/* `hidden` attribute는 UA stylesheet의 `display: none`을 따르지만, 위
+   .editor-start-scene { display: ... }가 author-stylesheet 우선순위로 그걸
+   덮어써 `root.hidden = true`(닫힌 상태)여도 계속 보이는
+   버그가 있었다(M6-3 headless smoke pass가 발견) — `[hidden]`을
+   명시적으로 다시 이겨서 닫는다. */
+.editor-start-scene[hidden] {
+  display: none;
+}
+
 .editor-start-scene .editor-start-title {
   font-size: 2cqw;
   color: var(--cyan);

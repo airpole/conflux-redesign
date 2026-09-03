@@ -1909,6 +1909,63 @@
 - **Commit:** `1d190f6`
 
 
+### D-2026-109 — M6-3: headless smoke pass 스코프 확정 + `[hidden]` CSS 우선순위 버그 일괄 수정
+
+- **Status:** Accepted
+- **Decision:** M6-3("M2~M5의 수동 대조 시나리오를 한 번에 다시 돌려 전부
+  통과한다")를 문자 그대로 실행하려면 원본 `conflux-editor`와의 실측 대조·
+  실제 사람의 wall-clock 관찰이 필요한데, 이 세션에는 원본 레포도 사람도
+  없다(`_meta/manual-qa.md` QA-1~3은 여전히 `(미실시)`, 이 라운드에서도
+  바뀌지 않는다 — 원본 대조·실제 오디오/키 입력 타이밍 관찰은 이 환경의
+  범위 밖이라는 결정이다). 그래서 M6-3은 다음 둘로 좁혀 실행했다: (1)
+  `npm run check`(format/lint/tsc/vitest) 전체 재실행, (2) 미리 설치된
+  headless Chromium(Playwright, repo에 `--no-save`로 임시 설치 — 커밋에는
+  안 남는다)으로 internal 빌드 산출물을 실제로 클릭해 돌리는 smoke
+  walkthrough(title→mode-select→credits→settings→song-select(빈
+  library)→editor-start→New Chart→notes/shapes/meta/test 탭→Ctrl+S→
+  editor-test의 Enter로 gameplay 진입(mid-start)→Esc pause→Resume→Exit).
+  `.cfx` 저장/내보내기/가져오기의 실제 왕복은 headless Chromium이 File
+  System Access API(`showOpenFilePicker`/`showSaveFilePicker`)를 지원하지
+  않아 이 경로로는 못 돌렸다 — 버튼 클릭 자체가 크래시 없이 graceful
+  cancel로 끝나는 것만 확인했다.
+
+  이 smoke pass가 **실제 회귀를 발견했다**: `hidden` attribute는 UA
+  stylesheet의 `display: none`을 깔지만, 각 scene·오버레이 CSS가
+  `.xxx-scene { display: flex/grid }`를 무조건 선언해(author stylesheet가
+  UA보다 우선) `root.hidden = true`여도 계속 렌더링되고 있었다 — scene
+  root 8개(`title`·`mode-select`·`editor-start`·`editor-workspace`·
+  `settings`·`song-credit`·`song-select`·`result`)와 하위 오버레이 5개
+  (editor 저장 모달·gameplay pause overlay·editor text 편집 폼·result
+  tier chip·song-select quick options overlay) 전부 같은 버그였다.
+  jsdom 기반 vitest는 `.hidden` boolean만 보고 실제 CSS cascade를 안 걸어
+  이 버그를 한 번도 못 잡았다(수정 전후 모두 1367/1367 그대로 통과) —
+  실제 브라우저 렌더링 확인이 정확히 이런 걸 잡으려고 있다는 걸 이번에
+  실증했다. 각 파일에 `<selector>[hidden] { display: none; }`을 추가해
+  `[hidden]`을 명시적으로 다시 이겼다(동작 변경 없음 — 원래도 "hidden이면
+  안 보여야 한다"는 코드 쪽 의도 그대로 복원하는 수정이라 CLAUDE.md §5의
+  "행동을 바꾸지 않는 정적 오류 수정"에 해당한다고 판단해 별도 승인 없이
+  바로 고쳤다. gameplay pause overlay가 상시 렌더링되고 있었다는 건 특히
+  QA-3(pause/Resume)가 여태 `(미실시)`였던 이유와도 맞물린다 — 사람이
+  실제로 봤다면 바로 드러났을 결함이었다).
+
+  `_meta/manual-qa.md`의 QA-1/QA-2/QA-3, 원본과의 실측 대조는 여전히
+  열려 있다 — M6-3이 이걸 닫지 않는다. 자동화 계층(golden table·spec
+  test·이번 smoke pass)이 커버하지 못하는 마지막 구간으로 그대로
+  남긴다(결정 필요 항목 — 실제 브라우저·원본 빌드가 있는 사람이 실행해야
+  닫힌다).
+- **Defined in:** `src/scene/scene-title.css`, `scene-mode-select.css`,
+  `scene-editor-start.css`, `scene-editor-workspace.css`,
+  `scene-settings.css`, `scene-song-credit.css`, `scene-song-select.css`,
+  `scene-result.css`, `scene-editor-save.css`, `scene-gameplay.css`,
+  `scene-editor-notes.css`, `_meta/manual-qa.md`(변경 없음, 확인만),
+  `_plan/build-order.md`
+- **Rationale:** `_plan/build-order.md` §9 M6-3, `_meta/manual-qa.md`
+- **Affects:** scene(CSS 전반) — M6-3의 자동화 가능한 부분 완료, 사람
+  QA 항목은 그대로 backlog
+- **Supersedes:** None
+- **Commit:** PENDING
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

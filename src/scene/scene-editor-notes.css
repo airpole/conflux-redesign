@@ -44,6 +44,15 @@
   background: #0a0a12;
 }
 
+/* `hidden` attribute는 UA stylesheet의 `display: none`을 따르지만, 위
+   `.editor-text-editor { display: flex }`가 author-stylesheet 우선순위로
+   그걸 덮어써 `textEditorPanel.hidden = true`(닫힌 초기 상태)여도 계속
+   보이는 버그가 있었다(M6-3 headless smoke pass가 발견) — `[hidden]`을
+   명시적으로 다시 이겨서 닫는다. */
+.editor-text-editor[hidden] {
+  display: none;
+}
+
 .editor-text-editor-content {
   font-family: var(--sans);
   font-size: 0.9cqw;

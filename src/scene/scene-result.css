@@ -51,6 +51,15 @@
   grid-template-rows: 1fr auto;
 }
 
+/* `hidden` attribute는 UA stylesheet의 `display: none`을 따르지만, 위
+   .result-scene { display: ... }가 author-stylesheet 우선순위로 그걸
+   덮어써 `root.hidden = true`(닫힌 상태)여도 계속 보이는
+   버그가 있었다(M6-3 headless smoke pass가 발견) — `[hidden]`을
+   명시적으로 다시 이겨서 닫는다. */
+.result-scene[hidden] {
+  display: none;
+}
+
 .result-scene .num {
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
@@ -145,6 +154,15 @@
   font-size: 1cqw;
   font-weight: 700;
   letter-spacing: 0.05em;
+}
+
+/* `hidden` attribute는 UA stylesheet의 `display: none`을 따르지만, 위
+   `.tier-chip { display: inline-block }`가 author-stylesheet 우선순위로
+   그걸 덮어써 `tierChip.hidden = true`(difficulty에 대응하는 tier 색이
+   없는 경우)여도 계속 보이는 버그가 있었다(M6-3 headless smoke pass가
+   발견) — `[hidden]`을 명시적으로 다시 이겨서 닫는다. */
+.song-col .tier-chip[hidden] {
+  display: none;
 }
 
 .song-col .subtitle {
