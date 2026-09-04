@@ -86,9 +86,18 @@
  * 축(중심) 0.5 기준 `targetPos′=1-targetPos`(`lineNum` 불변) — 자세한
  * 유도는 `edit-shape-commands.ts` 헤더.
  *
+ * **클립보드(Ctrl+C/V)는 M6-후속이 닫았다** — notes 탭의 기존 패턴(§1)을
+ * 그대로 옮겼다. mirror와 달리 서브모드 필터를 그대로 따른다(§1 "선택·
+ * Ctrl+A는 서브모드 필터... 유일한 예외는 mirror") — `shapeClipboard`·
+ * `laneClipboard`가 따로 있다. 복사는 선택 최소 dest tick(`startTick+
+ * duration`) 기준 `relTick`으로 저장하고, 붙여넣기는 현재 스크롤 위치의
+ * 스냅 tick을 기준점 삼아 `relTick`을 더한다. 충돌(같은 dest tick·같은
+ * 체인)은 `hasShapeEventAtDest`/`hasLaneEventAtDest`(배치 때와 같은
+ * 검사)로 조용히 스킵한다 — "전부 충돌이면 toast"(§1)는 이 에디터에
+ * toast UI가 없어(`app-editor.ts` 헤더 참조) notes 탭도 안 하는 기존
+ * 생략을 그대로 따랐다(결정 필요 항목).
+ *
  * **이번 라운드가 단순화한 지점(전부 결정 필요 항목으로 남김)**:
- * - **클립보드(Ctrl+C/V)가 없다** — notes 탭에 이미 구현된 패턴을
- *   shape/lane에 그대로 옮기는 건 후속 라운드로 미룬다.
  * - **symmetry 축은 항상 동적 스냅샷**이다(§3 "배치 지점 기준 쌍 평균") —
  *   드래그로 축을 수동 조절하는 UI·"토글 off까지 유지" 상태는 없다.
  * - **lane 그룹은 토글-누적 방식이다** — 원본은 Q/W/E를 물리적으로
@@ -164,6 +173,23 @@ type ShapeTool = 'blue' | 'center' | 'red' | 'pinch';
 type LaneMode = 'spread' | 'pinch';
 type EasingChoice = 'Arc' | 'In-Sine' | 'Out-Sine' | 'Linear';
 type LineNum = 1 | 2 | 3;
+
+/** 클립보드 항목(§1 "복사 = {..., relTick(선택 최소 tick 기준), ...}"과
+ *  같은 형태를 shape/lane 필드로 옮겼다). `relTick`은 **dest tick**(=
+ *  `startTick+duration`, 보간 이벤트의 "그 위치") 기준 — anchor는
+ *  선택 자체에서 제외돼 있어(파일 헤더) dest가 항상 유효하다. */
+interface ShapeClipboardEntry {
+  readonly relTick: number;
+  readonly isBlue: boolean;
+  readonly targetPos: number;
+  readonly easing: Easing;
+}
+interface LaneClipboardEntry {
+  readonly relTick: number;
+  readonly lineNum: LineNum;
+  readonly targetPos: number;
+  readonly easing: Easing;
+}
 
 /** 단일 점(Q/E로 놓은 하나의 체인 이벤트, anchor 포함) 히트. */
 interface ShapePointHit {
@@ -357,6 +383,10 @@ export function mountEditorShapesBody(
   let symmetry = false;
   let shapeSelection = new Set<number>();
   let laneSelection = new Set<number>();
+  // 서브모드 필터를 따른다(§1 "선택·Ctrl+A는 서브모드 필터" — mirror만
+  // 예외, 클립보드는 예외가 아니다) — shape/lane 클립보드를 따로 둔다.
+  let shapeClipboard: readonly ShapeClipboardEntry[] | null = null;
+  let laneClipboard: readonly LaneClipboardEntry[] | null = null;
 
   // 기존 점 드래그 재배치(D-2026-100, composite는 D-2026-101) — 위치(ext
   // 단위)만 옮긴다, tick은 그대로. click-vs-drag는 DRAG_THRESHOLD_PX로
@@ -836,6 +866,79 @@ export function mountEditorShapesBody(
     dispatchShapeCommand((s) => mirrorEventsCommand(s, [...shapeSelection], [...laneSelection]));
   }
 
+  /** Ctrl+C — 서브모드 필터를 따른다(mirror만 예외, §1). 기준점은 선택
+   *  최소 dest tick이다. anchor는 선택 자체에서 제외돼 있어(파일 헤더)
+   *  별도 방어가 필요 없다. */
+  function copySelection(): void {
+    if (subMode === 'shape') {
+      if (shapeSelection.size === 0) return;
+      const events = [...shapeSelection].map((i) => chart.shapeEvents[i]!);
+      const minDest = Math.min(...events.map((e) => e.startTick + e.duration));
+      shapeClipboard = events.map((e) => ({
+        relTick: e.startTick + e.duration - minDest,
+        isBlue: e.isBlue,
+        targetPos: e.targetPos,
+        easing: e.easing,
+      }));
+    } else {
+      if (laneSelection.size === 0) return;
+      const events = [...laneSelection].map((i) => chart.laneEvents[i]!);
+      const minDest = Math.min(...events.map((e) => e.startTick + e.duration));
+      laneClipboard = events.map((e) => ({
+        relTick: e.startTick + e.duration - minDest,
+        lineNum: e.lineNum,
+        targetPos: e.targetPos,
+        easing: e.easing,
+      }));
+    }
+  }
+
+  /** Ctrl+V — 기준점은 현재 스크롤 위치의 스냅 tick(§1). 충돌(같은
+   *  dest tick·같은 체인)은 `hasShapeEventAtDest`/`hasLaneEventAtDest`로
+   *  조용히 스킵한다(placeShape/placeLane과 같은 규칙) — "전부 충돌이면
+   *  토스트"(§1)는 이 에디터에 toast UI 자체가 없어(`app-editor.ts` 헤더
+   *  참조) notes 탭의 기존 붙여넣기도 안 하는 생략이라 여기서도 새로
+   *  만들지 않는다(결정 필요 항목). */
+  function pasteClipboard(): void {
+    const baseTick = snapTick(
+      pixelYToTick(canvas.height / 2, canvas.height, timeline, view.scrollMs, view.viewMs),
+      GRID_DIVISOR_DEFAULT,
+    );
+    if (subMode === 'shape') {
+      if (shapeClipboard === null || shapeClipboard.length === 0) return;
+      const toAdd: ShapeEvent[] = [];
+      for (const entry of shapeClipboard) {
+        const dest = baseTick + entry.relTick;
+        if (hasShapeEventAtDest(chart.shapeEvents, entry.isBlue, dest)) continue;
+        toAdd.push({
+          startTick: 0,
+          duration: dest,
+          isBlue: entry.isBlue,
+          targetPos: entry.targetPos,
+          easing: entry.easing,
+        });
+      }
+      if (toAdd.length === 0) return;
+      dispatchShapeCommand((s) => addShapeEventsCommand(s, toAdd));
+    } else {
+      if (laneClipboard === null || laneClipboard.length === 0) return;
+      const toAdd: LaneEvent[] = [];
+      for (const entry of laneClipboard) {
+        const dest = baseTick + entry.relTick;
+        if (hasLaneEventAtDest(chart.laneEvents, entry.lineNum, dest)) continue;
+        toAdd.push({
+          startTick: 0,
+          duration: dest,
+          lineNum: entry.lineNum,
+          targetPos: entry.targetPos,
+          easing: entry.easing,
+        });
+      }
+      if (toAdd.length === 0) return;
+      dispatchShapeCommand((s) => addLaneEventsCommand(s, toAdd));
+    }
+  }
+
   // ── pointer ──────────────────────────────────────────────
 
   function canvasPoint(event: PointerEvent): { x: number; y: number } {
@@ -1045,6 +1148,18 @@ export function mountEditorShapesBody(
         event.preventDefault();
         mirrorSelection();
         return true;
+      }
+      if (event.ctrlKey || event.metaKey) {
+        if (event.key === 'c' || event.key === 'C') {
+          event.preventDefault();
+          copySelection();
+          return true;
+        }
+        if (event.key === 'v' || event.key === 'V') {
+          event.preventDefault();
+          pasteClipboard();
+          return true;
+        }
       }
 
       switch (event.key) {

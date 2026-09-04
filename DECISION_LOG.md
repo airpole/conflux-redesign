@@ -2117,6 +2117,46 @@
 - **Commit:** `bce4784`
 
 
+### D-2026-114 — M5-4 후속: shapes/lane 클립보드(Ctrl+C/V) 구현
+
+- **Status:** Accepted
+- **Decision:** M5-4가 남긴 6개 단순화 지점 중 클립보드(Ctrl+C/V)를
+  닫는다. notes 탭에 이미 구현된 패턴(`editor-editing.md` §1)을 그대로
+  옮겼다 — 새 product 결정은 없었다: 복사는 선택 최소 dest tick 기준
+  `relTick`, 붙여넣기 기준점은 현재 스크롤 위치의 스냅 tick, 충돌(같은
+  dest tick·같은 체인)은 조용히 스킵.
+
+  **mirror(D-2026-112)와 달리 서브모드 필터를 그대로 따른다** — §1
+  "선택·Ctrl+A는 서브모드 필터... 유일한 예외는 mirror"가 명시적으로
+  mirror만 예외로 뒀으므로, `shapeClipboard`·`laneClipboard`를 분리해
+  뒀다(shape 모드에서 복사한 걸 lane 모드에 못 붙인다).
+
+  구현: `scene-editor-shapes.ts`에 `copySelection`/`pasteClipboard`를
+  추가했다 — 새 command는 필요 없다(기존 `addShapeEventsCommand`/
+  `addLaneEventsCommand`를 그대로 재사용, `placeShape`/`placeLane`과
+  같은 `{startTick:0, duration:dest, ...}` pre-normalize 인코딩).
+  충돌 검사는 배치 때 이미 쓰던 `hasShapeEventAtDest`/
+  `hasLaneEventAtDest`를 그대로 재사용했다.
+
+  **"전부 충돌이면 toast"(§1)는 구현하지 않았다** — 이 에디터에는 toast
+  UI 자체가 없다(`app-editor.ts` 헤더가 이미 "별도 toast UI가 없어
+  재사용했다"고 기록해 둔 기존 사각지대), notes 탭의 기존 Ctrl+V도 이
+  경우 아무 안내 없이 조용히 아무 일도 안 한다 — 이 라운드가 새로
+  만든 생략이 아니라 기존 생략을 그대로 따른 것이다(결정 필요 항목).
+
+  테스트 신규: `scene-editor-shapes.test.ts` +4(shape 복사·붙여넣기,
+  lane lineNum 유지, shape/lane 클립보드 분리 확인, 연속 붙여넣기
+  dest 충돌 스킵) — 전체 1378/1378 통과.
+- **Defined in:** `src/scene/scene-editor-shapes.ts`,
+  `editor/editor-editing.md` §8
+- **Rationale:** `editor/editor-editing.md` §1
+- **Affects:** scene — M5-4 잔여 단순화 지점 6개 중 2개 닫힘(mirror·
+  클립보드) — symmetry 수동축·lane group hold·lane symmetry 3그룹·
+  laneGridDivisor UI·Ctrl+D·전부 충돌 toast는 잔여
+- **Supersedes:** None
+- **Commit:** PENDING
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

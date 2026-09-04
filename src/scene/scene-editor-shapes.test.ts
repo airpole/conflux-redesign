@@ -239,6 +239,98 @@ describe('scene-editor-shapes', () => {
     expect(dispatch).not.toHaveBeenCalled();
   });
 
+  it('shape Ctrl+C·Ctrl+V가 현재 스크롤 위치를 기준점으로 붙여넣는다', () => {
+    const target: ShapeEvent = {
+      startTick: 0,
+      duration: 500,
+      isBlue: true,
+      targetPos: 3,
+      easing: 'Linear',
+    };
+    const { canvas, handle, getChart, dispatch } = mount(
+      makeChart({ shapeEvents: [blueInit, redInit, target] }),
+    );
+    click(canvas, pixelXOfExt(3), pixelYOfTick(500));
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'c', ctrlKey: true }));
+    // 붙여넣기 기준점 = 캔버스 절반 높이(scrollMs=0, viewMs=8000 기본값 —
+    // pixelYOfTick(4000, 600)이 캔버스 y=300에 해당).
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'v', ctrlKey: true }));
+    expect(consumed).toBe(true);
+    expect(dispatch).toHaveBeenCalled();
+    const pasted = getChart().shapeEvents.filter((e) => e.targetPos === 3 && e.isBlue);
+    expect(pasted).toHaveLength(2); // 원본 + 붙여넣은 것.
+  });
+
+  it('lane Ctrl+C·Ctrl+V는 lineNum을 그대로 유지한다', () => {
+    const target: LaneEvent = {
+      startTick: 0,
+      duration: 500,
+      lineNum: 2,
+      targetPos: 0.6,
+      easing: 'Linear',
+    };
+    const { canvas, handle, getChart, dispatch } = mount(
+      makeChart({ laneEvents: [line1Init, line2Init, line3Init, target] }),
+    );
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 't' })); // lane 모드.
+    // line2(targetPos 0.6)의 화면 x: -2 + 0.6*4 = 0.4.
+    click(canvas, pixelXOfExt(0.4), pixelYOfTick(500));
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'c', ctrlKey: true }));
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'v', ctrlKey: true }));
+    expect(consumed).toBe(true);
+    expect(dispatch).toHaveBeenCalled();
+    const pasted = getChart().laneEvents.filter((e) => e.targetPos === 0.6 && e.lineNum === 2);
+    expect(pasted).toHaveLength(2);
+  });
+
+  it('shape·lane 클립보드는 서브모드별로 분리된다(shape 모드에서 복사한 걸 lane에 못 붙인다)', () => {
+    const target: ShapeEvent = {
+      startTick: 0,
+      duration: 500,
+      isBlue: true,
+      targetPos: 3,
+      easing: 'Linear',
+    };
+    const { canvas, handle, getChart, dispatch } = mount(
+      makeChart({
+        shapeEvents: [blueInit, redInit, target],
+        laneEvents: [line1Init, line2Init, line3Init],
+      }),
+    );
+    click(canvas, pixelXOfExt(3), pixelYOfTick(500));
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'c', ctrlKey: true })); // shape 복사.
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 't' })); // → lane 모드.
+    const before = getChart().laneEvents.length;
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'v', ctrlKey: true })); // lane 붙여넣기 시도.
+    expect(getChart().laneEvents).toHaveLength(before); // shape 클립보드가 안 섞인다.
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('같은 dest tick·같은 체인에 이미 이벤트가 있으면 붙여넣기를 조용히 스킵한다', () => {
+    // 같은 스크롤 위치에 두 번 연속 붙여넣으면 두 번째는 첫 번째가 방금
+    // 만든 이벤트와 dest가 겹쳐 스킵돼야 한다 — 기준점 tick을 직접
+    // 계산하지 않고 재현한다.
+    const target: ShapeEvent = {
+      startTick: 0,
+      duration: 500,
+      isBlue: true,
+      targetPos: 3,
+      easing: 'Linear',
+    };
+    const { canvas, handle, getChart, dispatch } = mount(
+      makeChart({ shapeEvents: [blueInit, redInit, target] }),
+    );
+    click(canvas, pixelXOfExt(3), pixelYOfTick(500));
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'c', ctrlKey: true }));
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'v', ctrlKey: true })); // 1회차: 성공.
+    handle.update(getChart()); // dispatch → onDispatch → update()의 실제 배선을 재현.
+    const afterFirst = getChart().shapeEvents.length;
+    dispatch.mockClear();
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'v', ctrlKey: true })); // 2회차: dest 충돌.
+    expect(getChart().shapeEvents).toHaveLength(afterFirst);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
   it('lane 모드 Q/W/E는 그룹 멤버십을 토글한다(툴바에 표시)', () => {
     const { target, handle } = mount(makeChart({ laneEvents: [line1Init, line2Init, line3Init] }));
     handle.onKeyDown(new KeyboardEvent('keydown', { key: 't' })); // → lane 모드.
