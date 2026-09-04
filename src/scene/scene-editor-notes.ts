@@ -698,6 +698,53 @@ export function mountEditorNotesBody(
     dispatchNoteCommand((s) => mirrorNotesCommand(s, [...selection]));
   }
 
+  /** Ctrl+D — 선택 구간을 그 길이만큼 바로 뒤에 복제한다(§7 "duplicate
+   *  구간 복제 ... Ableton식", shapes 씬의 `duplicateSelection`과 같은
+   *  규칙, D-2026-120). note·textEvent는 chain이 아니라 `startTick`이
+   *  그대로 실제 배치 위치라서(shapes/lane처럼 정규화가 다시 세우는
+   *  값이 아니다) `copySelection`의 relTick(선택 최소 **startTick** 기준)을
+   *  그대로 쓸 수 있다 — shapes에서 겪은 "단일 선택의 구간이 0으로
+   *  계산돼 제자리에서 스스로와 충돌하는" 문제가 애초에 생기지 않는다
+   *  (범위가 이미 startTick~dest 기준이라 단일 항목도 자기 길이만큼
+   *  나온다). §1 "선택에 textEvents가 포함돼 있으면 함께 복사·붙여넣기"를
+   *  따라 note·text를 **하나의 구간**으로 합쳐 계산하되, dispatch는
+   *  기존 관례대로 각각 별도다. 충돌(같은 lane+tick+isWide)은 note만
+   *  조용히 스킵한다(paste와 같은 검사) — text는 원래도 충돌 검사가
+   *  없다(겹침 허용). */
+  function duplicateSelection(): void {
+    if (selection.size === 0 && textSelection.size === 0) return;
+    const notes = [...selection].map((i) => chart.notes[i]!);
+    const texts = [...textSelection].map((i) => chart.textEvents[i]!);
+    const starts = [...notes.map((n) => n.startTick), ...texts.map((e) => e.startTick)];
+    const dests = [
+      ...notes.map((n) => n.startTick + n.duration),
+      ...texts.map((e) => e.startTick + e.duration),
+    ];
+    const rangeStart = Math.min(...starts);
+    const rangeEnd = Math.max(...dests);
+
+    if (notes.length > 0) {
+      const existing = new Set(chart.notes.map((n) => `${n.lane}:${n.startTick}:${n.isWide}`));
+      const toAdd: Note[] = [];
+      for (const n of notes) {
+        const startTick = rangeEnd + (n.startTick - rangeStart);
+        const key = `${n.lane}:${startTick}:${n.isWide}`;
+        if (existing.has(key)) continue; // 같은 lane+tick+isWide 충돌은 조용히 스킵.
+        toAdd.push({ startTick, duration: n.duration, lane: n.lane, isWide: n.isWide });
+      }
+      if (toAdd.length > 0) dispatchNoteCommand((s) => addNotesCommand(s, toAdd));
+    }
+    if (texts.length > 0) {
+      const toAdd: TextEvent[] = texts.map((e) => ({
+        startTick: rangeEnd + (e.startTick - rangeStart),
+        duration: e.duration,
+        content: e.content,
+        position: e.position,
+      }));
+      dispatchTextCommand((s) => addTextEventsCommand(s, toAdd));
+    }
+  }
+
   // ── pointer 처리 ─────────────────────────────────────────
 
   let pointerDown: { x: number; y: number } | null = null;
@@ -975,6 +1022,12 @@ export function mountEditorNotesBody(
         if (event.key === 'f' || event.key === 'F') {
           event.preventDefault();
           mirrorSelection();
+          return true;
+        }
+        if (event.key === 'd' || event.key === 'D') {
+          if (selection.size === 0 && textSelection.size === 0) return false;
+          event.preventDefault();
+          duplicateSelection();
           return true;
         }
         return false;

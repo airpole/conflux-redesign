@@ -376,4 +376,79 @@ describe('scene-editor-notes', () => {
     expect(getChart().notes).toHaveLength(2);
     expect(getChart().textEvents).toHaveLength(2);
   });
+
+  // ── [D-2026-121] Ctrl+D 구간 복제 ───────────────────────────
+
+  it('Ctrl+D — 단일 hold 선택은 그 자신의 길이만큼 바로 뒤에 복제된다', () => {
+    const notes = [{ startTick: 0, duration: 500, lane: 1 as const, isWide: false }];
+    const { canvas, handle, dispatch, getChart } = mount(makeChart({ notes }));
+    const y = pixelYOfTick(250); // hold 중간 아무 지점이나 히트 반경 안이면 선택된다.
+    click(canvas, 100, y);
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }));
+    expect(consumed).toBe(true);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]![0].name).toBe('AddNotes');
+    expect(getChart().notes).toHaveLength(2);
+    const added = getChart().notes.find((n) => n.startTick === 500);
+    expect(added).toBeDefined(); // 원본(0~500) 바로 뒤인 500에 복제됐다.
+    expect(added?.duration).toBe(500);
+  });
+
+  it('Ctrl+D — 다중 선택은 서로 상대 간격을 유지한 채 구간 전체가 뒤로 옮겨진다', () => {
+    const notes = [
+      { startTick: 0, duration: 0, lane: 1 as const, isWide: false },
+      { startTick: 300, duration: 0, lane: 2 as const, isWide: false },
+    ];
+    const { canvas, handle, dispatch, getChart } = mount(makeChart({ notes }));
+    click(canvas, 100, pixelYOfTick(0));
+    click(canvas, 300, pixelYOfTick(300), { shiftKey: true });
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }));
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    // 구간 = [0, 300), 길이 300 — 복제는 tick 300·600에 온다.
+    const ticks = getChart()
+      .notes.map((n) => n.startTick)
+      .sort((a, b) => a - b);
+    expect(ticks).toEqual([0, 300, 300, 600]);
+  });
+
+  it('Ctrl+D — 대상 lane+tick+isWide에 이미 note가 있으면 그 항목만 조용히 스킵한다', () => {
+    const notes = [
+      { startTick: 0, duration: 500, lane: 1 as const, isWide: false },
+      // 복제 목적지(startTick 500)에 미리 심어 충돌을 강제한다.
+      { startTick: 500, duration: 0, lane: 1 as const, isWide: false },
+    ];
+    const { canvas, handle, dispatch, getChart } = mount(makeChart({ notes }));
+    click(canvas, 100, pixelYOfTick(250)); // 첫 번째 hold만 선택.
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }));
+    expect(consumed).toBe(true);
+    expect(dispatch).not.toHaveBeenCalled(); // 유일한 후보가 충돌해 toAdd가 비었다.
+    expect(getChart().notes).toHaveLength(2);
+  });
+
+  it('Ctrl+D — 선택이 없으면 아무것도 하지 않는다(consumed=false)', () => {
+    const { handle, dispatch } = mount();
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }));
+    expect(consumed).toBe(false);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('Ctrl+D — note와 text event 선택을 하나의 구간으로 합쳐 계산하되 dispatch는 따로 낸다', () => {
+    const notes = [{ startTick: 0, duration: 0, lane: 1 as const, isWide: false }];
+    const textEvents = [
+      { startTick: 2000, duration: 480, content: 'Hi', position: 'middle' as const },
+    ];
+    const { canvas, handle, dispatch, getChart } = mount(makeChart({ notes, textEvents }));
+    click(canvas, 100, pixelYOfTick(0)); // note 선택.
+    click(canvas, 100, pixelYOfTick(2000 + 240)); // text 선택(별도 Set).
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }));
+    expect(dispatch).toHaveBeenCalledTimes(2); // AddNotes + AddTextEvents.
+    const names = dispatch.mock.calls.map((c) => (c[0] as Command).name);
+    expect(names).toContain('AddNotes');
+    expect(names).toContain('AddTextEvents');
+    // 구간 = note(tick 0)~text dest(2480), 길이 2480.
+    // note 복제: rangeEnd(2480) + (0 - 0) = 2480.
+    expect(getChart().notes.some((n) => n.startTick === 2480)).toBe(true);
+    // text 복제: rangeEnd(2480) + (2000 - 0) = 4480.
+    expect(getChart().textEvents.some((e) => e.startTick === 4480)).toBe(true);
+  });
 });

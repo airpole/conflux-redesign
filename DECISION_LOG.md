@@ -2339,6 +2339,31 @@
 - **Supersedes:** None
 - **Commit:** `2d22bb7`
 
+### D-2026-121 — notes 탭 Ctrl+D 구간 복제
+
+- **Status:** Accepted
+- **Decision:** `editor-editing.md` §7의 Ctrl+D 규칙("선택 구간을 그
+  길이만큼 바로 뒤에 복제, Ableton식")은 tab-scope를 가리지 않는
+  일반 규칙이라 D-2026-120(shapes/lane)에 이어 notes 탭에도 적용한다.
+  note·textEvent는 shapes/lane과 데이터 모델이 다르다 — chain
+  정규화가 없어 `startTick`이 그 자체로 실제 배치 위치다. 그 덕에
+  기존 `copySelection`의 relTick(선택 최소 **startTick** 기준, dest
+  tick 기준이 아니다)을 그대로 구간 계산에 재사용할 수 있었다 —
+  D-2026-120에서 shapes가 겪은 "단일 선택의 구간이 0으로 계산돼
+  제자리에서 스스로와 충돌하는" 문제가 이 데이터 모델에서는 애초에
+  생기지 않는다(범위가 이미 startTick~dest 기준이라 단일 항목도 자기
+  길이만큼 나온다). §1 "선택에 textEvents가 포함되면 함께 복사·
+  붙여넣기"를 따라 note·text를 하나의 구간으로 합쳐 계산하되, dispatch는
+  기존 관례(delete·copy·paste와 동일)대로 각각 별도다. 충돌(같은
+  lane+tick+isWide)은 note만 조용히 스킵 — text는 원래도 충돌 검사가
+  없다(paste와 동일).
+- **Defined in:** `src/scene/scene-editor-notes.ts`(`duplicateSelection`,
+  `onKeyDown`의 Ctrl+D 케이스)
+- **Rationale:** `editor-editing.md` §7, D-2026-120
+- **Affects:** scene-editor-notes, `editor-editing.md` §8
+- **Supersedes:** None
+- **Commit:** PENDING
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred
