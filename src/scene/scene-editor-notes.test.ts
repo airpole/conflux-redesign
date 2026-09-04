@@ -348,7 +348,8 @@ describe('scene-editor-notes', () => {
     click(canvas, 100, y);
     const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'D' }));
     expect(consumed).toBe(true);
-    expect(dispatch.mock.calls[0]![0].name).toBe('DeleteTextEvents');
+    // D-2026-124부터 note·text 선택 삭제는 텍스트만이어도 통합 커맨드 이름이다.
+    expect(dispatch.mock.calls[0]![0].name).toBe('DeleteNotesAndTextEvents');
     expect(getChart().textEvents).toHaveLength(0);
   });
 
@@ -378,6 +379,36 @@ describe('scene-editor-notes', () => {
 
     // undo 한 번으로 note·text 둘 다 원상복구된다 — 두 번 눌러야 하는
     // 문제(D-2026-123 이전)가 없다는 걸 직접 확인한다.
+    (dispatch.mock.calls[0]![0] as Command).undo();
+    expect(getChart().notes).toHaveLength(1);
+    expect(getChart().textEvents).toHaveLength(1);
+  });
+
+  it('D가 선택된 note와 text event를 함께 지운다(한 undo로 합쳐진다, D-2026-124)', () => {
+    const notes = [{ startTick: 100, duration: 0, lane: 1 as const, isWide: false }];
+    const textEvents = [
+      { startTick: 2000, duration: 480, content: 'Hi', position: 'middle' as const },
+    ];
+    const { canvas, handle, dispatch, getChart } = mount(makeChart({ notes, textEvents }));
+
+    // note와 hit 반경(15px)이 안 겹치게 충분히 떨어뜨린다(위 paste 테스트와
+    // 같은 이유). 서로 다른 배열(selection/textSelection)이라 shift 없이도
+    // 섞이지 않는다.
+    click(canvas, 100, pixelYOfTick(100)); // note 선택.
+    click(canvas, 100, pixelYOfTick(2000 + 240)); // text 선택.
+
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'D' }));
+    expect(consumed).toBe(true);
+
+    // 삭제 한 번 = dispatch 한 번(DeleteNotesAndTextEvents) — Ctrl+Z
+    // 한 번으로 note·text 둘 다 되살아난다.
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]![0].name).toBe('DeleteNotesAndTextEvents');
+    expect(getChart().notes).toHaveLength(0);
+    expect(getChart().textEvents).toHaveLength(0);
+
+    // undo 한 번으로 note·text 둘 다 원상복구된다 — 두 번 눌러야 하는
+    // 문제(D-2026-124 이전)가 없다는 걸 직접 확인한다.
     (dispatch.mock.calls[0]![0] as Command).undo();
     expect(getChart().notes).toHaveLength(1);
     expect(getChart().textEvents).toHaveLength(1);

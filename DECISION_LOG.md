@@ -2440,6 +2440,30 @@
 - **Supersedes:** None
 - **Commit:** `986a581`
 
+### D-2026-124 — notes 탭 delete(note+text) 한 undo로 합침
+
+- **Status:** Accepted
+- **Decision:** D-2026-123(paste)과 같은 클래스의 문제를 `deleteSelection`
+  에도 적용해 닫는다. `notes`·`textEvents`가 같은 undo scope `n`을
+  공유하는데(`editor-commands.md` §2) `deleteSelection`이 note·text를
+  각각 별도 `dispatch`로 내고 있었다 — 혼합 선택을 지우면 Ctrl+Z 한
+  번에 하나만 되돌아가고 다른 하나는 지워진 채로 남는 문제가 있었다.
+  `pasteNotesAndTextEventsCommand`와 완전히 같은 패턴으로
+  `deleteNotesAndTextEventsCommand`(`edit-notes-commands.ts`)를 추가해
+  한 커맨드로 양쪽 인덱스를 제거한다 — 어느 한쪽이 비어 있어도(note만/
+  text만 선택) 안전하다. 커맨드 이름은 paste와 마찬가지로 혼합 여부와
+  무관하게 고정(`DeleteNotesAndTextEvents`)이다 — shapes의 easing-갱신
+  건(D-2026-122)처럼 "무엇이 새로 생겼는지"를 구분할 필요가 없어(둘 다
+  단순 제거) 동적 이름을 쓸 이유가 없었다.
+- **Defined in:** `src/edit/edit-notes-commands.ts`
+  (`deleteNotesAndTextEventsCommand`), `src/scene/scene-editor-notes.ts`
+  (`deleteSelection`)
+- **Rationale:** D-2026-123(같은 문제·같은 해법)
+- **Affects:** edit-notes-commands, scene-editor-notes, `src/scene/README.md`,
+  `_plan/build-order.md` M5-7
+- **Supersedes:** None
+- **Commit:** PENDING
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

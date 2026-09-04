@@ -4,6 +4,7 @@ import type { Chart, Note, TextEvent } from '../core/core-chart.js';
 import { createCommandHistory } from './edit-command.js';
 import {
   addNotesCommand,
+  deleteNotesAndTextEventsCommand,
   deleteNotesCommand,
   mirrorNotesCommand,
   moveNotesCommand,
@@ -165,6 +166,42 @@ describe('pasteNotesAndTextEventsCommand (D-2026-123)', () => {
   it('invalidates는 notes·textEvents 둘 다다', () => {
     const session = fakeSession([TAP], [TEXT]);
     expect(pasteNotesAndTextEventsCommand(session, [HOLD], []).invalidates).toEqual([
+      'notes',
+      'textEvents',
+    ]);
+  });
+});
+
+describe('deleteNotesAndTextEventsCommand (D-2026-124)', () => {
+  it('note·text를 함께 지우고, undo 한 번으로 둘 다 되살린다', () => {
+    const session = fakeSession([TAP, HOLD], [TEXT]);
+    const history = createCommandHistory();
+    history.dispatch(deleteNotesAndTextEventsCommand(session, [0], [0]));
+    expect(session.chart.notes).toEqual([HOLD]);
+    expect(session.chart.textEvents).toEqual([]);
+    history.undo('n'); // notes·textEvents는 같은 scope 'n'을 공유한다(editor-commands.md §2).
+    expect(session.chart.notes).toEqual([TAP, HOLD]);
+    expect(session.chart.textEvents).toEqual([TEXT]);
+    history.redo('n');
+    expect(session.chart.notes).toEqual([HOLD]);
+    expect(session.chart.textEvents).toEqual([]);
+  });
+
+  it('note만 있어도, text만 있어도 안전하다(빈 인덱스 배열은 그대로 둔다)', () => {
+    const noteOnly = fakeSession([TAP, HOLD]);
+    deleteNotesAndTextEventsCommand(noteOnly, [0], []).apply();
+    expect(noteOnly.chart.notes).toEqual([HOLD]);
+    expect(noteOnly.chart.textEvents).toEqual([]);
+
+    const textOnly = fakeSession([], [TEXT]);
+    deleteNotesAndTextEventsCommand(textOnly, [], [0]).apply();
+    expect(textOnly.chart.notes).toEqual([]);
+    expect(textOnly.chart.textEvents).toEqual([]);
+  });
+
+  it('invalidates는 notes·textEvents 둘 다다', () => {
+    const session = fakeSession([TAP], [TEXT]);
+    expect(deleteNotesAndTextEventsCommand(session, [0], []).invalidates).toEqual([
       'notes',
       'textEvents',
     ]);

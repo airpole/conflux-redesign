@@ -1,8 +1,9 @@
 /**
  * notes 탭 command 목록 — `editor/editor-commands.md` §6 중 note 관련 6개
  * (AddNotes/DeleteNotes/MoveNotes/MirrorNotes/SetNoteDuration/ReplaceNotes),
- * 그리고 `pasteNotesAndTextEventsCommand`(D-2026-123 — note·textEvent
- * 붙여넣기를 `notes`·`textEvents` 둘 다 건드리는 한 undo로 합친다,
+ * 그리고 `pasteNotesAndTextEventsCommand`(D-2026-123)·
+ * `deleteNotesAndTextEventsCommand`(D-2026-124) — 각각 note·textEvent
+ * 붙여넣기·삭제를 `notes`·`textEvents` 둘 다 건드리는 한 undo로 합친다,
  * `mirrorEventsCommand`가 shapeEvents·laneEvents를 합친 것과 같은 이유).
  * `edit-command.ts`(M5-2)의 chart-agnostic 엔진에 꽂는 첫 실제 command다.
  *
@@ -13,7 +14,8 @@
  * 같은 단위로 되감긴다"가 스냅샷 비교만으로 자동 성립).
  *
  * `invalidates: ['notes']`뿐이라 전부 scope `n`이다(`edit-command.ts` §2) —
- * `pasteNotesAndTextEventsCommand`만 예외로 `['notes', 'textEvents']`다.
+ * `pasteNotesAndTextEventsCommand`/`deleteNotesAndTextEventsCommand`만
+ * 예외로 `['notes', 'textEvents']`다.
  *
  * mirror는 `core-judge.ts`의 `MIRROR_LANE_MAP`(1↔4, 2↔3)을 그대로 쓴다 —
  * 플레이 mirror와 같은 매핑([[judge]] §3, editor-editing.md §4). wide
@@ -140,6 +142,33 @@ export function pasteNotesAndTextEventsCommand(
   const afterTexts = [...beforeTexts, ...textEventsToAdd];
   return {
     name: 'PasteNotesAndTextEvents',
+    invalidates: ['notes', 'textEvents'],
+    apply: () =>
+      session.updateChart({ ...session.chart, notes: afterNotes, textEvents: afterTexts }),
+    undo: () =>
+      session.updateChart({ ...session.chart, notes: beforeNotes, textEvents: beforeTexts }),
+  };
+}
+
+/** note·textEvent 선택을 함께 지운다(Delete/D, D-2026-124) —
+ *  `pasteNotesAndTextEventsCommand`와 똑같은 이유·패턴이다. 지금까지
+ *  `deleteSelection`이 note·text를 각각 별도 dispatch로 내던 것을
+ *  Ctrl+V와 같은 문제(같은 undo scope `n`에 두 항목이 쌓여 Ctrl+Z 한
+ *  번에 하나만 되돌아감)로 보고 닫는다. 어느 한쪽이 비어 있어도(note만/
+ *  text만 선택) 안전하다. */
+export function deleteNotesAndTextEventsCommand(
+  session: NotesSessionLike,
+  noteIndices: readonly number[],
+  textEventIndices: readonly number[],
+): Command {
+  const beforeNotes = session.chart.notes;
+  const beforeTexts = session.chart.textEvents;
+  const noteRemoveSet = new Set(noteIndices);
+  const textRemoveSet = new Set(textEventIndices);
+  const afterNotes = beforeNotes.filter((_, i) => !noteRemoveSet.has(i));
+  const afterTexts = beforeTexts.filter((_, i) => !textRemoveSet.has(i));
+  return {
+    name: 'DeleteNotesAndTextEvents',
     invalidates: ['notes', 'textEvents'],
     apply: () =>
       session.updateChart({ ...session.chart, notes: afterNotes, textEvents: afterTexts }),

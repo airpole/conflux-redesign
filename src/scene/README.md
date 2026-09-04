@@ -215,11 +215,11 @@ position select가 있는 편집 모달을 연다(`transition`/`mode`는
 별도 `textSelection`으로 관리하고, **더블클릭이 기존 이벤트의 편집
 모달을 연다**(원본 `text-events.js`의 click=모달과 다른 해석적 결정).
 모달이 열린 동안은 이 파일의 단축키를 전부 끈다(`Escape`만 취소로
-처리) — textarea 네이티브 입력·Ctrl+C/V는 그대로 통과한다. delete는
-note와 textEvent를 각각 별도 dispatch로 처리한다(결정 필요 항목).
-paste는 `pasteNotesAndTextEventsCommand`로 한 undo에 합쳐진다(D-2026-123
-— Ctrl+Z 한 번에 text만 되돌아가고 note는 남는 문제를 닫았다). 재생 시
-fade 표시는 이미 M4.5-1이 구현해 뒀다 — `scene-gameplay.ts`
+처리) — textarea 네이티브 입력·Ctrl+C/V는 그대로 통과한다. delete·paste
+모두 `deleteNotesAndTextEventsCommand`(D-2026-124)·
+`pasteNotesAndTextEventsCommand`(D-2026-123)로 note·textEvent를 한
+undo에 합쳐 낸다 — Ctrl+Z 한 번에 하나만 되돌아가고 다른 하나는 남는
+문제를 닫았다. 재생 시 fade 표시는 이미 M4.5-1이 구현해 뒀다 — `scene-gameplay.ts`
 가 이미 `computeActiveTextEvents`/`drawTextEvent`를 호출하고 있어 이번
 라운드는 편집 쪽만 채웠다.
 

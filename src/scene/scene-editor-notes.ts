@@ -65,11 +65,13 @@
  * `core-chart.ts`의 `TextEvent`에 없다 — `data-model.md` §8이 이미
  * "폐기"로 정해 둔 걸 반영한 결과다.
  *
- * delete(`D`/`Delete`)는 선택된 note와 text event를 **각각 별도
- * dispatch**로 지운다(한 커맨드로 합치지 않았다 — undo가 note/text 두 번
- * 걸린다는 뜻, 결정 필요 항목). copy/paste(`Ctrl+C`/`Ctrl+V`)는 두 종류를
- * 한 클립보드에 같이 담되(§1 "함께 복사·붙여넣기"), 실제 배치는 역시
- * 두 번의 별도 dispatch다.
+ * **delete(`D`/`Delete`)·paste(`Ctrl+V`)는 note와 text event를 한
+ * undo로 합쳐 낸다** — `deleteNotesAndTextEventsCommand`(D-2026-124)·
+ * `pasteNotesAndTextEventsCommand`(D-2026-123, `edit-notes-commands.ts`)
+ * 가 `notes`·`textEvents` 둘 다 한 apply/undo로 건드린다. 둘 다 같은
+ * undo scope `n`을 쓰는데(`editor-commands.md` §2) 따로 dispatch하면
+ * Ctrl+Z 한 번에 하나만 되돌아가는 문제가 있었다 — `mirrorEventsCommand`
+ * (shapeEvents·laneEvents를 합친 선례)와 같은 패턴으로 닫았다.
  */
 import {
   buildTimeline,
@@ -90,7 +92,7 @@ import {
 } from '../core/core-chart.js';
 import {
   addNotesCommand,
-  deleteNotesCommand,
+  deleteNotesAndTextEventsCommand,
   mirrorNotesCommand,
   moveNotesCommand,
   pasteNotesAndTextEventsCommand,
@@ -622,19 +624,18 @@ export function mountEditorNotesBody(
     return true;
   }
 
-  /** note·text 선택을 각각 별도 dispatch로 지운다(파일 헤더 "결정 필요
-   *  항목" — 한 undo로 합치지 않았다). */
+  /** note·text 선택을 한 undo로 함께 지운다(D-2026-124) — paste와 같은
+   *  이유(`pasteNotesAndTextEventsCommand` 참조): 같은 undo scope `n`에
+   *  두 dispatch가 쌓이면 Ctrl+Z 한 번에 하나만 되돌아간다. 어느 한쪽이
+   *  비어 있어도 안전하다(`deleteNotesAndTextEventsCommand`가 빈 인덱스
+   *  배열을 그대로 둔다). */
   function deleteSelection(): void {
-    if (selection.size > 0) {
-      const indices = [...selection];
-      dispatchNoteCommand((s) => deleteNotesCommand(s, indices));
-      selection = new Set();
-    }
-    if (textSelection.size > 0) {
-      const indices = [...textSelection];
-      dispatchTextCommand((s) => deleteTextEventsCommand(s, indices));
-      textSelection = new Set();
-    }
+    if (selection.size === 0 && textSelection.size === 0) return;
+    const noteIndices = [...selection];
+    const textIndices = [...textSelection];
+    dispatchNoteCommand((s) => deleteNotesAndTextEventsCommand(s, noteIndices, textIndices));
+    selection = new Set();
+    textSelection = new Set();
   }
 
   /** note·textEvent 선택을 하나의 클립보드에 함께 담는다(`editor-editing.md`
