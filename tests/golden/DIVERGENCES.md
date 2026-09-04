@@ -240,12 +240,12 @@ DM-6이 `없음`인 것도 같은 조사에서 나왔다. 원본은 풀마다 �
 | ID | 자리 | 원본 | 재설계 | 관계 | 근거 |
 |---|---|---|---|---|---|
 | JD-1 | 후보 선택 | normal·wide **분리 풀**, 각 풀에서 earliest-tick | 단일 풀 — earliest-tick → same-tick normal 우선 → hold 우선 → 이른 tail 우선 | 미커버 | D-2026-024 |
-| JD-2 | Hold 소유 | key-owned (`holds` 맵) | key-demand — Normal 익명 수요, Wide 단일 소유·원자적 이양 | 미커버 | D-2026-024 |
+| JD-2 | Hold 소유 | key-owned (`holds` 맵) | key-demand — Normal 익명 수요, Wide 단일 소유·원자적 이양 | 미커버 | D-2026-024(manual-qa 실측: D-2026-116·D-2026-117) |
 | JD-3 | hit 이펙트 | `commitJudgment`가 `above/below`를 계산해 실어보냄 | judge는 싣지 않음, render 소관 | 없음 | `judge` §4 |
 | JD-4 | overlap/conflict | judge 안 | domain 파생 속성(`noteOverlapMap`) | 없음 | `judge` §11 |
 | JD-5 | global 6키 conflict | 없음 — 풀끼리 서로 보지 않는다 | 검사 지점마다 `D1+D2+D3+D4+W <= 6` | 없음 | D-2026-024 |
 | JD-6 | Hold tail 처리 | tail 자동완료는 **autoplay에서만**, 수동은 keyup 전까지 미확정 | 항상 `tailMs`에 자동완료, `[head, tail)` 반개구간, 같은 tick이면 tail 먼저 | 미커버 | `judge` §7 |
-| JD-7 | 중간 시작·Resume | crossing Hold 처리 미정의 | mid-start crossing-Hold 시드·anchor 규칙, Resume은 비-재시드 | 미커버 | `judge` §10 |
+| JD-7 | 중간 시작·Resume | crossing Hold 처리 미정의 | mid-start crossing-Hold 시드·anchor 규칙, Resume은 비-재시드 | 미커버 | `judge` §10(manual-qa 실측: D-2026-116) |
 | JD-8 | visualOffset | 렌더 시점 보정 | 입력 타임스탬프 보정으로 배선 | 미커버 | `judge` §1 |
 
 ### JD-1을 골든이 목격하지 못한다

@@ -2215,6 +2215,64 @@
 - **Commit:** `31733b8`
 
 
+### D-2026-116 — manual-qa QA-1/QA-2/QA-3 실측 통과
+
+- **Status:** Accepted
+- **Decision:** `_meta/manual-qa.md`의 QA-1~QA-3을 Playwright로 원본·재구현
+  양쪽에 대해 실제 브라우저에서 검증했다. **QA-1**(WideHold 동시 소유):
+  재구현 6/6 pass(양 순서 각 3회), **원본 6/6 fail** — 둘째 키가 눌려
+  있어도 첫 키를 떼면 즉시 MISS+콤보 리셋되는 재현 가능한 버그를
+  `play-input.js`의 press-time cross-binding이 release-time transfer
+  가드를 막는 것으로 근본 원인까지 확인했다(JD-2 `미커버` 실측). **QA-2**
+  (mid-start crossing-Hold 시드): 재구현은 anchor에서 이중 판정·스퓨리어스
+  MISS 없이 정상 시드됨을 확인했고, 원본은 head를 조용히 SYNC로 시드하되
+  tail을 `playHoldState`에 등록하지 않아 영영 미해소로 방치함을 실측했다
+  (JD-7 `미커버`가 진짜 미정의였음을 확인 — §10은 원본에 없던 동작의 신규
+  정의). **QA-3**(pause/Resume, 원본과 비교 대상 아님, D-2026-022): 정확한
+  순간 정지, overlay의 정상 표시·소멸(과거 CSS stuck-visible 버그 재현
+  안 됨), 카운트다운 중 무판정, 되감기 없는 재개, 활성 Hold의
+  pause/resume 생존을 모두 확인했다. 세 항목 모두 `_meta/manual-qa.md`의
+  **결과** 필드에 실시일·요약을 덧붙였다(표 형식·나머지 서술은 불변).
+- **Defined in:** `_meta/manual-qa.md` QA-1·QA-2·QA-3의 **결과** 필드
+- **Rationale:** `/tmp/qa-report.md`(세션 로컬 QA 리포트 — 스크린샷·
+  textlog 증거 포함, 저장소 밖)
+- **Affects:** manual-qa, judge(§5·§10 실측 대조), DECISION_LOG
+- **Supersedes:** None
+- **Commit:** (uncommitted — manual QA pass, no code change)
+
+### D-2026-117 — QA-1 WideHold 동시 소유 정밀 재검증(원본 버그 조건 완전 특정)
+
+- **Status:** Accepted
+- **Decision:** D-2026-116의 QA-1 결과("원본 6/6 fail")를 20-trial 매트릭스
+  (원본 12 + 재구현 8, press-gap 10ms~2470ms·release 순서·release 시점을
+  전수 변화)로 정밀화했다. 이전에 의심했던 "Quick Options 패널이 입력을
+  가로챈다" 가설은 **기각** — 그 패널은 test scene 고정 UI로 Space 입력과
+  무관함을 확인했다. **원본의 dual-key 소유권 이중등록 버그 자체는 두 키가
+  겹쳐 눌리는 순간 100% 결정적**이다(`play-input.js` 26–44 press-time
+  cross-binding fallback이 같은 Wide 노트를 두 키의 `playHoldState`에
+  동시 등록 → `play-judgment.js` 35가 이후 재판정을 원천 차단 →
+  `play-input.js` 52–70의 release-time transfer 가드 `!playHoldState[heldCh]`가
+  항상 실패). 다만 **겉으로 드러나는 결과는 release 타이밍에 좌우된다** —
+  tail 기준 관용구간(`JUDGE_GOOD`+`LN_RELEASE_GRACE_MS`=150ms) 밖에서 첫
+  키를 떼면 9/9 즉시 MISS+콤보 0(press 순서·간격 무관), 관용구간 안에서
+  떼면 3/3 조용히 SYNC로 통과한다(`play-input.js` 75–81 순수 타이밍
+  fallback이 소유권과 무관하게 tail success로 분류) — 이건 소유권 이양이
+  성공한 게 아니라 뒤이은 시간 판정이 우연히 가려주는 것이다. 재구현은
+  8/8 전부 스펙대로 동작(7/8 무조건 pass, 나머지 1건은 tail 전에 둘 다
+  손을 뗀 정상 MISS로 버그 아님). `play.md` §6이 "손이 바뀌어도 LN이
+  끊기지 않는다"를 명문화하고 있어 원본 자체의 의도와도 모순됨을
+  확인했다 — **원본 구현 버그로 최종 확정**(의도된 동작 아님), 오버레이·
+  스크립팅 아티팩트 아님.
+- **Defined in:** `_meta/manual-qa.md` QA-1 **결과** 필드
+- **Rationale:** `/tmp/qa-report.md` QA-1 "Re-verification (follow-up)"
+  섹션 — 20-trial 표·`play-input.js`/`play-judgment.js` 라인별 인용 포함,
+  증거 `/tmp/qa-evidence/QA-1-reverify/`(저장소 밖)
+- **Affects:** manual-qa QA-1, judge §5(JD-2 실측 정밀화)
+- **Supersedes:** None — D-2026-116의 QA-1 결론(원본 fail)을 뒤집지 않고
+  실패 조건을 완전히 특정해 정밀화함
+- **Commit:** (uncommitted — manual QA re-verification, no code change)
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred
