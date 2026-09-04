@@ -352,7 +352,7 @@ describe('scene-editor-notes', () => {
     expect(getChart().textEvents).toHaveLength(0);
   });
 
-  it('Ctrl+C·Ctrl+V가 선택된 note와 text event를 함께 복제한다(각각 별도 dispatch)', () => {
+  it('Ctrl+C·Ctrl+V가 선택된 note와 text event를 함께 복제한다(한 undo로 합쳐진다, D-2026-123)', () => {
     const notes = [{ startTick: 100, duration: 0, lane: 1 as const, isWide: false }];
     // note와 hit 반경(15px)이 안 겹치게 충분히 떨어뜨린다 — 안 그러면 두
     // 번째 클릭도 note를 다시 히트해 text event까지 안 내려간다.
@@ -369,12 +369,18 @@ describe('scene-editor-notes', () => {
     handle.onKeyDown(new KeyboardEvent('keydown', { key: 'c', ctrlKey: true }));
     handle.onKeyDown(new KeyboardEvent('keydown', { key: 'v', ctrlKey: true }));
 
-    expect(dispatch).toHaveBeenCalledTimes(2); // AddNotes + AddTextEvents.
-    const names = dispatch.mock.calls.map((c) => (c[0] as Command).name);
-    expect(names).toContain('AddNotes');
-    expect(names).toContain('AddTextEvents');
+    // 붙여넣기 한 번 = dispatch 한 번(PasteNotesAndTextEvents) — Ctrl+Z
+    // 한 번으로 note·text 둘 다 되돌아간다.
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]![0].name).toBe('PasteNotesAndTextEvents');
     expect(getChart().notes).toHaveLength(2);
     expect(getChart().textEvents).toHaveLength(2);
+
+    // undo 한 번으로 note·text 둘 다 원상복구된다 — 두 번 눌러야 하는
+    // 문제(D-2026-123 이전)가 없다는 걸 직접 확인한다.
+    (dispatch.mock.calls[0]![0] as Command).undo();
+    expect(getChart().notes).toHaveLength(1);
+    expect(getChart().textEvents).toHaveLength(1);
   });
 
   // ── [D-2026-121] Ctrl+D 구간 복제 ───────────────────────────

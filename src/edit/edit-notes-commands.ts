@@ -1,6 +1,9 @@
 /**
  * notes 탭 command 목록 — `editor/editor-commands.md` §6 중 note 관련 6개
- * (AddNotes/DeleteNotes/MoveNotes/MirrorNotes/SetNoteDuration/ReplaceNotes).
+ * (AddNotes/DeleteNotes/MoveNotes/MirrorNotes/SetNoteDuration/ReplaceNotes),
+ * 그리고 `pasteNotesAndTextEventsCommand`(D-2026-123 — note·textEvent
+ * 붙여넣기를 `notes`·`textEvents` 둘 다 건드리는 한 undo로 합친다,
+ * `mirrorEventsCommand`가 shapeEvents·laneEvents를 합친 것과 같은 이유).
  * `edit-command.ts`(M5-2)의 chart-agnostic 엔진에 꽂는 첫 실제 command다.
  *
  * 전부 **snapshot 기반**이다 — apply()는 `notes` 배열을 "이후" 스냅샷으로,
@@ -9,13 +12,14 @@
  * 원래 배열로 되돌아간다는 게 이 방식의 장점이다(§1 "undo/redo가 원본과
  * 같은 단위로 되감긴다"가 스냅샷 비교만으로 자동 성립).
  *
- * `invalidates: ['notes']`뿐이라 전부 scope `n`이다(`edit-command.ts` §2).
+ * `invalidates: ['notes']`뿐이라 전부 scope `n`이다(`edit-command.ts` §2) —
+ * `pasteNotesAndTextEventsCommand`만 예외로 `['notes', 'textEvents']`다.
  *
  * mirror는 `core-judge.ts`의 `MIRROR_LANE_MAP`(1↔4, 2↔3)을 그대로 쓴다 —
  * 플레이 mirror와 같은 매핑([[judge]] §3, editor-editing.md §4). wide
  * note는 제외한다(핸드 개념이 없다, §4 "노트: lane 1↔4, 2↔3(wide 제외)").
  */
-import type { Chart, Note } from '../core/core-chart.js';
+import type { Chart, Note, TextEvent } from '../core/core-chart.js';
 import { MIRROR_LANE_MAP } from '../core/core-judge.js';
 import type { Command } from './edit-command.js';
 
@@ -109,4 +113,37 @@ export function replaceNotesCommand(
   const removeSet = new Set(removeIndices);
   const after = [...before.filter((_, i) => !removeSet.has(i)), ...notesToAdd];
   return notesCommand('ReplaceNotes', session, before, after);
+}
+
+/** note·textEvent를 함께 붙여넣는다(Ctrl+V, D-2026-123) — `notes`·`textEvents`
+ *  둘 다 바꾸는 유일한 command다. `NotesSessionLike`와 `TextEventsSessionLike`
+ *  (`edit-text-commands.ts`)는 둘 다 `{chart, updateChart}` 그대로라 구조가
+ *  같다 — 여기서는 `NotesSessionLike`로 받고 `chart.textEvents`도 직접
+ *  건드린다(`mirrorEventsCommand`가 `shapeEvents`·`laneEvents` 둘을 한
+ *  command로 묶은 것과 같은 패턴, `edit-shape-commands.ts` 참조).
+ *
+ *  `editor-editing.md` §1 "선택에 textEvents가 포함돼 있으면 함께 복사·
+ *  붙여넣기"와 `editor-commands.md` §2("notes, textEvents"가 같은 undo
+ *  scope `n`)가 이미 "함께"를 말하지만, 지금까지는 note·text가 각각 별도
+ *  dispatch였다 — 같은 스코프 스택에 두 항목을 쌓아 Ctrl+Z 한 번으로
+ *  텍스트만 되돌리고 note는 남는 문제가 있었다(D-2026-123). 이 함수가
+ *  한 undo로 합쳐 닫는다. 어느 한쪽이 비어 있어도(note만/text만 붙여넣기)
+ *  안전하게 부른다 — 빈 배열은 그 배열을 그대로 둔다. */
+export function pasteNotesAndTextEventsCommand(
+  session: NotesSessionLike,
+  notesToAdd: readonly Note[],
+  textEventsToAdd: readonly TextEvent[],
+): Command {
+  const beforeNotes = session.chart.notes;
+  const beforeTexts = session.chart.textEvents;
+  const afterNotes = [...beforeNotes, ...notesToAdd];
+  const afterTexts = [...beforeTexts, ...textEventsToAdd];
+  return {
+    name: 'PasteNotesAndTextEvents',
+    invalidates: ['notes', 'textEvents'],
+    apply: () =>
+      session.updateChart({ ...session.chart, notes: afterNotes, textEvents: afterTexts }),
+    undo: () =>
+      session.updateChart({ ...session.chart, notes: beforeNotes, textEvents: beforeTexts }),
+  };
 }

@@ -93,6 +93,7 @@ import {
   deleteNotesCommand,
   mirrorNotesCommand,
   moveNotesCommand,
+  pasteNotesAndTextEventsCommand,
   type NotesSessionLike,
 } from '../edit/edit-notes-commands.js';
 import {
@@ -665,32 +666,44 @@ export function mountEditorNotesBody(
         : null;
   }
 
-  /** note·text 붙여넣기도 각각 별도 dispatch다(delete와 같은 이유). */
+  /** note·text 붙여넣기를 한 undo로 합친다(D-2026-123) — §1 "선택에
+   *  textEvents가 포함돼 있으면 함께 복사·붙여넣기"와 `editor-commands.md`
+   *  §2(notes·textEvents가 같은 undo scope `n`)가 이미 "함께"를 말했지만,
+   *  지금까지는 각각 별도 dispatch라 Ctrl+Z 한 번에 text만 되돌아가고
+   *  note는 남는 문제가 있었다. `pasteNotesAndTextEventsCommand`
+   *  (`edit-notes-commands.ts`)가 둘을 한 커맨드로 묶는다 — 어느 한쪽이
+   *  비어 있어도(note만/text만 복사했던 경우) 안전하다. */
   function pasteClipboard(): void {
     const baseTick = snapTick(
       pixelYToTick(canvas.height / 2, canvas.height, timeline, view.scrollMs, view.viewMs),
       GRID_DIVISOR_DEFAULT,
     );
+    const toAddNotes: Note[] = [];
     if (clipboard !== null && clipboard.length > 0) {
       const existing = new Set(chart.notes.map((n) => `${n.lane}:${n.startTick}:${n.isWide}`));
-      const toAdd: Note[] = [];
       for (const entry of clipboard) {
         const startTick = baseTick + entry.relTick;
         const key = `${entry.lane}:${startTick}:${entry.isWide}`;
         if (existing.has(key)) continue; // 같은 lane+tick+isWide 충돌은 조용히 스킵.
-        toAdd.push({ startTick, duration: entry.duration, lane: entry.lane, isWide: entry.isWide });
+        toAddNotes.push({
+          startTick,
+          duration: entry.duration,
+          lane: entry.lane,
+          isWide: entry.isWide,
+        });
       }
-      if (toAdd.length > 0) dispatchNoteCommand((s) => addNotesCommand(s, toAdd));
     }
-    if (textClipboard !== null && textClipboard.length > 0) {
-      const toAdd: TextEvent[] = textClipboard.map((entry) => ({
-        startTick: baseTick + entry.relTick,
-        duration: entry.duration,
-        content: entry.content,
-        position: entry.position,
-      }));
-      dispatchTextCommand((s) => addTextEventsCommand(s, toAdd));
-    }
+    const toAddTexts: TextEvent[] =
+      textClipboard !== null
+        ? textClipboard.map((entry) => ({
+            startTick: baseTick + entry.relTick,
+            duration: entry.duration,
+            content: entry.content,
+            position: entry.position,
+          }))
+        : [];
+    if (toAddNotes.length === 0 && toAddTexts.length === 0) return;
+    dispatchNoteCommand((s) => pasteNotesAndTextEventsCommand(s, toAddNotes, toAddTexts));
   }
 
   function mirrorSelection(): void {

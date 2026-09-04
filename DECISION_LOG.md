@@ -2410,6 +2410,36 @@
 - **Supersedes:** None
 - **Commit:** `344fcbc`
 
+### D-2026-123 — notes 탭 paste(note+text) 한 undo로 합침
+
+- **Status:** Accepted
+- **Decision:** `editor-editing.md` §1 "선택에 textEvents가 포함돼 있으면
+  함께 복사·붙여넣기"와 `editor-commands.md` §2(notes·textEvents가 같은
+  undo scope `n`)가 이미 "함께"를 말하고 있었지만, 지금까지 `pasteClipboard`
+  는 note·text를 각각 별도 `dispatch`로 냈다 — 같은 scope 스택에 두 항목이
+  쌓여 Ctrl+Z 한 번에 나중 것(대개 text)만 되돌아가고 note는 남는 문제가
+  있었다. `mirrorEventsCommand`(shapeEvents·laneEvents를 한 command로
+  묶은 M5-4/M6 선례)와 같은 패턴으로 `pasteNotesAndTextEventsCommand`
+  (`edit-notes-commands.ts`)를 새로 뒀다 — `NotesSessionLike`와
+  `TextEventsSessionLike`가 둘 다 `{chart, updateChart}` 그대로라 구조가
+  같으므로, 한 커맨드가 `invalidates: ['notes', 'textEvents']`로 양쪽을
+  동시에 apply/undo한다. 어느 한쪽이 비어 있어도(note만/text만 복사)
+  안전하다 — 빈 배열은 그대로 둔다.
+
+  같은 패턴의 `deleteSelection`(delete도 note·text를 각각 별도 dispatch)
+  은 이번 라운드 범위 밖이다 — 사용자가 paste만 지목했고, delete는 별도
+  결정 필요 항목으로 그대로 남는다(`scene-editor-notes.ts` 헤더 "note·text
+  선택을 각각 별도 dispatch로 지운다").
+- **Defined in:** `src/edit/edit-notes-commands.ts`
+  (`pasteNotesAndTextEventsCommand`), `src/scene/scene-editor-notes.ts`
+  (`pasteClipboard`)
+- **Rationale:** `editor-editing.md` §1, `editor-commands.md` §2,
+  D-2026-112(mirrorEventsCommand 선례)
+- **Affects:** edit-notes-commands, scene-editor-notes, `src/scene/README.md`,
+  `_plan/build-order.md` M5-7
+- **Supersedes:** None
+- **Commit:** PENDING
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

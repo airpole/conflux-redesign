@@ -1,19 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { makeChart } from '../core/core-chart-fixture.js';
-import type { Chart, Note } from '../core/core-chart.js';
+import type { Chart, Note, TextEvent } from '../core/core-chart.js';
 import { createCommandHistory } from './edit-command.js';
 import {
   addNotesCommand,
   deleteNotesCommand,
   mirrorNotesCommand,
   moveNotesCommand,
+  pasteNotesAndTextEventsCommand,
   replaceNotesCommand,
   setNoteDurationCommand,
   type NotesSessionLike,
 } from './edit-notes-commands.js';
 
-function fakeSession(notes: readonly Note[] = []): NotesSessionLike {
-  let chart: Chart = makeChart({ notes });
+function fakeSession(
+  notes: readonly Note[] = [],
+  textEvents: readonly TextEvent[] = [],
+): NotesSessionLike {
+  let chart: Chart = makeChart({ notes, textEvents });
   return {
     get chart() {
       return chart;
@@ -27,6 +31,7 @@ function fakeSession(notes: readonly Note[] = []): NotesSessionLike {
 const TAP: Note = { startTick: 100, duration: 0, lane: 1, isWide: false };
 const HOLD: Note = { startTick: 200, duration: 480, lane: 2, isWide: false };
 const WIDE: Note = { startTick: 300, duration: 0, lane: 3, isWide: true };
+const TEXT: TextEvent = { startTick: 100, duration: 480, content: 'Hi', position: 'middle' };
 
 describe('addNotesCommand', () => {
   it('apply는 끝에 추가하고 undo는 정확히 되돌린다', () => {
@@ -127,5 +132,41 @@ describe('replaceNotesCommand', () => {
     expect(session.chart.notes).toEqual([HOLD]);
     history.undo('n');
     expect(session.chart.notes).toEqual([TAP]); // 한 번의 undo로 tap이 되돌아온다.
+  });
+});
+
+describe('pasteNotesAndTextEventsCommand (D-2026-123)', () => {
+  it('note·text를 함께 추가하고, undo 한 번으로 둘 다 되돌린다', () => {
+    const session = fakeSession([TAP], [TEXT]);
+    const history = createCommandHistory();
+    history.dispatch(pasteNotesAndTextEventsCommand(session, [HOLD], [{ ...TEXT, content: 'Yo' }]));
+    expect(session.chart.notes).toEqual([TAP, HOLD]);
+    expect(session.chart.textEvents).toEqual([TEXT, { ...TEXT, content: 'Yo' }]);
+    history.undo('n'); // notes·textEvents는 같은 scope 'n'을 공유한다(editor-commands.md §2).
+    expect(session.chart.notes).toEqual([TAP]);
+    expect(session.chart.textEvents).toEqual([TEXT]);
+    history.redo('n');
+    expect(session.chart.notes).toEqual([TAP, HOLD]);
+    expect(session.chart.textEvents).toEqual([TEXT, { ...TEXT, content: 'Yo' }]);
+  });
+
+  it('note만 있어도, text만 있어도 안전하다(빈 배열은 그대로 둔다)', () => {
+    const noteOnly = fakeSession([TAP]);
+    pasteNotesAndTextEventsCommand(noteOnly, [HOLD], []).apply();
+    expect(noteOnly.chart.notes).toEqual([TAP, HOLD]);
+    expect(noteOnly.chart.textEvents).toEqual([]);
+
+    const textOnly = fakeSession([], [TEXT]);
+    pasteNotesAndTextEventsCommand(textOnly, [], [{ ...TEXT, content: 'Yo' }]).apply();
+    expect(textOnly.chart.notes).toEqual([]);
+    expect(textOnly.chart.textEvents).toEqual([TEXT, { ...TEXT, content: 'Yo' }]);
+  });
+
+  it('invalidates는 notes·textEvents 둘 다다', () => {
+    const session = fakeSession([TAP], [TEXT]);
+    expect(pasteNotesAndTextEventsCommand(session, [HOLD], []).invalidates).toEqual([
+      'notes',
+      'textEvents',
+    ]);
   });
 });
