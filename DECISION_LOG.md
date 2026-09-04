@@ -2310,7 +2310,7 @@
 - **Affects:** scene-editor-shapes, `editor-editing.md` §8,
   `src/scene/README.md`, `_plan/build-order.md` M5-4
 - **Supersedes:** None
-- **Commit:** PENDING
+- **Commit:** `0dc64f8`
 
 ### D-YYYY-NNN — <Title>
 
