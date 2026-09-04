@@ -2312,6 +2312,33 @@
 - **Supersedes:** None
 - **Commit:** `0dc64f8`
 
+### D-2026-120 — M5-4 후속: shapes/lane Ctrl+D 구간 복제
+
+- **Status:** Accepted
+- **Decision:** M5-4의 6개 단순화 지점 중 Ctrl+D(구간 복제)를 닫는다.
+  `editor-editing.md` §7이 이미 확정해 둔 규칙("선택 구간을 그
+  길이만큼 바로 뒤에 복제, Ableton식")과 `editor-commands.md` §6
+  ("Ctrl+D는 기존 Add* command를 재사용한다")을 그대로 구현했다 — 새
+  product 결정은 없었다. 구간은 선택 전체의 실제 폭이다: 가장 이른
+  실제 `startTick`(직전 정규화가 세운 진짜 보간 시작점)부터 가장 늦은
+  dest tick까지. `copySelection`의 relTick(최소 dest tick 기준)을
+  그대로 재사용하면 단일 선택의 구간 길이가 0으로 계산돼 제자리에
+  겹쳐 스스로와 충돌하는 버그가 생기므로, duplicate 전용으로 다시
+  계산했다. 서브모드 필터(shape·lane 분리, mirror만 예외)는 §7이 명시하지
+  않지만 clipboard(D-2026-114)와 같은 기본값으로 기계적으로 따랐다 —
+  Ctrl+F(mirror)만 §4가 "shape·lane 선택을 합쳐 한 번에"라고 명시한
+  유일한 예외이기 때문이다. "전부 충돌이면 toast"는 이 라운드도
+  구현하지 않는다 — D-2026-114에서 이미 확인한 대로 이 에디터
+  어디에도 toast UI가 없다(재확인).
+- **Defined in:** `src/scene/scene-editor-shapes.ts`(`duplicateSelection`,
+  `onKeyDown`의 Ctrl+D 케이스)
+- **Rationale:** `editor-editing.md` §7, `editor-commands.md` §6
+- **Affects:** scene-editor-shapes, `editor-editing.md` §8 — M5-4 잔여
+  단순화 지점 중 Ctrl+D 닫힘(같은 dest tick 갱신·lane symmetry 4개
+  이상은 잔여)
+- **Supersedes:** None
+- **Commit:** PENDING
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

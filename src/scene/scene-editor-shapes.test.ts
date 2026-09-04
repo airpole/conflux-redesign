@@ -758,4 +758,121 @@ describe('scene-editor-shapes', () => {
       expect(gridBtn().textContent).toBe(`Grid: ${expected}`);
     }
   });
+
+  // ── [D-2026-120] Ctrl+D 구간 복제 ───────────────────────────
+
+  it('Ctrl+D — 단일 선택은 그 자신의 길이만큼 바로 뒤에 복제된다(자기 자신과 안 겹친다)', () => {
+    const target: ShapeEvent = {
+      startTick: 0,
+      duration: 500,
+      isBlue: true,
+      targetPos: 4,
+      easing: 'Linear',
+    };
+    const { canvas, handle, dispatch, getChart } = mount(
+      makeChart({ shapeEvents: [blueInit, redInit, target] }),
+    );
+    const y = pixelYOfTick(500);
+    click(canvas, pixelXOfExt(4), y); // 임계 미만 이동 없이 클릭 = 선택.
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }));
+    expect(consumed).toBe(true);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]![0].name).toBe('AddShapeEvents');
+    const added = getChart().shapeEvents.find(
+      (e) => e.easing !== null && e.isBlue && e.startTick + e.duration === 1000,
+    );
+    expect(added).toBeDefined(); // dest 500(원본) 바로 뒤인 1000에 복제됐다.
+  });
+
+  it('Ctrl+D — 다중 선택은 서로 상대 간격을 유지한 채 구간 전체가 뒤로 옮겨진다', () => {
+    const first: ShapeEvent = {
+      startTick: 0,
+      duration: 300,
+      isBlue: true,
+      targetPos: 3,
+      easing: 'Linear',
+    };
+    const second: ShapeEvent = {
+      startTick: 300,
+      duration: 200,
+      isBlue: true,
+      targetPos: 4,
+      easing: 'Linear',
+    };
+    const { canvas, handle, dispatch, getChart } = mount(
+      makeChart({ shapeEvents: [blueInit, redInit, first, second] }),
+    );
+    click(canvas, pixelXOfExt(3), pixelYOfTick(300)); // first 선택(dest 300).
+    click(canvas, pixelXOfExt(4), pixelYOfTick(500), { shiftKey: true }); // second 추가 선택(dest 500).
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }));
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    // 구간 = [0, 500), 길이 500 — 복제는 dest 800(=500+300)·1000(=500+500)에 온다.
+    const dests = getChart()
+      .shapeEvents.filter((e) => e.easing !== null)
+      .map((e) => e.startTick + e.duration)
+      .sort((a, b) => a - b);
+    expect(dests).toEqual([300, 500, 800, 1000]); // first·second·복제 둘(anchor는 easing=null이라 필터됨).
+  });
+
+  it('Ctrl+D — 복제 목적지에 이미 이벤트가 있으면 조용히 스킵한다(dispatch 자체가 안 나간다)', () => {
+    const target: ShapeEvent = {
+      startTick: 0,
+      duration: 500,
+      isBlue: true,
+      targetPos: 4,
+      easing: 'Linear',
+    };
+    // 복제 목적지(dest 500+500=1000)에 미리 이벤트를 심어 충돌을 강제한다.
+    const blocking: ShapeEvent = {
+      startTick: 500,
+      duration: 500,
+      isBlue: true,
+      targetPos: 6,
+      easing: 'Linear',
+    };
+    const { canvas, handle, dispatch, getChart } = mount(
+      makeChart({ shapeEvents: [blueInit, redInit, target, blocking] }),
+    );
+    click(canvas, pixelXOfExt(4), pixelYOfTick(500)); // target(dest 500)만 선택.
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }));
+    expect(consumed).toBe(true); // 선택은 있었으니 소비는 한다.
+    expect(dispatch).not.toHaveBeenCalled(); // 유일한 후보가 충돌해 toAdd가 비었다.
+    expect(getChart().shapeEvents).toHaveLength(4); // 아무것도 안 늘었다.
+  });
+
+  it('Ctrl+D — 선택이 없으면 아무것도 하지 않는다(consumed=false)', () => {
+    const { handle, dispatch } = mount(makeChart({ shapeEvents: [blueInit, redInit] }));
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }));
+    expect(consumed).toBe(false);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('Ctrl+D — lane 서브모드에서는 laneSelection만 복제한다(shape와 안 섞인다)', () => {
+    const laneTarget: LaneEvent = {
+      startTick: 0,
+      duration: 400,
+      lineNum: 2,
+      targetPos: 0.6,
+      easing: 'Linear',
+    };
+    const { canvas, handle, dispatch, getChart } = mount(
+      makeChart({
+        shapeEvents: [blueInit, redInit],
+        laneEvents: [line1Init, line2Init, line3Init, laneTarget],
+      }),
+    );
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 't' })); // lane 서브모드.
+    // line2(targetPos 0.6)의 화면 x: 기본 blueInit(-2)/redInit(2) 기준 -2+0.6*4=0.4.
+    click(canvas, pixelXOfExt(0.4), pixelYOfTick(400));
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }));
+    expect(consumed).toBe(true);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]![0].name).toBe('AddLaneEvents');
+    // shape 쪽은 전혀 안 건드려지지 않았다(anchor 둘만 그대로).
+    expect(getChart().shapeEvents).toHaveLength(2);
+    const dupLine2 = getChart().laneEvents.filter(
+      (e) => e.easing !== null && e.lineNum === 2 && e.targetPos === 0.6,
+    );
+    expect(dupLine2).toHaveLength(2); // 원본 + 복제.
+  });
 });

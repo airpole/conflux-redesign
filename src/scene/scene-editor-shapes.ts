@@ -144,6 +144,16 @@
  * 밖이다** — Exit 기준에 없고 워크플로 의존적이라 별도 결정 필요
  * 항목으로 남긴다.
  *
+ * **Ctrl+D(구간 복제)는 이 라운드가 닫았다(D-2026-120)** — `duplicateSelection`.
+ * `editor-commands.md` §6 "Ctrl+D는 기존 Add* command를 재사용한다"대로
+ * 새 command 없이 기존 `addShapeEventsCommand`/`addLaneEventsCommand`로
+ * 낸다. clipboard와 같은 기본 규칙(서브모드 필터, mirror만 예외)을
+ * 따라 shape·lane을 합치지 않는다 — 이 부분은 관례에서 기계적으로
+ * 도출했지 §7이 명시하진 않는다. "전부 충돌이면 toast"는 clipboard
+ * (D-2026-114)와 같은 이유로 여전히 구현하지 않는다 — toast UI 자체가
+ * 이 에디터 어디에도 없다(재확인, `app-editor.ts` 헤더). 자세한 구간
+ * 계산은 `duplicateSelection` 코멘트 참조.
+ *
  * **이번 라운드가 단순화한 지점(전부 결정 필요 항목으로 남김)**:
  * - **같은 dest tick·같은 체인에 이미 이벤트가 있으면 배치를 조용히
  *   건너뛴다** — 원본은 그 자리에서 easing만 갱신했지만(`addShapeEvt`
@@ -1169,6 +1179,65 @@ export function mountEditorShapesBody(
     }
   }
 
+  /** Ctrl+D — 선택 구간을 그 길이만큼 바로 뒤에 복제한다(§7 "duplicate
+   *  구간 복제 ... Ableton식"). `editor-commands.md` §6 "Ctrl+D는 기존
+   *  Add* command를 재사용한다"대로 새 command 없이 기존 Add*로 낸다.
+   *  **구간**은 선택 전체의 실제 폭이다 — `copySelection`의 relTick(최소
+   *  **dest** tick 기준)과 달리 여기서는 각 선택 원소의 실제 `startTick`
+   *  (직전 정규화가 이미 세워 둔 진짜 보간 시작점)까지 본다: 구간 시작 =
+   *  선택 중 가장 이른 `startTick`, 구간 끝 = 가장 늦은 dest tick. 단일
+   *  선택이면 그 원소 자신의 길이(duration)만큼 뒤에 복제된다 — dest만
+   *  보면(구 relTick 방식) 단일 선택의 구간 길이가 0으로 계산돼 제자리에
+   *  겹쳐 스스로와 충돌하는 버그가 생긴다. 기준점은 구간 끝(원본 바로
+   *  뒤)이고, 각 원소는 구간 안 상대 dest 위치를 그대로 옮긴다. 서브모드
+   *  필터를 따른다 — mirror만 예외라는 §1 규칙 그대로, clipboard
+   *  (D-2026-114)와 같은 기본값이다(shape·lane을 합치지 않는다). 충돌
+   *  (같은 dest tick·같은 체인)은 clipboard와 같은 이유로 조용히
+   *  스킵한다 — "전부 충돌이면 toast"는 이 에디터에 toast UI 자체가
+   *  없어(D-2026-114 선례, `app-editor.ts` 헤더 참조) duplicate도 새로
+   *  만들지 않는다. */
+  function duplicateSelection(): void {
+    if (subMode === 'shape') {
+      if (shapeSelection.size === 0) return;
+      const events = [...shapeSelection].map((i) => chart.shapeEvents[i]!);
+      const rangeStart = Math.min(...events.map((e) => e.startTick));
+      const rangeEnd = Math.max(...events.map((e) => e.startTick + e.duration));
+      const toAdd: ShapeEvent[] = [];
+      for (const e of events) {
+        const dest = rangeEnd + (e.startTick + e.duration - rangeStart);
+        if (hasShapeEventAtDest(chart.shapeEvents, e.isBlue, dest)) continue;
+        toAdd.push({
+          startTick: 0,
+          duration: dest,
+          isBlue: e.isBlue,
+          targetPos: e.targetPos,
+          easing: e.easing,
+        });
+      }
+      if (toAdd.length === 0) return;
+      dispatchShapeCommand((s) => addShapeEventsCommand(s, toAdd));
+    } else {
+      if (laneSelection.size === 0) return;
+      const events = [...laneSelection].map((i) => chart.laneEvents[i]!);
+      const rangeStart = Math.min(...events.map((e) => e.startTick));
+      const rangeEnd = Math.max(...events.map((e) => e.startTick + e.duration));
+      const toAdd: LaneEvent[] = [];
+      for (const e of events) {
+        const dest = rangeEnd + (e.startTick + e.duration - rangeStart);
+        if (hasLaneEventAtDest(chart.laneEvents, e.lineNum, dest)) continue;
+        toAdd.push({
+          startTick: 0,
+          duration: dest,
+          lineNum: e.lineNum,
+          targetPos: e.targetPos,
+          easing: e.easing,
+        });
+      }
+      if (toAdd.length === 0) return;
+      dispatchShapeCommand((s) => addLaneEventsCommand(s, toAdd));
+    }
+  }
+
   // ── pointer ──────────────────────────────────────────────
 
   function canvasPoint(event: PointerEvent): { x: number; y: number } {
@@ -1411,6 +1480,13 @@ export function mountEditorShapesBody(
         if (event.key === 'v' || event.key === 'V') {
           event.preventDefault();
           pasteClipboard();
+          return true;
+        }
+        if (event.key === 'd' || event.key === 'D') {
+          const hasSel = subMode === 'shape' ? shapeSelection.size > 0 : laneSelection.size > 0;
+          if (!hasSel) return false;
+          event.preventDefault();
+          duplicateSelection();
           return true;
         }
       }
