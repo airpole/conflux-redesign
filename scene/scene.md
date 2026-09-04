@@ -248,10 +248,5 @@ CTX 상세 → [[architecture]].
 - [x] credits = root 소속 단일 scene, mode-select 진입 (D-2026-020)
 - [x] quick options 배치 = host 소유 — song-select overlay / test embedded panel (D-2026-020)
 - [x] pause Resume은 mid-start 시드를 호출하지 않음 — 보존된 활성 Hold를 pause anchor에서 재조정 (D-2026-024)
-
-잔여:
-- [ ] credits scene의 `Project Staff` 실제 인원 — M6-1이 `Music`/`Chart`/
-  `Jacket` 세 섹션(library 스캔·자동 dedupe, `ui-design.md` §2.8.5)은
-  배선했다(`game-credits.ts`, D-2026-107) — `Project Staff`만 여전히
-  placeholder다(`scene-credits.ts`의 `PROJECT_STAFF`, 손으로 유지하는
-  고정 목록이라는 방향은 이미 정해져 있고 실제 이름만 없다).
+- [x] credits scene의 `Project Staff` 실제 인원 — `scene-credits.ts`의
+  `PROJECT_STAFF`가 1인 개발 인원(`airpole`)으로 확정됐다 (D-2026-118)

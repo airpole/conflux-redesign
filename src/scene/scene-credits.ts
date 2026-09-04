@@ -10,12 +10,9 @@
  * 섹션은 이제 `update(roleNames)`로 받는 실제 library 스캔 결과
  * (`game-credits.ts`의 `loadCreditsRoleNames`, host가 매 `onEnter`마다
  * 다시 읽어 넘긴다 — song-select의 row 재로딩과 같은 관례)를 그린다.
- * **`Project Staff`는 여전히 placeholder다** — §2.8.5가 이미 "손으로
- * 유지하는 고정 목록"이라고 방향만 정해 뒀지 실제 인원 이름은 아무 데도
- * 없다(원본 코드베이스에도 대응물이 없다 — 이건 이 재구현 프로젝트
- * 자체의 실제 제작진 정보라 소스에서 추출할 수 없다). 실제 이름이
- * 확정되면 `PROJECT_STAFF` 배열만 바꾸면 된다 — 별도 결정 필요 항목으로
- * 보고한다.
+ * **`Project Staff`는 확정됐다**(D-2026-118) — 1인 개발이라 모든 역할이
+ * 같은 이름(`airpole`)이다. §2.8.5가 정한 "손으로 유지하는 고정 목록"
+ * 방향 그대로, `PROJECT_STAFF` 배열의 값만 채웠다.
  *
  * **섹션은 목록이 비어 있으면 숨긴다**(library가 비었을 때의 처리는
  * §2.8.5가 "여기서 정하지 않는다"고 명시해 둔 자리라 이 라운드가 내린
@@ -44,12 +41,11 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-/** 손으로 유지하는 고정 목록(§2.8.5) — 실제 인원 이름은 결정 필요
- *  항목이라 여전히 placeholder다(파일 헤더 참조). Music/Chart/Jacket과
- *  다른 이름 계열(`[Staff N]`)을 써 겸직처럼 잘못 읽히지 않게 한다. */
+/** 손으로 유지하는 고정 목록(§2.8.5) — 1인 개발이라 모든 역할이 같은
+ *  이름이다(D-2026-118). */
 const PROJECT_STAFF: readonly { readonly role: string; readonly name: string }[] = [
-  { role: 'Direction', name: '[Staff 1]' },
-  { role: 'Development', name: '[Staff 2]' },
+  { role: 'Direction', name: 'airpole' },
+  { role: 'Development', name: 'airpole' },
 ];
 
 export function mountCreditsScene(target: HTMLElement, onBack: () => void): CreditsSceneHandle {

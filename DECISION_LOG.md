@@ -2272,6 +2272,21 @@
   실패 조건을 완전히 특정해 정밀화함
 - **Commit:** (uncommitted — manual QA re-verification, no code change)
 
+### D-2026-118 — credits `Project Staff` 실제 인원 확정 (1인 개발)
+
+- **Status:** Accepted
+- **Decision:** `scene-credits.ts`의 `PROJECT_STAFF`가 여전히 `[Staff N]`
+  placeholder로 남아 있던 마지막 항목(M6-1/D-2026-107 잔여)을 닫는다.
+  1인 개발이라 Direction·Development 두 역할 모두 같은 이름
+  `airpole`로 채운다 — 겸직을 감추는 게 아니라 실제로 한 사람이 모든
+  역할을 맡는 solo-developer credit 관례를 그대로 반영한 것이다.
+- **Defined in:** `src/scene/scene-credits.ts`의 `PROJECT_STAFF`
+- **Rationale:** 사용자 지시(2026-09-04) — Direction=airpole,
+  Development=airpole
+- **Affects:** scene-credits, `scene/scene.md` §11, `src/scene/README.md`,
+  `_plan/build-order.md` M4-2 前
+- **Supersedes:** None
+- **Commit:** PENDING
 
 ### D-YYYY-NNN — <Title>
 

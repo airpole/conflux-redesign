@@ -44,9 +44,8 @@ credits의 표시 값은 `ui-design.md` §2.8.4가 승인한 placeholder 그대�
 `musicBy`/`chartBy`/`jacketBy`를 필드별 dedupe, song/chart로 안 묶음)를
 그린다 — host가 song-select의 row 재로딩과 같은 관례로 매 `onEnter`마다
 다시 스캔해 넘긴다. 목록이 비면 그 섹션을 숨긴다(이 라운드의 결정,
-§2.8.5가 열어 둔 자리). `Project Staff`는 여전히 placeholder다 — 실제
-인원 이름은 이 프로젝트 자체의 제작진 정보라 소스에서 추출할 수 없다
-(`scene/scene.md` §11에 결정 필요 항목으로 남음).
+§2.8.5가 열어 둔 자리). `Project Staff`는 확정됐다 — 1인 개발이라
+모든 역할이 같은 이름(`airpole`)이다(D-2026-118, `scene/scene.md` §11).
 
 `scene-song-select.ts`는 M4-3 범위다([[ui-design]] §2.5). `core-song-select.ts`가
 낸 `SongRow[]`를 받아 렌더만 한다 — row+slot(tier 색 박스+state 색 바),

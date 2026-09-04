@@ -105,7 +105,7 @@ Vitest `environment: 'node'`. core 테스트는 DOM 없이 돈다 — [[architec
 | M4-3 전 | 결정 | 목록 옵션 overlay 진입 키 · `sortDir` 단축 전환 키 · 가속 스크롤 수치(초기 지연·반복 간격·가속 곡선) |
 | M4-3 전 | 결정 | ~~song row 대표값 출처(title·jacket)~~ — **닫힘**(`_meta/cfx.md` §6 기존 스펙 적용, D-2026-084) · 정보 패널 BPM 표기 방식 · 곡 길이 표시 |
 | M4-6 전 | 결정 | ~~key rebinding UI · volume 슬라이더 조작 단위~~ — **닫힘** (D-2026-091: capture-flow는 즉시 커밋·Esc 취소·충돌 거부, slider는 네이티브 `<input type=range>` + 필드별 `step`) — 기본값·범위는 `[보존]`으로 확정됨([[settings]] §4) |
-| ~~M4-2 전~~ | ~~결정~~ | ~~credits scene 표시 내용~~ — **`Music`/`Chart`/`Jacket`은 닫힘**(M6-1, D-2026-107: `game-credits.ts`가 library를 스캔해 `musicBy`/`chartBy`/`jacketBy`를 필드별 자동 dedupe한다, song/chart로 안 묶음). `Project Staff`(수작업 유지 목록)의 실제 인원만 여전히 결정 필요 항목(`scene/scene.md` §11 잔여) — placeholder(`[Staff N]`)로 남아 있다 |
+| ~~M4-2 전~~ | ~~결정~~ | ~~credits scene 표시 내용~~ — **전부 닫힘**. `Music`/`Chart`/`Jacket`은 M6-1(D-2026-107: `game-credits.ts`가 library를 스캔해 `musicBy`/`chartBy`/`jacketBy`를 필드별 자동 dedupe한다, song/chart로 안 묶음), `Project Staff`(수작업 유지 목록)는 이번 라운드(D-2026-118: 1인 개발, `airpole`로 확정) |
 | ~~M5 진입~~ | ~~실측~~ | ~~§3 M5 항목~~ — **재배치됨**(D-2026-094) — §3 "M5-3 전"·"M5-1 이후(notes/shapes 실 렌더) 전"·"M5-4 전" 참조, M5 진입 자체는 더 이상 막혀 있지 않다 |
 | ~~M5-3 전~~ | ~~실측~~ | ~~편집 미세 수치 — 히트 반경, 드래그 임계([[editor-editing]] §8)~~ — **닫힘**(D-2026-096: 히트 반경 `tpp*15`(화면상 15px), 드래그 임계 4px — `_extracted/EXTRACTED_FACTS.md` §13) |
 | ~~M5-1 이후(notes/shapes 실 렌더) 전~~ | ~~실측/결정~~ | ~~`viewMs` 기본값·zoom 범위([[editor-graph]] §6)~~ — **닫힘**(D-2026-098: `viewMs=960000/(edZm×bpm)`, 120bpm 기준 선택 — 기본 8000ms·범위 [1000ms,32000ms]·step ×1.35/÷1.35, Z/X 배선 완료 — `_extracted/EXTRACTED_FACTS.md` §14) |
@@ -574,8 +574,9 @@ M6-1의 좁은 의미("잔여 실측 **수치**")에는 안 들어맞을 수 있
 로 안 묶음)을 실제로 배선했다(`game-credits.ts`) — `scene-credits.ts`가
 매 `onEnter`마다 다시 스캔해 반영한다. `Project Staff`(수작업 유지 목록)는
 그대로 뒀다 — 실제 인원 이름은 이 재구현 프로젝트 자체의 제작진 정보라
-소스에서 추출할 방법이 없다(`scene/scene.md` §11에 결정 필요 항목으로
-남김). 이 라운드가 새로 내린 결정: (1) 목록이 비면 그 섹션을 숨긴다
+소스에서 추출할 방법이 없었다(이후 D-2026-118에서 1인 개발 인원
+`airpole`로 확정 — `scene/scene.md` §11). 이 라운드가 새로 내린 결정:
+(1) 목록이 비면 그 섹션을 숨긴다
 (§2.8.5가 "여기서 정하지 않는다"고 열어 둔 자리), (2) 빈 문자열 필드는
 목록에서 제외한다, (3) 정렬은 알파벳순(스펙이 순서를 안 정해 결정적이게
 택함) — 전부 `scene-credits.ts`/`game-credits.ts` 헤더에 명시.
