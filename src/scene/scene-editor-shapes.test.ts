@@ -706,4 +706,56 @@ describe('scene-editor-shapes', () => {
     expect(root.textContent).toContain('2 selected');
     expect(getChart().shapeEvents).toHaveLength(4); // 배치가 아니라 선택으로 처리됐다.
   });
+
+  // ── [D-2026-119] V 순환·laneGridDivisor click-to-cycle ─────────
+
+  it('V(무모디파이어)가 shape 모드에서 Snap 라벨을 1→0.5→0.25→1로 순환한다', () => {
+    const { target, handle } = mount();
+    expect(target.querySelector('.editor-shapes-toolbar')?.textContent).toContain('Snap: 0.25');
+    let consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'v' }));
+    expect(consumed).toBe(true);
+    expect(target.querySelector('.editor-shapes-toolbar')?.textContent).toContain('Snap: 1');
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'V' }));
+    expect(target.querySelector('.editor-shapes-toolbar')?.textContent).toContain('Snap: 0.5');
+    consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'v' }));
+    expect(consumed).toBe(true);
+    expect(target.querySelector('.editor-shapes-toolbar')?.textContent).toContain('Snap: 0.25');
+  });
+
+  it('Ctrl+V는 여전히 붙여넣기다 — V 순환과 충돌하지 않는다', () => {
+    const { handle } = mount();
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'v', ctrlKey: true }));
+    // 빈 클립보드라 실제로 붙여넣을 게 없어도, paste 분기로 소비돼야 한다
+    // (V 순환 분기로 새지 않는다).
+    expect(consumed).toBe(true);
+  });
+
+  it('V가 배치 스냅에 실제로 반영된다 — 1 단계에서 정수 위치로만 스냅한다', () => {
+    const { canvas, dispatch, handle, getChart } = mount(
+      makeChart({ shapeEvents: [blueInit, redInit] }),
+    );
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'v' })); // 0.25 → 1.
+    // ext 5.4 — 0.25 단계였다면 5.5로 스냅했겠지만, 1 단계는 5로 스냅한다.
+    // 기존 anchor(±2, tick0)와 멀리 떨어뜨려 hit-radius(35px)에 안 걸리게 한다.
+    click(canvas, pixelXOfExt(5.4), pixelYOfTick(500));
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const added = getChart().shapeEvents.find((e) => e.easing !== null);
+    expect(added?.targetPos).toBe(5);
+  });
+
+  it('lane 모드 Grid 라벨 클릭이 프리셋 7종을 순환한다(2/3/4/6/8/12/16)', () => {
+    const { target, handle } = mount();
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 't' })); // lane 서브모드로.
+    const gridBtn = () =>
+      [...target.querySelectorAll('button')].find((b) => b.textContent?.startsWith('Grid: '))!;
+    expect(gridBtn().textContent).toBe('Grid: 4');
+    gridBtn().click();
+    expect(gridBtn().textContent).toBe('Grid: 6');
+    gridBtn().click();
+    expect(gridBtn().textContent).toBe('Grid: 8');
+    for (const expected of [12, 16, 2, 3, 4]) {
+      gridBtn().click();
+      expect(gridBtn().textContent).toBe(`Grid: ${expected}`);
+    }
+  });
 });

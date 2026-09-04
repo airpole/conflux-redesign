@@ -2288,6 +2288,30 @@
 - **Supersedes:** None
 - **Commit:** `0276c40`
 
+### D-2026-119 — `laneGridDivisor`·`V` 위치 스냅 UI 노출 (Option A)
+
+- **Status:** Accepted
+- **Decision:** M5-4가 단순화 항목으로 남겼던 `laneGridDivisor` 드롭다운·
+  `V` 위치 스냅 순환 UI를 닫는다. 값 자체는 이미 확정된 스펙이었다
+  (`shape.md` §3 `[1, 0.5, 0.25]`, `lane-events.md` §5
+  `2/3/4/6/8/12/16`) — 열려 있던 건 UI 노출 방식뿐이었다. Option A로
+  결정: `V`(무모디파이어)는 `Ease:`와 같은 순수 표시 라벨(`Snap: 0.25`
+  등)로 `posSnapStep`을 순환한다(원본 `sPosSnapVals` 키 순환 재현).
+  `laneGridDivisor`는 `G`가 이미 grid 표시 토글에 쓰여 새 키를 배정하지
+  않고, 대신 `Grid: 4` 라벨을 클릭할 때마다 7개 프리셋을 순환하는
+  버튼으로(기존 "Auto axis" 버튼과 같은 스타일 재사용, 새 위젯 계열
+  없음) 구현했다. **정수 직접 입력**(스펙에 있던 `laneGridDivisor`
+  자유 입력)은 이번 라운드도 범위 밖이다 — 어떤 Exit 기준에도 걸리지
+  않고 워크플로 의존적이라 별도 결정 필요 항목으로 남긴다.
+- **Defined in:** `src/scene/scene-editor-shapes.ts`(`renderToolbar`·
+  `onKeyDown`의 `V` 케이스)
+- **Rationale:** 사용자 지시(2026-09-04) — Option A + 두 sub-decision
+  (click-to-cycle 라벨, 정수 직접 입력 후속 연기)
+- **Affects:** scene-editor-shapes, `editor-editing.md` §8,
+  `src/scene/README.md`, `_plan/build-order.md` M5-4
+- **Supersedes:** None
+- **Commit:** PENDING
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

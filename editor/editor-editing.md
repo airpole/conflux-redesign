@@ -176,6 +176,7 @@ ON이면 배치 시 대칭축 반대편에 자동 생성한다. **축 기본값 
 - [x] symmetry 축 수동 조절(드래그 + "Auto axis" 버튼) — **닫힘**(M6-후속): §3 "드래그로 옮긴 축은 토글 off까지 유지된다... 자동으로 되돌리는 버튼을 둔다"를 그대로 구현했다. 축 점선을 드래그하면 즉시(commit-on-up 아님, chart를 안 건드리는 UI 상태) 고정값이 되고, `S`로 symmetry를 껐다 켜거나 "Auto axis" 버튼을 누르면 다시 동적 스냅샷으로 돌아간다 — "한 번 수동이면 세션 내내 수동"이 아니다. shape·lane(2-그룹) 공유, 자세한 interaction은 `src/scene/scene-editor-shapes.ts` 헤더.
 - [x] lane 그룹 토글-누적 방식 — **확정**(사용자 확인, M6-후속): 원본의 물리적 키-hold를 재현하지 않는 이 세션의 대체 설계를 영구 유지한다. 근거: 물리적 hold는 손가락 피로가 누적되고 토글이 더 나은 선택. 얻는 그룹 구성 집합은 원본과 같다.
 - [x] lane symmetry 3-그룹(연속) — **닫힘**(M6-후속): `LineNum`이 1|2|3뿐이라 "3개 선택"은 항상 {1,2,3} 하나(다른 3-조합은 이 데이터 모델에 없다). 축 = 가운데(line2)의 현재 위치 그 자체(안 움직인다), line3=클릭 위치, line1=대칭 생성. 이 축은 수동 조절 대상이 아니다. 4개 이상·비연속은 여전히 결정 필요 항목(워크플로 의존적, 이 데이터 모델엔 없는 자리).
+- [x] `laneGridDivisor`·`V` 위치 스냅 UI — **닫힘**(D-2026-119): 값 자체는 이미 확정(`shape.md` §3 `[1,0.5,0.25]`, `lane-events.md` §5 `2/3/4/6/8/12/16`)이었고 열려 있던 건 UI 노출 방식뿐이었다. `V`(무모디파이어)는 `Ease:`와 같은 표시 라벨 순환, `laneGridDivisor`는 "Auto axis"와 같은 스타일의 click-to-cycle 버튼(`G`가 이미 grid 표시 토글이라 새 키 미배정) — 프리셋 7종만, 정수 직접 입력은 별도 결정 필요 항목으로 남긴다.
 
 잔여:
-- **shapes/lane 서브모드는 M5-4에서 축소된 범위로 구현했다** — `laneGridDivisor` 드롭다운·`V` 위치 스냅 순환 UI 없음(4·0.25 고정), 같은 dest tick 중복 배치는 조용히 스킵, Ctrl+D 구간 복제 없음, 전부 충돌 시 toast 없음, lane symmetry 4개 이상·비연속 — 전부 결정 필요 항목, `src/scene/scene-editor-shapes.ts` 헤더가 상세.
+- **shapes/lane 서브모드는 M5-4에서 축소된 범위로 구현했다** — 같은 dest tick 중복 배치는 조용히 스킵, Ctrl+D 구간 복제 없음, 전부 충돌 시 toast 없음, lane symmetry 4개 이상·비연속 — 전부 결정 필요 항목, `src/scene/scene-editor-shapes.ts` 헤더가 상세.

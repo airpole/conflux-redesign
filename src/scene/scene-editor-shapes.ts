@@ -132,10 +132,19 @@
  * 늘어나면 생길 수 있는 자리)은 여전히 결정 필요 항목으로 남긴다 —
  * 워크플로 의존적이라 이번 라운드에서 정하지 않는다.
  *
+ * **`laneGridDivisor`·`V` 위치 스냅은 M6-후속이 닫았다(D-2026-119)** —
+ * 두 값 모두 값 자체는 이미 확정된 스펙이었다(`shape.md` §3의 `[1, 0.5,
+ * 0.25]`, `lane-events.md` §5의 `2/3/4/6/8/12/16`) — 열려 있던 건 UI
+ * 노출 방식뿐이었다. `V`(무모디파이어)는 `Ease:`와 같은 순수 표시 라벨
+ * 패턴으로 `posSnapStep`을 순환한다(원본 `sPosSnapVals` 키 순환 그대로).
+ * `laneGridDivisor`는 `G`가 이미 grid 표시 토글에 쓰여 새 키를 배정하지
+ * 않고, 대신 "Auto axis"와 같은 스타일의 click-to-cycle 버튼으로
+ * 7개 프리셋을 순환한다 — 새 위젯 계열을 만들지 않았다. **정수 직접
+ * 입력(스펙에 있는 `laneGridDivisor` 자유 입력)은 이번 라운드도 범위
+ * 밖이다** — Exit 기준에 없고 워크플로 의존적이라 별도 결정 필요
+ * 항목으로 남긴다.
+ *
  * **이번 라운드가 단순화한 지점(전부 결정 필요 항목으로 남김)**:
- * - **laneGridDivisor 드롭다운·`V` 위치 스냅 순환 UI가 없다** —
- *   `laneGridDivisor`는 4(spec 기본값) 고정, 위치 스냅은 항상 최소
- *   단계(0.25, shape/lane 공통)로 고정했다.
  * - **같은 dest tick·같은 체인에 이미 이벤트가 있으면 배치를 조용히
  *   건너뛴다** — 원본은 그 자리에서 easing만 갱신했지만(`addShapeEvt`
  *   "sameTickSameSide"), 이 command 모델은 추가 전용이라 갱신을
@@ -184,10 +193,15 @@ import './scene-editor-shapes.css';
 const HIT_RADIUS_PX = 35;
 /** 점 재배치 드래그 판별 임계값(px) — D-2026-099 §15.2, `dragDot`/`dragMoveSel` 재실측. */
 const DRAG_THRESHOLD_PX = 3;
-/** 위치축 스냅 단계 — `shape.md` §3 최소 단계(0.25) 고정(V 순환 UI는 이번 라운드 밖). */
-const POS_SNAP_STEP = 0.25;
-/** lane 가로 그리드 분할 수 — `lane-events.md` §5 기본값(4) 고정(드롭다운은 이번 라운드 밖). */
-const LANE_GRID_DIVISOR = 4;
+/** 위치축 스냅 단계 3종 — `shape.md` §3, 원본 `sPosSnapVals=[4,2,1]`(내부단위)의
+ *  외부단위 번역. `V`(무모디파이어)를 누를 때마다 다음 값으로 순환한다
+ *  (`editor-editing.md` §2 "V 순환", D-2026-119). */
+const POS_SNAP_STEPS = [1, 0.5, 0.25] as const;
+/** lane 가로 그리드 분할 수 프리셋 — `lane-events.md` §5. 원본에 대응 UI가
+ *  없는 이 세션의 신규 컨트롤(드롭다운+정수 직접 입력이 스펙이지만, 이
+ *  라운드는 프리셋 click-to-cycle만 구현한다 — 정수 직접 입력은 별도
+ *  후속 항목, D-2026-119). 툴바 `Grid:` 라벨 클릭마다 다음 값으로 순환한다. */
+const LANE_GRID_DIVISORS = [2, 3, 4, 6, 8, 12, 16] as const;
 /** symmetry 축 선 히트 판정 폭(px) — 원본에 대응 UI가 없는 이 세션의 신규
  *  interaction이라 실측값이 아니다, 점 히트(35px)보다 좁게 잡아 축 선이
  *  점 클릭을 가리지 않게 했다. */
@@ -276,13 +290,13 @@ function pxToExt(px: number, canvasWidth: number): number {
   return (px / canvasWidth) * 16 - 8;
 }
 
-function snapExt(ext: number): number {
-  const snapped = Math.round(ext / POS_SNAP_STEP) * POS_SNAP_STEP;
+function snapExt(ext: number, step: number): number {
+  const snapped = Math.round(ext / step) * step;
   return Math.min(8, Math.max(-8, snapped));
 }
 
-function snapRel(rel: number): number {
-  return Math.round(rel * LANE_GRID_DIVISOR) / LANE_GRID_DIVISOR;
+function snapRel(rel: number, divisor: number): number {
+  return Math.round(rel * divisor) / divisor;
 }
 
 /** lane의 상대 targetPos를 shape와 같은 외부단위 공간으로 투영한다
@@ -405,6 +419,8 @@ export function mountEditorShapesBody(
   let laneGroup = new Set<LineNum>([1]);
   let laneMode: LaneMode = 'spread';
   let easingChoice: EasingChoice = 'Linear';
+  let posSnapStep: (typeof POS_SNAP_STEPS)[number] = POS_SNAP_STEPS[2];
+  let laneGridDivisor: (typeof LANE_GRID_DIVISORS)[number] = 4;
   let symmetry = false;
   let shapeSelection = new Set<number>();
   let laneSelection = new Set<number>();
@@ -544,9 +560,25 @@ export function mountEditorShapesBody(
     toolbar.append(mk(subMode === 'shape' ? 'SHAPE' : 'LANE', 'editor-shapes-tool-label'));
     if (subMode === 'shape') {
       toolbar.append(mk(shapeToolLabel(shapeTool)));
+      // V(무모디파이어) 순환 — `Ease:`와 같은 표시 전용 라벨(D-2026-119).
+      toolbar.append(mk(`Snap: ${posSnapStep}`));
     } else {
       toolbar.append(mk(`Group: ${laneGroupLabel()}`));
       toolbar.append(mk(`R: ${laneMode === 'spread' ? '간격유지' : 'pinch'}`));
+      // click-to-cycle — `G`가 이미 grid 표시 토글에 쓰여 새 키를 배정하지
+      // 않기로 했다(D-2026-119). 정수 직접 입력은 이번 라운드 범위 밖.
+      const gridBtn = document.createElement('button');
+      gridBtn.type = 'button';
+      // 기존 "Auto axis" 버튼과 같은 스타일 재사용 — 새 위젯 계열을
+      // 만들지 않는다(D-2026-119).
+      gridBtn.className = 'editor-shapes-axis-reset';
+      gridBtn.textContent = `Grid: ${laneGridDivisor}`;
+      gridBtn.onclick = () => {
+        const i = LANE_GRID_DIVISORS.indexOf(laneGridDivisor);
+        laneGridDivisor = LANE_GRID_DIVISORS[(i + 1) % LANE_GRID_DIVISORS.length]!;
+        render();
+      };
+      toolbar.append(gridBtn);
     }
     toolbar.append(mk(`Ease: ${easingChoice}`));
     toolbar.append(mk(`Sym: ${symmetry ? 'ON' : 'off'}`));
@@ -757,7 +789,7 @@ export function mountEditorShapesBody(
       pixelYToTick(py, ch, timeline, view.scrollMs, view.viewMs),
       GRID_DIVISOR_DEFAULT,
     );
-    const pos = snapExt(pxToExt(px, cw));
+    const pos = snapExt(pxToExt(px, cw), posSnapStep);
     const { blue, red } = shapeGeometryAt(geometry, tick);
     const shapeCenter = (blue + red) / 2;
 
@@ -772,7 +804,7 @@ export function mountEditorShapesBody(
         // 수동 축이 있으면 그 값을 그대로 쓴다(§3 "수동 축의 수명" — 클릭
         // tick과 무관하게 고정) — 없으면 이 tick의 동적 스냅샷 그대로.
         const axis = manualShapeAxis ?? shapeCenter;
-        const mirrorPos = snapExt(2 * axis - pos);
+        const mirrorPos = snapExt(2 * axis - pos, posSnapStep);
         if (!hasShapeEventAtDest(chart.shapeEvents, !isBlue, tick)) {
           toAdd.push({
             startTick: 0,
@@ -786,8 +818,8 @@ export function mountEditorShapesBody(
     } else if (shapeTool === 'center') {
       const width = red - blue;
       const half = width / 2;
-      const newBlue = snapExt(pos - half);
-      const newRed = snapExt(pos + half);
+      const newBlue = snapExt(pos - half, posSnapStep);
+      const newRed = snapExt(pos + half, posSnapStep);
       const easing = resolveShapeEasing(easingChoice, chart.shapeEvents, false, tick);
       if (!hasShapeEventAtDest(chart.shapeEvents, true, tick)) {
         toAdd.push({ startTick: 0, duration: tick, isBlue: true, targetPos: newBlue, easing });
@@ -830,7 +862,7 @@ export function mountEditorShapesBody(
       GRID_DIVISOR_DEFAULT,
     );
     const { blue, red } = shapeGeometryAt(geometry, tick);
-    const clickRel = snapRel(extToLaneRel(pxToExt(px, cw), blue, red));
+    const clickRel = snapRel(extToLaneRel(pxToExt(px, cw), blue, red), laneGridDivisor);
     const members = [...laneGroup].sort((a, b) => a - b);
 
     const toAdd: LaneEvent[] = [];
@@ -848,7 +880,7 @@ export function mountEditorShapesBody(
       const currentLayout = laneLayoutAt(geometry, tick);
       const axis = currentLayout.line2;
       const hiPos = clickRel;
-      const loPos = snapRel(2 * axis - hiPos);
+      const loPos = snapRel(2 * axis - hiPos, laneGridDivisor);
       const easingHi = resolveLaneEasing(easingChoice, chart.laneEvents, 3, tick);
       if (!hasLaneEventAtDest(chart.laneEvents, 3, tick)) {
         toAdd.push({
@@ -881,7 +913,7 @@ export function mountEditorShapesBody(
       // 이 tick의 동적 스냅샷 그대로.
       const axis = manualLaneAxis ?? (layoutByLine[lo] + layoutByLine[hi]) / 2;
       const hiPos = clickRel;
-      const loPos = snapRel(2 * axis - hiPos);
+      const loPos = snapRel(2 * axis - hiPos, laneGridDivisor);
       const easingHi = resolveLaneEasing(easingChoice, chart.laneEvents, hi, tick);
       if (!hasLaneEventAtDest(chart.laneEvents, hi, tick)) {
         toAdd.push({
@@ -920,7 +952,10 @@ export function mountEditorShapesBody(
         const pos =
           laneMode === 'pinch'
             ? clickRel
-            : snapRel(clickRel + (layoutByLine[lineNum] - layoutByLine[rightmost]));
+            : snapRel(
+                clickRel + (layoutByLine[lineNum] - layoutByLine[rightmost]),
+                laneGridDivisor,
+              );
         const easing = resolveLaneEasing(easingChoice, chart.laneEvents, lineNum, tick);
         toAdd.push({ startTick: 0, duration: tick, lineNum, targetPos: pos, easing });
       }
@@ -1255,22 +1290,22 @@ export function mountEditorShapesBody(
       if (drag.subject === 'shape-composite') {
         const rawCenter = pxToExt(x, canvas.width);
         if (drag.type === 'pinch') {
-          const v = snapExt(rawCenter);
+          const v = snapExt(rawCenter, posSnapStep);
           drag.currentBlueExt = v;
           drag.currentRedExt = v;
         } else {
-          drag.currentBlueExt = snapExt(rawCenter - drag.halfWidth);
-          drag.currentRedExt = snapExt(rawCenter + drag.halfWidth);
+          drag.currentBlueExt = snapExt(rawCenter - drag.halfWidth, posSnapStep);
+          drag.currentRedExt = snapExt(rawCenter + drag.halfWidth, posSnapStep);
         }
       } else if (drag.subject === 'shape-axis') {
-        manualShapeAxis = snapExt(pxToExt(x, canvas.width));
+        manualShapeAxis = snapExt(pxToExt(x, canvas.width), posSnapStep);
       } else if (drag.subject === 'lane-axis') {
         const { width: cw, height: ch } = canvas;
         const centerTick = pixelYToTick(ch / 2, ch, timeline, view.scrollMs, view.viewMs);
         const { blue, red } = shapeGeometryAt(geometry, centerTick);
-        manualLaneAxis = snapRel(extToLaneRel(pxToExt(x, cw), blue, red));
+        manualLaneAxis = snapRel(extToLaneRel(pxToExt(x, cw), blue, red), laneGridDivisor);
       } else {
-        drag.currentExt = snapExt(pxToExt(x, canvas.width));
+        drag.currentExt = snapExt(pxToExt(x, canvas.width), posSnapStep);
       }
       render();
     }
@@ -1334,7 +1369,7 @@ export function mountEditorShapesBody(
       const event_ = chart.laneEvents[d.index]!;
       const tick = event_.startTick + event_.duration;
       const { blue, red } = shapeGeometryAt(geometry, tick);
-      const newRel = snapRel(extToLaneRel(d.currentExt, blue, red));
+      const newRel = snapRel(extToLaneRel(d.currentExt, blue, red), laneGridDivisor);
       if (newRel === event_.targetPos) {
         render();
         return;
@@ -1413,6 +1448,13 @@ export function mountEditorShapesBody(
           easingChoice = 'Linear';
           render();
           return true;
+        case 'V':
+        case 'v': {
+          const i = POS_SNAP_STEPS.indexOf(posSnapStep);
+          posSnapStep = POS_SNAP_STEPS[(i + 1) % POS_SNAP_STEPS.length]!;
+          render();
+          return true;
+        }
         case 'Z':
         case 'z':
           zoomOut(view);

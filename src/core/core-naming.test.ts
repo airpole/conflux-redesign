@@ -59,7 +59,6 @@ const PENDING_FUNCTIONS: Readonly<Record<string, string>> = {
 /** §4의 상태 필드 중 아직 짓지 않은 것. 같은 규칙 — 지으면 여기서 지운다. */
 const PENDING_FIELDS: Readonly<Record<string, string>> = {
   flashTiming: 'M2',
-  laneGridDivisor: 'M5',
 };
 
 const FUNCTION_SECTION_HEADING = '## 2. 함수 대응표 (현재 → 새 이름)';

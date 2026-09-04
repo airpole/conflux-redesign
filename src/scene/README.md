@@ -238,8 +238,11 @@ Add/DeleteLaneEvents) — apply/undo 양쪽에서 chain normalize한다
 `scene-editor-view.ts`로 옮겼다(`editor-graph.md` §2 "scroll/zoom 공유" —
 `scene-editor-workspace.ts`가 한 번 만들어 양쪽에 같은 참조로 넘긴다).
 히트 반경 35px(zoom 무관 고정)는 D-2026-099 실측값이다. Ctrl+F mirror·
-클립보드·symmetry 축 수동 조절·`laneGridDivisor` 드롭다운 등은 이번
-라운드 범위 밖(결정 필요 항목) — 자세한 목록은 `scene-editor-shapes.ts` 헤더.
+클립보드·symmetry 축 수동 조절 등은 이번 라운드 범위 밖(결정 필요 항목,
+이후 M6-후속들이 닫았다 — `editor-editing.md` §8 참조) — 자세한 목록은
+`scene-editor-shapes.ts` 헤더. `laneGridDivisor`·`V` 위치 스냅 UI는
+D-2026-119가 닫았다 — 값 자체는 이미 확정된 스펙이었고, click-to-cycle
+버튼/키 순환 라벨로 노출했다(정수 직접 입력만 별도 결정 필요 항목).
 
 **M5-4 후속(D-2026-100)이 기존 점 드래그 재배치를 더했다** —
 `MutateShapeEvents`/`MutateLaneEvents`(`edit-shape-commands.ts`). 클릭 대상이
