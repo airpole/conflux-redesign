@@ -2286,7 +2286,7 @@
 - **Affects:** scene-credits, `scene/scene.md` §11, `src/scene/README.md`,
   `_plan/build-order.md` M4-2 前
 - **Supersedes:** None
-- **Commit:** PENDING
+- **Commit:** `0276c40`
 
 ### D-YYYY-NNN — <Title>
 
