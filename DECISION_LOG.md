@@ -2408,7 +2408,7 @@
 - **Affects:** edit-shape-commands, scene-editor-shapes, `editor-editing.md`
   §8, `_plan/build-order.md` M5-4 — M5-4 단순화 지점 전부 닫힘
 - **Supersedes:** None
-- **Commit:** PENDING
+- **Commit:** `344fcbc`
 
 ### D-YYYY-NNN — <Title>
 
