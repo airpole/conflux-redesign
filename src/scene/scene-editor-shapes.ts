@@ -128,9 +128,14 @@
  * 낸다). 클릭은 2-그룹의 "오른쪽 구분선" 관례를 그대로 이어 line3
  * 위치를 정하고 line1이 대칭 생성된다. 이 3-그룹 축은 수동 조절
  * 대상이 아니다(2-그룹 symmetry와 별개 — `manualLaneAxis`를 안 쓴다).
- * **4개 이상·비연속 3-그룹**(이 데이터 모델엔 없지만 향후 lane 수가
- * 늘어나면 생길 수 있는 자리)은 여전히 결정 필요 항목으로 남긴다 —
- * 워크플로 의존적이라 이번 라운드에서 정하지 않는다.
+ * **4개 이상·비연속 그룹은 결정 필요 항목이 아니라 구조적으로 성립하지
+ * 않는다**(D-2026-122 재정리) — `LineNum`이 `1|2|3` 고정 유니언인 건
+ * 게임 자체가 4레인·구분선 3개(line1=1·2 사이, line2=2·3 사이, line3=
+ * 3·4 사이)로 고정돼 있기 때문이다. "4번째 구분선"이 놓일 물리적 자리가
+ * 이 4레인 playfield엔 아예 없다 — 나중에 lane 수가 늘어날 계획이 있는
+ * 것도 아니라 "언젠가 결정할 항목"으로 남겨 둘 이유가 없다. 만약 레인
+ * 수 자체를 바꾸는 훨씬 큰 범위의 변경이 나중에 실제로 생긴다면, 그건
+ * 이 항목을 "마저 정하는" 게 아니라 애초부터 새로 검토할 자리다.
  *
  * **`laneGridDivisor`·`V` 위치 스냅은 M6-후속이 닫았다(D-2026-119)** —
  * 두 값 모두 값 자체는 이미 확정된 스펙이었다(`shape.md` §3의 `[1, 0.5,
@@ -186,6 +191,8 @@ import {
   mirrorEventsCommand,
   mutateLaneEventCommand,
   mutateShapeEventsCommand,
+  updateLaneEasingCommand,
+  updateShapeEasingCommand,
   type ShapeSessionLike,
 } from '../edit/edit-shape-commands.js';
 import type { Command } from '../edit/edit-command.js';
@@ -371,13 +378,35 @@ function resolveLaneEasing(
 
 // ── 존재 여부(중복 dest 배치 스킵) ───────────────────────────
 
+/** 같은 dest tick·같은 체인의 기존 이벤트 인덱스, 없으면 -1(D-2026-122 —
+ *  배치 충돌 시 그 자리를 skip하는 대신 갱신하려면 인덱스가 필요하다).
+ *  `hasShapeEventAtDest`는 이 함수의 boolean 래퍼다. */
+function shapeEventIndexAtDest(
+  shapeEvents: readonly ShapeEvent[],
+  isBlue: boolean,
+  tick: number,
+): number {
+  return shapeEvents.findIndex(
+    (e) => e.isBlue === isBlue && e.easing !== null && e.startTick + e.duration === tick,
+  );
+}
+
 function hasShapeEventAtDest(
   shapeEvents: readonly ShapeEvent[],
   isBlue: boolean,
   tick: number,
 ): boolean {
-  return shapeEvents.some(
-    (e) => e.isBlue === isBlue && e.easing !== null && e.startTick + e.duration === tick,
+  return shapeEventIndexAtDest(shapeEvents, isBlue, tick) !== -1;
+}
+
+/** `shapeEventIndexAtDest`의 lane 대응(D-2026-122). */
+function laneEventIndexAtDest(
+  laneEvents: readonly LaneEvent[],
+  lineNum: LineNum,
+  tick: number,
+): number {
+  return laneEvents.findIndex(
+    (e) => e.lineNum === lineNum && e.easing !== null && e.startTick + e.duration === tick,
   );
 }
 
@@ -386,9 +415,7 @@ function hasLaneEventAtDest(
   lineNum: LineNum,
   tick: number,
 ): boolean {
-  return laneEvents.some(
-    (e) => e.lineNum === lineNum && e.easing !== null && e.startTick + e.duration === tick,
-  );
+  return laneEventIndexAtDest(laneEvents, lineNum, tick) !== -1;
 }
 
 export function mountEditorShapesBody(
@@ -804,18 +831,28 @@ export function mountEditorShapesBody(
     const shapeCenter = (blue + red) / 2;
 
     const toAdd: ShapeEvent[] = [];
+    // 같은 dest tick·같은 체인에 이미 이벤트가 있으면 새로 놓는 대신 그
+    // 자리의 easing만 갱신한다(D-2026-122, 원본 addShapeEvt의
+    // sameTickSameSide 재현) — 한 클릭이 여러 체인(symmetry·center·pinch)을
+    // 건드릴 때 일부는 add·일부는 update가 섞여도 한 undo로 낸다.
+    const toUpdate: { index: number; easing: Easing }[] = [];
 
     if (shapeTool === 'blue' || shapeTool === 'red') {
       const isBlue = shapeTool === 'blue';
-      if (hasShapeEventAtDest(chart.shapeEvents, isBlue, tick)) return;
       const easing = resolveShapeEasing(easingChoice, chart.shapeEvents, isBlue, tick);
-      toAdd.push({ startTick: 0, duration: tick, isBlue, targetPos: pos, easing });
+      const existing = shapeEventIndexAtDest(chart.shapeEvents, isBlue, tick);
+      if (existing === -1) {
+        toAdd.push({ startTick: 0, duration: tick, isBlue, targetPos: pos, easing });
+      } else {
+        toUpdate.push({ index: existing, easing });
+      }
       if (symmetry) {
         // 수동 축이 있으면 그 값을 그대로 쓴다(§3 "수동 축의 수명" — 클릭
         // tick과 무관하게 고정) — 없으면 이 tick의 동적 스냅샷 그대로.
         const axis = manualShapeAxis ?? shapeCenter;
         const mirrorPos = snapExt(2 * axis - pos, posSnapStep);
-        if (!hasShapeEventAtDest(chart.shapeEvents, !isBlue, tick)) {
+        const mirrorExisting = shapeEventIndexAtDest(chart.shapeEvents, !isBlue, tick);
+        if (mirrorExisting === -1) {
           toAdd.push({
             startTick: 0,
             duration: tick,
@@ -823,6 +860,8 @@ export function mountEditorShapesBody(
             targetPos: mirrorPos,
             easing,
           });
+        } else {
+          toUpdate.push({ index: mirrorExisting, easing });
         }
       }
     } else if (shapeTool === 'center') {
@@ -831,17 +870,24 @@ export function mountEditorShapesBody(
       const newBlue = snapExt(pos - half, posSnapStep);
       const newRed = snapExt(pos + half, posSnapStep);
       const easing = resolveShapeEasing(easingChoice, chart.shapeEvents, false, tick);
-      if (!hasShapeEventAtDest(chart.shapeEvents, true, tick)) {
+      const blueExisting = shapeEventIndexAtDest(chart.shapeEvents, true, tick);
+      if (blueExisting === -1) {
         toAdd.push({ startTick: 0, duration: tick, isBlue: true, targetPos: newBlue, easing });
+      } else {
+        toUpdate.push({ index: blueExisting, easing });
       }
-      if (!hasShapeEventAtDest(chart.shapeEvents, false, tick)) {
+      const redExisting = shapeEventIndexAtDest(chart.shapeEvents, false, tick);
+      if (redExisting === -1) {
         toAdd.push({ startTick: 0, duration: tick, isBlue: false, targetPos: newRed, easing });
+      } else {
+        toUpdate.push({ index: redExisting, easing });
       }
     } else {
       // pinch — 같은 위치에 Blue·Red 동시 배치.
       const easingBlue = resolveShapeEasing(easingChoice, chart.shapeEvents, true, tick);
       const easingRed = resolveShapeEasing(easingChoice, chart.shapeEvents, false, tick);
-      if (!hasShapeEventAtDest(chart.shapeEvents, true, tick)) {
+      const blueExisting = shapeEventIndexAtDest(chart.shapeEvents, true, tick);
+      if (blueExisting === -1) {
         toAdd.push({
           startTick: 0,
           duration: tick,
@@ -849,8 +895,11 @@ export function mountEditorShapesBody(
           targetPos: pos,
           easing: easingBlue,
         });
+      } else {
+        toUpdate.push({ index: blueExisting, easing: easingBlue });
       }
-      if (!hasShapeEventAtDest(chart.shapeEvents, false, tick)) {
+      const redExisting = shapeEventIndexAtDest(chart.shapeEvents, false, tick);
+      if (redExisting === -1) {
         toAdd.push({
           startTick: 0,
           duration: tick,
@@ -858,11 +907,13 @@ export function mountEditorShapesBody(
           targetPos: pos,
           easing: easingRed,
         });
+      } else {
+        toUpdate.push({ index: redExisting, easing: easingRed });
       }
     }
 
-    if (toAdd.length === 0) return;
-    dispatchShapeCommand((s) => addShapeEventsCommand(s, toAdd));
+    if (toAdd.length === 0 && toUpdate.length === 0) return;
+    dispatchShapeCommand((s) => updateShapeEasingCommand(s, toAdd, toUpdate));
   }
 
   function placeLane(px: number, py: number): void {
@@ -876,23 +927,28 @@ export function mountEditorShapesBody(
     const members = [...laneGroup].sort((a, b) => a - b);
 
     const toAdd: LaneEvent[] = [];
+    // 같은 dest tick·같은 구분선에 이미 이벤트가 있으면 새로 놓는 대신 그
+    // 자리의 easing만 갱신한다(D-2026-122) — shape와 같은 이유로 add·
+    // update가 한 클릭 안에 섞여도 한 undo로 낸다.
+    const toUpdate: { index: number; easing: Easing }[] = [];
 
     if (symmetry && members.length === 3) {
       // 3-그룹 대칭(item 3, M6-후속) — `LineNum`이 1|2|3뿐이라 "3개 선택"은
       // 항상 {1,2,3} 하나뿐이다(비연속 3-그룹은 이 데이터 모델에 아예
-      // 존재하지 않는다 — 4그룹 이상·비연속은 여전히 결정 필요 항목으로
-      // 남긴다, 파일 헤더 참조). 축 = 가운데(line2)의 **현재(동적) 위치
-      // 그 자체** — line2는 이 배치로 안 움직인다(자기 자신이 축이라 새
-      // 이벤트를 안 낸다). 클릭은 2-그룹의 "오른쪽 구분선" 관례를 그대로
-      // 이어 **가장 오른쪽(line3)** 위치를 정하고, line1이 축 대칭으로
-      // 자동 생성된다. 이 3-그룹 축은 수동 조절 대상이 아니다(item 3
-      // 스코프 — `manualLaneAxis`를 안 쓴다).
+      // 존재하지 않는다 — 4그룹 이상·비연속은 구조적으로 성립하지 않는다,
+      // 파일 헤더 참조). 축 = 가운데(line2)의 **현재(동적) 위치 그 자체**
+      // — line2는 이 배치로 안 움직인다(자기 자신이 축이라 새 이벤트를 안
+      // 낸다). 클릭은 2-그룹의 "오른쪽 구분선" 관례를 그대로 이어
+      // **가장 오른쪽(line3)** 위치를 정하고, line1이 축 대칭으로 자동
+      // 생성된다. 이 3-그룹 축은 수동 조절 대상이 아니다(item 3 스코프 —
+      // `manualLaneAxis`를 안 쓴다).
       const currentLayout = laneLayoutAt(geometry, tick);
       const axis = currentLayout.line2;
       const hiPos = clickRel;
       const loPos = snapRel(2 * axis - hiPos, laneGridDivisor);
       const easingHi = resolveLaneEasing(easingChoice, chart.laneEvents, 3, tick);
-      if (!hasLaneEventAtDest(chart.laneEvents, 3, tick)) {
+      const hiExisting = laneEventIndexAtDest(chart.laneEvents, 3, tick);
+      if (hiExisting === -1) {
         toAdd.push({
           startTick: 0,
           duration: tick,
@@ -900,8 +956,11 @@ export function mountEditorShapesBody(
           targetPos: hiPos,
           easing: easingHi,
         });
+      } else {
+        toUpdate.push({ index: hiExisting, easing: easingHi });
       }
-      if (!hasLaneEventAtDest(chart.laneEvents, 1, tick)) {
+      const loExisting = laneEventIndexAtDest(chart.laneEvents, 1, tick);
+      if (loExisting === -1) {
         toAdd.push({
           startTick: 0,
           duration: tick,
@@ -909,6 +968,8 @@ export function mountEditorShapesBody(
           targetPos: loPos,
           easing: easingHi,
         });
+      } else {
+        toUpdate.push({ index: loExisting, easing: easingHi });
       }
     } else if (symmetry && members.length === 2) {
       const lo = members[0]!;
@@ -925,7 +986,8 @@ export function mountEditorShapesBody(
       const hiPos = clickRel;
       const loPos = snapRel(2 * axis - hiPos, laneGridDivisor);
       const easingHi = resolveLaneEasing(easingChoice, chart.laneEvents, hi, tick);
-      if (!hasLaneEventAtDest(chart.laneEvents, hi, tick)) {
+      const hiExisting = laneEventIndexAtDest(chart.laneEvents, hi, tick);
+      if (hiExisting === -1) {
         toAdd.push({
           startTick: 0,
           duration: tick,
@@ -933,8 +995,11 @@ export function mountEditorShapesBody(
           targetPos: hiPos,
           easing: easingHi,
         });
+      } else {
+        toUpdate.push({ index: hiExisting, easing: easingHi });
       }
-      if (!hasLaneEventAtDest(chart.laneEvents, lo, tick)) {
+      const loExisting = laneEventIndexAtDest(chart.laneEvents, lo, tick);
+      if (loExisting === -1) {
         toAdd.push({
           startTick: 0,
           duration: tick,
@@ -942,12 +1007,17 @@ export function mountEditorShapesBody(
           targetPos: loPos,
           easing: easingHi,
         });
+      } else {
+        toUpdate.push({ index: loExisting, easing: easingHi });
       }
     } else if (members.length === 1) {
       const lineNum = members[0]!;
-      if (!hasLaneEventAtDest(chart.laneEvents, lineNum, tick)) {
-        const easing = resolveLaneEasing(easingChoice, chart.laneEvents, lineNum, tick);
+      const easing = resolveLaneEasing(easingChoice, chart.laneEvents, lineNum, tick);
+      const existing = laneEventIndexAtDest(chart.laneEvents, lineNum, tick);
+      if (existing === -1) {
         toAdd.push({ startTick: 0, duration: tick, lineNum, targetPos: clickRel, easing });
+      } else {
+        toUpdate.push({ index: existing, easing });
       }
     } else {
       const rightmost = members[members.length - 1]!;
@@ -958,7 +1028,6 @@ export function mountEditorShapesBody(
         3: currentLayout.line3,
       };
       for (const lineNum of members) {
-        if (hasLaneEventAtDest(chart.laneEvents, lineNum, tick)) continue;
         const pos =
           laneMode === 'pinch'
             ? clickRel
@@ -967,12 +1036,17 @@ export function mountEditorShapesBody(
                 laneGridDivisor,
               );
         const easing = resolveLaneEasing(easingChoice, chart.laneEvents, lineNum, tick);
-        toAdd.push({ startTick: 0, duration: tick, lineNum, targetPos: pos, easing });
+        const existing = laneEventIndexAtDest(chart.laneEvents, lineNum, tick);
+        if (existing === -1) {
+          toAdd.push({ startTick: 0, duration: tick, lineNum, targetPos: pos, easing });
+        } else {
+          toUpdate.push({ index: existing, easing });
+        }
       }
     }
 
-    if (toAdd.length === 0) return;
-    dispatchShapeCommand((s) => addLaneEventsCommand(s, toAdd));
+    if (toAdd.length === 0 && toUpdate.length === 0) return;
+    dispatchShapeCommand((s) => updateLaneEasingCommand(s, toAdd, toUpdate));
   }
 
   // ── 선택/삭제 ────────────────────────────────────────────

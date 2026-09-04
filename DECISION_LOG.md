@@ -2364,6 +2364,52 @@
 - **Supersedes:** None
 - **Commit:** `7a076a2`
 
+### D-2026-122 — 같은 dest tick 배치 충돌 = easing 갱신, lane symmetry 4+ 재정리
+
+- **Status:** Accepted
+- **Decision:** M5-4 여섯 항목 중 마지막 둘을 닫는다.
+  1. **같은 dest tick·같은 체인 배치 충돌**: 지금까지 조용히 스킵하던
+     것을, 원본 `addShapeEvt`의 "sameTickSameSide"(그 자리에서 `easing`만
+     갱신)를 그대로 재현하도록 바꿨다. `targetPos`는 덮지 않는다.
+     `mutateShapeEventsCommand`(드래그-end 전용, `targetPos`만)와는
+     트리거·필드가 달라 재사용하지 않고, `updateShapeEasingCommand`/
+     `updateLaneEasingCommand`를 새로 뒀다 — `Add`/`Delete`/`Mutate`가
+     이미 그렇게 나뉜 것과 같은 이유. "한 클릭 = 한 undo"(`editor-
+     commands.md` §6 "여러 op = 1 undo")를 지키려면 symmetry·그룹
+     배치처럼 한 클릭이 여러 체인을 건드릴 때 일부는 새로 놓이고
+     일부는 갱신돼도 커맨드 하나로 나가야 해서, 이 두 함수는 `toAdd`·
+     `toUpdateEasing` 두 목록을 함께 받는다. 커맨드 이름은 실제로
+     일어난 일을 반영해 동적으로 정해진다 — 뭔가 새로 놓였으면
+     `AddShapeEvents`/`AddLaneEvents`(사용자 관점에서 "배치"가 주된
+     동작), 전부 갱신뿐이면 `UpdateShapeEasing`/`UpdateLaneEasing`.
+     paste·duplicate 전용인 순수 `addShapeEventsCommand`/
+     `addLaneEventsCommand`는 그대로 뒀다 — 그 둘은 충돌을 조용히
+     스킵하는 게 이미 확정된 동작이다(D-2026-114/120/121).
+  2. **lane symmetry 4개 이상·비연속**: "결정 필요 항목"이라는 표시를
+     걷어내고 사실대로 재정리했다 — `LineNum`이 `1|2|3` 고정 유니언인
+     건 게임이 4레인·구분선 3개(line1=1·2 사이, line2=2·3 사이,
+     line3=3·4 사이)로 고정돼 있기 때문이고, "4번째 구분선"이 놓일
+     물리적 자리가 이 4레인 playfield엔 아예 없다. lane 수를 늘릴
+     계획이 있는 것도 아니라 "언젠가 결정할 항목"으로 남겨 둘 근거가
+     없었다 — 이건 UX 결정이 밀린 게 아니라 애초에 성립하지 않는
+     조합을 잘못 열어 둔 문서 표기였다. lane 수 자체를 바꾸는 훨씬
+     큰 범위의 변경이 실제로 생긴다면, 그건 이 항목을 "마저 정하는"
+     게 아니라 새로 검토할 자리다.
+
+  이로써 M5-4가 "결정 필요 항목"으로 남겼던 6개 단순화 지점
+  (Ctrl+F mirror·클립보드·symmetry 축 수동 조절·lane 그룹 토글·
+  `laneGridDivisor`/`V` UI·Ctrl+D)과, 그 이후 남아 있던 나머지 둘이
+  전부 닫혔다.
+- **Defined in:** `src/edit/edit-shape-commands.ts`(`updateShapeEasingCommand`/
+  `updateLaneEasingCommand`), `src/scene/scene-editor-shapes.ts`
+  (`placeShape`/`placeLane`, 헤더 재정리)
+- **Rationale:** `editor-editing.md` §1, D-2026-101(Mutate*와 분리한
+  선례)
+- **Affects:** edit-shape-commands, scene-editor-shapes, `editor-editing.md`
+  §8, `_plan/build-order.md` M5-4 — M5-4 단순화 지점 전부 닫힘
+- **Supersedes:** None
+- **Commit:** PENDING
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

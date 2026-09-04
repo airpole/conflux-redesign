@@ -1,9 +1,15 @@
 /**
  * shapes 씬(shape/lane 서브모드) command — `editor/editor-commands.md` §6
  * 중 `AddShapeEvents`/`DeleteShapeEvents`/`MutateShapeEvents`·
- * `AddLaneEvents`/`DeleteLaneEvents`/`MutateLaneEvents` 6개. `edit-command.ts`
- * (M5-2) 엔진에 꽂는다. `invalidates`가 `shapeEvents`/`laneEvents`뿐이라
- * 전부 scope `s`다(`edit-command.ts` §2).
+ * `AddLaneEvents`/`DeleteLaneEvents`/`MutateLaneEvents` 6개, 그리고
+ * `updateShapeEasingCommand`/`updateLaneEasingCommand`(D-2026-122, 배치
+ * 시 같은 dest tick 충돌이면 easing만 갱신 — 한 클릭에 add·update가 섞여도
+ * "한 undo" 규칙을 지키려 두 목록을 함께 받고, 실제로 뭔가 새로 놓였으면
+ * `AddShapeEvents`/`AddLaneEvents`로, 전부 갱신뿐이면 `UpdateShapeEasing`/
+ * `UpdateLaneEasing`으로 이름이 정해진다 — Mutate*와는 트리거·필드가
+ * 달라 그 함수를 재사용하지 않는다). `edit-command.ts`(M5-2) 엔진에
+ * 꽂는다. `invalidates`가 `shapeEvents`/`laneEvents`뿐이라 전부 scope
+ * `s`다(`edit-command.ts` §2).
  *
  * `MutateShapeEvents`/`MutateLaneEvents`(기존 점 드래그 이동)는 D-2026-100
  * (M5-4 후속)이 구현했다 — **위치(`targetPos`)만 바꾼다, tick은 안 바꾼다**
@@ -192,6 +198,40 @@ export function mutateShapeEventsCommand(
   return shapeCommand('MutateShapeEvents', session, before, after);
 }
 
+/** 배치 시 같은 dest tick·같은 체인에 이미 이벤트가 있으면 새로 추가하는
+ *  대신 그 자리의 `easing`만 갱신한다(§1 "충돌은 조용히 스킵" 단순화의
+ *  후속 — D-2026-122, 원본 `addShapeEvt` "sameTickSameSide"가 그 자리에서
+ *  easing만 갱신하던 것과 같다). `targetPos`는 그대로다 — 기존 위치를
+ *  덮지 않는다.
+ *
+ *  **"한 클릭 = 한 undo"**(`editor-commands.md` §6 "여러 op = 1 undo")를
+ *  지키려면, symmetry·그룹 배치처럼 한 클릭이 여러 체인을 건드릴 때
+ *  일부는 새로 추가되고 일부는 기존 자리가 갱신돼도(예: 대칭 쌍 하나는
+ *  빈 자리에 새로 놓이고 반대쪽은 이미 있던 자리라 easing만 바뀜) 커맨드
+ *  하나로 나가야 한다 — 그래서 add·update를 함께 받는다. `targetPos`만
+ *  바꾸는 `MutateShapeEvents`(드래그-end 전용)와는 트리거·필드가 다른
+ *  별개 상호작용이라 재사용하지 않는다 — `Add`/`Delete`/`Mutate`가 이미
+ *  그렇게 나뉜 것과 같은 이유다. 순수 추가만 하는 `addShapeEventsCommand`
+ *  (paste·duplicate 전용)는 이 함수와 별개로 그대로 둔다 — 그 두 기능은
+ *  충돌을 조용히 스킵하는 게 이미 확정된 동작이라(D-2026-114/120) 여기서
+ *  건드리지 않는다. 커맨드 이름은 실제로 일어난 일을 반영해 동적으로
+ *  정한다 — 뭔가 새로 놓였으면 사용자 관점에서 "배치"가 주된 동작이므로
+ *  `AddShapeEvents`, 전부 기존 자리 갱신뿐이면 `UpdateShapeEasing`. */
+export function updateShapeEasingCommand(
+  session: ShapeSessionLike,
+  toAdd: readonly ShapeEvent[],
+  toUpdateEasing: readonly { readonly index: number; readonly easing: Easing }[],
+): Command {
+  const before = session.chart.shapeEvents;
+  const byIndex = new Map(toUpdateEasing.map((u) => [u.index, u.easing]));
+  const updated = before.map((event, i) =>
+    byIndex.has(i) ? { ...event, easing: byIndex.get(i)! } : event,
+  );
+  const after = normalizeShapeEvents([...updated, ...toAdd]);
+  const name = toAdd.length > 0 ? 'AddShapeEvents' : 'UpdateShapeEasing';
+  return shapeCommand(name, session, before, after);
+}
+
 /** 새 lane 이벤트 여러 개를 추가한다(§6 AddLaneEvents) — 그룹 배치·symmetry
  *  쌍도 한 undo 단위로 묶인다. */
 export function addLaneEventsCommand(
@@ -227,6 +267,26 @@ export function mutateLaneEventCommand(
     before.map((event, i) => (i === index ? { ...event, targetPos } : event)),
   );
   return laneCommand('MutateLaneEvents', session, before, after);
+}
+
+/** `updateShapeEasingCommand`의 lane 대응 — 같은 dest tick·같은 구분선에
+ *  이미 이벤트가 있으면 새로 추가하는 대신 그 자리의 `easing`만
+ *  갱신한다(D-2026-122). 한 클릭이 여러 구분선(그룹 배치)을 건드릴 때
+ *  일부는 add·일부는 update가 섞여도 한 undo로 나가야 해서 두 배열을
+ *  함께 받는다 — 자세한 근거는 `updateShapeEasingCommand` 참조. */
+export function updateLaneEasingCommand(
+  session: ShapeSessionLike,
+  toAdd: readonly LaneEvent[],
+  toUpdateEasing: readonly { readonly index: number; readonly easing: Easing }[],
+): Command {
+  const before = session.chart.laneEvents;
+  const byIndex = new Map(toUpdateEasing.map((u) => [u.index, u.easing]));
+  const updated = before.map((event, i) =>
+    byIndex.has(i) ? { ...event, easing: byIndex.get(i)! } : event,
+  );
+  const after = normalizeLaneEvents([...updated, ...toAdd]);
+  const name = toAdd.length > 0 ? 'AddLaneEvents' : 'UpdateLaneEasing';
+  return laneCommand(name, session, before, after);
 }
 
 /** 선택물 제자리 mirror(Ctrl+F, §4) — shape·lane 선택을 합쳐 한 undo로

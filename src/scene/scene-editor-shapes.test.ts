@@ -875,4 +875,90 @@ describe('scene-editor-shapes', () => {
     );
     expect(dupLine2).toHaveLength(2); // 원본 + 복제.
   });
+
+  // ── [D-2026-122] 같은 dest tick 배치 = easing 갱신(skip 아님) ──
+
+  it('Q 배치가 같은 dest tick의 기존 이벤트와 충돌하면 easing만 갱신한다(UpdateShapeEasing)', () => {
+    // dest는 GRID_DIVISOR_DEFAULT(8) 격자(칸=960)에 맞춰야 placeShape의
+    // snapTick이 클릭 tick을 같은 자리로 스냅한다.
+    const existing: ShapeEvent = {
+      startTick: 0,
+      duration: 960,
+      isBlue: true,
+      targetPos: -2,
+      easing: 'Out-Sine',
+    };
+    const { canvas, handle, dispatch, getChart } = mount(
+      makeChart({ shapeEvents: [blueInit, redInit, existing] }),
+    );
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: '4' })); // Linear로 배치.
+    click(canvas, pixelXOfExt(3), pixelYOfTick(960)); // 위치는 달라도 dest tick(960)이 같다.
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]![0].name).toBe('UpdateShapeEasing');
+    const updated = getChart().shapeEvents.find(
+      (e) => e.isBlue && e.startTick + e.duration === 960,
+    );
+    expect(updated?.easing).toBe('Linear'); // easing만 바뀌었다.
+    expect(updated?.targetPos).toBe(-2); // targetPos는 그대로(클릭 위치 3이 아니다).
+    expect(getChart().shapeEvents).toHaveLength(3); // 새로 추가된 게 없다.
+  });
+
+  it('symmetry ON — 한쪽은 충돌해 갱신, 반대쪽은 새로 추가되면 한 undo(AddShapeEvents)로 나간다', () => {
+    const existingRed: ShapeEvent = {
+      startTick: 0,
+      duration: 960,
+      isBlue: false,
+      targetPos: 2,
+      easing: 'Out-Sine',
+    };
+    const { canvas, handle, dispatch, getChart } = mount(
+      makeChart({ shapeEvents: [blueInit, redInit, existingRed] }),
+    );
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 's' })); // symmetry ON.
+    // Blue 툴 기본. 충돌 판정은 위치가 아니라 (isBlue, dest tick)만
+    // 본다 — Red는 dest 960에 이미 있으니 그 자리가 갱신되고 Blue는
+    // 새로 추가된다. ext 0(대칭축)은 피한다 — 그 자리가 기존 Red의
+    // evaluated "center" composite 히트와 겹쳐 배치가 아니라 드래그
+    // 선택으로 샌다.
+    click(canvas, pixelXOfExt(5), pixelYOfTick(960));
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]![0].name).toBe('AddShapeEvents'); // 뭔가 새로 놓였다.
+    const events = getChart().shapeEvents.filter((e) => e.easing !== null);
+    expect(events).toHaveLength(2); // existingRed(갱신) + 새 Blue.
+    const newBlue = events.find((e) => e.isBlue);
+    expect(newBlue).toBeDefined();
+    const updatedRed = events.find((e) => !e.isBlue);
+    expect(updatedRed?.targetPos).toBe(2); // Red 위치는 그대로(덮지 않았다).
+  });
+
+  it('lane 단일 배치가 같은 dest tick의 기존 이벤트와 충돌하면 easing만 갱신한다(UpdateLaneEasing)', () => {
+    // 기본 laneGroup은 {1}이라 line1로 충돌시킨다. dest는 tick0(=init 3개가
+    // 몰려 있는 자리)와 화면상 충분히 떨어뜨려야 클릭이 그 init 점들의
+    // 히트 반경(35px)에 우연히 걸리지 않는다 — tick 7680이면 화면 y가
+    // 충분히 벌어진다.
+    const existing: LaneEvent = {
+      startTick: 0,
+      duration: 7680,
+      lineNum: 1,
+      targetPos: 0.6,
+      easing: 'Out-Sine',
+    };
+    const { canvas, handle, dispatch, getChart } = mount(
+      makeChart({ laneEvents: [line1Init, line2Init, line3Init, existing] }),
+    );
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 't' })); // lane 서브모드.
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: '4' })); // Linear.
+    // 클릭 위치는 existing 자신의 렌더 위치(ext 0.6 → -2+0.6*4=0.4)와도
+    // 충분히 떨어뜨려 그 점 자체를 히트(드래그 시작)하지 않게 한다 — 충돌
+    // 판정은 위치가 아니라 (lineNum, dest tick)만 본다.
+    click(canvas, pixelXOfExt(-6), pixelYOfTick(7680));
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]![0].name).toBe('UpdateLaneEasing');
+    const updated = getChart().laneEvents.find(
+      (e) => e.lineNum === 1 && e.startTick + e.duration === 7680,
+    );
+    expect(updated?.easing).toBe('Linear');
+    expect(updated?.targetPos).toBe(0.6); // targetPos는 그대로.
+    expect(getChart().laneEvents).toHaveLength(4); // 새로 추가된 게 없다.
+  });
 });

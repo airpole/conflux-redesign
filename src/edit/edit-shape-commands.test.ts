@@ -11,6 +11,8 @@ import {
   mutateShapeEventsCommand,
   normalizeLaneEvents,
   normalizeShapeEvents,
+  updateLaneEasingCommand,
+  updateShapeEasingCommand,
   type ShapeSessionLike,
 } from './edit-shape-commands.js';
 
@@ -287,6 +289,94 @@ describe('edit-shape-commands', () => {
         mutateShapeEventsCommand(session(shapeChart), [{ index: 0, targetPos: -1 }]).invalidates,
       ).toEqual(['shapeEvents']);
       expect(mutateLaneEventCommand(session(laneChart), 0, 0.1).invalidates).toEqual([
+        'laneEvents',
+      ]);
+    });
+  });
+
+  describe('[JD-updateEasing] updateShapeEasingCommand / updateLaneEasingCommand (D-2026-122)', () => {
+    it('toUpdateEasing만 있으면 targetPos는 그대로 두고 easing만 바꾼다 — 이름은 UpdateShapeEasing', () => {
+      const target: ShapeEvent = {
+        startTick: 0,
+        duration: 1000,
+        isBlue: true,
+        targetPos: 4,
+        easing: 'Out-Sine',
+      };
+      const chart = makeChart({ shapeEvents: [blueInit, redInit, target] });
+      const s = session(chart);
+      const cmd = updateShapeEasingCommand(s, [], [{ index: 2, easing: 'Linear' }]);
+      expect(cmd.name).toBe('UpdateShapeEasing');
+      cmd.apply();
+      const updated = s.getChart().shapeEvents[2]!;
+      expect(updated.easing).toBe('Linear');
+      expect(updated.targetPos).toBe(4); // 위치는 안 건드렸다.
+      cmd.undo();
+      expect(s.getChart().shapeEvents[2]).toEqual(target);
+    });
+
+    it('toAdd가 하나라도 있으면 이름은 AddShapeEvents다(뭔가 새로 놓였다는 뜻)', () => {
+      const target: ShapeEvent = {
+        startTick: 0,
+        duration: 1000,
+        isBlue: true,
+        targetPos: 4,
+        easing: 'Out-Sine',
+      };
+      const chart = makeChart({ shapeEvents: [blueInit, redInit, target] });
+      const s = session(chart);
+      const newRed: ShapeEvent = {
+        startTick: 0,
+        duration: 1000,
+        isBlue: false,
+        targetPos: -4,
+        easing: 'Linear',
+      };
+      const cmd = updateShapeEasingCommand(s, [newRed], [{ index: 2, easing: 'Linear' }]);
+      expect(cmd.name).toBe('AddShapeEvents');
+      cmd.apply();
+      const events = s.getChart().shapeEvents.filter((e) => e.easing !== null);
+      expect(events).toHaveLength(2);
+      expect(events.find((e) => e.isBlue)?.easing).toBe('Linear'); // 갱신된 기존 것.
+      expect(events.find((e) => !e.isBlue)?.targetPos).toBe(-4); // 새로 추가된 것.
+    });
+
+    it('lane도 같은 규칙 — 갱신뿐이면 UpdateLaneEasing, 추가가 섞이면 AddLaneEvents', () => {
+      const target: LaneEvent = {
+        startTick: 0,
+        duration: 1000,
+        lineNum: 2,
+        targetPos: 0.6,
+        easing: 'Out-Sine',
+      };
+      const chart = makeChart({ laneEvents: [line1Init, line2Init, line3Init, target] });
+      const s = session(chart);
+      const pureUpdate = updateLaneEasingCommand(s, [], [{ index: 3, easing: 'Linear' }]);
+      expect(pureUpdate.name).toBe('UpdateLaneEasing');
+      pureUpdate.apply();
+      expect(s.getChart().laneEvents[3]!.easing).toBe('Linear');
+      expect(s.getChart().laneEvents[3]!.targetPos).toBe(0.6);
+      pureUpdate.undo();
+      expect(s.getChart().laneEvents[3]).toEqual(target);
+
+      const newLine1: LaneEvent = {
+        startTick: 0,
+        duration: 1000,
+        lineNum: 1,
+        targetPos: 0.1,
+        easing: 'Linear',
+      };
+      const mixed = updateLaneEasingCommand(s, [newLine1], [{ index: 3, easing: 'Linear' }]);
+      expect(mixed.name).toBe('AddLaneEvents');
+    });
+
+    it('invalidates는 각각 shapeEvents/laneEvents 하나뿐이다', () => {
+      const shapeChart = makeChart({ shapeEvents: [blueInit, redInit] });
+      const laneChart = makeChart({ laneEvents: [line1Init, line2Init, line3Init] });
+      expect(updateShapeEasingCommand(session(shapeChart), [], []).invalidates).toEqual([
+        'shapeEvents',
+      ]);
+      expect(updateLaneEasingCommand(session(laneChart), [], []).invalidates).toEqual([
         'laneEvents',
       ]);
     });
