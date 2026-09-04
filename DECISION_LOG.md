@@ -2438,7 +2438,7 @@
 - **Affects:** edit-notes-commands, scene-editor-notes, `src/scene/README.md`,
   `_plan/build-order.md` M5-7
 - **Supersedes:** None
-- **Commit:** PENDING
+- **Commit:** `986a581`
 
 ### D-YYYY-NNN — <Title>
 
