@@ -2154,7 +2154,7 @@
   클립보드) — symmetry 수동축·lane group hold·lane symmetry 3그룹·
   laneGridDivisor UI·Ctrl+D·전부 충돌 toast는 잔여
 - **Supersedes:** None
-- **Commit:** PENDING
+- **Commit:** `d631770`
 
 
 ### D-YYYY-NNN — <Title>
