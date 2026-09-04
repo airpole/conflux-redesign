@@ -2337,7 +2337,7 @@
   단순화 지점 중 Ctrl+D 닫힘(같은 dest tick 갱신·lane symmetry 4개
   이상은 잔여)
 - **Supersedes:** None
-- **Commit:** PENDING
+- **Commit:** `2d22bb7`
 
 ### D-YYYY-NNN — <Title>
 
