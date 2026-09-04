@@ -2362,7 +2362,7 @@
 - **Rationale:** `editor-editing.md` §7, D-2026-120
 - **Affects:** scene-editor-notes, `editor-editing.md` §8
 - **Supersedes:** None
-- **Commit:** PENDING
+- **Commit:** `7a076a2`
 
 ### D-YYYY-NNN — <Title>
 
