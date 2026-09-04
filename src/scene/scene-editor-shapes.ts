@@ -97,21 +97,42 @@
  * toast UI가 없어(`app-editor.ts` 헤더 참조) notes 탭도 안 하는 기존
  * 생략을 그대로 따랐다(결정 필요 항목).
  *
+ * **symmetry 축 수동 조절은 M6-후속이 닫았다** — §3 "드래그로 옮긴 축은
+ * 토글 off까지 유지된다... 자동으로 되돌리는 버튼을 둔다"를 그대로
+ * 구현했다(shape·lane 2-그룹 symmetry 공유, 원본에 대응 UI가 없어 이
+ * 세션이 새로 설계한 interaction). `manualShapeAxis`/`manualLaneAxis`
+ * (좌표계가 달라 독립) — `null`이면 여전히 기존처럼 배치 tick마다
+ * 다시 계산하는 동적 스냅샷, 값이 있으면 그 값을 고정으로 쓴다.
+ * **설정**: 축을 나타내는 점선(symmetry ON일 때만 그림, `drawAxisLine`)을
+ * `AXIS_HIT_PX`(10px, 점 히트 반경 35px보다 좁게 잡아 점 클릭을 안
+ * 가린다) 안쪽에서 드래그하면(`findAxisHit`, 점/composite 히트에는 밀림)
+ * 그 즉시(commit-on-up이 아니다 — chart를 안 건드리는 순수 UI 상태라
+ * undo 대상이 아니다) 고정값이 된다. **해제**: 툴바의 "Auto axis"
+ * 버튼(수동 축이 있을 때만 보임) 클릭, 또는 `S`로 symmetry를 껐다 다시
+ * 켜면(§3 "토글 off까지 유지") 자동으로 지워진다 — "한 번 수동이면
+ * 세션 내내 수동"은 아니다.
+ *
+ * **lane 그룹 토글-누적 방식은 그대로 확정한다(사용자 확인)** — 원본의
+ * 물리적 키-hold(Q/W/E를 동시에 누르고 있는 상태)를 재현하지 않고 누를
+ * 때마다 멤버십을 토글하는 이 세션의 대체 설계를 영구적으로 유지한다.
+ * 근거: 물리적 hold는 손가락 피로가 누적되고, 토글이 더 나은 선택이다
+ * (얻는 그룹 구성 집합 자체는 원본과 같다 — 입력 메커니즘만 다르다).
+ * `EditorCategoryController`가 `onKeyDown`만 위임해 `keyup` 델리게이션
+ * 경로가 없다는 구현 제약도 이 선택과 맞아떨어졌다.
+ *
+ * **lane symmetry는 이제 2-그룹 또는 3-그룹(연속)에서 적용된다** — `T`
+ * 서브모드 필터의 `LineNum`이 1|2|3뿐이라 "3개 선택"은 항상 {1,2,3}
+ * 하나뿐이며(다른 3-조합은 이 데이터 모델에 존재하지 않는다), 이 3개를
+ * "연속"으로 본다. 축은 **가운데(line2)의 현재(동적) 위치 그 자체** —
+ * line2는 이 배치로 안 움직인다(자기 자신이 축이라 새 이벤트를 안
+ * 낸다). 클릭은 2-그룹의 "오른쪽 구분선" 관례를 그대로 이어 line3
+ * 위치를 정하고 line1이 대칭 생성된다. 이 3-그룹 축은 수동 조절
+ * 대상이 아니다(2-그룹 symmetry와 별개 — `manualLaneAxis`를 안 쓴다).
+ * **4개 이상·비연속 3-그룹**(이 데이터 모델엔 없지만 향후 lane 수가
+ * 늘어나면 생길 수 있는 자리)은 여전히 결정 필요 항목으로 남긴다 —
+ * 워크플로 의존적이라 이번 라운드에서 정하지 않는다.
+ *
  * **이번 라운드가 단순화한 지점(전부 결정 필요 항목으로 남김)**:
- * - **symmetry 축은 항상 동적 스냅샷**이다(§3 "배치 지점 기준 쌍 평균") —
- *   드래그로 축을 수동 조절하는 UI·"토글 off까지 유지" 상태는 없다.
- * - **lane 그룹은 토글-누적 방식이다** — 원본은 Q/W/E를 물리적으로
- *   동시에 누르고 있는 상태로 그룹을 표현하지만(`keydown`/`keyup`),
- *   `EditorCategoryController`가 `onKeyDown`만 위임하고 `keyup`은
- *   델리게이션 경로가 없다. 이 파일이 직접 `document`에 `keyup`을
- *   구독할 수도 있었지만, "누르고 있는 동안" 모델은 테스트 신뢰성이
- *   낮아 **누를 때마다 그룹 멤버십을 토글**하는 방식을 택했다(마지막
- *   1개는 토글로 비우지 않는다 — 항상 최소 1개 유지). 결과로 얻는 그룹
- *   구성 집합은 원본과 같다 — 입력 메커니즘만 다르다.
- * - **lane symmetry는 그룹이 정확히 2개일 때만 적용된다** — §3의 "쌍"
- *   개념이 2개 조합(1-2/2-3/1-3)을 전제하므로, group.size가 1이나
- *   3이면 symmetry 토글이 켜져 있어도 대칭 생성 없이 일반 그룹 배치로
- *   떨어진다.
  * - **laneGridDivisor 드롭다운·`V` 위치 스냅 순환 UI가 없다** —
  *   `laneGridDivisor`는 4(spec 기본값) 고정, 위치 스냅은 항상 최소
  *   단계(0.25, shape/lane 공통)로 고정했다.
@@ -167,6 +188,10 @@ const DRAG_THRESHOLD_PX = 3;
 const POS_SNAP_STEP = 0.25;
 /** lane 가로 그리드 분할 수 — `lane-events.md` §5 기본값(4) 고정(드롭다운은 이번 라운드 밖). */
 const LANE_GRID_DIVISOR = 4;
+/** symmetry 축 선 히트 판정 폭(px) — 원본에 대응 UI가 없는 이 세션의 신규
+ *  interaction이라 실측값이 아니다, 점 히트(35px)보다 좁게 잡아 축 선이
+ *  점 클릭을 가리지 않게 했다. */
+const AXIS_HIT_PX = 10;
 
 type SubMode = 'shape' | 'lane';
 type ShapeTool = 'blue' | 'center' | 'red' | 'pinch';
@@ -425,12 +450,74 @@ export function mountEditorShapesBody(
         readonly originalExt: number;
         moved: boolean;
         currentExt: number;
+      }
+    | {
+        // symmetry 축 드래그(§3 "수동 축") — chart를 안 건드리는 순수 UI
+        // 상태 이동이라 dispatch가 없다. 매 move마다 바로
+        // `manualShapeAxis`를 갱신한다(commit-on-up이 아니라 즉시 반영 —
+        // undo 대상이 아니라 되돌릴 "이전 값"이라는 개념 자체가 없다).
+        readonly subject: 'shape-axis';
+        readonly startPx: number;
+        readonly startPy: number;
+        moved: boolean;
+      }
+    | {
+        // lane 버전 — `manualLaneAxis`를 갱신한다.
+        readonly subject: 'lane-axis';
+        readonly startPx: number;
+        readonly startPy: number;
+        moved: boolean;
       };
 
   let drag: DragState | null = null;
 
+  // symmetry 축 수동 조절(§3 "수동 축의 수명") — 드래그로 옮기면 S를 다시
+  // 끌 때까지 고정된다(동적 스냅샷 재계산을 멈춘다). shape/lane 각각
+  // 독립이다(좌표계가 다르다). `null`이면 자동(동적 스냅샷) 모드.
+  let manualShapeAxis: number | null = null;
+  let manualLaneAxis: number | null = null;
+
   function dispatchShapeCommand(build: (s: ShapeSessionLike) => Command): void {
     api.dispatch(build(api.session));
+  }
+
+  /** shape symmetry 축 — 수동 고정값이 있으면 그것, 없으면 캔버스 세로
+   *  중앙(현재 스크롤 위치, `pasteClipboard`와 같은 기준)의 Blue·Red
+   *  평균(§3 "배치 지점 기준"의 대략적 상시 표시용 — 실제 배치 시 축은
+   *  그 배치 tick에서 다시 계산한다, 아래 `placeShape` 참조). */
+  function currentShapeAxis(): number {
+    if (manualShapeAxis !== null) return manualShapeAxis;
+    const centerTick = pixelYToTick(
+      canvas.height / 2,
+      canvas.height,
+      timeline,
+      view.scrollMs,
+      view.viewMs,
+    );
+    const { blue, red } = shapeGeometryAt(geometry, centerTick);
+    return (blue + red) / 2;
+  }
+
+  /** lane symmetry 축(2-그룹 전용, `members`는 정확히 2개일 때만 호출됨) —
+   *  수동 고정값이 있으면 그것, 없으면 캔버스 세로 중앙 기준 현재 쌍의
+   *  평균. 3-그룹 대칭(§3-후속, 가운데 그룹 중심 고정)은 이 축 개념과
+   *  무관하다 — 수동 조절 대상이 아니다(item 3 스코프). */
+  function currentLaneAxis(members: readonly [LineNum, LineNum]): number {
+    if (manualLaneAxis !== null) return manualLaneAxis;
+    const centerTick = pixelYToTick(
+      canvas.height / 2,
+      canvas.height,
+      timeline,
+      view.scrollMs,
+      view.viewMs,
+    );
+    const layout = laneLayoutAt(geometry, centerTick);
+    const layoutByLine: Record<LineNum, number> = {
+      1: layout.line1,
+      2: layout.line2,
+      3: layout.line3,
+    };
+    return (layoutByLine[members[0]] + layoutByLine[members[1]]) / 2;
   }
 
   // ── toolbar ──────────────────────────────────────────────
@@ -463,6 +550,22 @@ export function mountEditorShapesBody(
     }
     toolbar.append(mk(`Ease: ${easingChoice}`));
     toolbar.append(mk(`Sym: ${symmetry ? 'ON' : 'off'}`));
+    // 수동 축 표시 + 자동(동적 스냅샷)으로 되돌리는 버튼(§3 명시 요구) —
+    // 현재 서브모드에 수동 축이 있을 때만 보인다.
+    const manualAxis = subMode === 'shape' ? manualShapeAxis : manualLaneAxis;
+    if (symmetry && manualAxis !== null) {
+      toolbar.append(mk('Axis: manual', 'editor-shapes-axis-label'));
+      const resetBtn = document.createElement('button');
+      resetBtn.type = 'button';
+      resetBtn.className = 'editor-shapes-axis-reset';
+      resetBtn.textContent = 'Auto axis';
+      resetBtn.onclick = () => {
+        if (subMode === 'shape') manualShapeAxis = null;
+        else manualLaneAxis = null;
+        render();
+      };
+      toolbar.append(resetBtn);
+    }
     const selSize = subMode === 'shape' ? shapeSelection.size : laneSelection.size;
     if (selSize > 0) toolbar.append(mk(`${selSize} selected`));
   }
@@ -584,6 +687,60 @@ export function mountEditorShapesBody(
     });
 
     drawDots();
+    drawAxisLine();
+  }
+
+  /** symmetry 축 선(§3 "수동 축") — 켜져 있고(2-그룹 lane 포함) 축 개념이
+   *  있는 상태에서만 그린다. `AXIS_HIT_PX` 안쪽 클릭이면 드래그로 잡을 수
+   *  있다(아래 `findAxisHit`). 3-그룹 lane symmetry(item 3, 항상 line2
+   *  고정)는 수동 조절 대상이 아니라 이 선을 안 그린다 — 축이 line2 자체와
+   *  겹쳐 새 정보가 없다. */
+  function drawAxisLine(): void {
+    if (ctx === null || !symmetry) return;
+    const { width: cw, height: ch } = canvas;
+    let axisExt: number | null = null;
+    if (subMode === 'shape') {
+      axisExt = currentShapeAxis();
+    } else {
+      const members = [...laneGroup].sort((a, b) => a - b);
+      if (members.length === 2) {
+        const centerTick = pixelYToTick(ch / 2, ch, timeline, view.scrollMs, view.viewMs);
+        const { blue, red } = shapeGeometryAt(geometry, centerTick);
+        const rel = currentLaneAxis(members as [LineNum, LineNum]);
+        axisExt = laneRelToExt(rel, blue, red);
+      }
+    }
+    if (axisExt === null) return;
+    const x = extToPx(axisExt, cw);
+    ctx.save();
+    ctx.strokeStyle = manualShapeAxis !== null || manualLaneAxis !== null ? '#ffd23f' : '#5a5a7288';
+    ctx.setLineDash([4, 4]);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, ch);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /** 축 선 근처 클릭인지(드래그 시작 후보) — 점/composite 히트에 밀린다
+   *  (`onPointerDown` 호출 순서 참조). */
+  function findAxisHit(px: number): boolean {
+    if (!symmetry) return false;
+    const { width: cw, height: ch } = canvas;
+    let axisExt: number | null = null;
+    if (subMode === 'shape') {
+      axisExt = currentShapeAxis();
+    } else {
+      const members = [...laneGroup].sort((a, b) => a - b);
+      if (members.length === 2) {
+        const centerTick = pixelYToTick(ch / 2, ch, timeline, view.scrollMs, view.viewMs);
+        const { blue, red } = shapeGeometryAt(geometry, centerTick);
+        axisExt = laneRelToExt(currentLaneAxis(members as [LineNum, LineNum]), blue, red);
+      }
+    }
+    if (axisExt === null) return false;
+    return Math.abs(px - extToPx(axisExt, cw)) <= AXIS_HIT_PX;
   }
 
   function render(): void {
@@ -612,7 +769,10 @@ export function mountEditorShapesBody(
       const easing = resolveShapeEasing(easingChoice, chart.shapeEvents, isBlue, tick);
       toAdd.push({ startTick: 0, duration: tick, isBlue, targetPos: pos, easing });
       if (symmetry) {
-        const mirrorPos = snapExt(2 * shapeCenter - pos);
+        // 수동 축이 있으면 그 값을 그대로 쓴다(§3 "수동 축의 수명" — 클릭
+        // tick과 무관하게 고정) — 없으면 이 tick의 동적 스냅샷 그대로.
+        const axis = manualShapeAxis ?? shapeCenter;
+        const mirrorPos = snapExt(2 * axis - pos);
         if (!hasShapeEventAtDest(chart.shapeEvents, !isBlue, tick)) {
           toAdd.push({
             startTick: 0,
@@ -675,7 +835,40 @@ export function mountEditorShapesBody(
 
     const toAdd: LaneEvent[] = [];
 
-    if (symmetry && members.length === 2) {
+    if (symmetry && members.length === 3) {
+      // 3-그룹 대칭(item 3, M6-후속) — `LineNum`이 1|2|3뿐이라 "3개 선택"은
+      // 항상 {1,2,3} 하나뿐이다(비연속 3-그룹은 이 데이터 모델에 아예
+      // 존재하지 않는다 — 4그룹 이상·비연속은 여전히 결정 필요 항목으로
+      // 남긴다, 파일 헤더 참조). 축 = 가운데(line2)의 **현재(동적) 위치
+      // 그 자체** — line2는 이 배치로 안 움직인다(자기 자신이 축이라 새
+      // 이벤트를 안 낸다). 클릭은 2-그룹의 "오른쪽 구분선" 관례를 그대로
+      // 이어 **가장 오른쪽(line3)** 위치를 정하고, line1이 축 대칭으로
+      // 자동 생성된다. 이 3-그룹 축은 수동 조절 대상이 아니다(item 3
+      // 스코프 — `manualLaneAxis`를 안 쓴다).
+      const currentLayout = laneLayoutAt(geometry, tick);
+      const axis = currentLayout.line2;
+      const hiPos = clickRel;
+      const loPos = snapRel(2 * axis - hiPos);
+      const easingHi = resolveLaneEasing(easingChoice, chart.laneEvents, 3, tick);
+      if (!hasLaneEventAtDest(chart.laneEvents, 3, tick)) {
+        toAdd.push({
+          startTick: 0,
+          duration: tick,
+          lineNum: 3,
+          targetPos: hiPos,
+          easing: easingHi,
+        });
+      }
+      if (!hasLaneEventAtDest(chart.laneEvents, 1, tick)) {
+        toAdd.push({
+          startTick: 0,
+          duration: tick,
+          lineNum: 1,
+          targetPos: loPos,
+          easing: easingHi,
+        });
+      }
+    } else if (symmetry && members.length === 2) {
       const lo = members[0]!;
       const hi = members[1]!;
       const currentLayout = laneLayoutAt(geometry, tick);
@@ -684,7 +877,9 @@ export function mountEditorShapesBody(
         2: currentLayout.line2,
         3: currentLayout.line3,
       };
-      const axis = (layoutByLine[lo] + layoutByLine[hi]) / 2;
+      // 수동 축이 있으면 그 값을 그대로 쓴다(§3 "수동 축의 수명") — 없으면
+      // 이 tick의 동적 스냅샷 그대로.
+      const axis = manualLaneAxis ?? (layoutByLine[lo] + layoutByLine[hi]) / 2;
       const hiPos = clickRel;
       const loPos = snapRel(2 * axis - hiPos);
       const easingHi = resolveLaneEasing(easingChoice, chart.laneEvents, hi, tick);
@@ -1017,6 +1212,10 @@ export function mountEditorShapesBody(
         }
         return;
       }
+      if (findAxisHit(x)) {
+        drag = { subject: 'shape-axis', startPx: x, startPy: y, moved: false };
+        return;
+      }
       placeShape(x, y);
     } else {
       const hit = findLaneIndexAt(x, y);
@@ -1034,6 +1233,10 @@ export function mountEditorShapesBody(
           moved: false,
           currentExt: originalExt,
         };
+        return;
+      }
+      if (findAxisHit(x)) {
+        drag = { subject: 'lane-axis', startPx: x, startPy: y, moved: false };
         return;
       }
       placeLane(x, y);
@@ -1059,6 +1262,13 @@ export function mountEditorShapesBody(
           drag.currentBlueExt = snapExt(rawCenter - drag.halfWidth);
           drag.currentRedExt = snapExt(rawCenter + drag.halfWidth);
         }
+      } else if (drag.subject === 'shape-axis') {
+        manualShapeAxis = snapExt(pxToExt(x, canvas.width));
+      } else if (drag.subject === 'lane-axis') {
+        const { width: cw, height: ch } = canvas;
+        const centerTick = pixelYToTick(ch / 2, ch, timeline, view.scrollMs, view.viewMs);
+        const { blue, red } = shapeGeometryAt(geometry, centerTick);
+        manualLaneAxis = snapRel(extToLaneRel(pxToExt(x, cw), blue, red));
       } else {
         drag.currentExt = snapExt(pxToExt(x, canvas.width));
       }
@@ -1071,6 +1281,14 @@ export function mountEditorShapesBody(
     if (drag === null) return;
     const d = drag;
     drag = null;
+
+    if (d.subject === 'shape-axis' || d.subject === 'lane-axis') {
+      // manualShapeAxis/manualLaneAxis는 이미 매 move마다 실시간으로
+      // 갱신돼 있다(commit-on-up 대상이 아니다) — 안 움직였으면(클릭만)
+      // 아무 일도 없다.
+      render();
+      return;
+    }
 
     if (!d.moved) {
       // 이동 없이 뗐다 — 클릭(선택 토글)으로 처리한다. composite면 존재하는
@@ -1171,6 +1389,12 @@ export function mountEditorShapesBody(
         case 'S':
         case 's':
           symmetry = !symmetry;
+          // §3 "드래그로 옮긴 축은 토글 off까지 유지된다" — 끄는 순간
+          // 수동 축을 지운다, 다음에 켜면 다시 동적 스냅샷부터 시작한다.
+          if (!symmetry) {
+            manualShapeAxis = null;
+            manualLaneAxis = null;
+          }
           render();
           return true;
         case '1':

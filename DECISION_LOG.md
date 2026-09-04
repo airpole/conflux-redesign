@@ -2157,6 +2157,64 @@
 - **Commit:** `d631770`
 
 
+### D-2026-115 — M5-4 나머지 3개 잔여 항목: symmetry 축 수동 조절, lane 그룹 토글 확정, lane symmetry 3-그룹
+
+- **Status:** Accepted
+- **Decision:** 사용자가 M5-4의 남은 6개 단순화 지점 중 3개에 대해 직접
+  결정을 내려, 그대로 구현·기록한다.
+
+  **1) symmetry 축 수동 조절(shape·lane 2-그룹 공유)** — `editor-editing.md`
+  §3이 이미 "드래그로 옮긴 축은 토글 off까지 유지된다... 자동으로
+  되돌리는 버튼을 둔다"고 명시해 둔 자리였다(투자 전 재확인 결과 실제로
+  "genuinely unspecified"가 아니었다 — 사용자가 열어 둔 하위질문
+  두 개(설정 UI 방식, 리셋 가능 여부)에 스펙이 이미 답을 갖고 있었다).
+  구현: `manualShapeAxis`/`manualLaneAxis`(좌표계가 달라 독립,
+  `null`=자동) 상태를 추가했다. **설정**: symmetry ON일 때만 그리는
+  축 점선(`drawAxisLine`)을 `AXIS_HIT_PX`(10px, 점 히트 반경 35px보다
+  좁혀 점 클릭을 안 가리게 했다) 안쪽에서 드래그하면(`findAxisHit`,
+  기존 점/composite 히트에 우선순위가 밀린다) 그 즉시 고정값이 된다 —
+  chart를 안 건드리는 순수 UI 상태 이동이라 commit-on-up이 아니고
+  undo 대상도 아니다(`DragState`에 `shape-axis`/`lane-axis` 두 변형을
+  더했다, 처음엔 `subject: 'shape-axis'|'lane-axis'`로 하나의 유니온
+  멤버에 합쳐 뒀다가 TS 판별 유니온 narrowing이 안 걸려 별도 멤버
+  둘로 갈랐다). **해제**: 툴바의 "Auto axis" 버튼(수동 축이 있을 때만
+  보임) 클릭, 또는 `S`로 symmetry를 껐다 켜면(§3 그대로) 자동으로
+  지워진다 — "manual-once forever"가 아니라 매번 toggle-off에 리셋된다.
+
+  **2) lane 그룹 토글-누적 방식** — 원본의 물리적 키-hold를 재현하지
+  않는 이 세션의 대체 설계(D-2026-099가 이미 "결정 필요 항목"으로
+  남겼던 자리)를 **영구 확정**한다. 근거(사용자 제공): 물리적 hold는
+  손가락 피로가 누적되고, 토글이 더 나은 선택이다. 얻는 그룹 구성
+  집합 자체는 원본과 같다 — 입력 메커니즘만 다르다. 코드 변경 없음,
+  문서만 "결정 필요 항목"에서 "확정"으로 옮겼다.
+
+  **3) lane symmetry 3-그룹(연속)** — `LineNum`이 이 데이터 모델에서
+  1|2|3뿐이라 "3개 선택"은 항상 {1,2,3} 하나뿐이다(비연속 3-그룹은
+  애초에 존재할 수 없다 — 사용자가 예시로 든 "2,3,4"는 이 lane 수
+  범위 밖이라 실현되지 않는다, 4개 이상·비연속은 그대로 결정 필요
+  항목으로 남긴다). 축 = 가운데(line2)의 **현재(동적) 위치 그 자체**
+  — line2는 이 배치로 새 이벤트를 안 낸다(자기 자신이 축이다). 클릭은
+  2-그룹의 "오른쪽 구분선" 관례를 그대로 이어 line3 위치를 정하고
+  line1이 대칭 생성된다. 이 3-그룹 축은 (1)의 수동 조절 대상이
+  아니다 — `manualLaneAxis`를 안 쓴다.
+
+  테스트 신규: `scene-editor-shapes.test.ts` +6(축 드래그 후 배치가
+  수동값을 쓴다, S 껐다 켜면 리셋, Auto axis 버튼, lane 2-그룹 축
+  드래그, lane 3-그룹 배치, line2 불변 확인) — 전체 1383/1383 통과.
+  이 세 항목이 같은 헤더 docstring 블록·같은 파일들을 함께 고쳐 분리
+  커밋이 실용적이지 않아 한 커밋으로 묶었다(코드 변경이 없는 항목 2도
+  포함).
+- **Defined in:** `src/scene/scene-editor-shapes.ts`,
+  `src/scene/scene-editor-shapes.css`, `editor/editor-editing.md` §8
+- **Rationale:** `editor/editor-editing.md` §3
+- **Affects:** scene — M5-4 잔여 단순화 지점 6개 중 5개 닫힘(mirror·
+  클립보드·symmetry 수동축·lane group·lane symmetry 3그룹) —
+  laneGridDivisor UI·같은 dest tick 갱신·Ctrl+D·전부 충돌 toast·lane
+  symmetry 4개 이상/비연속만 잔여
+- **Supersedes:** None
+- **Commit:** PENDING
+
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

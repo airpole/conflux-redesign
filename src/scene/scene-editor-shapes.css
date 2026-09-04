@@ -22,6 +22,21 @@
   color: var(--cyan);
 }
 
+.editor-shapes-axis-label {
+  color: #ffd23f;
+}
+
+.editor-shapes-axis-reset {
+  font-family: inherit;
+  font-size: inherit;
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  color: var(--dim);
+  border-radius: 3px;
+  padding: 0 0.4cqw;
+  cursor: pointer;
+}
+
 .editor-shapes-canvas-wrap {
   position: relative;
 }

@@ -173,6 +173,9 @@ ON이면 배치 시 대칭축 반대편에 자동 생성한다. **축 기본값 
 
 - [x] Ctrl+F mirror(shape·lane) — **닫힘**(M6-후속): `mirrorEventsCommand`(`edit-shape-commands.ts`)가 shape·lane 선택을 합쳐 한 undo로 제자리 mirror한다. shape는 축(중심) 0 기준 `targetPos′=-targetPos`+`isBlue` 반전, lane은 축(중심) 0.5 기준 `targetPos′=1-targetPos`(`lineNum` 불변) — `_extracted/EXTRACTED_FACTS.md` §12.4의 "mirror 시 `1-fraction`"과 같은 산수를 좌표계별 중심에 적용한 것. Ctrl+D 구간 복제(§4 서술)는 이번 라운드도 범위 밖이다.
 - [x] 클립보드(Ctrl+C/V, shape·lane) — **닫힘**(M6-후속): notes 탭의 기존 패턴(§1)을 그대로 옮겼다 — 복사는 선택 최소 dest tick 기준 `relTick`, 붙여넣기 기준점은 현재 스크롤 위치의 스냅 tick, 충돌(같은 dest tick·같은 체인)은 조용히 스킵. mirror와 달리 서브모드 필터를 그대로 따른다(§1 "선택·Ctrl+A는 서브모드 필터... 유일한 예외는 mirror") — shape 클립보드와 lane 클립보드는 분리돼 있다. "전부 충돌이면 토스트"는 이 에디터에 toast UI 자체가 없어(notes 탭도 안 하는 기존 생략, `src/app/app-editor.ts` 헤더 참조) 여기서도 새로 안 만들었다.
+- [x] symmetry 축 수동 조절(드래그 + "Auto axis" 버튼) — **닫힘**(M6-후속): §3 "드래그로 옮긴 축은 토글 off까지 유지된다... 자동으로 되돌리는 버튼을 둔다"를 그대로 구현했다. 축 점선을 드래그하면 즉시(commit-on-up 아님, chart를 안 건드리는 UI 상태) 고정값이 되고, `S`로 symmetry를 껐다 켜거나 "Auto axis" 버튼을 누르면 다시 동적 스냅샷으로 돌아간다 — "한 번 수동이면 세션 내내 수동"이 아니다. shape·lane(2-그룹) 공유, 자세한 interaction은 `src/scene/scene-editor-shapes.ts` 헤더.
+- [x] lane 그룹 토글-누적 방식 — **확정**(사용자 확인, M6-후속): 원본의 물리적 키-hold를 재현하지 않는 이 세션의 대체 설계를 영구 유지한다. 근거: 물리적 hold는 손가락 피로가 누적되고 토글이 더 나은 선택. 얻는 그룹 구성 집합은 원본과 같다.
+- [x] lane symmetry 3-그룹(연속) — **닫힘**(M6-후속): `LineNum`이 1|2|3뿐이라 "3개 선택"은 항상 {1,2,3} 하나(다른 3-조합은 이 데이터 모델에 없다). 축 = 가운데(line2)의 현재 위치 그 자체(안 움직인다), line3=클릭 위치, line1=대칭 생성. 이 축은 수동 조절 대상이 아니다. 4개 이상·비연속은 여전히 결정 필요 항목(워크플로 의존적, 이 데이터 모델엔 없는 자리).
 
 잔여:
-- **shapes/lane 서브모드는 M5-4에서 축소된 범위로 구현했다** — symmetry 축 수동 조절 없음(항상 동적 스냅샷), lane 그룹은 물리적 키-hold 대신 토글-누적 방식, lane symmetry는 그룹 정확히 2개일 때만 적용, `laneGridDivisor` 드롭다운·`V` 위치 스냅 순환 UI 없음(4·0.25 고정), 같은 dest tick 중복 배치는 조용히 스킵, Ctrl+D 구간 복제 없음, 전부 충돌 시 toast 없음 — 전부 결정 필요 항목, `src/scene/scene-editor-shapes.ts` 헤더가 상세.
+- **shapes/lane 서브모드는 M5-4에서 축소된 범위로 구현했다** — `laneGridDivisor` 드롭다운·`V` 위치 스냅 순환 UI 없음(4·0.25 고정), 같은 dest tick 중복 배치는 조용히 스킵, Ctrl+D 구간 복제 없음, 전부 충돌 시 toast 없음, lane symmetry 4개 이상·비연속 — 전부 결정 필요 항목, `src/scene/scene-editor-shapes.ts` 헤더가 상세.

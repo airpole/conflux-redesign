@@ -168,6 +168,89 @@ describe('scene-editor-shapes', () => {
     expect(nonInit.some((e) => !e.isBlue)).toBe(true);
   });
 
+  it('symmetry 축을 드래그하면 수동 축이 되고, 배치가 그 축을 쓴다', () => {
+    const { canvas, handle, target, getChart } = mount(
+      makeChart({ shapeEvents: [blueInit, redInit] }),
+    );
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 's' })); // symmetry ON.
+    // 기본 chart의 동적 축은 0(Blue -2·Red 2 평균) — pixelXOfExt(0)이 그
+    // 위치. -1로 드래그해 옮긴다.
+    dragPointer(canvas, { x: pixelXOfExt(0), y: 300 }, { x: pixelXOfExt(-1), y: 300 });
+    expect(target.textContent).toContain('Axis: manual');
+    expect(target.textContent).toContain('Auto axis');
+    // 축이 -1로 고정된 채로 Q 배치 — mirror는 2*(-1) - 5 = -7.
+    click(canvas, pixelXOfExt(5), pixelYOfTick(500));
+    const mirrored = getChart().shapeEvents.find((e) => e.targetPos === -7 && !e.isBlue);
+    expect(mirrored).toBeDefined();
+  });
+
+  it('symmetry를 껐다 켜면 수동 축이 지워지고 다시 동적으로 돌아간다', () => {
+    const { canvas, handle, target, getChart } = mount(
+      makeChart({ shapeEvents: [blueInit, redInit] }),
+    );
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 's' })); // ON.
+    dragPointer(canvas, { x: pixelXOfExt(0), y: 300 }, { x: pixelXOfExt(-4), y: 300 });
+    expect(target.textContent).toContain('Axis: manual');
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 's' })); // OFF — 수동 축 삭제.
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 's' })); // 다시 ON.
+    expect(target.textContent).not.toContain('Axis: manual');
+    click(canvas, pixelXOfExt(3), pixelYOfTick(500));
+    // 다시 동적 축(0) 기준 — mirror = 2*0 - 3 = -3.
+    const mirrored = getChart().shapeEvents.find((e) => e.targetPos === -3 && !e.isBlue);
+    expect(mirrored).toBeDefined();
+  });
+
+  it("'Auto axis' 버튼을 누르면 수동 축이 지워진다", () => {
+    const { canvas, handle, target } = mount(makeChart({ shapeEvents: [blueInit, redInit] }));
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 's' }));
+    dragPointer(canvas, { x: pixelXOfExt(0), y: 300 }, { x: pixelXOfExt(-4), y: 300 });
+    expect(target.textContent).toContain('Axis: manual');
+    const resetBtn = target.querySelector('.editor-shapes-axis-reset') as HTMLButtonElement;
+    expect(resetBtn).not.toBeNull();
+    resetBtn.click();
+    expect(target.textContent).not.toContain('Axis: manual');
+  });
+
+  it('lane 2-그룹 symmetry 축도 드래그로 고정된다', () => {
+    const { canvas, handle, target, getChart } = mount(
+      makeChart({ laneEvents: [line1Init, line2Init, line3Init] }),
+    );
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 't' })); // lane 모드.
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'w' })); // group {1,2}.
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 's' })); // symmetry ON.
+    // 기본 group {1,2}의 동적 축 = (line1 0.25 + line2 0.5)/2 = 0.375(rel) →
+    // ext = -2 + 0.375*4 = -0.5. rel 1.0(ext 2)로 드래그해 옮긴다.
+    dragPointer(canvas, { x: pixelXOfExt(-0.5), y: 300 }, { x: pixelXOfExt(2), y: 300 });
+    expect(target.textContent).toContain('Axis: manual');
+    // 축(rel 1.0) 기준 — line2(hi)=클릭 rel(1.5, ext 4), line1(lo)=2*1.0-1.5=0.5.
+    // y는 tick 0(기존 anchor들의 y)과 충분히 떨어뜨려 기존 점을 안 잡게 한다.
+    click(canvas, pixelXOfExt(4), 100);
+    const line2 = getChart().laneEvents.find((e) => e.lineNum === 2 && e.easing !== null);
+    const line1 = getChart().laneEvents.find((e) => e.lineNum === 1 && e.easing !== null);
+    expect(line2?.targetPos).toBe(1.5);
+    expect(line1?.targetPos).toBe(0.5);
+  });
+
+  it('lane 3-그룹(1,2,3) symmetry는 line3을 클릭 위치로, line1을 line2 중심 대칭으로 낸다(line2는 그대로)', () => {
+    const { canvas, handle, getChart } = mount(
+      makeChart({ laneEvents: [line1Init, line2Init, line3Init] }),
+    );
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 't' })); // lane 모드.
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'w' })); // {1} → {1,2}.
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'e' })); // {1,2} → {1,2,3}.
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 's' })); // symmetry ON.
+    const beforeLine2Count = getChart().laneEvents.filter((e) => e.lineNum === 2).length;
+    // line2(axis) rel=0.5 → ext=0. line3 클릭 위치를 grid-정렬된 rel 1.5(ext 4)로
+    // 잡는다 — y는 tick 0과 떨어뜨려 기존 anchor를 안 잡게 한다.
+    click(canvas, pixelXOfExt(4), 100);
+    const line3 = getChart().laneEvents.find((e) => e.lineNum === 3 && e.easing !== null);
+    const line1 = getChart().laneEvents.find((e) => e.lineNum === 1 && e.easing !== null);
+    expect(line3?.targetPos).toBe(1.5);
+    expect(line1?.targetPos).toBe(-0.5); // 2*0.5 - 1.5.
+    // line2는 이 배치로 새 이벤트가 안 생긴다(자기 자신이 축).
+    expect(getChart().laneEvents.filter((e) => e.lineNum === 2)).toHaveLength(beforeLine2Count);
+  });
+
   it('선택 후 D가 shape 이벤트를 삭제한다', () => {
     const target: ShapeEvent = {
       startTick: 0,
