@@ -2212,7 +2212,7 @@
   laneGridDivisor UI·같은 dest tick 갱신·Ctrl+D·전부 충돌 toast·lane
   symmetry 4개 이상/비연속만 잔여
 - **Supersedes:** None
-- **Commit:** PENDING
+- **Commit:** `31733b8`
 
 
 ### D-YYYY-NNN — <Title>
