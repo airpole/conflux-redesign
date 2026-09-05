@@ -2464,6 +2464,37 @@
 - **Supersedes:** None
 - **Commit:** `5487788`
 
+### D-2026-125 — notes 탭 Ctrl+D 복제(note+text) 한 undo로 합침, dual-dispatch 전수 확인
+
+- **Status:** Accepted
+- **Decision:** D-2026-123(paste)·D-2026-124(delete)와 같은 클래스의
+  문제를 `duplicateSelection`(Ctrl+D)에도 적용한다. 기존 코드는 note
+  추가와 text 추가를 각각 별도 `dispatch`로 내고 있었다 — 혼합 선택을
+  복제하면 Ctrl+Z 한 번에 하나만 되돌아가는 같은 문제. 이번엔 새
+  command를 만들지 않았다 — `duplicateSelection`이 만드는 모양("두
+  배열에 각각 추가")이 `pasteNotesAndTextEventsCommand`와 글자 그대로
+  같아서, 그 함수를 그대로 재사용했다(`toAddNotes`/`toAddTexts`를 구간
+  계산으로 채운 뒤 한 번만 dispatch). 커맨드 이름은 note만 있어도
+  `PasteNotesAndTextEvents`로 고정된다 — paste 때와 같은 이유(무엇이
+  새로 생겼는지 구분할 필요 없음).
+
+  이 라운드에서 `scene-editor-notes.ts`의 `dispatchNoteCommand`/
+  `dispatchTextCommand` 호출부 전체를 훑어 이 클래스의 버그가 더
+  남았는지 확인했다. 남은 호출부(단일 note 배치 3곳, text 모달의
+  Save/Edit/Delete 3곳, `mirrorSelection`, `moveNotesCommand`)는 전부
+  구조적으로 단일 타입만 다룬다 — text 모달은 애초에 note를 안 건드리고,
+  `mirrorSelection`은 `editor-editing.md` §4가 애초에 note에만 mirror를
+  정의해 뒀다(shape/lane과 달리 textEvent mirror 자체가 스펙에 없다,
+  §4에 textEvent 언급 없음) — 이건 dual-dispatch 누락이 아니라 애초에
+  1종만 다루는 정상 설계다. **paste·delete·duplicate 세 곳이 이 파일의
+  유일한 note+text 혼합 연산이었고, 셋 다 이제 닫혔다.**
+- **Defined in:** `src/scene/scene-editor-notes.ts`(`duplicateSelection`)
+- **Rationale:** D-2026-123(같은 문제·같은 해법, 재사용 가능함을 확인)
+- **Affects:** scene-editor-notes, `src/scene/README.md`,
+  `_plan/build-order.md` M5-7 — notes 탭 dual-dispatch 클래스 전수 마감
+- **Supersedes:** None
+- **Commit:** PENDING
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

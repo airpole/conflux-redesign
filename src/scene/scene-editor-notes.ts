@@ -721,10 +721,12 @@ export function mountEditorNotesBody(
    *  계산돼 제자리에서 스스로와 충돌하는" 문제가 애초에 생기지 않는다
    *  (범위가 이미 startTick~dest 기준이라 단일 항목도 자기 길이만큼
    *  나온다). §1 "선택에 textEvents가 포함돼 있으면 함께 복사·붙여넣기"를
-   *  따라 note·text를 **하나의 구간**으로 합쳐 계산하되, dispatch는
-   *  기존 관례대로 각각 별도다. 충돌(같은 lane+tick+isWide)은 note만
-   *  조용히 스킵한다(paste와 같은 검사) — text는 원래도 충돌 검사가
-   *  없다(겹침 허용). */
+   *  따라 note·text를 **하나의 구간**으로 합쳐 계산하고, 추가도 한
+   *  undo로 합친다(D-2026-125) — 이 모양은 paste가 "두 배열에 추가"로
+   *  이미 쓰는 것과 정확히 같아서 새 command를 만들지 않고
+   *  `pasteNotesAndTextEventsCommand`를 그대로 재사용한다. 충돌(같은
+   *  lane+tick+isWide)은 note만 조용히 스킵한다(paste와 같은 검사) —
+   *  text는 원래도 충돌 검사가 없다(겹침 허용). */
   function duplicateSelection(): void {
     if (selection.size === 0 && textSelection.size === 0) return;
     const notes = [...selection].map((i) => chart.notes[i]!);
@@ -737,26 +739,27 @@ export function mountEditorNotesBody(
     const rangeStart = Math.min(...starts);
     const rangeEnd = Math.max(...dests);
 
+    const toAddNotes: Note[] = [];
     if (notes.length > 0) {
       const existing = new Set(chart.notes.map((n) => `${n.lane}:${n.startTick}:${n.isWide}`));
-      const toAdd: Note[] = [];
       for (const n of notes) {
         const startTick = rangeEnd + (n.startTick - rangeStart);
         const key = `${n.lane}:${startTick}:${n.isWide}`;
         if (existing.has(key)) continue; // 같은 lane+tick+isWide 충돌은 조용히 스킵.
-        toAdd.push({ startTick, duration: n.duration, lane: n.lane, isWide: n.isWide });
+        toAddNotes.push({ startTick, duration: n.duration, lane: n.lane, isWide: n.isWide });
       }
-      if (toAdd.length > 0) dispatchNoteCommand((s) => addNotesCommand(s, toAdd));
     }
-    if (texts.length > 0) {
-      const toAdd: TextEvent[] = texts.map((e) => ({
-        startTick: rangeEnd + (e.startTick - rangeStart),
-        duration: e.duration,
-        content: e.content,
-        position: e.position,
-      }));
-      dispatchTextCommand((s) => addTextEventsCommand(s, toAdd));
-    }
+    const toAddTexts: TextEvent[] = texts.map((e) => ({
+      startTick: rangeEnd + (e.startTick - rangeStart),
+      duration: e.duration,
+      content: e.content,
+      position: e.position,
+    }));
+    if (toAddNotes.length === 0 && toAddTexts.length === 0) return;
+    // note·text 추가를 한 undo로 합친다(D-2026-125) — paste와 완전히 같은
+    // "두 배열에 추가" 모양이라 새 command를 만들지 않고
+    // pasteNotesAndTextEventsCommand를 그대로 재사용한다.
+    dispatchNoteCommand((s) => pasteNotesAndTextEventsCommand(s, toAddNotes, toAddTexts));
   }
 
   // ── pointer 처리 ─────────────────────────────────────────

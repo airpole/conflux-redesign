@@ -481,9 +481,11 @@ Shift+클릭=토글" 모델을 text event에도 그대로 적용해(`editor-edit
 "선택에 textEvents가 포함되면 함께 복사·붙여넣기") 별도 `textSelection`으로
 관리하고, **더블클릭이 기존 이벤트의 편집 모달을 연다**(해석적 결정으로 별도
 보고). tick 범위는 배치 시점에 고정되고 모달에서 재편집하지 않는다(원본의
-measure 입력 재현은 범위 밖). delete·paste 모두 note와 textEvent를 각각
-별도 dispatch로 내던 것을 D-2026-123(`pasteNotesAndTextEventsCommand`)·
-D-2026-124(`deleteNotesAndTextEventsCommand`)가 한 undo로 합쳐 닫았다.
+measure 입력 재현은 범위 밖). delete·paste·Ctrl+D 복제 모두 note와
+textEvent를 각각 별도 dispatch로 내던 것을 D-2026-123
+(`pasteNotesAndTextEventsCommand`)·D-2026-124
+(`deleteNotesAndTextEventsCommand`)·D-2026-125(복제도
+`pasteNotesAndTextEventsCommand` 재사용)가 한 undo로 합쳐 닫았다.
 재생 시 fade 표시는 이미 M4.5-1(`render-playfield.ts`의 `computeActiveTextEvents`/
 `drawTextEvent`, `scene-gameplay.ts`가 이미 호출)이 구현해 뒀다 — 이번
 라운드는 그 소비자를 위한 데이터를 만드는 편집 쪽만 채웠다. 테스트 신규:

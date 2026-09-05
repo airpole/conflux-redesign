@@ -424,7 +424,9 @@ describe('scene-editor-notes', () => {
     const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }));
     expect(consumed).toBe(true);
     expect(dispatch).toHaveBeenCalledTimes(1);
-    expect(dispatch.mock.calls[0]![0].name).toBe('AddNotes');
+    // D-2026-125부터 duplicate는 note만이어도 pasteNotesAndTextEventsCommand
+    // 재사용이라 통합 커맨드 이름이다.
+    expect(dispatch.mock.calls[0]![0].name).toBe('PasteNotesAndTextEvents');
     expect(getChart().notes).toHaveLength(2);
     const added = getChart().notes.find((n) => n.startTick === 500);
     expect(added).toBeDefined(); // 원본(0~500) 바로 뒤인 500에 복제됐다.
@@ -469,7 +471,7 @@ describe('scene-editor-notes', () => {
     expect(dispatch).not.toHaveBeenCalled();
   });
 
-  it('Ctrl+D — note와 text event 선택을 하나의 구간으로 합쳐 계산하되 dispatch는 따로 낸다', () => {
+  it('Ctrl+D — note와 text event 선택을 하나의 구간으로 합쳐 계산하고, 한 undo로 함께 추가한다(D-2026-125)', () => {
     const notes = [{ startTick: 0, duration: 0, lane: 1 as const, isWide: false }];
     const textEvents = [
       { startTick: 2000, duration: 480, content: 'Hi', position: 'middle' as const },
@@ -478,14 +480,19 @@ describe('scene-editor-notes', () => {
     click(canvas, 100, pixelYOfTick(0)); // note 선택.
     click(canvas, 100, pixelYOfTick(2000 + 240)); // text 선택(별도 Set).
     handle.onKeyDown(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }));
-    expect(dispatch).toHaveBeenCalledTimes(2); // AddNotes + AddTextEvents.
-    const names = dispatch.mock.calls.map((c) => (c[0] as Command).name);
-    expect(names).toContain('AddNotes');
-    expect(names).toContain('AddTextEvents');
+    // paste와 완전히 같은 "두 배열에 추가" 모양이라 pasteNotesAndTextEventsCommand를
+    // 그대로 재사용한다 — 새 command 없이 한 undo로 합쳐진다.
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]![0].name).toBe('PasteNotesAndTextEvents');
     // 구간 = note(tick 0)~text dest(2480), 길이 2480.
     // note 복제: rangeEnd(2480) + (0 - 0) = 2480.
     expect(getChart().notes.some((n) => n.startTick === 2480)).toBe(true);
     // text 복제: rangeEnd(2480) + (2000 - 0) = 4480.
     expect(getChart().textEvents.some((e) => e.startTick === 4480)).toBe(true);
+
+    // undo 한 번으로 note·text 복제 둘 다 원상복구된다.
+    (dispatch.mock.calls[0]![0] as Command).undo();
+    expect(getChart().notes).toHaveLength(1);
+    expect(getChart().textEvents).toHaveLength(1);
   });
 });
