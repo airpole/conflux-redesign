@@ -2548,6 +2548,22 @@
 - **Supersedes:** None
 - **Commit:** `2e2e4a8`
 
+### D-2026-128 — notes 탭 F/G 미구현 — 기능 공백(기록만, 이번 범위 아님)
+
+- **Status:** Deferred
+- **Decision:** `editor-editing.md` §5가 명시하는 두 키 — `F`(재생 중
+  follow, playhead를 따라 스크롤) / `G`(grid 표시 토글) — 가
+  `scene-editor-notes.ts`에 전혀 구현돼 있지 않다(`Ctrl+F`는 mirror로
+  이미 쓰이지만 plain `F`/`G` 자체는 `case`가 없다). M5.5-1(notes 캔버스
+  시각 디자인 리뷰) 진행 중 확인했다 — 시각 디자인이 아니라 상호작용
+  기능 공백이라 이번 M5.5 범위에 섞지 않고 기록만 남긴다. 별도 라운드에서
+  구현 여부·범위를 다시 판단한다.
+- **Defined in:** `src/scene/scene-editor-notes.ts`
+- **Rationale:** `editor/editor-editing.md` §5
+- **Affects:** scene-editor-notes — 향후 별도 구현 라운드 필요
+- **Supersedes:** None
+- **Commit:** PENDING
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred
