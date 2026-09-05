@@ -24,7 +24,16 @@ const zones = LAYERS.flatMap((layer, i) => {
 });
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'coverage/**', 'node_modules/**', 'tools/golden/**', 'tools/audit/**'] },
+  {
+    ignores: [
+      'dist/**',
+      'coverage/**',
+      'node_modules/**',
+      'tools/golden/**',
+      'tools/audit/**',
+      'tools/review/**',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
