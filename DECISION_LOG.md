@@ -2493,7 +2493,7 @@
 - **Affects:** scene-editor-notes, `src/scene/README.md`,
   `_plan/build-order.md` M5-7 — notes 탭 dual-dispatch 클래스 전수 마감
 - **Supersedes:** None
-- **Commit:** PENDING
+- **Commit:** `324a8f4`
 
 ### D-YYYY-NNN — <Title>
 
