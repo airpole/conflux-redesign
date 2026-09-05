@@ -2594,7 +2594,7 @@
 - **Affects:** scene-editor-notes, render-theme, `_plan/build-order.md`
   M5.5-1(부분 진행, 미종결)
 - **Supersedes:** None
-- **Commit:** PENDING
+- **Commit:** `74d7765`
 
 ### D-YYYY-NNN — <Title>
 
