@@ -2562,7 +2562,7 @@
 - **Rationale:** `editor/editor-editing.md` §5
 - **Affects:** scene-editor-notes — 향후 별도 구현 라운드 필요
 - **Supersedes:** None
-- **Commit:** PENDING
+- **Commit:** `c2e45f8`
 
 ### D-YYYY-NNN — <Title>
 
