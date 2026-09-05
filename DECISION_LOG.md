@@ -2527,6 +2527,27 @@
 - **Supersedes:** None
 - **Commit:** `e20ae1b`
 
+### D-2026-127 — "Package .cfx"/"Import .cfx" 배치 = editor-start 확정
+
+- **Status:** Accepted
+- **Decision:** M5-8이 `editor-start`에 임시로 붙인 "Package .cfx"/
+  "Import .cfx" 버튼 위치를 영구로 확정한다(사용자 확인). `_meta/cfx.md`
+  §8·§9는 "패키징 화면"이라고만 부르지 UI 위치를 정하지 않는다 — 이
+  문서 자체의 범위가 "파일 구성·식별자·패키징·로드 규칙"뿐이라 화면
+  배치는 원래도 이 문서 소관이 아니다(§16 "잔여: (없음)"도 이 관점과
+  일치한다). 두 대안(mode-select에 새 항목 추가, song-select에 배치)은
+  이미 검토돼 기각됐다 — mode-select는 이미 닫힌 spec이라 새 항목을
+  넣지 않았고, song-select("Import .cfx"엔 라이브러리 화면이라 더
+  자연스러울 수 있었다)는 이미 완성된 M4 화면이라 건드리지 않기로
+  했다. `editor-start`가 이미 다른 세 진입 경로(New Chart/Open JSON/
+  Open .cfx)를 모아 둔 자리라는 게 결정적이었다 — editor-start가 다섯
+  경로 전부의 영구 위치다.
+- **Defined in:** `src/scene/scene-editor-start.ts`
+- **Rationale:** `_meta/cfx.md` §8·§9(위치 미정), 사용자 확인(2026-09-05)
+- **Affects:** scene-editor-start, `_plan/build-order.md` M5-8
+- **Supersedes:** None
+- **Commit:** PENDING
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

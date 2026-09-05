@@ -24,11 +24,12 @@
  * `library` store(`.cfx` blob)만 읽는다(`game-song-select.ts`). 그 사이
  * 두 단계(여러 chart JSON을 `.cfx`로 묶기, 그 `.cfx`를 library에 등록)에
  * UI가 전혀 없어 이 화면에 최소로 붙였다 — `_meta/cfx.md` §8·§9의 "패키징
- * 화면"이 정확히 어디 있어야 하는지는 스펙이 정하지 않아(결정 필요 항목)
- * 이미 파일 흐름 진입점들이 모여 있는 이 화면을 재사용했다. "Import .cfx"도
- * 마찬가지로 위치가 spec에 없다 — song-select(라이브러리를 보여주는 화면)가
- * 더 자연스러울 수 있지만, 이미 완성된 그 화면을 건드리지 않으려고 여기
- * 뒀다(결정 필요 항목).
+ * 화면"이 정확히 어디 있어야 하는지는 스펙이 정하지 않는다. 이미 파일
+ * 흐름 진입점들이 모여 있는 이 화면을 재사용하기로 확정했다(D-2026-127)
+ * — mode-select는 이미 닫힌 spec이라 새 항목을 안 넣었고, song-select
+ * (라이브러리를 보여주는 화면이라 "Import .cfx"엔 더 자연스러울 수
+ * 있었다)는 이미 완성된 M4 화면이라 건드리지 않기로 했다. editor-start가
+ * Package/Import 둘의 영구 위치다.
  *
  * chart JSON 열기는 asset(music/jacket) 재연결 UI 없이도 스펙을 만족한다 —
  * `_meta/persistence.md` §10 "music Blob이 없을 때... 오디오 재생 불가

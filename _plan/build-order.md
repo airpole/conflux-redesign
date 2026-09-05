@@ -529,13 +529,13 @@ textEvent를 각각 별도 dispatch로 내던 것을 D-2026-123
 텍스트)·`pickBinaryFiles`(binary) 두 메서드를 **추가**해(기존 `pickFile`
 계약은 안 건드림) 닫았다.
 
-**"Package .cfx"/"Import .cfx" 배치는 spec에 위치가 정해져 있지 않다**
-(결정 필요 항목) — `_meta/cfx.md`는 "패키징 화면"이라고만 부르지 어디
-있어야 하는지 안 정한다. 이미 파일-흐름 진입점들이 모인 `editor-start`
-화면을 재사용했다 — mode-select의 항목 목록(play/editor/settings/credits)
-은 이미 확정된 spec이라 새 항목을 추가하지 않았고, song-select(더
-자연스러울 수 있는 후보)는 이미 완성된 M4-3/M4-4/M4-6/M4-7 화면이라
-건드리지 않았다.
+**"Package .cfx"/"Import .cfx" 배치** — `_meta/cfx.md`는 "패키징 화면"이라고만
+부르지 어디 있어야 하는지 spec에 정해 두지 않는다. 이미 파일-흐름
+진입점들이 모인 `editor-start` 화면을 재사용하기로 확정했다(D-2026-127)
+— mode-select의 항목 목록(play/editor/settings/credits)은 이미 확정된
+spec이라 새 항목을 추가하지 않았고, song-select(더 자연스러울 수 있는
+후보)는 이미 완성된 M4-3/M4-4/M4-6/M4-7 화면이라 건드리지 않았다.
+editor-start가 둘의 영구 위치다.
 
 이걸로 M5 자체 Exit 기준("빈 chart에서 시작해 노트·shape·lane·text·메타를
 넣고 저장한 뒤 game에서 플레이할 수 있다")이 **수동 다중 단계 경로로
@@ -547,6 +547,45 @@ difficulty를 init→Trace로 바꾸고 music 연결 → Ctrl+S 두 번(init·Tr
 `scene-editor-start.test.ts` +2 — 전체 1359/1359 통과.
 
 **Exit**: 빈 chart에서 시작해 노트·shape·lane·text·메타를 넣고 저장한 뒤 game에서 플레이할 수 있다. 수동 대조 시나리오 — 편집 조작별 결과 비교.
+
+---
+
+## 8.5. M5.5 — editor UI 디자인
+
+**목표**: M5(editor)가 최소 기능 레이아웃으로 남겨둔 다섯 개 editor 화면의
+픽셀 디자인을 `ui-design.md`에 확정한다. 각 파일 헤더가 이미 "ui-design.md가
+아직 editor 화면을 다루지 않아 결정 필요 항목"이라고 명시해 둔 자리들을
+한데 모은다 — M3.5(§6.5)·M4.5(§7.5)·M4.6(§7.6)과 같은 패턴이다.
+
+**주의**: gameplay HUD·pause overlay는 이 목록에 없다 — 그건 이미
+M4.5(D-2026-090)로 닫혔다(`ui-design.md` §2.10). `src/scene/README.md`의
+관련 문단이 M4-5 라운드 당시의 "결정 필요 항목" 서술을 그대로 남겨 뒀다가
+바로 다음 문단에서 M4.5가 닫았다고 잇는 구조라 헷갈리기 쉽다 — 실제로
+아직 열려 있는 건 아래 다섯 개, editor(M5) 전용이다.
+
+**범위**: 다섯 파일의 시각 디자인(레이아웃·치수·색)만 다룬다. 새 editor
+메커닉·상호작용 변경은 범위 밖이다.
+
+| 화면 | 파일 | 다루는 것 |
+|---|---|---|
+| notes 편집 캔버스·툴바 | `scene-editor-notes.ts`/`.css` | 캔버스·툴바 레이아웃·색 |
+| shape/lane 편집 캔버스·툴바 | `scene-editor-shapes.ts`/`.css` | 캔버스·툴바 레이아웃·색 |
+| editor 진입 화면 | `scene-editor-start.ts`/`.css` | New Chart/Open JSON/Open .cfx/Package .cfx/Import .cfx 배치(위치 자체는 D-2026-127로 이미 확정, 여기선 시각 디자인만) |
+| 저장 창(Ctrl+S) | `scene-editor-save.ts`/`.css` | 모달 레이아웃·색 |
+| test scene | `scene-editor-test.ts`/`.css` | idle preview·quick options panel·seek bar 레이아웃·색 |
+
+**진입 gate**: 없음 — M5 종료 직후 바로 연다.
+
+| step | 범위 | 완료 기준 |
+|---|---|---|
+| M5.5-1 | 다섯 editor 화면 시각 디자인 | `ui-design.md`가 각 화면의 구체 위치·치수·색 참조를 제공하고 사용자 승인을 받는다. |
+
+**Exit**: `ui-design.md`가 다섯 화면을 커버해, 각 파일의 "픽셀 디자인은
+결정 필요 항목" 주석을 닫을 수 있다.
+
+역할 분담은 M3.5(§6.5)·M4.5(§7.5)·M4.6(§7.6)과 같다 — 시각/제품 디자인
+판단은 사용자 몫, Claude Code는 이미 확정한 spec에서 무엇을 담아야
+하는지 정리해 레이아웃 초안을 제안한다.
 
 ---
 
