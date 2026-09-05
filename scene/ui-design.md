@@ -1210,3 +1210,78 @@ song-select의 quick options 닫기(`Esc/Space`)를 Backspace로도 옮길지는
 Backspace-as-back 통일 관점에서 바꾸려면 "오버레이 닫기가 화면 뒤로가기인지
 패널 닫기인지"부터 song-select UX를 보고 정해야 한다. song-select 작업 때
 별도로 처리한다.
+
+---
+
+## 10. editor — notes 편집 캔버스 (M5.5-1, D-2026-129)
+
+M5.5(§8.5, `_plan/build-order.md`)가 여는 다섯 editor 화면 시각 디자인
+리뷰의 첫 항목이다. §2.10(gameplay HUD)과 같은 성격 — canvas 안쪽은
+`render/theme.md`가 이미 실측해 둔 표현 값을 **재사용 확인**만 하고,
+grid 라벨은 이미 있던 `core-timing.ts`의 `gridLines`(원본 grid-render.js
+포트)를 처음 소비한다. 코드 표현은 `scene-editor-notes.ts`/`.css`.
+
+### 10.1 canvas 안 — theme.md 값 재사용 확인 + 신규 격자 라벨
+
+- **정상 노트**: 머리 `NOTE_COLOR.normalHead`(`#ffffff`) + 몸통
+  `NOTE_COLOR.normalBody`(`#8888a0`), 각진 모서리. tap류(duration 0)는
+  머리색 하나로만 보인다(몸통 높이가 0이라 머리가 덮는다).
+- **wide 노트**: 머리 `NOTE_COLOR.wideHead`(`#4AE8FF`) + 몸통
+  `WIDE_BODY_ALPHA`(`#008898cc`, theme.md의 반투명 변형), 모서리 반경
+  3px, 전체 lane 폭.
+- **overlap(chord)**: 머리/몸통을 `OVERLAP_COLOR`(head `#FFE14A`/body
+  `#C89830`)로 덮어 그린다 — theme.md에 실측만 돼 있고 아직 어떤
+  render도 안 쓰던 값이라(gameplay는 overlap을 안 그린다) 이 캔버스가
+  첫 소비자다.
+- **마디/박 격자**: `gridLines()`가 낸 `GridLine[]`을 그대로 훑어 마디선
+  (굵게, `--rule-strong` `#3a3a54`, 번호는 `--text` `#ececf4` bold
+  11px)과 박선(옅게, `#33333c`, 번호는 `#5a5a62` 9px)을 구분해 그린다.
+  박 "1"은 그 tick의 마디선 자체 번호로 대신하고 따로 안 찍는다(원본
+  `grid-render.js` 로직 그대로) — 새로 정한 값은 마디선·마디번호의 색뿐
+  이다(사용자가 준 값은 박선/박번호까지고, 마디 쪽은 지정이 없어 이
+  문서의 기존 토큰 `--rule-strong`/`--text`로 채웠다, §5 자율 보완).
+- **conflict·selected·판정선·text event·pending 미리보기**: 이번
+  라운드가 건드리지 않았다 — 아래 10.2 참조.
+
+### 10.2 확인된 구현 격차 — conflict/selected/판정선 (조치 없음, 사용자 확인)
+
+사용자가 참조한 원본 값(conflict = 빨강 점선/glow **테두리**, selected =
+초록 glow 테두리, 판정선 = 노랑 선 + 왼쪽 삼각 마커)과 실제 코드는
+다르다:
+
+| 항목 | 참조 목표값 | 실제 코드(변경 안 함) |
+|---|---|---|
+| conflict | 빨강(`#ff3040`) 테두리, fill 아님 | `#ff5f70` **fill**(테두리 없음) |
+| selected | 초록(`#4aff8a`) glow 테두리 | 파랑(`#4fbcd0`) 2px stroke |
+| 판정선 | 노랑(`#ffe44a`) 선 + 왼쪽 삼각 마커 | 파랑(`#4fbcd0`) 단순 선, 마커 없음 |
+
+M5.5-1 스크린샷 리뷰 라운드에서 발견해 보고했고, 사용자가 "이번
+라운드는 그대로 두고 건드리지 않는다"고 명시적으로 확인했다 — 그래서
+위 표는 실제로 반영하지 않은 채 격차만 기록해 둔다. 이 표를 반영할지는
+별도 라운드에서 다시 판단한다.
+
+### 10.3 툴바 크롬 — 보류 (사용자 확인 대기)
+
+MD3 톤(무채색, 활성=진회색 필 배경)의 top app bar(워드마크·탭 Notes/
+Shapes/Play/Meta·Files·전체화면) + 3단 버튼 그룹(History+선택 /
+노트 타입 팔레트 / 편집+뷰 토글)을 요청받았다. Undo/Redo·Note/Long/
+Wide/WLN/Txt·Copy/Paste/Flip은 기존 키보드 기능(Q/W/E/R/T,
+Ctrl+C/V/F 등)에 그대로 매핑되지만, 다음은 대응하는 기능이 이
+코드베이스에 없다 — 구현하지 않고 확인만 기다린다:
+
+- **Sel** — "전체 선택"에 대응하는 기능이 없다(지금은 클릭/Shift+클릭
+  선택만 있다).
+- **½** — 무엇을 반으로 나누는 버튼인지(grid divisor? 선택 note
+  길이?) 스펙에 근거가 없다.
+- **Fol** — `editor-editing.md` §5의 `F`(재생 중 follow)다. 바로 이전
+  라운드에서 **D-2026-128로 "미구현, 별도 라운드로 이연"** 기록했다 —
+  이번 라운드가 그 F 기능 자체를 만들지 않는 한 버튼을 눌러도 아무
+  일도 안 일어난다.
+- **Files·전체화면** — notes 탭 범위에 대응 기능이 없다(전체화면은
+  Fullscreen API 자체가 이 코드베이스 어디에도 없다).
+
+Notes/Shapes/Play(=test)/Meta 탭 자체는 `editor-graph.md`의 기존
+scene 전환(Tab 순환·meta는 click-entry)에 새 마우스 진입점을 얹는
+것뿐이라 스펙과 안 어긋난다 — 나머지 버튼들의 대응 기능 확인 후
+tabs까지 한 번에 구현하는 편이 나을지, tabs만 먼저 넣을지는 사용자
+판단을 기다린다.

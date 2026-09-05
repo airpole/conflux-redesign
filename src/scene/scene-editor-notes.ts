@@ -72,9 +72,28 @@
  * undo scope `n`을 쓰는데(`editor-commands.md` §2) 따로 dispatch하면
  * Ctrl+Z 한 번에 하나만 되돌아가는 문제가 있었다 — `mirrorEventsCommand`
  * (shapeEvents·laneEvents를 합친 선례)와 같은 패턴으로 닫았다.
+ *
+ * **M5.5-1(D-2026-129)이 캔버스 시각 디자인 일부를 확정했다** — 정상/wide
+ * 노트를 머리+몸통 두 톤으로(`render/theme.md` §1의 `NOTE_COLOR`/
+ * `WIDE_BODY_ALPHA`, gameplay와 같은 값 재사용), overlap을 금색 두 톤으로
+ * (`OVERLAP_COLOR`, 이번 라운드가 첫 소비자), 마디/박 격자선+번호를
+ * `core-timing.ts`의 `gridLines`(원본 grid-render.js 포트, 이번 라운드가
+ * 첫 소비자)로 새로 그린다. **conflict(빨강)·selected(파랑 stroke)·판정선·
+ * text event·pending 미리보기는 이번 라운드가 건드리지 않았다** — 사용자가
+ * 참조한 목표값(빨강 점선 테두리·초록 glow·노랑 삼각 마커)과 실제 코드가
+ * 다르다는 걸 확인했지만(구현 격차), 명시적으로 "이번 라운드는 그대로"라고
+ * 확인받아 그 격차를 그대로 남겨 뒀다 — 별도 보고.
+ *
+ * **툴바 크롬(Material Design 3, tabs/버튼 그룹)은 이번 라운드에 포함되지
+ * 않았다** — 요청받은 버튼 중 Undo/Redo·Note·Long·Wide·WLN·Txt·Copy·
+ * Paste·Flip은 기존 키보드 기능에 매핑되지만, Sel(select-all에 대응하는
+ * 기능이 없다)·½(대응 기능 불명)·Fol(D-2026-128로 이미 "미구현" 기록된
+ * `F`, follow-중 재생 스크롤)·Files·전체화면 버튼은 대응하는 기능이 이
+ * 코드베이스 어디에도 없다 — 사용자 확인 대기, 별도 보고.
  */
 import {
   buildTimeline,
+  gridLines,
   minTick,
   snapTick,
   songEndOf,
@@ -84,6 +103,7 @@ import {
 } from '../core/core-timing.js';
 import { buildOverlapMap, type OverlapMark } from '../core/core-overlap.js';
 import { TICKS_PER_BEAT, GRID_DIVISOR_DEFAULT } from '../core/core-constants.js';
+import { NOTE_COLOR, OVERLAP_COLOR, WIDE_BODY_ALPHA } from '../render/render-theme.js';
 import {
   TEXT_POSITIONS,
   type Chart,
@@ -222,6 +242,9 @@ function findNoteIndexAt(
   return null;
 }
 
+/** conflict/hidden 표시는 이번 라운드가 건드리지 않는다(사용자 확인,
+ *  M5.5-1 2번째 라운드) — 기존 flat fill 그대로 유지한다. 정상/overlap
+ *  표시만 아래 `draw()`가 `NOTE_COLOR`/`OVERLAP_COLOR`로 새로 그린다. */
 function markColor(mark: OverlapMark | null | undefined): string {
   if (mark === null || mark === undefined) return '#ececf4';
   if (mark.kind === 'conflict') return '#ff5f70';
@@ -229,6 +252,32 @@ function markColor(mark: OverlapMark | null | undefined): string {
   if (mark.kind === 'hidden') return 'transparent';
   return '#ececf4';
 }
+
+/** 모서리 반경 `r`인 사각형 path — wide 노트 전용(D-2026-129, `render/theme.md`
+ *  §1의 색과 함께 이번 라운드가 새로 그리는 모양). 일반 노트는 계속 각진
+ *  사각형이라 이 helper를 안 쓴다. */
+function roundedRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+): void {
+  const rr = Math.max(0, Math.min(r, w / 2, h / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+/** wide 노트 모서리 반경(px) — 사용자 확인값("small radius, ~3px"). */
+const WIDE_CORNER_RADIUS_PX = 3;
+/** note "head" 밴드 두께(px) — tap류는 이 두께 자체가 노트 전체다. */
+const NOTE_HEAD_PX = 4;
 
 /** text event는 lane과 무관하게 전체 폭 띠로 그려진다 — y(tick 범위)만
  *  히트 판정한다(note와 달리 x 제약이 없다). */
@@ -411,6 +460,33 @@ export function mountEditorNotesBody(
     ctx.fillStyle = '#050508';
     ctx.fillRect(0, 0, cw, ch);
 
+    // 마디/박 격자선 + 번호(D-2026-129) — `core-timing.ts`의 `gridLines`
+    // (원본 grid-render.js 포트, 단일 출처)를 그대로 쓴다. 마디선(굵은
+    // 번호)과 박선(옅은 회색, 작은 번호)을 구분해 그린다 — 박 "1"은
+    // 마디선 자신의 굵은 번호로 대신하고 따로 안 찍는다(원본 로직 그대로).
+    const topTick = pixelYToTick(0, ch, timeline, view.scrollMs, view.viewMs);
+    const bottomTick = pixelYToTick(ch, ch, timeline, view.scrollMs, view.viewMs);
+    for (const line of gridLines(timeline, bottomTick, topTick)) {
+      const y = tickToPixelY(line.tick, ch, timeline, view.scrollMs, view.viewMs);
+      ctx.strokeStyle = line.isMeasure ? '#3a3a54' : '#33333c';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(cw, y);
+      ctx.stroke();
+
+      ctx.textBaseline = 'bottom';
+      if (line.isMeasure) {
+        ctx.fillStyle = '#ececf4';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(String(line.measureNum), 4, y - 2);
+      } else {
+        ctx.fillStyle = '#5a5a62';
+        ctx.font = '9px sans-serif';
+        ctx.fillText(String(line.beatInMeasure), 8, y - 2);
+      }
+    }
+
     // lane 구분선.
     ctx.strokeStyle = '#1e1e30';
     ctx.lineWidth = 1;
@@ -454,22 +530,65 @@ export function mountEditorNotesBody(
           (ch / view.viewMs);
       }
 
-      ctx.fillStyle = markColor(mark);
       ctx.strokeStyle = isSelected ? '#4fbcd0' : '#00000000';
       ctx.lineWidth = 2;
 
+      // conflict/hidden 표시는 이번 라운드가 건드리지 않는다(사용자 확인) —
+      // 기존 flat fill 그대로 유지한다. 정상/overlap만 아래 두 톤(머리+몸통)
+      // 으로 새로 그린다(D-2026-129, `render/theme.md` §1 색).
+      if (mark?.kind === 'conflict') {
+        ctx.fillStyle = markColor(mark);
+        if (note.isWide) {
+          const top = Math.min(y0, y1) + dy;
+          const height = Math.max(4, Math.abs(y1 - y0));
+          ctx.fillRect(0 + dx, top, cw, height);
+          if (isSelected) ctx.strokeRect(0 + dx, top, cw, height);
+        } else {
+          const cx = laneCenterX(note.lane, cw) + dx;
+          const top = Math.min(y0, y1) + dy;
+          const height = Math.max(4, Math.abs(y1 - y0));
+          const w = cw / 4 - 8;
+          ctx.fillRect(cx - w / 2, top, w, height);
+          if (isSelected) ctx.strokeRect(cx - w / 2, top, w, height);
+        }
+        return;
+      }
+
+      const isOverlap = mark?.kind === 'yellow';
+      const headColor = isOverlap
+        ? OVERLAP_COLOR.head
+        : note.isWide
+          ? NOTE_COLOR.wideHead
+          : NOTE_COLOR.normalHead;
+      const bodyColor = isOverlap
+        ? OVERLAP_COLOR.body
+        : note.isWide
+          ? WIDE_BODY_ALPHA
+          : NOTE_COLOR.normalBody;
+
+      const top = Math.min(y0, y1) + dy;
+      const height = Math.max(4, Math.abs(y1 - y0));
+      const bottom = top + height;
+      const headH = Math.min(NOTE_HEAD_PX, height);
+
       if (note.isWide) {
-        const top = Math.min(y0, y1) + dy;
-        const height = Math.max(4, Math.abs(y1 - y0));
-        ctx.fillRect(0 + dx, top, cw, height);
-        if (isSelected) ctx.strokeRect(0 + dx, top, cw, height);
+        const x = 0 + dx;
+        roundedRectPath(ctx, x, top, cw, height, WIDE_CORNER_RADIUS_PX);
+        ctx.fillStyle = bodyColor;
+        ctx.fill();
+        roundedRectPath(ctx, x, bottom - headH, cw, headH, WIDE_CORNER_RADIUS_PX);
+        ctx.fillStyle = headColor;
+        ctx.fill();
+        if (isSelected) ctx.strokeRect(x, top, cw, height);
       } else {
         const cx = laneCenterX(note.lane, cw) + dx;
-        const top = Math.min(y0, y1) + dy;
-        const height = Math.max(4, Math.abs(y1 - y0));
         const w = cw / 4 - 8;
-        ctx.fillRect(cx - w / 2, top, w, height);
-        if (isSelected) ctx.strokeRect(cx - w / 2, top, w, height);
+        const x = cx - w / 2;
+        ctx.fillStyle = bodyColor;
+        ctx.fillRect(x, top, w, height);
+        ctx.fillStyle = headColor;
+        ctx.fillRect(x, bottom - headH, w, headH);
+        if (isSelected) ctx.strokeRect(x, top, w, height);
       }
     });
 

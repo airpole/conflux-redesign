@@ -2564,6 +2564,38 @@
 - **Supersedes:** None
 - **Commit:** `c2e45f8`
 
+### D-2026-129 — M5.5-1 notes 캔버스 시각 디자인(부분) — theme.md 값 재사용 + 격자 라벨
+
+- **Status:** Accepted
+- **Decision:** notes 편집 캔버스 안쪽 시각 디자인을 확정한다(사용자
+  확인). 정상/wide 노트를 머리+몸통 두 톤으로(`render/theme.md` §1의
+  `NOTE_COLOR`/새로 추가한 `WIDE_BODY_ALPHA` — gameplay와 같은 값
+  재사용, 단일 출처 유지), overlap을 금색 두 톤으로(새로 추가한
+  `OVERLAP_COLOR` — theme.md에 실측만 있고 이번이 첫 소비자), 마디/박
+  격자선+번호를 기존 `core-timing.ts`의 `gridLines()`(원본
+  grid-render.js 포트, 이번이 첫 소비자)로 그린다. 마디선/마디번호
+  색은 사용자 지정이 없어 `ui-design.md`의 기존 토큰(`--rule-strong`/
+  `--text`)으로 자율 보완했다(§5).
+  **conflict(빨강 fill, 테두리 아님)·selected(파랑 stroke)·판정선(파랑
+  단순 선)·text event·pending 미리보기는 이번 라운드가 건드리지
+  않았다** — 사용자가 참조한 목표값과 실제 코드가 다르다는 걸 확인해
+  보고했지만, "이번 라운드는 그대로"로 명시 확인받아 격차만
+  `ui-design.md` §10.2에 기록해 뒀다.
+  **툴바 크롬(MD3 tabs/버튼 그룹)은 포함하지 않았다** — 요청받은
+  버튼 중 Sel(전체 선택)·½·Fol(D-2026-128로 이미 미구현 기록된 F
+  follow)·Files·전체화면이 대응하는 기능이 코드베이스에 없어 별도
+  확인 대기(`ui-design.md` §10.3). M5.5-1은 다섯 editor 화면 전부를
+  묶은 한 단계라 이 결정만으로 닫히지 않는다 — notes 캔버스 안쪽만
+  닫혔고, notes 툴바 + 나머지 4개 화면이 남는다.
+- **Defined in:** `scene/ui-design.md` §10
+- **Rationale:** `render/theme.md` §1(`NOTE_COLOR`/`OVERLAP_COLOR`/
+  `WIDE_BODY_ALPHA`), `core-timing.ts`의 `gridLines`, 사용자
+  확인(2026-09-05)
+- **Affects:** scene-editor-notes, render-theme, `_plan/build-order.md`
+  M5.5-1(부분 진행, 미종결)
+- **Supersedes:** None
+- **Commit:** PENDING
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

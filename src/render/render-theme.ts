@@ -27,6 +27,19 @@ export const NOTE_COLOR = {
   normalBody: '#8888a0',
 } as const;
 
+/** wide 노트 body의 반투명 변형(그리드가 비친다) — `render/theme.md` §1
+ *  `WIDE_BODY_ALPHA`. gameplay는 아직 안 쓴다 — editor notes 캔버스가
+ *  M5.5-1 첫 소비자다. */
+export const WIDE_BODY_ALPHA = '#008898cc';
+
+/** overlap(2키 lane 겹침) 색 — `render/theme.md` §1 `OVERLAP_COLOR`/
+ *  `OVERLAP_BODY`. gameplay는 overlap을 그리지 않는다 — editor notes
+ *  캔버스가 M5.5-1 첫 소비자다. */
+export const OVERLAP_COLOR = {
+  head: '#FFE14A',
+  body: '#C89830',
+} as const;
+
 export const SHAPE_BOUNDARY = {
   color: '#ffffffc8',
   lineWidth: 3,
