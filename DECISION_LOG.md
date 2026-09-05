@@ -2525,7 +2525,7 @@
 - **Affects:** scene-editor-notes, scene-editor-shapes, scene-editor-view,
   `_plan/build-order.md` M5-6 — D-2026-104의 잔여 항목 닫힘
 - **Supersedes:** None
-- **Commit:** PENDING
+- **Commit:** `e20ae1b`
 
 ### D-YYYY-NNN — <Title>
 
