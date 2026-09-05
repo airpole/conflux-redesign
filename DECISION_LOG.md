@@ -2546,7 +2546,7 @@
 - **Rationale:** `_meta/cfx.md` §8·§9(위치 미정), 사용자 확인(2026-09-05)
 - **Affects:** scene-editor-start, `_plan/build-order.md` M5-8
 - **Supersedes:** None
-- **Commit:** PENDING
+- **Commit:** `2e2e4a8`
 
 ### D-YYYY-NNN — <Title>
 
