@@ -460,15 +460,18 @@ shapes/meta와 같은 delegation 패턴). `app-main.ts`가 `enterGameplayFromEdi
 기각했다. 5000ms 하한은 (a)에만 적용된다(재생 중 이동 자체가 이번 라운드
 범위 밖 — 정지[Esc]→위치 다시 seek→재시작(Space/Enter)만 지원).
 
-**남은 결정 필요 항목**: notes/shapes 스크롤바의 상한이 고정 총량 없이(원래
-무제한 위쪽 스크롤 모델) 현재 스크롤 위치까지 동적으로 늘어난다 —
-`scene-editor-notes.ts`/`scene-editor-shapes.ts`의 `scrollbarRange()`. Enter가
-quick options row 확정과 gameplay 진입 두 곳에서 겹쳐(embedded 패널이라
-song-select overlay처럼 모달로 못 가른다) "미확정 draft가 있을 때만 quick
-options가 삼킨다"로 절충했다 — `scene-editor-test.ts` 헤더 참조. 즉시재생 HUD는
-playfield·notes·판정선·key 빔·콤보·카운터/퍼센트만 그린다(jacket·sudden
-cover·text event·hit effect는 Exit 기준 밖으로 남겼다). idle static preview의
-conflict 표시는 계산·렌더 배선이 아직 없다.
+notes/shapes 스크롤바의 상한은 애초엔 고정 총량 없이(원래 무제한 위쪽
+스크롤 모델) 현재 스크롤 위치까지 동적으로 늘어나기만 했다 — 이후
+D-2026-126이 `contentEndMs`([[timing]] §9) 기준으로 바꾸고, 그 동적
+성장은 chart 끝 너머로 스크롤할 때의 escape hatch로만 남겨 닫았다
+(`scene-editor-notes.ts`/`scene-editor-shapes.ts`의 `scrollbarRange()`).
+Enter가 quick options row 확정과 gameplay 진입 두 곳에서 겹쳐(embedded
+패널이라 song-select overlay처럼 모달로 못 가른다) "미확정 draft가 있을
+때만 quick options가 삼킨다"로 절충했다 — `scene-editor-test.ts` 헤더
+참조. 즉시재생 HUD는 playfield·notes·판정선·key 빔·콤보·카운터/퍼센트만
+그린다(jacket·sudden cover·text event·hit effect는 Exit 기준 밖으로
+남겼다). **남은 결정 필요 항목**: idle static preview의 conflict 표시는
+계산·렌더 배선이 아직 없다.
 | M5-7 | text events | 배치·편집·삭제가 되고 재생 시 정의된 fade로 표시된다. |
 
 **M5-7 진행 상황**: `edit-text-commands.ts`(AddTextEvents/DeleteTextEvents/

@@ -961,4 +961,22 @@ describe('scene-editor-shapes', () => {
     expect(updated?.targetPos).toBe(0.6); // targetPos는 그대로.
     expect(getChart().laneEvents).toHaveLength(4); // 새로 추가된 게 없다.
   });
+
+  it('scrollbar 상한이 chart 실제 길이를 기준으로 삼는다(D-2026-126)', () => {
+    // 아주 늦은 dest tick의 이벤트로 chart 길이를 크게 만든다. 이전 방식
+    // (스크롤 위치까지만 자라는 상한)이라면 스크롤 전 span=viewMs라
+    // thumb가 100%였다 — 이제 contentEndMs 기준이라 스크롤 전에도 작아야
+    // 한다.
+    const far: ShapeEvent = {
+      startTick: 0,
+      duration: 1920 * 200,
+      isBlue: true,
+      targetPos: 4,
+      easing: 'Linear',
+    };
+    const { target } = mount(makeChart({ shapeEvents: [blueInit, redInit, far] }));
+    const thumb = target.querySelector('.editor-scrollbar-thumb') as HTMLElement;
+    const heightPct = Number.parseFloat(thumb.style.height);
+    expect(heightPct).toBeLessThan(50);
+  });
 });

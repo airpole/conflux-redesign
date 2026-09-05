@@ -171,6 +171,7 @@ import {
   buildTimeline,
   minTick,
   snapTick,
+  songEndOf,
   tickToMs,
   msToTick,
   type Timeline,
@@ -446,9 +447,16 @@ export function mountEditorShapesBody(
   // 세로 scrollbar(M5-6, D-2026-104) — notes와 같은 위젯/규칙(scene-editor-
   // notes.ts 참조, 상한은 결정 필요 항목).
   const scrollbar: EditorScrollbar = mountEditorScrollbar(canvasWrap, view, () => render());
+  /** D-2026-126 — `scene-editor-notes.ts`의 `scrollbarRange`와 같은 근거·
+   *  같은 패턴(`songEndOf`의 `contentEndMs`를 상한 기준으로, 그 너머는
+   *  계속 스크롤 가능). */
   function scrollbarRange(): { minMs: number; maxMs: number } {
     const minMs = tickToMs(timeline, minTick(timeline));
-    return { minMs, maxMs: Math.max(minMs + view.viewMs, view.scrollMs + view.viewMs) };
+    const contentEndMs = songEndOf(timeline, chart, null).contentEndMs;
+    return {
+      minMs,
+      maxMs: Math.max(minMs + view.viewMs, contentEndMs, view.scrollMs + view.viewMs),
+    };
   }
 
   let subMode: SubMode = 'shape';

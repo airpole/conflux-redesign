@@ -77,6 +77,7 @@ import {
   buildTimeline,
   minTick,
   snapTick,
+  songEndOf,
   tickToMs,
   msToTick,
   type Timeline,
@@ -344,9 +345,18 @@ export function mountEditorNotesBody(
   // 상한은 고정 총량이 없어(원래 무제한 스크롤 모델) 현재 스크롤 위치까지
   // 동적으로 늘어난다(scene-editor-view.ts 헤더 참조, 결정 필요 항목).
   const scrollbar: EditorScrollbar = mountEditorScrollbar(canvasWrap, view, () => render());
+  /** D-2026-126 — 상한은 chart 실제 길이(`contentEndMs`, [[timing]] §9)를
+   *  기준으로 삼되, 그보다 더 스크롤하면(편집 중엔 chart 끝 너머로 note를
+   *  놓는 게 정상이라 계속 허용한다) 그만큼 자란다 — test scene이 이미
+   *  쓰는 `songEndOf` 패턴 그대로(`scene-editor-test.ts` 참조), 음악
+   *  재생 길이는 이 씬에서 알 수 없어 test scene과 같이 `null`이다. */
   function scrollbarRange(): { minMs: number; maxMs: number } {
     const minMs = tickToMs(timeline, minTick(timeline));
-    return { minMs, maxMs: Math.max(minMs + view.viewMs, view.scrollMs + view.viewMs) };
+    const contentEndMs = songEndOf(timeline, chart, null).contentEndMs;
+    return {
+      minMs,
+      maxMs: Math.max(minMs + view.viewMs, contentEndMs, view.scrollMs + view.viewMs),
+    };
   }
 
   let drag: {

@@ -21,10 +21,13 @@
  * 곳에 뒀다(새 계층을 만든 게 아니라 기존 상태 소유자에 자연스러운 확장).
  * 세로 트랙(우측 고정) — notes/shapes의 "시간은 위로 흐른다" 관례를 그대로
  * 따라 트랙 위쪽이 늦은 시각, 아래쪽이 이른 시각이다. `range`(min/maxMs)는
- * 호출측이 매 update마다 넘긴다 — notes/shapes는 `minTick()` 하한 + 현재
- * 스크롤 위치까지 동적으로 늘어나는 상한(원래 위·아래 한계가 없는 스크롤
- * 모델이라 고정 총량이 없다, 결정 필요 항목으로 별도 보고), test scene은
- * `Math.max(contentEndMs, 5000)`(D-2026-097/103) 고정 상한을 쓴다.
+ * 호출측이 매 update마다 넘긴다 — notes/shapes는 `minTick()` 하한 +
+ * `contentEndMs`([[timing]] §9, `songEndOf`) 기준 상한을 쓴다(D-2026-126)
+ * — 원래 위·아래 한계가 없는 스크롤 모델이라 그 너머로 스크롤하면(편집
+ * 중엔 chart 끝 너머로 note를 놓는 게 정상이다) 상한이 그만큼 계속
+ * 자란다. test scene은 `Math.max(contentEndMs, 5000)`(D-2026-097/103)
+ * 고정 상한을 쓴다 — notes/shapes와 달리 이미 있는 content 안에서만
+ * 재생 시작점을 고르는 순수 탐색이라 그 너머로 자랄 이유가 없다.
  */
 import './scene-editor-view.css';
 

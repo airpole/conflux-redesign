@@ -495,4 +495,15 @@ describe('scene-editor-notes', () => {
     expect(getChart().notes).toHaveLength(1);
     expect(getChart().textEvents).toHaveLength(1);
   });
+
+  it('scrollbar 상한이 chart 실제 길이를 기준으로 삼는다(D-2026-126)', () => {
+    // 아주 늦은 tick의 note로 chart 길이를 크게 만든다. 이전 방식(스크롤
+    // 위치까지만 자라는 상한)이라면 스크롤 전 span=viewMs라 thumb가
+    // 100%였다 — 이제 contentEndMs 기준이라 스크롤 전에도 작아야 한다.
+    const notes = [{ startTick: 1920 * 200, duration: 0, lane: 1 as const, isWide: false }];
+    const { target } = mount(makeChart({ notes }));
+    const thumb = target.querySelector('.editor-scrollbar-thumb') as HTMLElement;
+    const heightPct = Number.parseFloat(thumb.style.height);
+    expect(heightPct).toBeLessThan(50);
+  });
 });

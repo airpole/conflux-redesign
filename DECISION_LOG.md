@@ -1638,8 +1638,10 @@
   (`load-chart.js`/`notes-render.js`/`shape-tools.js` 실측 확인) — 완전히
   새 UI다, 기존 CSS 토큰만 재사용했다(`scene-editor-view.css`).
   notes/shapes의 상한은 원래 무제한 위쪽 스크롤 모델이라 고정 총량이 없어
-  현재 스크롤 위치까지 동적으로 늘어나는 상한을 썼다(결정 필요 항목으로
-  별도 표시) — test scene은 D-2026-097의 5000ms 하한을 고정 상한으로 쓴다.
+  현재 스크롤 위치까지 동적으로 늘어나는 상한을 썼다(~~결정 필요 항목으로
+  별도 표시~~ — **D-2026-126이 닫았다**: `contentEndMs` 기준으로 바꾸고
+  이 동적 성장은 그 너머로 스크롤할 때의 escape hatch로만 남겼다) — test
+  scene은 D-2026-097의 5000ms 하한을 고정 상한으로 쓴다.
 
   **`editor-editing.md`의 "seek bar" 문구는 (a)(위치를 고르는 컨트롤)만
   가리킨다** — idle의 정적 요소 나열(HUD·conflict·quick options와 나란히)로만
@@ -2494,6 +2496,36 @@
   `_plan/build-order.md` M5-7 — notes 탭 dual-dispatch 클래스 전수 마감
 - **Supersedes:** None
 - **Commit:** `324a8f4`
+
+### D-2026-126 — notes/shapes 스크롤바 상한 = `contentEndMs` 기준 (Option A)
+
+- **Status:** Accepted
+- **Decision:** D-2026-104가 "결정 필요 항목"으로 남긴 notes/shapes
+  스크롤바 상한을 닫는다. 지금까지는 `Math.max(minMs+viewMs,
+  scrollMs+viewMs)` — 상한이 항상 "지금 스크롤한 위치+한 화면"이라
+  thumb가 chart 길이와 무관하게 항상 꽉 차 보였다(스크롤 전엔 100%).
+  test scene이 이미 쓰는 패턴(`songEndOf`의 `contentEndMs`, [[timing]]
+  §9)을 그대로 재사용해 `Math.max(minMs+viewMs, contentEndMs,
+  scrollMs+viewMs)`로 바꿨다 — chart를 열자마자 실제 길이 대비 thumb
+  크기가 뜻을 갖는다. **원래의 "스크롤할수록 자라는" 동작은 escape
+  hatch로 남겼다** — notes/shapes는 편집 화면이라 chart 끝 너머로
+  note를 놓는 게 정상적인 편집 행위이므로(test scene과 다른 점 — test는
+  이미 있는 content 안에서 재생 시작점만 고르는 순수 탐색이라 그 너머로
+  자랄 이유가 없다), `contentEndMs`를 고정 상한으로 못 박지 않고 그
+  너머로 스크롤하면 여전히 그만큼 자란다.
+
+  Option B(고정 여백을 더해 상한 뒤에 여유를 두는 안)는 채택하지
+  않았다 — 원본에도 스펙에도 그 여백 크기를 정할 근거가 없어 새로
+  발명하는 값이 되므로, 필요성이 실사용에서 확인되면 그때 다시 다룬다.
+- **Defined in:** `src/scene/scene-editor-notes.ts`,
+  `src/scene/scene-editor-shapes.ts`(둘 다 `scrollbarRange`),
+  `src/scene/scene-editor-view.ts` 헤더
+- **Rationale:** `core/timing.md` §9(`contentEndMs`), `scene-editor-test.ts`
+  의 기존 `songEndOf` 사용 선례(D-2026-097/103/104)
+- **Affects:** scene-editor-notes, scene-editor-shapes, scene-editor-view,
+  `_plan/build-order.md` M5-6 — D-2026-104의 잔여 항목 닫힘
+- **Supersedes:** None
+- **Commit:** PENDING
 
 ### D-YYYY-NNN — <Title>
 
