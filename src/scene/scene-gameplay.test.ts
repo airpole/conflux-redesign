@@ -107,6 +107,24 @@ describe('scene-gameplay', () => {
     expect((target.querySelector('.pause-overlay') as HTMLElement).hidden).toBe(false);
   });
 
+  // F02 — pause 전이가 실제로 audio.stop()까지 연결돼야 한다(단순 canvas
+  // overlay 표시가 아니라 `engineHooks.onPause`가 host의 AudioEnv에 닿는지).
+  it('Escape로 pause하면 audio.stop()이 불린다(F02)', async () => {
+    const audio = fakeAudio();
+    const stopSpy = vi.spyOn(audio, 'stop');
+    const target2 = document.createElement('div');
+    document.body.append(target2);
+    const handle = mountGameplayScene(target2, audio, { onFinished: vi.fn(), onExit: vi.fn() });
+    handle.show();
+    handle.start(fakeInput());
+    stopSpy.mockClear(); // start() 경로 자체의 teardown/onAudioStart 호출은 배제.
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await tick();
+
+    expect(stopSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('canvas pause 아이콘 클릭이 pause overlay를 연다(M4.5-1)', async () => {
     const { handle } = setup();
     const root = target;

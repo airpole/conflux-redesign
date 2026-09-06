@@ -155,6 +155,72 @@ describe('startEngineSession — pause·Resume (judge.md §10 "Pause Resume")', 
     session.tick(LEAD_IN_MS + 600);
     expect(ctx.sharedMs).toBeCloseTo(600, 5);
   });
+
+  // F02 — pause 전이에 음악 정지 훅이 연결돼야 한다.
+  it('pause()가 실제로 paused로 전이할 때 onPause가 정확히 한 번 불린다', () => {
+    const ctx = fakeCtx(10000);
+    const onPause = vi.fn();
+    const session = startEngineSession(ctx, 0, 1, {
+      onAudioStart: vi.fn(),
+      onSongEnd: vi.fn(),
+      onPause,
+    });
+    session.tick(LEAD_IN_MS + 500);
+    session.pause();
+    expect(onPause).toHaveBeenCalledTimes(1);
+  });
+
+  it('이미 paused인 상태에서 다시 pause()를 불러도 onPause는 중복 호출되지 않는다(멱등)', () => {
+    const ctx = fakeCtx(10000);
+    const onPause = vi.fn();
+    const session = startEngineSession(ctx, 0, 1, {
+      onAudioStart: vi.fn(),
+      onSongEnd: vi.fn(),
+      onPause,
+    });
+    session.tick(LEAD_IN_MS + 500);
+    session.pause();
+    session.pause();
+    session.pause();
+    expect(onPause).toHaveBeenCalledTimes(1);
+  });
+
+  it('resuming 카운트다운 중에는 pause()가 onPause를 다시 부르지 않는다', () => {
+    const ctx = fakeCtx(10000);
+    const onPause = vi.fn();
+    const session = startEngineSession(ctx, 0, 1, {
+      onAudioStart: vi.fn(),
+      onSongEnd: vi.fn(),
+      onPause,
+    });
+    session.tick(LEAD_IN_MS + 500);
+    session.pause();
+    session.resume(LEAD_IN_MS + 5000);
+    session.pause(); // 카운트다운 중 — 이미 resuming/paused 취급이라 no-op.
+    expect(onPause).toHaveBeenCalledTimes(1);
+  });
+
+  it('종료된 세션에는 onPause가 불리지 않는다', () => {
+    const ctx = fakeCtx(1000);
+    const onPause = vi.fn();
+    const session = startEngineSession(ctx, 0, 1, {
+      onAudioStart: vi.fn(),
+      onSongEnd: vi.fn(),
+      onPause,
+    });
+    session.tick(LEAD_IN_MS + 5000); // songEnd + tail을 넘겨 종료.
+    expect(session.finished).toBe(true);
+    session.pause();
+    expect(onPause).not.toHaveBeenCalled();
+  });
+
+  it('onPause를 넘기지 않아도 pause()는 정상 동작한다(선택적 훅)', () => {
+    const ctx = fakeCtx(10000);
+    const session = startEngineSession(ctx, 0, 1, { onAudioStart: vi.fn(), onSongEnd: vi.fn() });
+    session.tick(LEAD_IN_MS + 500);
+    expect(() => session.pause()).not.toThrow();
+    expect(session.paused).toBe(true);
+  });
 });
 
 describe('startEngineSession — mid-start(M5-6, judge.md §10)', () => {

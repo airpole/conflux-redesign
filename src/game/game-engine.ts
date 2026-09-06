@@ -48,6 +48,17 @@ export interface EngineHooks {
   onAudioStart(fromMs: number): void;
   /** curMs가 `songEndMs`를 넘는 첫 프레임에 한 번 불리고 세션이 끝난다. */
   onSongEnd(): void;
+  /**
+   * `pause()`가 실제로 `paused`로 전이시킬 때만 정확히 한 번 불린다(F02) —
+   * 이미 paused/resuming/finished라 `pause()`가 no-op인 경우는 불리지
+   * 않으므로 중복 pause에도 멱등이다. host가 여기서 음악을 멈춘다 —
+   * `onAudioStart`가 이미 재개 시 anchor에서 다시 트는 것으로 재생을
+   * 책임지므로(resuming→running 전이에서 `audioStarted`를 다시 `false`로
+   * 돌린다) 이 훅은 정지만 책임지면 된다. 선택적 — 이 훅을 안 쓰는
+   * 호출측(예: editor test의 즉시재생, pause 없이 Esc로 아예 정지)까지
+   * 강제로 구현하게 만들지 않는다.
+   */
+  onPause?(): void;
 }
 
 export interface EngineSession {
@@ -131,6 +142,7 @@ export function startEngineSession(
       if (finished || phase === 'paused' || phase === 'resuming') return;
       anchorMs = ctx.sharedMs;
       phase = 'paused';
+      hooks.onPause?.();
     },
     resume(resumeNowMs) {
       if (finished || phase !== 'paused') return;

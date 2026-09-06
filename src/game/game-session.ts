@@ -230,6 +230,9 @@ export function createGameSession(options: GameSessionOptions): GameSession {
         finalize();
         options.engineHooks.onSongEnd();
       },
+      ...(options.engineHooks.onPause !== undefined
+        ? { onPause: options.engineHooks.onPause }
+        : {}),
     },
     startChartMs,
     leadInMs,

@@ -349,6 +349,35 @@ describe('createGameSession — pause·Resume', () => {
     session.input.onKeyDown(fakeKeyEvent('KeyE', wallAtNote));
     expect(session.judgeState.hits[0]).toBe('hit');
   });
+
+  // F02 — session.pause()가 engineHooks.onPause까지 실제로 연결돼야 한다.
+  it('session.pause()가 engineHooks.onPause를 정확히 한 번 부른다', () => {
+    const chart = makeChart({ notes: [{ startTick: 0, duration: 0, lane: 1, isWide: false }] });
+    const timeline = buildTimeline(chart);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+    const onPause = vi.fn();
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn(), onPause },
+      hitSound: null,
+    });
+
+    session.advance(LEAD_IN_MS);
+    session.pause();
+    session.pause(); // 중복 호출 — 멱등.
+    expect(onPause).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('createGameSession — mid-start(M5-6, judge.md §10)', () => {

@@ -417,6 +417,9 @@ export function mountGameplayScene(
         onSongEnd(): void {
           audio.stop();
         },
+        onPause(): void {
+          audio.stop();
+        },
       },
     });
 
