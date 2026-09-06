@@ -460,12 +460,15 @@ export function mountEditorTestBody(
       startNowMs: performance.now(),
       playbackRate: 1,
       hitSound: { ctx: audioCtx, buffer: hitSoundBuffer },
+      audioOffsetMs: currentSettings.audioOffset,
       startChartMs,
       leadInMs: 0, // test scene 즉시재생 = lead-in 없음(editor-graph.md §5).
       engineHooks: {
         onAudioStart(fromMs): void {
           api.audio.stop();
-          if (musicBuffer !== null) {
+          // F03 — gameplay와 같은 좌표 변환(game-engine.ts 헤더 docstring):
+          // 음원 길이를 넘긴 fromMs는 재생하지 않는다.
+          if (musicBuffer !== null && fromMs < musicBuffer.duration * 1000) {
             api.audio.setVolume(currentSettings.volMaster * currentSettings.volMusic);
             api.audio.play(musicBuffer, fromMs);
           }

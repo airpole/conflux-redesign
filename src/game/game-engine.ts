@@ -97,6 +97,22 @@ export interface EngineSession {
  * 닿기 전까지는 `paused`가 `true`다(새 `leadIn` phase) — **시드
  * (`seedPlayStateAt`) 자체는 이 함수가 부르지 않는다**, `game-session.ts`가
  * 세션을 만들기 전에 동기로 한 번 부른다.
+ *
+ * **F03 — 두 offset의 좌표 변환(`timing.md` §8, `settings.md` PLAY,
+ * D-2026-1xx audioOffset 방향 결정)**. `chartOffsetMs`
+ * (`chart.metadata.offset`, chart 소유)는 tick↔ms note timing은 그대로 두고
+ * **오디오 버퍼 위치**만 옮긴다 — `bufferPos(trueMs) = trueMs + chartOffsetMs`
+ * (`core-timing.ts`의 `musicEndMs = musicDurationMs - offset`에서 역산한 식과
+ * 정합). `audioOffsetMs`(`settings.audioOffset`, 플레이어 device 소유)는
+ * 내용이 아니라 **트리거 시점**만 옮긴다 — 기기 출력 지연을 보정하려고
+ * 양수면 그만큼 더 일찍 트리거한다(`visualOffset`의 `toJudgeMs = rawMs -
+ * visualOffset`과 같은 "보정은 빼기" 방향).
+ *
+ * 두 값 다 기본 0이라 안 넘기면 이 변경 전과 완전히 같다. 음원 시작 이전
+ * 요청(음수 buffer position)은 `trueMs`를 `-chartOffsetMs`까지 늦춰
+ * 안전하게 만든다 — `fromMs`가 절대 음수로 나가지 않는다(음원 끝 이후
+ * 요청은 이 함수가 모르는 `musicBuffer.duration`을 봐야 하므로 host가
+ * `onAudioStart(fromMs)`에서 그 값과 비교해 재생 여부를 결정한다).
  */
 export function startEngineSession(
   ctx: CTX,
@@ -105,6 +121,8 @@ export function startEngineSession(
   hooks: EngineHooks,
   startChartMs = 0,
   leadInMs = LEAD_IN_MS,
+  audioOffsetMs = 0,
+  chartOffsetMs = 0,
 ): EngineSession {
   const songEndMs = ctx.contentEndMs + SONG_END_TAIL_MS;
 
@@ -114,8 +132,17 @@ export function startEngineSession(
   let chartStartMs = startChartMs - leadInMs;
   let wallStartMs = startNowMs;
   let audioStarted = false;
-  let audioStartThresholdMs = startChartMs;
   let finished = false;
+
+  // F03 좌표 변환(헤더 docstring) — nominalMs(=startChartMs 또는 resume
+  // anchorMs)를 실제 트리거 시각(threshold)과 그때 넘길 buffer 위치(fromMs)로
+  // 바꾼다. 첫 시작과 Resume 둘 다 이 한 함수를 거친다.
+  function computeAudioTrigger(nominalMs: number): { thresholdMs: number; fromMs: number } {
+    const trueMs = Math.max(nominalMs, -chartOffsetMs); // 음원 시작 전이면 그 시점까지 늦춘다.
+    return { thresholdMs: trueMs - audioOffsetMs, fromMs: trueMs + chartOffsetMs };
+  }
+
+  let audioTrigger = computeAudioTrigger(startChartMs);
 
   type Phase = 'running' | 'paused' | 'resuming' | 'leadIn';
   let phase: Phase = startChartMs === 0 && leadInMs === LEAD_IN_MS ? 'running' : 'leadIn';
@@ -165,7 +192,7 @@ export function startEngineSession(
         chartStartMs = anchorMs;
         wallStartMs = resumeStartWallMs + RESUME_LEAD_MS;
         audioStarted = false;
-        audioStartThresholdMs = anchorMs;
+        audioTrigger = computeAudioTrigger(anchorMs);
       }
 
       const curMs = currentChartMs(nowMs);
@@ -176,9 +203,9 @@ export function startEngineSession(
         phase = 'running';
       }
 
-      if (!audioStarted && curMs >= audioStartThresholdMs) {
+      if (!audioStarted && curMs >= audioTrigger.thresholdMs) {
         audioStarted = true;
-        hooks.onAudioStart(audioStartThresholdMs);
+        hooks.onAudioStart(audioTrigger.fromMs);
       }
 
       if (curMs > songEndMs) {

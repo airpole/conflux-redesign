@@ -76,6 +76,13 @@ export interface GameSessionOptions {
    * Enter→gameplay mid-start 둘 다 이 기본값을 쓴다).
    */
   readonly leadInMs?: number;
+  /**
+   * player device audio output compensation(`settings.audioOffset`, F03,
+   * `game-engine.ts` 헤더 docstring의 좌표 변환). `chart.metadata.offset`은
+   * 이 값과 별개 축이라 `options.chart`에서 직접 읽는다 — 호출측이 따로
+   * 넘기지 않는다. 기본 0(안 넘기면 이 변경 전과 완전히 같다).
+   */
+  readonly audioOffsetMs?: number;
 }
 
 /**
@@ -236,6 +243,8 @@ export function createGameSession(options: GameSessionOptions): GameSession {
     },
     startChartMs,
     leadInMs,
+    options.audioOffsetMs ?? 0,
+    options.chart.metadata.offset,
   );
 
   const input = createJudgeInputHandlers(
