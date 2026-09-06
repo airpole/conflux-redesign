@@ -119,8 +119,8 @@ gauge는 [[judge]]의 **판정 단위** 하나마다 delta를 적용한다(D-202
 
 - Tap head MISS: MISS delta 1회.
 - **Hold head MISS: MISS delta 즉시 2회**(normal·hard 게이지 모두) — head 단위 + tail 단위가 함께 종결되기 때문이다. 이후 원래 tail 시각에 중복 delta를 적용하지 않는다.
-- Hold head 성공 + tail MISS: MISS delta 1회.
-- Hold head 성공 + tail SYNC: SYNC delta 1회(head는 delta 없음, tail 확정 시 1회).
+- Hold head 성공 + tail MISS: head 판정 delta 1회(SYNC/PERFECT/GOOD) + tail MISS delta 1회 — 총 2회.
+- Hold head 성공 + tail SYNC: head 판정 delta 1회 + tail SYNC delta 1회 — 총 2회. `[번복 — 구 "head는 delta 없음"]` head/tail은 [[judge]] §1이 정하는 두 개의 독립 판정 단위이고, score·accuracy·gauge는 그 단위 하나마다 누산되는 같은 회계다(D-2026-024) — head 단위에만 예외를 둘 근거가 없다. 실제 구현(`game-session.ts`)은 처음부터 head·tail 각각 1회씩 적용해 왔다 — 이 문장이 그 구현과 어긋났던 쪽이다(H01, 사용자 확인).
 - combo reset 횟수는 게이지 delta 횟수와 무관하다 — combo는 몇 번 0이 되든 1회 리셋이지만 게이지는 여전히 2단위를 반영한다.
 
 Hold head MISS 1회는 MISS에 민감한 모든 단계(§2의 `fc`/`ap`/`as`)를 깨뜨리기에 충분하다 — 그럼에도 게이지 회계는 별개로 **두 delta 모두** 적용한다(탈락 판정과 게이지 수치 적용은 서로 다른 관심사).

@@ -398,6 +398,136 @@ describe('createGameSession — 게이지', () => {
   });
 });
 
+// W09b/H01-A — gauge.md §5 "head와 tail 각각 1단위, head MISS는 즉시
+// 2단위"를 실제 host 입력 경로로 고정한다. 기존 코드 동작은 바뀌지
+// 않았고(behavior-preserving), 문서의 "head는 delta 없음" 문장만 정정됐다
+// — 그 문장이 다시 코드와 일치하는 방향으로 조용히 "고쳐지는" 회귀를
+// 여기서 막는다.
+describe('createGameSession — Hold gauge 회계(H01-A, gauge.md §5)', () => {
+  function holdChart() {
+    return makeChart({ notes: [{ startTick: 0, duration: 480 * 4, lane: 1, isWide: false }] });
+  }
+
+  it('head 성공(SYNC) + tail SYNC = 2단위 모두 게이지·counts에 반영된다', () => {
+    const chart = holdChart();
+    const timeline = buildTimeline(chart);
+    const tailMs = tickToMs(timeline, chart.notes[0]!.duration);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+    });
+
+    session.advance(LEAD_IN_MS);
+    session.input.onKeyDown(fakeKeyEvent('KeyE', LEAD_IN_MS)); // head SYNC(diff=0) — 1단위.
+    expect(session.gaugeState.counts.SYNC).toBe(1);
+
+    session.advance(LEAD_IN_MS + tailMs + 5); // 키를 계속 쥔 채 tail까지 진행 — 자동 SYNC.
+    expect(session.gaugeState.counts.SYNC).toBe(2); // head 1 + tail 1.
+    expect(session.gaugeState.counts.MISS).toBe(0);
+  });
+
+  it('head 성공 + tail MISS(놓아서 release)는 head 1단위(SYNC) + tail 1단위(MISS)다', () => {
+    const chart = holdChart();
+    const timeline = buildTimeline(chart);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+    });
+
+    session.advance(LEAD_IN_MS);
+    session.input.onKeyDown(fakeKeyEvent('KeyE', LEAD_IN_MS)); // head SYNC.
+    expect(session.gaugeState.counts.SYNC).toBe(1);
+
+    // grace window(150ms)보다 훨씬 이르게 놓는다 — tail MISS.
+    session.input.onKeyUp(fakeKeyEvent('KeyE', LEAD_IN_MS + 10));
+    expect(session.gaugeState.counts.SYNC).toBe(1); // head 그대로.
+    expect(session.gaugeState.counts.MISS).toBe(1); // tail만 MISS.
+  });
+
+  it('Hold head MISS는 즉시 2단위 MISS로 확정되고, 원래 tail 시각에 중복 적용되지 않는다', () => {
+    const chart = holdChart();
+    const timeline = buildTimeline(chart);
+    const tailMs = tickToMs(timeline, chart.notes[0]!.duration);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+    });
+
+    session.advance(LEAD_IN_MS + 1000); // head 판정창을 그냥 지나쳐 head가 MISS된다.
+    expect(session.gaugeState.counts.MISS).toBe(2); // head+tail 2단위 즉시.
+
+    session.advance(LEAD_IN_MS + tailMs + 100); // 원래 tail 시각을 지나도 그대로.
+    expect(session.gaugeState.counts.MISS).toBe(2);
+    expect(session.gaugeState.counts.SYNC).toBe(0);
+  });
+
+  it('Hold head MISS 1회(2단위)가 AP처럼 MISS-불허하는 terminate 모드를 즉시 깨뜨린다', () => {
+    const chart = holdChart();
+    const timeline = buildTimeline(chart);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'ap',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+    });
+
+    session.advance(LEAD_IN_MS + 1000); // head MISS — MISS는 ap의 TIER_SURVIVES 밖.
+    expect(session.gaugeState.forceEnded).toBe(true); // MISS 한 번(2단위)으로 즉시 탈락.
+    expect(session.result).not.toBeNull();
+    expect(session.result!.state).toBe('F');
+  });
+});
+
 describe('createGameSession — pause·Resume', () => {
   it('pause 중에는 입력이 registerKeyDown/Up만 하고 판정을 안 낸다', () => {
     const chart = makeChart({ notes: [{ startTick: 0, duration: 0, lane: 1, isWide: false }] });
