@@ -350,6 +350,107 @@ describe('createGameSession — pause·Resume', () => {
     expect(session.judgeState.hits[0]).toBe('hit');
   });
 
+  // F04 — Resume anchor에서 Hold 수요 재조정이 실제로 연결돼야 한다.
+  it('Hold를 잡고 pause, pause 중 release, 무입력 Resume하면 anchor에서 MISS로 해소된다', () => {
+    // 0~2000ms 근방의 Normal Hold. tickToMs(timeline, duration)로 tail을 구해
+    // grace window(150ms)와 충분히 떨어진 지점에서 pause하도록 정확히 잰다.
+    const chart = makeChart({
+      notes: [{ startTick: 0, duration: 480 * 4, lane: 1, isWide: false }],
+    });
+    const timeline = buildTimeline(chart);
+    const tailMs = tickToMs(timeline, chart.notes[0]!.duration);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+    });
+
+    session.advance(LEAD_IN_MS);
+    session.input.onKeyDown(fakeKeyEvent('KeyE', LEAD_IN_MS)); // head를 잡는다 — diff=0, SYNC 1단위.
+    expect(session.judgeState.hits[0]).toBe('hit');
+    expect(session.gaugeState.counts.SYNC).toBe(1);
+
+    // grace window(150ms)보다 훨씬 이른 지점에서 pause — MISS로 해소돼야 한다.
+    const pauseWallMs = LEAD_IN_MS + tailMs / 2;
+    session.advance(pauseWallMs);
+    session.pause();
+    const anchor = ctx.sharedMs;
+    expect(anchor).toBeLessThan(tailMs - 150);
+
+    session.input.onKeyUp(fakeKeyEvent('KeyE', pauseWallMs)); // pause 중 release — 등록만.
+    expect(session.judgeState.keysHeld.has('key1')).toBe(false);
+
+    session.resume(pauseWallMs + 5000);
+    session.advance(pauseWallMs + 5000 + RESUME_LEAD_MS); // 무입력 Resume 완료.
+
+    // anchor에서 즉시 재조정돼 tail이 MISS로 닫혀야 한다(head SYNC 1 + tail
+    // MISS 1) — 이후 자연 진행에서 autoCompleteTails가 뒤늦게 SYNC로
+    // 완료시키면 안 된다(F04 재현 버그).
+    expect(session.gaugeState.counts.SYNC).toBe(1);
+    expect(session.gaugeState.counts.MISS).toBe(1);
+
+    session.advance(pauseWallMs + 5000 + RESUME_LEAD_MS + tailMs); // tail 시각을 넘겨도 중복 판정 없음.
+    expect(session.gaugeState.counts.SYNC).toBe(1);
+    expect(session.gaugeState.counts.MISS).toBe(1);
+    expect(session.judgeState.hits[0]).toBe('hit'); // head 상태 자체는 그대로.
+  });
+
+  it('Resume anchor에서 여전히 키를 쥐고 있으면 Hold가 유지된다(shortage 없음)', () => {
+    const chart = makeChart({
+      notes: [{ startTick: 0, duration: 480 * 4, lane: 1, isWide: false }],
+    });
+    const timeline = buildTimeline(chart);
+    const tailMs = tickToMs(timeline, chart.notes[0]!.duration);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+    });
+
+    session.advance(LEAD_IN_MS);
+    session.input.onKeyDown(fakeKeyEvent('KeyE', LEAD_IN_MS)); // head SYNC 1단위.
+    expect(session.gaugeState.counts.SYNC).toBe(1);
+
+    const pauseWallMs = LEAD_IN_MS + tailMs / 2;
+    session.advance(pauseWallMs);
+    session.pause();
+    // 키를 계속 쥔 채로 Resume — release 없음.
+
+    session.resume(pauseWallMs + 5000);
+    session.advance(pauseWallMs + 5000 + RESUME_LEAD_MS);
+    // 재조정이 여전히 자격 있는 Hold를 잘못 끊지 않았다 — tail 전이라 그대로.
+    expect(session.gaugeState.counts.SYNC).toBe(1);
+    expect(session.gaugeState.counts.MISS).toBe(0);
+
+    session.advance(pauseWallMs + 5000 + RESUME_LEAD_MS + tailMs);
+    expect(session.gaugeState.counts.SYNC).toBe(2); // head 1 + tail 1 = 자연 진행으로 정상 완료.
+    expect(session.gaugeState.counts.MISS).toBe(0);
+  });
+
   // F02 — session.pause()가 engineHooks.onPause까지 실제로 연결돼야 한다.
   it('session.pause()가 engineHooks.onPause를 정확히 한 번 부른다', () => {
     const chart = makeChart({ notes: [{ startTick: 0, duration: 0, lane: 1, isWide: false }] });

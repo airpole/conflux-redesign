@@ -13,6 +13,7 @@ import {
   createJudgeState,
   judgeAdvance,
   laneMapOf,
+  reconcileHeldCapacity,
   seedPlayStateAt,
   type CandidateContext,
   type JudgeState,
@@ -240,6 +241,15 @@ export function createGameSession(options: GameSessionOptions): GameSession {
       ...(options.engineHooks.onPause !== undefined
         ? { onPause: options.engineHooks.onPause }
         : {}),
+      onResume: (anchorMs) => {
+        // F04 — pause 중 등록만 됐던 키 상태를 anchor 기준으로 재조정한다.
+        // judge.md §10: seedPlayStateAt과 달리 과거 판정을 다시 만들지
+        // 않고 reconcileHeldCapacity만 한 번 실행한다.
+        const events = reconcileHeldCapacity(judgeState, context, anchorMs);
+        applyEvents(events, anchorMs);
+        if (gaugeState.forceEnded) finalize();
+        options.engineHooks.onResume?.(anchorMs);
+      },
     },
     startChartMs,
     leadInMs,

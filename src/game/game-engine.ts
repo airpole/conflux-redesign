@@ -59,6 +59,16 @@ export interface EngineHooks {
    * 강제로 구현하게 만들지 않는다.
    */
   onPause?(): void;
+  /**
+   * `resuming→running` 전이가 끝나는 프레임에 anchor 시각과 함께 정확히
+   * 한 번 불린다(F04, `judge.md` §9·§10) — "보존된 활성 Hold에 대해
+   * `reconcileHeldCapacity(anchorMs)`만 실행한다"는 계약을 이 시점에
+   * 걸 자리다. mid-start의 `seedPlayStateAt`과 달리 과거 판정을 다시
+   * 만들지 않고, pause 중 등록만 됐던 키 상태를 anchor 기준으로
+   * 재조정만 한다. 선택적 — 이 훅을 쓰지 않는 호출측(예: pause가 없는
+   * 경로)까지 강제로 구현하게 만들지 않는다.
+   */
+  onResume?(anchorMs: number): void;
 }
 
 export interface EngineSession {
@@ -193,6 +203,7 @@ export function startEngineSession(
         wallStartMs = resumeStartWallMs + RESUME_LEAD_MS;
         audioStarted = false;
         audioTrigger = computeAudioTrigger(anchorMs);
+        hooks.onResume?.(anchorMs);
       }
 
       const curMs = currentChartMs(nowMs);
