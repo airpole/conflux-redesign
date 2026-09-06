@@ -62,7 +62,7 @@ export function mountResultScene(
   view: ResultView,
   handlers: ResultHandlers,
 ): ResultSceneHandle {
-  target.classList.add('result-scene');
+  const sceneRoot = el('div', 'result-scene');
 
   // ── 정적 골격 ────────────────────────────────────────────
   const body = el('div', 'result-body');
@@ -206,7 +206,8 @@ export function mountResultScene(
   live.style.height = '1px';
   live.style.overflow = 'hidden';
 
-  target.append(body, footer, live);
+  sceneRoot.append(body, footer, live);
+  target.append(sceneRoot);
 
   // ── 키 계약(§4) ──────────────────────────────────────────
   const mountedAt = Date.now();
@@ -348,8 +349,7 @@ export function mountResultScene(
     update: render,
     destroy(): void {
       document.removeEventListener('keydown', onKeyDown);
-      target.replaceChildren();
-      target.classList.remove('result-scene');
+      sceneRoot.remove();
     },
   };
 }
