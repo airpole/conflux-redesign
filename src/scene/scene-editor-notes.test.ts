@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeChart } from '../core/core-chart-fixture.js';
 import type { Chart } from '../core/core-chart.js';
 import { buildTimeline, tickToMs } from '../core/core-timing.js';
-import type { Command } from '../edit/edit-command.js';
+import { createCommandHistory, type Command } from '../edit/edit-command.js';
 import { mountEditorNotesBody, type EditorNotesApi } from './scene-editor-notes.js';
 import { createEditorViewState } from './scene-editor-view.js';
 
@@ -17,9 +17,10 @@ function mount(initialChart: Chart = makeChart()): {
   const target = document.createElement('div');
   document.body.append(target);
   let chart = initialChart;
-  const dispatch = vi.fn((command: Command) => {
-    command.apply();
-  });
+  // 실제 CommandHistory(scope n)를 그대로 써서 Ctrl+Z/Y가 app-editor.ts와
+  // 같은 경로(dispatch/undo/redo)로 동작하는지 검증한다(F08).
+  const history = createCommandHistory();
+  const dispatch = vi.fn(history.dispatch);
   const api: EditorNotesApi = {
     session: {
       get chart() {
@@ -30,6 +31,8 @@ function mount(initialChart: Chart = makeChart()): {
       },
     },
     dispatch,
+    undo: () => history.undo('n'),
+    redo: () => history.redo('n'),
     view: createEditorViewState(),
   };
   const handle = mountEditorNotesBody(target, initialChart, api);
@@ -158,6 +161,58 @@ describe('scene-editor-notes', () => {
     handle.onKeyDown(new KeyboardEvent('keydown', { key: 'c', ctrlKey: true }));
     handle.onKeyDown(new KeyboardEvent('keydown', { key: 'v', ctrlKey: true }));
     expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  // F08 — Ctrl+Z/Ctrl+Shift+Z/Ctrl+Y가 실제 undo/redo(scope n)로 이어져야
+  // 한다. selection도 그 직전에 비워야 한다(editor-commands.md §2).
+  it('Ctrl+Z로 note 배치를 되돌리고, Ctrl+Shift+Z·Ctrl+Y로 다시 적용한다', () => {
+    const { canvas, handle, getChart } = mount();
+    click(canvas, 100, pixelYOfTick(0)); // tap 배치.
+    expect(getChart().notes).toHaveLength(1);
+
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true }));
+    expect(getChart().notes).toHaveLength(0);
+
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true }));
+    expect(getChart().notes).toHaveLength(1);
+
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true }));
+    expect(getChart().notes).toHaveLength(0);
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'y', ctrlKey: true }));
+    expect(getChart().notes).toHaveLength(1);
+  });
+
+  it('undo/redo 직전 note selection을 비운다', () => {
+    const notes = [{ startTick: 100, duration: 0, lane: 1 as const, isWide: false }];
+    const { canvas, handle, getChart } = mount(makeChart({ notes }));
+    const y = pixelYOfTick(100);
+    click(canvas, 100, y); // 선택.
+    click(canvas, 400, 300); // 빈 자리에 tap 하나 더 배치(undo 대상).
+    expect(getChart().notes).toHaveLength(2);
+    // 선택이 아직 살아 있으면 D가 선택을 지운다 — 되돌릴 게 남아 있는지
+    // 먼저 확인(간접적으로 selection 유지를 검증).
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true }));
+    expect(getChart().notes).toHaveLength(1);
+    // undo 뒤 selection이 비었으면 D는 아무 것도 못 지운다(consumed=false).
+    const consumed = handle.onKeyDown(new KeyboardEvent('keydown', { key: 'D' }));
+    expect(consumed).toBe(false);
+  });
+
+  // F15 — 외부 text input(meta 폼 필드, 저장 모달 등)에 focus가 있으면 이
+  // 탭의 단축키를 비활성화한다. 예외는 Ctrl+Z뿐.
+  it('외부 text input에 focus가 있으면 Ctrl+Z 외 단축키는 consumed=false다', () => {
+    const { handle } = mount();
+    const input = document.createElement('input');
+    document.body.append(input);
+    function fire(k: string, opts: KeyboardEventInit = {}): boolean {
+      const event = new KeyboardEvent('keydown', { key: k, ...opts });
+      Object.defineProperty(event, 'target', { value: input });
+      return handle.onKeyDown(event);
+    }
+    expect(fire('q')).toBe(false); // 툴 전환 안 함.
+    expect(fire('Delete')).toBe(false);
+    expect(fire('z', { ctrlKey: true })).toBe(true); // 예외 — undo는 통과.
+    input.remove();
   });
 
   it('note를 드래그하면 drag-end에 MoveNotes command 1개만 dispatch한다', () => {

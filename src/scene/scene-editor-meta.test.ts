@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeChart } from '../core/core-chart-fixture.js';
 import type { Chart } from '../core/core-chart.js';
-import type { Command } from '../edit/edit-command.js';
+import { createCommandHistory } from '../edit/edit-command.js';
 import { mountEditorMetaBody, type EditorMetaApi } from './scene-editor-meta.js';
 
 function mount(initialChart: Chart = makeChart()): {
@@ -17,9 +17,10 @@ function mount(initialChart: Chart = makeChart()): {
   const target = document.createElement('div');
   document.body.append(target);
   let chart = initialChart;
-  const dispatch = vi.fn((command: Command) => {
-    command.apply();
-  });
+  // 실제 CommandHistory(scope m)를 그대로 써서 Ctrl+Z/Y가 app-editor.ts와
+  // 같은 경로(dispatch/undo/redo)로 동작하는지 검증한다(F08).
+  const history = createCommandHistory();
+  const dispatch = vi.fn(history.dispatch);
   const notifyChanged = vi.fn();
   const updateMusicBlob = vi.fn();
   const updateJacketBlob = vi.fn();
@@ -35,6 +36,8 @@ function mount(initialChart: Chart = makeChart()): {
       updateJacketBlob,
     },
     dispatch,
+    undo: () => history.undo('m'),
+    redo: () => history.redo('m'),
     notifyChanged,
   };
   const handle = mountEditorMetaBody(target, initialChart, api);
@@ -85,6 +88,26 @@ describe('scene-editor-meta', () => {
   it('onKeyDown은 항상 false다(meta 탭 전용 단축키 없음)', () => {
     const { handle } = mount();
     expect(handle.onKeyDown(new KeyboardEvent('keydown', { key: 'q' }))).toBe(false);
+  });
+
+  // F08 — tempo/timeSignature(scope m) Ctrl+Z/Y가 실제 undo/redo로 이어진다.
+  it('Ctrl+Z가 Add Tempo를 되돌리고 Ctrl+Y가 다시 적용한다', () => {
+    const { target, handle, getChart } = mount(makeChart({ tempos: [{ startTick: 0, bpm: 120 }] }));
+    const before = getChart().tempos.length;
+    const addBtn = [...target.querySelectorAll('.editor-meta-button')].find(
+      (b) => b.textContent === 'Add Tempo',
+    ) as HTMLButtonElement;
+    addBtn.click();
+    expect(getChart().tempos.length).toBe(before + 1);
+
+    const undoConsumed = handle.onKeyDown(
+      new KeyboardEvent('keydown', { key: 'z', ctrlKey: true }),
+    );
+    expect(undoConsumed).toBe(true);
+    expect(getChart().tempos.length).toBe(before);
+
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'y', ctrlKey: true }));
+    expect(getChart().tempos.length).toBe(before + 1);
   });
 
   it('songId는 읽기 전용이다', () => {

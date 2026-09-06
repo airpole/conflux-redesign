@@ -113,6 +113,15 @@ const CATEGORY_LABEL: Record<EditorCategory, string> = {
   test: 'TEST',
 };
 
+/** `event.target`이 실제 텍스트 입력(input/textarea/contenteditable)인지
+ *  — editor-editing.md §6 격리 판정. */
+function isEditableFocusTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+  );
+}
+
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   className?: string,
@@ -195,6 +204,18 @@ export function mountEditorWorkspaceScene(
 
   function onKeyDown(event: KeyboardEvent): void {
     if (activeController?.onKeyDown(event) === true) return;
+    // F15 — text input(meta 폼 필드, 저장 모달의 version 입력 등)에 focus가
+    // 있으면 Tab/Backspace를 이 파일의 category 전환·editor 이탈로 가로채지
+    // 않는다(editor-editing.md §6). Escape는 취소 계단의 최상단으로 input
+    // focus 해제를 먼저 수행하고, 이번 입력은 onBack으로 이어지지 않는다 —
+    // controller가 이미 Escape를 소비했다면(예: notes의 텍스트 편집 모달)
+    // 위 return에서 끝나 여기 닿지 않는다.
+    if (isEditableFocusTarget(event.target)) {
+      if (event.key === 'Escape') {
+        (document.activeElement as HTMLElement | null)?.blur();
+      }
+      return;
+    }
     if (event.key === 'Tab') {
       event.preventDefault();
       handlers.onCategoryChange(nextCategory(event.shiftKey ? -1 : 1));

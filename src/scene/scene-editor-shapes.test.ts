@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeChart } from '../core/core-chart-fixture.js';
 import type { Chart, LaneEvent, ShapeEvent } from '../core/core-chart.js';
-import type { Command } from '../edit/edit-command.js';
+import { createCommandHistory } from '../edit/edit-command.js';
 import { mountEditorShapesBody, type EditorShapesApi } from './scene-editor-shapes.js';
 import { createEditorViewState } from './scene-editor-view.js';
 import { buildTimeline, tickToMs } from '../core/core-timing.js';
@@ -31,9 +31,10 @@ function mount(initialChart: Chart = makeChart()): {
   const target = document.createElement('div');
   document.body.append(target);
   let chart = initialChart;
-  const dispatch = vi.fn((command: Command) => {
-    command.apply();
-  });
+  // 실제 CommandHistory(scope s)를 그대로 써서 Ctrl+Z/Y가 app-editor.ts와
+  // 같은 경로(dispatch/undo/redo)로 동작하는지 검증한다(F08).
+  const history = createCommandHistory();
+  const dispatch = vi.fn(history.dispatch);
   const api: EditorShapesApi = {
     session: {
       get chart() {
@@ -44,6 +45,8 @@ function mount(initialChart: Chart = makeChart()): {
       },
     },
     dispatch,
+    undo: () => history.undo('s'),
+    redo: () => history.redo('s'),
     view: createEditorViewState(),
   };
   const handle = mountEditorShapesBody(target, initialChart, api);
@@ -481,6 +484,8 @@ describe('scene-editor-shapes', () => {
         },
       },
       dispatch: vi.fn(),
+      undo: vi.fn(),
+      redo: vi.fn(),
       view,
     };
     const handle = mountEditorShapesBody(target, chart, api);
@@ -489,6 +494,123 @@ describe('scene-editor-shapes', () => {
     expect(view.viewMs).toBeCloseTo(before * 1.35);
     handle.onKeyDown(new KeyboardEvent('keydown', { key: 'x' }));
     expect(view.viewMs).toBeCloseTo(before);
+  });
+
+  // F08 — Ctrl 조합이 무모디파이어 switch(zoom/symmetry 등)로 새면 안 된다.
+  it('Ctrl+Z는 zoom(viewMs)을 바꾸지 않고 undo를 부른다', () => {
+    const view = createEditorViewState();
+    const { handle } = mount(makeChart());
+    const target = document.createElement('div');
+    document.body.append(target);
+    const chart = makeChart();
+    const undo = vi.fn();
+    const api: EditorShapesApi = {
+      session: {
+        get chart() {
+          return chart;
+        },
+        updateChart() {},
+      },
+      dispatch: vi.fn(),
+      undo,
+      redo: vi.fn(),
+      view,
+    };
+    const h2 = mountEditorShapesBody(target, chart, api);
+    const before = view.viewMs;
+    h2.onKeyDown(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true }));
+    expect(view.viewMs).toBe(before); // zoom 불변.
+    expect(undo).toHaveBeenCalledTimes(1);
+    handle.destroy();
+  });
+
+  it('Ctrl+S는 symmetry를 바꾸지 않는다(모디파이어 fallthrough 방지)', () => {
+    const { handle } = mount();
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 's', ctrlKey: true }));
+    const toolbarText = () => document.querySelector('.editor-shapes-toolbar')?.textContent ?? '';
+    expect(toolbarText()).toContain('Sym: off');
+  });
+
+  it('Ctrl+Shift+Z는 redo를, Ctrl+Y는 redo를 부른다(scope s)', () => {
+    const target = document.createElement('div');
+    document.body.append(target);
+    const chart = makeChart();
+    const redo = vi.fn();
+    const api: EditorShapesApi = {
+      session: {
+        get chart() {
+          return chart;
+        },
+        updateChart() {},
+      },
+      dispatch: vi.fn(),
+      undo: vi.fn(),
+      redo,
+      view: createEditorViewState(),
+    };
+    const handle = mountEditorShapesBody(target, chart, api);
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true }));
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'y', ctrlKey: true }));
+    expect(redo).toHaveBeenCalledTimes(2);
+  });
+
+  it('undo/redo 직전 shape·lane selection을 모두 비운다', () => {
+    const point: ShapeEvent = {
+      startTick: 0,
+      duration: 500,
+      isBlue: true,
+      targetPos: 4,
+      easing: 'Linear',
+    };
+    const chart = makeChart({ shapeEvents: [blueInit, redInit, point] });
+    const target = document.createElement('div');
+    document.body.append(target);
+    const history = createCommandHistory();
+    const api: EditorShapesApi = {
+      session: {
+        get chart() {
+          return chart;
+        },
+        updateChart() {},
+      },
+      dispatch: vi.fn(history.dispatch),
+      undo: () => history.undo('s'),
+      redo: () => history.redo('s'),
+      view: createEditorViewState(),
+    };
+    const handle = mountEditorShapesBody(target, chart, api);
+    const canvas = target.querySelector('.editor-shapes-canvas') as HTMLCanvasElement;
+    canvas.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, width: 800, height: 600, right: 800, bottom: 600 }) as DOMRect;
+    click(canvas, pixelXOfExt(4), pixelYOfTick(500));
+    // 선택 후 Escape가 true(선택 있음)를 돌려줘 selection이 비워지지
+    // 않았음을 먼저 확인한 뒤, Ctrl+Z가 실제로 비우는지 본다.
+    expect(handle.onKeyDown(new KeyboardEvent('keydown', { key: 'Escape' }))).toBe(true);
+    click(canvas, pixelXOfExt(4), pixelYOfTick(500));
+    handle.onKeyDown(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true }));
+    // undo 뒤 선택이 비어 있으면 Escape가 false(소비할 선택 없음)를 돌려준다.
+    expect(handle.onKeyDown(new KeyboardEvent('keydown', { key: 'Escape' }))).toBe(false);
+  });
+
+  // F15 — 외부 text input(meta 폼 필드, 저장 모달 등)에 focus가 있으면 이
+  // 탭의 단축키를 비활성화한다. 예외는 Ctrl+Z뿐.
+  it('외부 text input에 focus가 있으면 Ctrl+Z 외 단축키는 consumed=false다', () => {
+    const { handle } = mount();
+    const input = document.createElement('input');
+    document.body.append(input);
+    input.focus();
+    // Object.defineProperty로 target을 강제한다 — jsdom KeyboardEvent는
+    // 실제 dispatch 없이는 target이 안 채워진다.
+    function fire(k: string, opts: KeyboardEventInit = {}): boolean {
+      const event = new KeyboardEvent('keydown', { key: k, ...opts });
+      Object.defineProperty(event, 'target', { value: input });
+      return handle.onKeyDown(event);
+    }
+    expect(fire('s')).toBe(false); // symmetry 토글 안 함.
+    expect(fire('S')).toBe(false);
+    expect(fire('t')).toBe(false); // 서브모드 전환 안 함.
+    expect(fire('z', { ctrlKey: true })).toBe(true); // 예외 — undo는 통과.
+    input.remove();
   });
 
   it('destroy()는 에러 없이 정리한다', () => {

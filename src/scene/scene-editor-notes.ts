@@ -153,10 +153,24 @@ export interface EditorNotesApi {
   readonly session: NotesSessionLike & TextEventsSessionLike;
   /** 실제 `CommandHistory.dispatch` — 이 파일은 엔진을 모른다(M5-2 경계). */
   dispatch(command: Command): void;
+  /** scope `n`(notes/textEvents)의 `CommandHistory.undo`/`redo` — F08.
+   *  호출 전 이 파일이 직접 selection을 비운다(`editor-commands.md` §2
+   *  "undo/redo 직전 해당 scope selection clear"). */
+  undo(): void;
+  redo(): void;
   /** notes·shapes 공유 scroll/zoom 상태(M5-4, `scene-editor-view.ts`) —
    *  `scene-editor-workspace.ts`가 만들어 양쪽 mount 함수에 같은 참조로
    *  넘긴다. */
   readonly view: EditorViewState;
+}
+
+/** `event.target`이 실제 텍스트 입력(외부 input/textarea/contenteditable)인지
+ *  — editor-editing.md §6 격리 판정. canvas는 여기 해당하지 않는다. */
+function isEditableFocusTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+  );
 }
 
 /** 클릭 좌표 → tick(스냅 전). `msToTick` + 픽셀→ms 환산만 한다. */
@@ -1154,6 +1168,15 @@ export function mountEditorNotesBody(
         }
         return true;
       }
+      // editor-editing.md §6 — 이 컨트롤러가 모르는 외부 text input(meta
+      // 폼 필드, 저장 모달의 version 입력 등)에 focus가 있으면 이 탭의
+      // 단축키를 전부 비활성화한다. 예외는 Ctrl+Z뿐 — 아래 ctrl 블록까지는
+      // 흘려보내되 나머지 키(digit·Backspace·Delete 등)는 여기서 막아
+      // 네이티브 입력으로 통과시킨다(F15).
+      if (isEditableFocusTarget(event.target)) {
+        const isUndo = (event.ctrlKey || event.metaKey) && (event.key === 'z' || event.key === 'Z');
+        if (!isUndo) return false;
+      }
       if (event.ctrlKey || event.metaKey) {
         if (event.key === 'c' || event.key === 'C') {
           event.preventDefault();
@@ -1174,6 +1197,23 @@ export function mountEditorNotesBody(
           if (selection.size === 0 && textSelection.size === 0) return false;
           event.preventDefault();
           duplicateSelection();
+          return true;
+        }
+        // F08 — undo/redo(scope n). §2 "undo/redo 직전 해당 scope selection
+        // clear" — 다른 scope(s/m) history는 이 파일이 모르므로 안 건드린다.
+        if (event.key === 'z' || event.key === 'Z') {
+          event.preventDefault();
+          selection = new Set();
+          textSelection = new Set();
+          if (event.shiftKey) api.redo();
+          else api.undo();
+          return true;
+        }
+        if (event.key === 'y' || event.key === 'Y') {
+          event.preventDefault();
+          selection = new Set();
+          textSelection = new Set();
+          api.redo();
           return true;
         }
         return false;

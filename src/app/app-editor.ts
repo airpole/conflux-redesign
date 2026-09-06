@@ -198,6 +198,12 @@ export function mountEditorScenes(deps: EditorScenesDeps): EditorScenes {
   let editorSession: WorkspaceSession | undefined;
   let editorCommandHistory: CommandHistory | undefined;
   let editorWorkspaceHandle: EditorWorkspaceSceneHandle | undefined;
+  // F08 — editor notes/shapes/meta/test scene 중 하나가 실제로 보이는
+  //동안만 true. `editorSession`은 editor-origin gameplay(mid-start
+  // 즉시재생) 동안에도 살아 있으므로, 그 화면에 남아 있는 채로 Ctrl+S를
+  // 눌러도 저장 모달이 열리면 안 된다 — `editorSession !== undefined`만으로는
+  // 이 경우를 못 막는다(아래 Ctrl+S 리스너 참조).
+  let editorWorkspaceVisible = false;
   // test 탭의 quick options 패널이 여는 순간 스냅샷 출처 — song-select
   // overlay의 `currentSettings`와 같은 관례(M4-7). editor에는 설정 화면
   // 진입점이 없어 `editor-test` scene의 onEnter가 매번 다시 읽어 채운다.
@@ -267,6 +273,10 @@ export function mountEditorScenes(deps: EditorScenesDeps): EditorScenes {
   document.addEventListener('keydown', (event) => {
     if ((event.ctrlKey || event.metaKey) && (event.key === 's' || event.key === 'S')) {
       if (editorSession === undefined) return;
+      // F08 — editor workspace scene(notes/shapes/meta/test)이 실제로
+      // 보이지 않으면(예: editor-origin gameplay 즉시재생 중) 세션이
+      // 살아 있어도 저장 모달을 열지 않는다.
+      if (!editorWorkspaceVisible) return;
       event.preventDefault();
       openSaveModal();
     }
@@ -325,6 +335,8 @@ export function mountEditorScenes(deps: EditorScenesDeps): EditorScenes {
         return mountEditorNotesBody(container, chart, {
           session: editorSession!,
           dispatch: (command) => editorCommandHistory!.dispatch(command),
+          undo: () => editorCommandHistory!.undo('n'),
+          redo: () => editorCommandHistory!.redo('n'),
           view,
         });
       },
@@ -335,6 +347,8 @@ export function mountEditorScenes(deps: EditorScenesDeps): EditorScenes {
         return mountEditorShapesBody(container, chart, {
           session: editorSession!,
           dispatch: (command) => editorCommandHistory!.dispatch(command),
+          undo: () => editorCommandHistory!.undo('s'),
+          redo: () => editorCommandHistory!.redo('s'),
           view,
         });
       },
@@ -342,10 +356,14 @@ export function mountEditorScenes(deps: EditorScenesDeps): EditorScenes {
       // 필드 편집은 command를 안 거쳐(editor-commands.md §7)
       // editorCommandHistory.onDispatch 구독이 안 걸리므로, 그 경로만
       // notifyChanged로 editorWorkspaceHandle.update를 직접 부른다.
+      // tempo/timeSignature는 command라 undo/redo(scope m)는 여기서도 같은
+      // editorCommandHistory를 그대로 쓴다.
       mountMeta(container, chart) {
         return mountEditorMetaBody(container, chart, {
           session: editorSession!,
           dispatch: (command) => editorCommandHistory!.dispatch(command),
+          undo: () => editorCommandHistory!.undo('m'),
+          redo: () => editorCommandHistory!.redo('m'),
           notifyChanged: () => editorWorkspaceHandle?.update(editorSession!.chart),
         });
       },
@@ -643,6 +661,7 @@ export function mountEditorScenes(deps: EditorScenesDeps): EditorScenes {
         mountEditorWorkspaceIfNeeded();
       },
       onEnter(): void {
+        editorWorkspaceVisible = true;
         if (category === 'test') {
           // quick options 패널 스냅샷을 매 진입마다 새로 읽는다 — editor에는
           // settings 화면 진입점이 없어(song-select overlay의 `update()`가
@@ -658,6 +677,7 @@ export function mountEditorScenes(deps: EditorScenesDeps): EditorScenes {
         editorWorkspaceHandle!.show(category);
       },
       onExit(): void {
+        editorWorkspaceVisible = false;
         editorWorkspaceHandle!.hide();
       },
     };
