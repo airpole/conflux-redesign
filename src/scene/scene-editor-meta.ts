@@ -109,6 +109,15 @@ export interface EditorMetaApi {
   notifyChanged(): void;
 }
 
+/** `event.target`이 실제 텍스트 입력(input/textarea/contenteditable)인지
+ *  — editor-editing.md §6 격리 판정. */
+function isEditableFocusTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+  );
+}
+
 /** difficulty별 고정 chartId 슬롯(`core/data-model.md` §4). */
 const FIXED_SLOT: Partial<Record<Difficulty, number>> = {
   Trace: 1,
@@ -511,18 +520,20 @@ export function mountEditorMetaBody(
   render();
 
   return {
-    // F08 — tempo/timeSignature(scope m)의 undo/redo만 여기서 다룬다. Ctrl+Z/
-    // Ctrl+Y는 editor-editing.md §6의 명시적 예외라 text input focus 여부와
-    // 무관하게 항상 동작해야 한다 — 그 외 이 탭에는 다른 단축키가 없다
-    // (헤더 docstring 참조), 그대로 false만 돌려줘도 이 탭의 수많은 text
-    // input(title/chartBy/offset/tempo·TS 필드)엔 아무 부작용이 없다.
+    // F08 — tempo/timeSignature(scope m)의 undo/redo만 여기서 다룬다.
+    // editor-editing.md §6의 text input focus 격리 예외는 Ctrl+S·**Ctrl+Z**·
+    // Esc 셋뿐이다 — Ctrl+Y(redo)는 예외 목록에 없으므로 이 탭의 수많은
+    // text input(title/chartBy/offset/tempo·TS 필드)에 focus가 있는 동안은
+    // 다른 컨트롤러(notes/shapes)와 마찬가지로 막아야 한다.
     onKeyDown(event: KeyboardEvent): boolean {
-      if ((event.ctrlKey || event.metaKey) && (event.key === 'z' || event.key === 'Z')) {
+      const isUndo = (event.ctrlKey || event.metaKey) && (event.key === 'z' || event.key === 'Z');
+      if (isUndo) {
         event.preventDefault();
         if (event.shiftKey) api.redo();
         else api.undo();
         return true;
       }
+      if (isEditableFocusTarget(event.target)) return false;
       if ((event.ctrlKey || event.metaKey) && (event.key === 'y' || event.key === 'Y')) {
         event.preventDefault();
         api.redo();

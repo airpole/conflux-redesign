@@ -110,6 +110,31 @@ describe('scene-editor-meta', () => {
     expect(getChart().tempos.length).toBe(before + 1);
   });
 
+  // F15 — editor-editing.md §6 예외는 Ctrl+S·Ctrl+Z·Esc뿐이다. Ctrl+Y(redo)는
+  // 예외가 아니므로 meta 폼 필드에 focus가 있으면 막아야 한다.
+  it('meta 폼 입력에 focus가 있으면 Ctrl+Y는 consumed=false다(Ctrl+Z는 예외로 통과)', () => {
+    const { target, handle, getChart } = mount(makeChart({ tempos: [{ startTick: 0, bpm: 120 }] }));
+    const before = getChart().tempos.length;
+    const addBtn = [...target.querySelectorAll('.editor-meta-button')].find(
+      (b) => b.textContent === 'Add Tempo',
+    ) as HTMLButtonElement;
+    addBtn.click();
+    expect(getChart().tempos.length).toBe(before + 1);
+
+    const titleInput = fieldInput(target, 'title');
+    function fire(key: string, opts: KeyboardEventInit = {}): boolean {
+      const event = new KeyboardEvent('keydown', { key, ...opts });
+      Object.defineProperty(event, 'target', { value: titleInput });
+      return handle.onKeyDown(event);
+    }
+
+    expect(fire('y', { ctrlKey: true })).toBe(false); // redo 안 됨.
+    expect(getChart().tempos.length).toBe(before + 1); // 변화 없음.
+
+    expect(fire('z', { ctrlKey: true })).toBe(true); // undo는 예외로 통과.
+    expect(getChart().tempos.length).toBe(before);
+  });
+
   it('songId는 읽기 전용이다', () => {
     const { target } = mount(makeChart({ songId: 'song-42' }));
     const input = fieldInput(target, 'songId') as HTMLInputElement;
