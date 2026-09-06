@@ -2596,6 +2596,27 @@
 - **Supersedes:** None
 - **Commit:** `74d7765`
 
+### D-2026-130 — audioOffset 방향(F03) — 양수 = 더 일찍 트리거(기기 출력 지연 보정)
+
+- **Status:** Accepted
+- **Decision:** `settings.audioOffset`(player device audio output
+  compensation)의 부호 방향을 확정한다(사용자 확인). 양수면 음원을 그만큼
+  더 일찍 트리거한다 — 기기 출력 지연을 보정하는 방향. `core-judge.ts`의
+  기존 `visualOffset`(`toJudgeMs = rawMs - visualOffset`, "보정은 빼기")과
+  같은 관례로 통일했다: `thresholdMs = trueMs - audioOffsetMs`. `chart.
+  metadata.offset`(콘텐츠 소유, 별개 축)과의 결합은 `core-timing.ts`의
+  `musicEndMs = musicDurationMs - offset` 공식에서 `bufferPos(trueMs) =
+  trueMs + chartOffsetMs`로 역산했다. 명세(`_meta/settings.md`,
+  `core/timing.md` §8)에는 두 offset이 존재한다는 것과 축이 다르다는 것만
+  있고 부호 공식이 없어 이번 세션에서 직접 확인받았다.
+- **Defined in:** `core/timing.md` §8, `_meta/settings.md`
+- **Rationale:** `core-judge.ts`의 `toJudgeMs` 부호 관례, 사용자
+  확인(2026-09-06)
+- **Affects:** game-engine(`computeAudioTrigger`), game-session,
+  scene-gameplay, scene-editor-test
+- **Supersedes:** None
+- **Commit:** `c783705`
+
 ### D-YYYY-NNN — <Title>
 
 - **Status:** Accepted | Superseded | Deferred

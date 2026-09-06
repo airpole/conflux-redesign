@@ -99,7 +99,7 @@ export interface EngineSession {
  * 세션을 만들기 전에 동기로 한 번 부른다.
  *
  * **F03 — 두 offset의 좌표 변환(`timing.md` §8, `settings.md` PLAY,
- * D-2026-1xx audioOffset 방향 결정)**. `chartOffsetMs`
+ * D-2026-130 audioOffset 방향 결정)**. `chartOffsetMs`
  * (`chart.metadata.offset`, chart 소유)는 tick↔ms note timing은 그대로 두고
  * **오디오 버퍼 위치**만 옮긴다 — `bufferPos(trueMs) = trueMs + chartOffsetMs`
  * (`core-timing.ts`의 `musicEndMs = musicDurationMs - offset`에서 역산한 식과
