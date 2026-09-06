@@ -636,7 +636,10 @@ describe('createGameSession — pause·Resume', () => {
 });
 
 describe('createGameSession — mid-start(M5-6, judge.md §10)', () => {
-  it('startChartMs 이전 note는 세션을 여는 순간 이미 SYNC로 시드돼 있다', () => {
+  // F04/H02 — 시드는 세션을 여는 순간이 아니라 카운트다운이 끝나 anchor에
+  // 실제로 도달하는 프레임에 일어난다(judge.md §10). 세션 생성 직후에는
+  // 아직 시드되지 않는다.
+  it('startChartMs 이전 note는 세션 생성 직후엔 아직 pending이고, anchor에 도달해야 SYNC로 시드된다', () => {
     const chart = makeChart({
       notes: [
         { startTick: 0, duration: 0, lane: 1, isWide: false },
@@ -665,7 +668,14 @@ describe('createGameSession — mid-start(M5-6, judge.md §10)', () => {
       leadInMs: LEAD_IN_MS,
     });
 
-    expect(session.judgeState.hits[0]).toBe('hit'); // 이미 SYNC로 시드됨.
+    // 세션 생성 직후 — 아직 카운트다운도 시작하지 않았다. 키가 항상 비어
+    // 있는 이 시점에 시드하면 카운트다운 중 눌러 둔 키로 crossing Hold를
+    // 살릴 수 없다(H02가 정정한 지점) — 그래서 아직 시드되지 않아야 한다.
+    expect(session.judgeState.hits[0]).toBe('pending');
+    expect(session.gaugeState.counts.SYNC).toBe(0);
+
+    session.advance(LEAD_IN_MS); // anchor(midMs)에 정확히 도달.
+    expect(session.judgeState.hits[0]).toBe('hit'); // 이제 SYNC로 시드됨.
     expect(session.judgeState.hits[1]).toBe('pending'); // 아직 anchor 이후 note.
     expect(session.gaugeState.counts.SYNC).toBe(1);
   });
@@ -736,6 +746,88 @@ describe('createGameSession — mid-start(M5-6, judge.md §10)', () => {
     session.input.onKeyDown(fakeKeyEvent('KeyE', LEAD_IN_MS - 100));
     expect(session.judgeState.hits[0]).toBe('pending');
     expect(session.judgeState.keysHeld.has('key1')).toBe(true);
+  });
+
+  // F04 — 재현: 0~2000ms Hold, anchor 1000ms에서 mid-start. 카운트다운
+  // 동안 키를 눌러 두면 anchor에서 crossing Hold가 유지돼야 한다("생성 시
+  // 즉시 시드"였던 이전 버그는 카운트다운을 기다리지도 않고 tail을
+  // MISS로 닫아 버렸다).
+  it('카운트다운 중 키를 눌러 두면 crossing Hold가 anchor에서 유지된다', () => {
+    const chart = makeChart({
+      notes: [{ startTick: 0, duration: 480 * 4, lane: 1, isWide: false }],
+    });
+    const timeline = buildTimeline(chart);
+    const tailMs = tickToMs(timeline, chart.notes[0]!.duration);
+    const anchorMs = tailMs / 2; // head(0)와 tail(tailMs) 사이 — crossing.
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+      startChartMs: anchorMs,
+      leadInMs: LEAD_IN_MS,
+    });
+
+    // 카운트다운 초반(아직 anchor 한참 전)에 키를 누른다 — registerKeyDown
+    // 경로(판정 없음)로만 들어가야 한다.
+    session.advance(10);
+    session.input.onKeyDown(fakeKeyEvent('KeyE', 10));
+    expect(session.judgeState.hits[0]).toBe('pending'); // 아직 시드 전.
+    expect(session.judgeState.keysHeld.has('key1')).toBe(true);
+
+    session.advance(LEAD_IN_MS + 1); // anchor를 살짝 넘겨 확실히 도달.
+    expect(session.judgeState.hits[0]).toBe('hit'); // head SYNC로 시드.
+    expect(session.gaugeState.counts.SYNC).toBe(1); // head만(tail은 아직).
+    expect(session.gaugeState.counts.MISS).toBe(0);
+
+    // crossing Hold가 살아 있으면 자연 진행으로 tail도 SYNC 완료된다.
+    session.advance(LEAD_IN_MS + (tailMs - anchorMs) + 5);
+    expect(session.gaugeState.counts.SYNC).toBe(2);
+    expect(session.gaugeState.counts.MISS).toBe(0);
+  });
+
+  it('무키로 anchor에 도달하면 기존 release grace 규칙으로 crossing Hold가 해소된다', () => {
+    const chart = makeChart({
+      notes: [{ startTick: 0, duration: 480 * 4, lane: 1, isWide: false }],
+    });
+    const timeline = buildTimeline(chart);
+    const tailMs = tickToMs(timeline, chart.notes[0]!.duration);
+    const anchorMs = tailMs / 2; // grace window(150ms)보다 훨씬 이전.
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+      startChartMs: anchorMs,
+      leadInMs: LEAD_IN_MS,
+    });
+
+    session.advance(LEAD_IN_MS + 1); // anchor를 살짝 넘겨 확실히 도달.
+    expect(session.judgeState.hits[0]).toBe('hit'); // head는 그대로 SYNC 시드.
+    expect(session.gaugeState.counts.SYNC).toBe(1);
+    expect(session.gaugeState.counts.MISS).toBe(1); // tail은 키가 없어 즉시 MISS.
   });
 
   it('startChartMs===0이면 시드가 no-op이라 기존 tick-0 gameplay와 동일하다', () => {

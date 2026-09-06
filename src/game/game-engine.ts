@@ -29,10 +29,12 @@
  * "판정 없음"이 공짜였지만, mid-start는 그렇지 않다) 이 구간 동안 `paused`가
  * `true`를 돌려주게 해 호출측이 `registerKeyDown`/`registerKeyUp`(판정
  * 시도 없음, `judge.md` §10)만 쓰게 한다. anchor(`startChartMs`)에 도달하는
- * 순간 `phase`가 `running`으로 바뀌지만 — **시드 자체(`seedPlayStateAt`)는
- * 이 파일이 부르지 않는다.** `anchorMs`가 세션을 열기 전부터 이미 알려진
- * 값이라 프레임을 기다릴 이유가 없다 — `game-session.ts`가
- * `createGameSession()` 안에서 세션을 만들기 전에 동기로 한 번 부른다.
+ * 순간 `phase`가 `running`으로 바뀌면서 `hooks.onMidStartAnchor(startChartMs)`
+ * 를 정확히 한 번 부른다(F04/H02) — **시드 자체(`seedPlayStateAt`)는 이
+ * 파일이 계산하지 않는다**, `game-session.ts`가 그 훅 안에서 호출한다.
+ * 세션 생성 시점(카운트다운이 시작되기도 전, 키가 항상 비어 있다)에 미리
+ * 부르면 카운트다운 동안 눌러 둔 키가 crossing Hold를 못 살린다 — 그래서
+ * 반드시 anchor에 실제로 도달하는 이 프레임까지 미룬다.
  *
  * **`leadInMs`**(기본 `LEAD_IN_MS`)도 함께 받는다 — editor test scene의
  * "즉시 재생"(`editor-graph.md` §5, lead-in 없음)은 `leadInMs=0`으로
@@ -69,6 +71,19 @@ export interface EngineHooks {
    * 경로)까지 강제로 구현하게 만들지 않는다.
    */
   onResume?(anchorMs: number): void;
+  /**
+   * mid-start의 `leadIn→running` 전이가 끝나는 프레임에 anchor(=`startChartMs`)
+   * 시각과 함께 정확히 한 번 불린다(F04, `judge.md` §10) — "카운트다운 동안은
+   * `registerKeyDown`/`registerKeyUp`으로만 키를 등록하고, anchor에서
+   * `seedPlayStateAt(anchorMs)`를 한 번 실행한다"는 계약을 이 시점에 건다.
+   * 세션을 만드는 시점(카운트다운이 시작되기도 전, 키가 항상 비어 있다)에
+   * 동기로 시드하던 이전 배선을 대체한다 — D-2026-103이 "생성 시 시드"와
+   * 동일하다고 기록했던 해석은 §10과 실제로 다르다(H02). 정상 tick-0
+   * 진입(`startChartMs===0 && leadInMs===LEAD_IN_MS`)은 애초에 `leadIn`
+   * phase를 거치지 않으므로 이 훅이 불리지 않는다 — mid-start(또는
+   * leadInMs=0 즉시재생)에서만 정확히 한 번 불린다.
+   */
+  onMidStartAnchor?(anchorMs: number): void;
 }
 
 export interface EngineSession {
@@ -105,8 +120,9 @@ export interface EngineSession {
  * `startChartMs`(기본 0)·`leadInMs`(기본 `LEAD_IN_MS`)는 M5-6 mid-start
  * 확장이다 — 헤더 docstring 참조. 세션을 연 뒤 anchor(`startChartMs`)에
  * 닿기 전까지는 `paused`가 `true`다(새 `leadIn` phase) — **시드
- * (`seedPlayStateAt`) 자체는 이 함수가 부르지 않는다**, `game-session.ts`가
- * 세션을 만들기 전에 동기로 한 번 부른다.
+ * (`seedPlayStateAt`) 자체는 이 함수가 계산하지 않는다**, anchor에
+ * 도달하는 프레임에 `hooks.onMidStartAnchor(startChartMs)`를 불러
+ * `game-session.ts`가 그 안에서 호출한다(F04/H02).
  *
  * **F03 — 두 offset의 좌표 변환(`timing.md` §8, `settings.md` PLAY,
  * D-2026-130 audioOffset 방향 결정)**. `chartOffsetMs`
@@ -209,9 +225,11 @@ export function startEngineSession(
       const curMs = currentChartMs(nowMs);
 
       if (phase === 'leadIn' && curMs >= startChartMs) {
-        // mid-start anchor 도달 — 시드는 이미 세션을 열기 전에 끝나 있다
-        // (game-session.ts). 여기서는 판정을 막던 phase만 푼다.
+        // mid-start anchor 도달(F04/H02) — 시드(seedPlayStateAt)를 여기서
+        // 정확히 한 번 실행한다. 카운트다운 동안 registerKeyDown으로 등록된
+        // 키가 이 시점에 반영된다.
         phase = 'running';
+        hooks.onMidStartAnchor?.(startChartMs);
       }
 
       if (!audioStarted && curMs >= audioTrigger.thresholdMs) {

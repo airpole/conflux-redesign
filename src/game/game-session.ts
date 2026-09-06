@@ -67,8 +67,10 @@ export interface GameSessionOptions {
   readonly hitSound: HitSoundSource | null;
   /**
    * mid-start(M5-6) — chart의 0이 아닌 위치에서 세션을 연다. `judge.md` §10
-   * 대로 `seedPlayStateAt`을 세션을 만들기 전에 동기로 한 번 불러 그 위치
-   * 이전 판정을 미리 채운다(`game-engine.ts` 헤더 docstring 참조). 기본 0.
+   * 대로 `seedPlayStateAt`은 세션 생성 시점이 아니라 카운트다운이 끝나
+   * anchor에 도달하는 순간(`EngineHooks.onMidStartAnchor`) 한 번 불려 그
+   * 위치 이전 판정을 채운다(F04/H02, `game-engine.ts` 헤더 docstring
+   * 참조) — 카운트다운 동안 등록된 키가 그 시드에 반영된다. 기본 0.
    */
   readonly startChartMs?: number;
   /**
@@ -233,14 +235,6 @@ export function createGameSession(options: GameSessionOptions): GameSession {
     applyEvents(events, curMs);
   };
 
-  // mid-start(M5-6): 세션을 열기 전에 동기로 한 번 시드한다(`judge.md` §10,
-  // `game-engine.ts` 헤더 docstring). startChartMs===0이면 시드 대상 노트가
-  // 없어 사실상 no-op이다.
-  if (startChartMs !== 0) {
-    const seedEvents = seedPlayStateAt(judgeState, context, startChartMs);
-    applyEvents(seedEvents, startChartMs);
-  }
-
   const engine = startEngineSession(
     options.ctx,
     options.startNowMs,
@@ -266,6 +260,15 @@ export function createGameSession(options: GameSessionOptions): GameSession {
         applyEvents(events, anchorMs);
         if (gaugeState.forceEnded) finalize();
         options.engineHooks.onResume?.(anchorMs);
+      },
+      onMidStartAnchor: (anchorMs) => {
+        // F04/H02 — mid-start 시드는 세션 생성 시점(키가 항상 비어 있다)이
+        // 아니라 카운트다운이 끝나 anchor에 도달하는 이 시점에 한 번
+        // 실행한다(judge.md §10). startChartMs===0이면 시드 대상 노트가
+        // 없어 사실상 no-op이다(leadInMs=0 즉시재생도 이 경로를 탄다).
+        const events = seedPlayStateAt(judgeState, context, anchorMs);
+        applyEvents(events, anchorMs);
+        if (gaugeState.forceEnded) finalize();
       },
     },
     startChartMs,
