@@ -220,6 +220,19 @@ export function createGameSession(options: GameSessionOptions): GameSession {
     sampleGaugeTrace(atMs);
   };
 
+  /**
+   * 한 시각까지의 판정을 진행한다(autoplay/manual 분기는 항상 이 함수
+   * 하나로만 표현한다) — 매 프레임의 정상 진행(`advance`)과 F07의 자연
+   * 종료 직전 최종 sweep(`onSongEnd`)이 같은 코드를 공유해야 결과가
+   * 갈라지지 않는다.
+   */
+  const runJudgeSweep = (curMs: number): void => {
+    const events = options.autoplay
+      ? advanceAutoplay(judgeState, context, curMs)
+      : judgeAdvance(judgeState, context, curMs, options.visualOffset);
+    applyEvents(events, curMs);
+  };
+
   // mid-start(M5-6): 세션을 열기 전에 동기로 한 번 시드한다(`judge.md` §10,
   // `game-engine.ts` 헤더 docstring). startChartMs===0이면 시드 대상 노트가
   // 없어 사실상 no-op이다.
@@ -235,6 +248,10 @@ export function createGameSession(options: GameSessionOptions): GameSession {
     {
       onAudioStart: options.engineHooks.onAudioStart,
       onSongEnd: () => {
+        // F07 — 자연 종료 전 최종 판정 sweep. engine이 종료 프레임에서
+        // ctx.sharedMs를 이미 그 프레임의 실제 curMs로 갱신해 뒀다
+        // (game-engine.ts) — 그 값으로 한 번 더 판정을 진행한 뒤 finalize한다.
+        runJudgeSweep(options.ctx.sharedMs);
         finalize();
         options.engineHooks.onSongEnd();
       },
@@ -287,14 +304,11 @@ export function createGameSession(options: GameSessionOptions): GameSession {
     advance(nowMs) {
       if (result !== null) return; // 이미 끝난 세션은 더 진행하지 않는다.
       engine.tick(nowMs);
-      if (engine.finished) return; // onSongEnd 훅이 이미 finalize했다.
+      if (engine.finished) return; // onSongEnd 훅이 이미 최종 sweep+finalize했다(F07).
       if (engine.paused) return; // pause·Resume 카운트다운 — chart 시간이 안 흐른다.
 
       const curMs = options.ctx.sharedMs;
-      const events = options.autoplay
-        ? advanceAutoplay(judgeState, context, curMs)
-        : judgeAdvance(judgeState, context, curMs, options.visualOffset);
-      applyEvents(events, curMs);
+      runJudgeSweep(curMs);
 
       if (gaugeState.forceEnded) {
         finalize();

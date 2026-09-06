@@ -221,6 +221,11 @@ export function startEngineSession(
 
       if (curMs > songEndMs) {
         finished = true;
+        // F07 — 종료 훅이 그 시각까지의 최종 판정 sweep을 돌 수 있도록,
+        // 끝났다고 반환하기 전에 `ctx.sharedMs`를 이 프레임의 실제 curMs로
+        // 갱신해 둔다. 이전에는 이 대입이 아래(정상 진행 분기)에만 있어
+        // 종료 프레임에서는 sharedMs가 그 이전 값에 멈춰 있었다.
+        ctx.sharedMs = curMs;
         ctx.redrawIdle();
         hooks.onSongEnd();
         return;

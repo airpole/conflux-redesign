@@ -169,6 +169,160 @@ describe('createGameSession — 곡 종료', () => {
     expect(session.result).not.toBeNull();
     expect(session.result!.state).toBe('AS'); // autoplay = 전부 SYNC
   });
+
+  // F07 — 자연 종료 전 최종 판정 sweep. 재현: tick0 Tap 하나, 최초
+  // advance가 곧바로 큰 wall-clock 점프(10000ms)로 songEnd를 넘긴다.
+  it('manual: 첫 advance가 곧바로 songEnd를 넘겨도 tick0 note가 MISS로 판정된다', () => {
+    const chart = makeChart({ notes: [{ startTick: 0, duration: 0, lane: 1, isWide: false }] });
+    const timeline = buildTimeline(chart);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+    });
+
+    session.advance(10000); // 큰 프레임 지연 — songEnd를 단번에 넘긴다.
+
+    expect(session.engine.finished).toBe(true);
+    expect(session.result).not.toBeNull();
+    expect(session.gaugeState.counts.MISS).toBe(1);
+    expect(session.gaugeState.counts.SYNC).toBe(0);
+  });
+
+  it('autoplay: 첫 advance가 곧바로 songEnd를 넘겨도 tick0 note가 SYNC로 판정된다', () => {
+    const chart = makeChart({ notes: [{ startTick: 0, duration: 0, lane: 1, isWide: false }] });
+    const timeline = buildTimeline(chart);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: true,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+    });
+
+    session.advance(10000); // 큰 프레임 지연 — songEnd를 단번에 넘긴다.
+
+    expect(session.engine.finished).toBe(true);
+    expect(session.result).not.toBeNull();
+    expect(session.gaugeState.counts.SYNC).toBe(1);
+    expect(session.gaugeState.counts.MISS).toBe(0);
+  });
+
+  it('빈 chart에서도 최종 sweep이 크래시 없이 종료·finalize한다', () => {
+    const chart = makeChart({ notes: [] });
+    const timeline = buildTimeline(chart);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+    });
+
+    expect(() => session.advance(10000)).not.toThrow();
+    expect(session.result).not.toBeNull();
+  });
+
+  it('종료 직전 tail이 최종 sweep에서 정상 완료된다(Hold가 songEnd 직전에 끝나는 경우)', () => {
+    const chart = makeChart({
+      notes: [{ startTick: 0, duration: 480 * 4, lane: 1, isWide: false }],
+    });
+    const timeline = buildTimeline(chart);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: true,
+      gaugeMode: 'normal',
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd: vi.fn() },
+      hitSound: null,
+    });
+
+    // head를 먼저 확정시켜 활성 Hold를 만든 뒤, tail이 아직 안 닫힌 채로
+    // songEnd 훨씬 이전 시점까지만 진행한다.
+    session.advance(LEAD_IN_MS);
+    expect(session.gaugeState.counts.SYNC).toBe(1); // head만.
+
+    // 곧바로 songEnd를 넘기는 큰 점프 — tail(tailMs)도 songEnd 전에 있으므로
+    // 최종 sweep에서 함께 SYNC로 닫혀야 한다.
+    session.advance(LEAD_IN_MS + songEnd.songEndMs + 1);
+    expect(session.gaugeState.counts.SYNC).toBe(2); // head + tail.
+    expect(session.gaugeState.counts.MISS).toBe(0);
+  });
+
+  it('terminate와 자연 종료가 같은 프레임에 겹쳐도 finalize는 한 번만 일어난다', () => {
+    const chart = makeChart({ notes: [{ startTick: 0, duration: 0, lane: 1, isWide: false }] });
+    const timeline = buildTimeline(chart);
+    const songEnd = songEndOf(timeline, chart, null);
+    const ctx = fakeCtx(songEnd.contentEndMs);
+    const onSongEnd = vi.fn();
+
+    const session = createGameSession({
+      ctx,
+      chart,
+      timeline,
+      keyBindings: DEFAULT_SETTINGS.keyBindings,
+      mirror: false,
+      visualOffset: 0,
+      autoplay: false, // manual — 최종 sweep이 note를 MISS로 만든다.
+      gaugeMode: 'as', // onBreak: 'terminate' — MISS 즉시 forceEnded.
+      startNowMs: 0,
+      playbackRate: 1,
+      engineHooks: { onAudioStart: vi.fn(), onSongEnd },
+      hitSound: null,
+    });
+
+    session.advance(10000);
+
+    expect(onSongEnd).toHaveBeenCalledTimes(1);
+    expect(session.result).not.toBeNull();
+    const firstResult = session.result;
+
+    // 이미 끝난 세션에 추가 advance/input이 result를 다시 바꾸지 않는다.
+    session.advance(20000);
+    session.input.onKeyDown(fakeKeyEvent('KeyE', 20000));
+    expect(session.result).toBe(firstResult);
+  });
 });
 
 describe('createGameSession — 게이지', () => {
