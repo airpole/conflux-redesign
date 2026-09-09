@@ -166,3 +166,53 @@ describe('mountResultScene — 키 계약 (§4)', () => {
     expect(onRetry).not.toHaveBeenCalled();
   });
 });
+
+describe('mountResultScene — DOM 소유권 (F01, scene.md §6·§9)', () => {
+  let target: HTMLDivElement;
+
+  beforeEach(() => {
+    target = document.createElement('div');
+    document.body.append(target);
+  });
+
+  afterEach(() => {
+    target.remove();
+  });
+
+  it('destroy()는 자기 subtree만 제거하고 같은 root에 mount된 다른 scene DOM은 남긴다', () => {
+    const otherScene = document.createElement('div');
+    otherScene.className = 'song-select-scene';
+    otherScene.textContent = 'song-select still here';
+    target.append(otherScene);
+
+    const handle = mountResultScene(target, fakeView(), { onRetry: vi.fn(), onBack: vi.fn() });
+    expect(target.contains(otherScene)).toBe(true);
+
+    handle.destroy();
+
+    expect(target.contains(otherScene)).toBe(true);
+    expect(otherScene.textContent).toBe('song-select still here');
+    expect(target.querySelector('.result-scene')).toBeNull();
+  });
+
+  it('mount·destroy를 3회 반복해도 다른 scene DOM과 keydown listener가 누적되지 않는다', () => {
+    const otherScene = document.createElement('div');
+    target.append(otherScene);
+    const addSpy = vi.spyOn(document, 'addEventListener');
+    const removeSpy = vi.spyOn(document, 'removeEventListener');
+
+    for (let i = 0; i < 3; i++) {
+      const handle = mountResultScene(target, fakeView(), { onRetry: vi.fn(), onBack: vi.fn() });
+      handle.destroy();
+    }
+
+    expect(target.contains(otherScene)).toBe(true);
+    expect(target.querySelectorAll('.result-scene')).toHaveLength(0);
+    const keydownAdds = addSpy.mock.calls.filter((c) => c[0] === 'keydown').length;
+    const keydownRemoves = removeSpy.mock.calls.filter((c) => c[0] === 'keydown').length;
+    expect(keydownRemoves).toBe(keydownAdds);
+
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
+  });
+});
