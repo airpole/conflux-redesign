@@ -1,4 +1,4 @@
-name: Deploy Conflux to GitHub Pages
+name: Deploy Conflux QA to GitHub Pages
 
 on:
   workflow_dispatch:
@@ -39,8 +39,8 @@ jobs:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Build for the repository Pages path
-        run: npm run build -- --base=/conflux-redesign/
+      - name: Build internal QA profile for the repository Pages path
+        run: npm run build:internal -- --base=/conflux-redesign/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
