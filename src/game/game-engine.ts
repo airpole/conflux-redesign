@@ -29,10 +29,12 @@
  * "판정 없음"이 공짜였지만, mid-start는 그렇지 않다) 이 구간 동안 `paused`가
  * `true`를 돌려주게 해 호출측이 `registerKeyDown`/`registerKeyUp`(판정
  * 시도 없음, `judge.md` §10)만 쓰게 한다. anchor(`startChartMs`)에 도달하는
- * 순간 `phase`가 `running`으로 바뀌지만 — **시드 자체(`seedPlayStateAt`)는
- * 이 파일이 부르지 않는다.** `anchorMs`가 세션을 열기 전부터 이미 알려진
- * 값이라 프레임을 기다릴 이유가 없다 — `game-session.ts`가
- * `createGameSession()` 안에서 세션을 만들기 전에 동기로 한 번 부른다.
+ * 순간 `phase`가 `running`으로 바뀌면서 `hooks.onMidStartAnchor(startChartMs)`
+ * 를 정확히 한 번 부른다(F04/H02) — **시드 자체(`seedPlayStateAt`)는 이
+ * 파일이 계산하지 않는다**, `game-session.ts`가 그 훅 안에서 호출한다.
+ * 세션 생성 시점(카운트다운이 시작되기도 전, 키가 항상 비어 있다)에 미리
+ * 부르면 카운트다운 동안 눌러 둔 키가 crossing Hold를 못 살린다 — 그래서
+ * 반드시 anchor에 실제로 도달하는 이 프레임까지 미룬다.
  *
  * **`leadInMs`**(기본 `LEAD_IN_MS`)도 함께 받는다 — editor test scene의
  * "즉시 재생"(`editor-graph.md` §5, lead-in 없음)은 `leadInMs=0`으로
@@ -48,6 +50,40 @@ export interface EngineHooks {
   onAudioStart(fromMs: number): void;
   /** curMs가 `songEndMs`를 넘는 첫 프레임에 한 번 불리고 세션이 끝난다. */
   onSongEnd(): void;
+  /**
+   * `pause()`가 실제로 `paused`로 전이시킬 때만 정확히 한 번 불린다(F02) —
+   * 이미 paused/resuming/finished라 `pause()`가 no-op인 경우는 불리지
+   * 않으므로 중복 pause에도 멱등이다. host가 여기서 음악을 멈춘다 —
+   * `onAudioStart`가 이미 재개 시 anchor에서 다시 트는 것으로 재생을
+   * 책임지므로(resuming→running 전이에서 `audioStarted`를 다시 `false`로
+   * 돌린다) 이 훅은 정지만 책임지면 된다. 선택적 — 이 훅을 안 쓰는
+   * 호출측(예: editor test의 즉시재생, pause 없이 Esc로 아예 정지)까지
+   * 강제로 구현하게 만들지 않는다.
+   */
+  onPause?(): void;
+  /**
+   * `resuming→running` 전이가 끝나는 프레임에 anchor 시각과 함께 정확히
+   * 한 번 불린다(F04, `judge.md` §9·§10) — "보존된 활성 Hold에 대해
+   * `reconcileHeldCapacity(anchorMs)`만 실행한다"는 계약을 이 시점에
+   * 걸 자리다. mid-start의 `seedPlayStateAt`과 달리 과거 판정을 다시
+   * 만들지 않고, pause 중 등록만 됐던 키 상태를 anchor 기준으로
+   * 재조정만 한다. 선택적 — 이 훅을 쓰지 않는 호출측(예: pause가 없는
+   * 경로)까지 강제로 구현하게 만들지 않는다.
+   */
+  onResume?(anchorMs: number): void;
+  /**
+   * mid-start의 `leadIn→running` 전이가 끝나는 프레임에 anchor(=`startChartMs`)
+   * 시각과 함께 정확히 한 번 불린다(F04, `judge.md` §10) — "카운트다운 동안은
+   * `registerKeyDown`/`registerKeyUp`으로만 키를 등록하고, anchor에서
+   * `seedPlayStateAt(anchorMs)`를 한 번 실행한다"는 계약을 이 시점에 건다.
+   * 세션을 만드는 시점(카운트다운이 시작되기도 전, 키가 항상 비어 있다)에
+   * 동기로 시드하던 이전 배선을 대체한다 — D-2026-103이 "생성 시 시드"와
+   * 동일하다고 기록했던 해석은 §10과 실제로 다르다(H02). 정상 tick-0
+   * 진입(`startChartMs===0 && leadInMs===LEAD_IN_MS`)은 애초에 `leadIn`
+   * phase를 거치지 않으므로 이 훅이 불리지 않는다 — mid-start(또는
+   * leadInMs=0 즉시재생)에서만 정확히 한 번 불린다.
+   */
+  onMidStartAnchor?(anchorMs: number): void;
 }
 
 export interface EngineSession {
@@ -84,8 +120,25 @@ export interface EngineSession {
  * `startChartMs`(기본 0)·`leadInMs`(기본 `LEAD_IN_MS`)는 M5-6 mid-start
  * 확장이다 — 헤더 docstring 참조. 세션을 연 뒤 anchor(`startChartMs`)에
  * 닿기 전까지는 `paused`가 `true`다(새 `leadIn` phase) — **시드
- * (`seedPlayStateAt`) 자체는 이 함수가 부르지 않는다**, `game-session.ts`가
- * 세션을 만들기 전에 동기로 한 번 부른다.
+ * (`seedPlayStateAt`) 자체는 이 함수가 계산하지 않는다**, anchor에
+ * 도달하는 프레임에 `hooks.onMidStartAnchor(startChartMs)`를 불러
+ * `game-session.ts`가 그 안에서 호출한다(F04/H02).
+ *
+ * **F03 — 두 offset의 좌표 변환(`timing.md` §8, `settings.md` PLAY,
+ * D-2026-130 audioOffset 방향 결정)**. `chartOffsetMs`
+ * (`chart.metadata.offset`, chart 소유)는 tick↔ms note timing은 그대로 두고
+ * **오디오 버퍼 위치**만 옮긴다 — `bufferPos(trueMs) = trueMs + chartOffsetMs`
+ * (`core-timing.ts`의 `musicEndMs = musicDurationMs - offset`에서 역산한 식과
+ * 정합). `audioOffsetMs`(`settings.audioOffset`, 플레이어 device 소유)는
+ * 내용이 아니라 **트리거 시점**만 옮긴다 — 기기 출력 지연을 보정하려고
+ * 양수면 그만큼 더 일찍 트리거한다(`visualOffset`의 `toJudgeMs = rawMs -
+ * visualOffset`과 같은 "보정은 빼기" 방향).
+ *
+ * 두 값 다 기본 0이라 안 넘기면 이 변경 전과 완전히 같다. 음원 시작 이전
+ * 요청(음수 buffer position)은 `trueMs`를 `-chartOffsetMs`까지 늦춰
+ * 안전하게 만든다 — `fromMs`가 절대 음수로 나가지 않는다(음원 끝 이후
+ * 요청은 이 함수가 모르는 `musicBuffer.duration`을 봐야 하므로 host가
+ * `onAudioStart(fromMs)`에서 그 값과 비교해 재생 여부를 결정한다).
  */
 export function startEngineSession(
   ctx: CTX,
@@ -94,6 +147,8 @@ export function startEngineSession(
   hooks: EngineHooks,
   startChartMs = 0,
   leadInMs = LEAD_IN_MS,
+  audioOffsetMs = 0,
+  chartOffsetMs = 0,
 ): EngineSession {
   const songEndMs = ctx.contentEndMs + SONG_END_TAIL_MS;
 
@@ -103,8 +158,17 @@ export function startEngineSession(
   let chartStartMs = startChartMs - leadInMs;
   let wallStartMs = startNowMs;
   let audioStarted = false;
-  let audioStartThresholdMs = startChartMs;
   let finished = false;
+
+  // F03 좌표 변환(헤더 docstring) — nominalMs(=startChartMs 또는 resume
+  // anchorMs)를 실제 트리거 시각(threshold)과 그때 넘길 buffer 위치(fromMs)로
+  // 바꾼다. 첫 시작과 Resume 둘 다 이 한 함수를 거친다.
+  function computeAudioTrigger(nominalMs: number): { thresholdMs: number; fromMs: number } {
+    const trueMs = Math.max(nominalMs, -chartOffsetMs); // 음원 시작 전이면 그 시점까지 늦춘다.
+    return { thresholdMs: trueMs - audioOffsetMs, fromMs: trueMs + chartOffsetMs };
+  }
+
+  let audioTrigger = computeAudioTrigger(startChartMs);
 
   type Phase = 'running' | 'paused' | 'resuming' | 'leadIn';
   let phase: Phase = startChartMs === 0 && leadInMs === LEAD_IN_MS ? 'running' : 'leadIn';
@@ -131,6 +195,7 @@ export function startEngineSession(
       if (finished || phase === 'paused' || phase === 'resuming') return;
       anchorMs = ctx.sharedMs;
       phase = 'paused';
+      hooks.onPause?.();
     },
     resume(resumeNowMs) {
       if (finished || phase !== 'paused') return;
@@ -153,24 +218,32 @@ export function startEngineSession(
         chartStartMs = anchorMs;
         wallStartMs = resumeStartWallMs + RESUME_LEAD_MS;
         audioStarted = false;
-        audioStartThresholdMs = anchorMs;
+        audioTrigger = computeAudioTrigger(anchorMs);
+        hooks.onResume?.(anchorMs);
       }
 
       const curMs = currentChartMs(nowMs);
 
       if (phase === 'leadIn' && curMs >= startChartMs) {
-        // mid-start anchor 도달 — 시드는 이미 세션을 열기 전에 끝나 있다
-        // (game-session.ts). 여기서는 판정을 막던 phase만 푼다.
+        // mid-start anchor 도달(F04/H02) — 시드(seedPlayStateAt)를 여기서
+        // 정확히 한 번 실행한다. 카운트다운 동안 registerKeyDown으로 등록된
+        // 키가 이 시점에 반영된다.
         phase = 'running';
+        hooks.onMidStartAnchor?.(startChartMs);
       }
 
-      if (!audioStarted && curMs >= audioStartThresholdMs) {
+      if (!audioStarted && curMs >= audioTrigger.thresholdMs) {
         audioStarted = true;
-        hooks.onAudioStart(audioStartThresholdMs);
+        hooks.onAudioStart(audioTrigger.fromMs);
       }
 
       if (curMs > songEndMs) {
         finished = true;
+        // F07 — 종료 훅이 그 시각까지의 최종 판정 sweep을 돌 수 있도록,
+        // 끝났다고 반환하기 전에 `ctx.sharedMs`를 이 프레임의 실제 curMs로
+        // 갱신해 둔다. 이전에는 이 대입이 아래(정상 진행 분기)에만 있어
+        // 종료 프레임에서는 sharedMs가 그 이전 값에 멈춰 있었다.
+        ctx.sharedMs = curMs;
         ctx.redrawIdle();
         hooks.onSongEnd();
         return;

@@ -13,6 +13,7 @@ import {
   createJudgeState,
   judgeAdvance,
   laneMapOf,
+  reconcileHeldCapacity,
   seedPlayStateAt,
   type CandidateContext,
   type JudgeState,
@@ -66,8 +67,10 @@ export interface GameSessionOptions {
   readonly hitSound: HitSoundSource | null;
   /**
    * mid-start(M5-6) — chart의 0이 아닌 위치에서 세션을 연다. `judge.md` §10
-   * 대로 `seedPlayStateAt`을 세션을 만들기 전에 동기로 한 번 불러 그 위치
-   * 이전 판정을 미리 채운다(`game-engine.ts` 헤더 docstring 참조). 기본 0.
+   * 대로 `seedPlayStateAt`은 세션 생성 시점이 아니라 카운트다운이 끝나
+   * anchor에 도달하는 순간(`EngineHooks.onMidStartAnchor`) 한 번 불려 그
+   * 위치 이전 판정을 채운다(F04/H02, `game-engine.ts` 헤더 docstring
+   * 참조) — 카운트다운 동안 등록된 키가 그 시드에 반영된다. 기본 0.
    */
   readonly startChartMs?: number;
   /**
@@ -76,6 +79,13 @@ export interface GameSessionOptions {
    * Enter→gameplay mid-start 둘 다 이 기본값을 쓴다).
    */
   readonly leadInMs?: number;
+  /**
+   * player device audio output compensation(`settings.audioOffset`, F03,
+   * `game-engine.ts` 헤더 docstring의 좌표 변환). `chart.metadata.offset`은
+   * 이 값과 별개 축이라 `options.chart`에서 직접 읽는다 — 호출측이 따로
+   * 넘기지 않는다. 기본 0(안 넘기면 이 변경 전과 완전히 같다).
+   */
+  readonly audioOffsetMs?: number;
 }
 
 /**
@@ -212,13 +222,18 @@ export function createGameSession(options: GameSessionOptions): GameSession {
     sampleGaugeTrace(atMs);
   };
 
-  // mid-start(M5-6): 세션을 열기 전에 동기로 한 번 시드한다(`judge.md` §10,
-  // `game-engine.ts` 헤더 docstring). startChartMs===0이면 시드 대상 노트가
-  // 없어 사실상 no-op이다.
-  if (startChartMs !== 0) {
-    const seedEvents = seedPlayStateAt(judgeState, context, startChartMs);
-    applyEvents(seedEvents, startChartMs);
-  }
+  /**
+   * 한 시각까지의 판정을 진행한다(autoplay/manual 분기는 항상 이 함수
+   * 하나로만 표현한다) — 매 프레임의 정상 진행(`advance`)과 F07의 자연
+   * 종료 직전 최종 sweep(`onSongEnd`)이 같은 코드를 공유해야 결과가
+   * 갈라지지 않는다.
+   */
+  const runJudgeSweep = (curMs: number): void => {
+    const events = options.autoplay
+      ? advanceAutoplay(judgeState, context, curMs)
+      : judgeAdvance(judgeState, context, curMs, options.visualOffset);
+    applyEvents(events, curMs);
+  };
 
   const engine = startEngineSession(
     options.ctx,
@@ -227,12 +242,39 @@ export function createGameSession(options: GameSessionOptions): GameSession {
     {
       onAudioStart: options.engineHooks.onAudioStart,
       onSongEnd: () => {
+        // F07 — 자연 종료 전 최종 판정 sweep. engine이 종료 프레임에서
+        // ctx.sharedMs를 이미 그 프레임의 실제 curMs로 갱신해 뒀다
+        // (game-engine.ts) — 그 값으로 한 번 더 판정을 진행한 뒤 finalize한다.
+        runJudgeSweep(options.ctx.sharedMs);
         finalize();
         options.engineHooks.onSongEnd();
+      },
+      ...(options.engineHooks.onPause !== undefined
+        ? { onPause: options.engineHooks.onPause }
+        : {}),
+      onResume: (anchorMs) => {
+        // F04 — pause 중 등록만 됐던 키 상태를 anchor 기준으로 재조정한다.
+        // judge.md §10: seedPlayStateAt과 달리 과거 판정을 다시 만들지
+        // 않고 reconcileHeldCapacity만 한 번 실행한다.
+        const events = reconcileHeldCapacity(judgeState, context, anchorMs);
+        applyEvents(events, anchorMs);
+        if (gaugeState.forceEnded) finalize();
+        options.engineHooks.onResume?.(anchorMs);
+      },
+      onMidStartAnchor: (anchorMs) => {
+        // F04/H02 — mid-start 시드는 세션 생성 시점(키가 항상 비어 있다)이
+        // 아니라 카운트다운이 끝나 anchor에 도달하는 이 시점에 한 번
+        // 실행한다(judge.md §10). startChartMs===0이면 시드 대상 노트가
+        // 없어 사실상 no-op이다(leadInMs=0 즉시재생도 이 경로를 탄다).
+        const events = seedPlayStateAt(judgeState, context, anchorMs);
+        applyEvents(events, anchorMs);
+        if (gaugeState.forceEnded) finalize();
       },
     },
     startChartMs,
     leadInMs,
+    options.audioOffsetMs ?? 0,
+    options.chart.metadata.offset,
   );
 
   const input = createJudgeInputHandlers(
@@ -265,14 +307,11 @@ export function createGameSession(options: GameSessionOptions): GameSession {
     advance(nowMs) {
       if (result !== null) return; // 이미 끝난 세션은 더 진행하지 않는다.
       engine.tick(nowMs);
-      if (engine.finished) return; // onSongEnd 훅이 이미 finalize했다.
+      if (engine.finished) return; // onSongEnd 훅이 이미 최종 sweep+finalize했다(F07).
       if (engine.paused) return; // pause·Resume 카운트다운 — chart 시간이 안 흐른다.
 
       const curMs = options.ctx.sharedMs;
-      const events = options.autoplay
-        ? advanceAutoplay(judgeState, context, curMs)
-        : judgeAdvance(judgeState, context, curMs, options.visualOffset);
-      applyEvents(events, curMs);
+      runJudgeSweep(curMs);
 
       if (gaugeState.forceEnded) {
         finalize();

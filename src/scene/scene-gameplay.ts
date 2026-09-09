@@ -404,17 +404,24 @@ export function mountGameplayScene(
       startNowMs,
       playbackRate: 1,
       hitSound: { ctx: audioCtx, buffer: hitSoundBuffer },
+      audioOffsetMs: input.settings.audioOffset,
       ...(input.startChartMs !== undefined ? { startChartMs: input.startChartMs } : {}),
       ...(input.leadInMs !== undefined ? { leadInMs: input.leadInMs } : {}),
       engineHooks: {
         onAudioStart(fromMs): void {
           audio.stop();
-          if (input.musicBuffer !== null) {
+          // F03 — fromMs가 이미 음원 길이를 넘겼으면(chart/device offset
+          // 조합으로 음원이 이 chart 위치 전에 끝난 경우) 재생하지 않는다 —
+          // 무음이 정의된 동작이다, 클수록 과거로 되감기지 않는다.
+          if (input.musicBuffer !== null && fromMs < input.musicBuffer.duration * 1000) {
             audio.setVolume(input.settings.volMaster * input.settings.volMusic);
             audio.play(input.musicBuffer, fromMs);
           }
         },
         onSongEnd(): void {
+          audio.stop();
+        },
+        onPause(): void {
           audio.stop();
         },
       },

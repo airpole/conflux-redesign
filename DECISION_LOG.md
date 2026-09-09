@@ -1568,7 +1568,7 @@
 
 ### D-2026-103 — M5-6(부분): engine/session mid-start
 
-- **Status:** Accepted (engine/session 층) / scene 층("current position" 정의 없음)은 Deferred — 아래 참조
+- **Status:** Accepted (engine/session 층) / scene 층("current position" 정의 없음)은 Deferred — 아래 참조. **시드 타이밍 부분은 D-2026-131로 Superseded** — "세션을 열기 전에 동기로 시드"가 [[judge]] §10과 동일하다는 이 항목의 설명은 실제로는 틀렸다(F04/H02). leadIn phase 도입·pause 가드 일반화 등 나머지 결정은 그대로 유효하다.
 - **Decision:** `game-engine.ts`의 `startEngineSession`에 `startChartMs`(기본
   0)·`leadInMs`(기본 `LEAD_IN_MS`) 두 선택 인자를 추가해 0이 아닌 위치에서
   세션을 여는 mid-start를 지원한다([[judge]] §10). chart 시계는 anchor
@@ -2595,6 +2595,50 @@
   M5.5-1(부분 진행, 미종결)
 - **Supersedes:** None
 - **Commit:** `74d7765`
+
+### D-2026-130 — audioOffset 방향(F03) — 양수 = 더 일찍 트리거(기기 출력 지연 보정)
+
+- **Status:** Accepted
+- **Decision:** `settings.audioOffset`(player device audio output
+  compensation)의 부호 방향을 확정한다(사용자 확인). 양수면 음원을 그만큼
+  더 일찍 트리거한다 — 기기 출력 지연을 보정하는 방향. `core-judge.ts`의
+  기존 `visualOffset`(`toJudgeMs = rawMs - visualOffset`, "보정은 빼기")과
+  같은 관례로 통일했다: `thresholdMs = trueMs - audioOffsetMs`. `chart.
+  metadata.offset`(콘텐츠 소유, 별개 축)과의 결합은 `core-timing.ts`의
+  `musicEndMs = musicDurationMs - offset` 공식에서 `bufferPos(trueMs) =
+  trueMs + chartOffsetMs`로 역산했다. 명세(`_meta/settings.md`,
+  `core/timing.md` §8)에는 두 offset이 존재한다는 것과 축이 다르다는 것만
+  있고 부호 공식이 없어 이번 세션에서 직접 확인받았다.
+- **Defined in:** `core/timing.md` §8, `_meta/settings.md`
+- **Rationale:** `core-judge.ts`의 `toJudgeMs` 부호 관례, 사용자
+  확인(2026-09-06)
+- **Affects:** game-engine(`computeAudioTrigger`), game-session,
+  scene-gameplay, scene-editor-test
+- **Supersedes:** None
+- **Commit:** `c783705`
+
+### D-2026-131 — mid-start 시드는 세션 생성 시점이 아니라 anchor 도달 시점(H02, D-2026-103 정정)
+
+- **Status:** Accepted
+- **Decision:** mid-start(M5-6)의 `seedPlayStateAt`을 실행하는 시점을 정정한다.
+  D-2026-103은 "세션(=engine)을 열기 전에 동기로 `seedPlayStateAt`을 한 번
+  불러... [[judge]] §10이 이미 정한 알고리즘 그대로다"라고 기록했는데, 실제
+  §10은 "카운트다운 동안은 `registerKeyDown`/`registerKeyUp`으로만 키를
+  등록하고, anchor에서 `seedPlayStateAt(anchorMs)`를 실행한다"이다. 세션
+  생성 시점은 카운트다운이 시작되기도 전이라 키가 항상 비어 있으므로, 이
+  시점에 시드하면 카운트다운 중 눌러 둔 키로 crossing Hold를 살릴 방법이
+  없다(F04) — 두 시점이 동일하다는 D-2026-103의 설명이 틀렸다(사용자 확인).
+  `game-engine.ts`의 `leadIn→running` 전이(anchor 도달) 지점에 선택적
+  `onMidStartAnchor(anchorMs)` 훅을 추가해(`onResume`과 같은 자리, 같은
+  이유) `game-session.ts`가 그 훅 안에서 시드하도록 옮겼다. 정상 tick-0
+  진입은 애초에 `leadIn` phase를 거치지 않아 이 훅이 안 불려 기존 동작이
+  그대로 유지된다.
+- **Defined in:** `core/judge.md` §10
+- **Rationale:** `core/judge.md` §10 원문, 사용자 확인(2026-09-06)
+- **Affects:** game-engine(`onMidStartAnchor`), game-session
+- **Supersedes:** D-2026-103(시드 타이밍 부분만 — leadIn phase·pause 가드
+  일반화 등 나머지는 그대로 유효)
+- **Commit:** `322e9c4`
 
 ### D-YYYY-NNN — <Title>
 
