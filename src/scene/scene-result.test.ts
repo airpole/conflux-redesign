@@ -91,6 +91,27 @@ describe('mountResultScene — 데이터 바인딩', () => {
     expect(target.textContent).toContain('1,000,000');
     handle.destroy();
   });
+
+  it('destroy()는 result가 소유한 root만 제거하고 같은 app root의 다른 scene DOM은 보존한다', () => {
+    const appRoot = document.createElement('div');
+    const previousScene = document.createElement('div');
+    const resultRoot = document.createElement('div');
+    appRoot.append(previousScene, resultRoot);
+    document.body.append(appRoot);
+
+    const handle = mountResultScene(resultRoot, fakeView(), {
+      onRetry: vi.fn(),
+      onBack: vi.fn(),
+    });
+    handle.destroy();
+
+    expect(previousScene.isConnected).toBe(true);
+    expect(appRoot.contains(previousScene)).toBe(true);
+    expect(resultRoot.isConnected).toBe(false);
+    expect(appRoot.contains(resultRoot)).toBe(false);
+
+    appRoot.remove();
+  });
 });
 
 describe('mountResultScene — 키 계약 (§4)', () => {

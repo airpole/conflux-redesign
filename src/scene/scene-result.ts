@@ -348,8 +348,7 @@ export function mountResultScene(
     update: render,
     destroy(): void {
       document.removeEventListener('keydown', onKeyDown);
-      target.replaceChildren();
-      target.classList.remove('result-scene');
+      target.remove();
     },
   };
 }

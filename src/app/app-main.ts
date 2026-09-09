@@ -411,6 +411,7 @@ async function boot(root: HTMLElement, storage: StorageEnv): Promise<void> {
   }
 
   let resultHandle: ResultSceneHandle | undefined;
+  let resultRoot: HTMLDivElement | undefined;
   const resultScene: Scene = {
     id: 'result',
     // `mountResultScene`은 다른 scene과 달리 생성 시점에 view를 통째로
@@ -418,7 +419,9 @@ async function boot(root: HTMLElement, storage: StorageEnv): Promise<void> {
     // 여기 `mount()`는 비워 두고 실제 생성은 매 `onEnter()`에서 한다.
     mount(): void {},
     onEnter(): void {
-      resultHandle = mountResultScene(root, pendingResultView!, {
+      resultRoot = document.createElement('div');
+      root.append(resultRoot);
+      resultHandle = mountResultScene(resultRoot, pendingResultView!, {
         onRetry(): void {
           manager.goScene('gameplay', 'replace');
         },
@@ -430,6 +433,7 @@ async function boot(root: HTMLElement, storage: StorageEnv): Promise<void> {
     onExit(): void {
       resultHandle?.destroy();
       resultHandle = undefined;
+      resultRoot = undefined;
     },
   };
 
