@@ -99,9 +99,23 @@ export interface EditorMetaSession extends MetaSessionLike {
 export interface EditorMetaApi {
   readonly session: EditorMetaSession;
   dispatch(command: Command): void;
+  /** scope `m`(tempos/timeSignatures)의 `CommandHistory.undo`/`redo` — F08.
+   *  이 탭엔 tempo/TS row에 지속 selection 개념이 없어 clear할 대상이
+   *  없다(`editor-commands.md` §2의 selection clear는 notes/shapes 전용). */
+  undo(): void;
+  redo(): void;
   /** command가 아닌 직접 필드 편집 뒤 workspace 전체를 새로고침한다 —
    *  헤더 docstring 참조. */
   notifyChanged(): void;
+}
+
+/** `event.target`이 실제 텍스트 입력(input/textarea/contenteditable)인지
+ *  — editor-editing.md §6 격리 판정. */
+function isEditableFocusTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+  );
 }
 
 /** difficulty별 고정 chartId 슬롯(`core/data-model.md` §4). */
@@ -506,7 +520,25 @@ export function mountEditorMetaBody(
   render();
 
   return {
-    onKeyDown(): boolean {
+    // F08 — tempo/timeSignature(scope m)의 undo/redo만 여기서 다룬다.
+    // editor-editing.md §6의 text input focus 격리 예외는 Ctrl+S·**Ctrl+Z**·
+    // Esc 셋뿐이다 — Ctrl+Y(redo)는 예외 목록에 없으므로 이 탭의 수많은
+    // text input(title/chartBy/offset/tempo·TS 필드)에 focus가 있는 동안은
+    // 다른 컨트롤러(notes/shapes)와 마찬가지로 막아야 한다.
+    onKeyDown(event: KeyboardEvent): boolean {
+      const isUndo = (event.ctrlKey || event.metaKey) && (event.key === 'z' || event.key === 'Z');
+      if (isUndo) {
+        event.preventDefault();
+        if (event.shiftKey) api.redo();
+        else api.undo();
+        return true;
+      }
+      if (isEditableFocusTarget(event.target)) return false;
+      if ((event.ctrlKey || event.metaKey) && (event.key === 'y' || event.key === 'Y')) {
+        event.preventDefault();
+        api.redo();
+        return true;
+      }
       return false;
     },
     update(next: Chart): void {

@@ -1,0 +1,58 @@
+/* dirty 세션 전환 확인 창(W08) — scene-editor-save.css와 같은 최소
+   트리트먼트(픽셀 디자인은 결정 필요 항목, 그 파일의 사유와 동일). */
+
+.editor-transition-overlay {
+  position: fixed;
+  inset: 0;
+  background: #000000aa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* scene-editor-save.css와 같은 이유로 [hidden]을 명시적으로 다시 이긴다
+   (author-stylesheet의 `display: flex`가 UA stylesheet를 덮어쓰는 문제,
+   M6-3 headless smoke pass 발견). */
+.editor-transition-overlay[hidden] {
+  display: none;
+}
+
+.editor-transition-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+  padding: 1.2em;
+  min-width: 20em;
+  border: 1px solid #3a3a54;
+  border-radius: 4px;
+  background: #0a0a12;
+  font-family: 'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, sans-serif;
+  color: #ececf4;
+}
+
+.editor-transition-title {
+  font-size: 1.1em;
+  color: #4fbcd0;
+}
+
+.editor-transition-message {
+  color: #9a9ab4;
+  font-size: 0.9em;
+}
+
+.editor-transition-buttons {
+  display: flex;
+  gap: 0.6em;
+  justify-content: flex-end;
+}
+
+.editor-transition-btn {
+  font-family: inherit;
+  background: transparent;
+  border: 1px solid #3a3a54;
+  color: #ececf4;
+  border-radius: 3px;
+  padding: 0.3em 1em;
+  cursor: pointer;
+}

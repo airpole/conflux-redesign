@@ -34,7 +34,10 @@ import {
   loadRecoverableWorkspace,
   type WorkspaceSession,
 } from '../edit/edit-workspace.js';
-import { resolveSessionTransition } from '../edit/edit-session-transition.js';
+import {
+  resolveSessionTransition,
+  type SessionTransitionChoice,
+} from '../edit/edit-session-transition.js';
 import { createCommandHistory, type CommandHistory } from '../edit/edit-command.js';
 import { openChartJson } from '../format/format-chart-open.js';
 import {
@@ -43,6 +46,7 @@ import {
   suggestChartFileName,
 } from '../edit/edit-chart-save.js';
 import { mountEditorSaveModal, type EditorSaveModalHandle } from '../scene/scene-editor-save.js';
+import { mountTransitionConfirmModal } from '../scene/scene-editor-transition-confirm.js';
 import { groupBySongId, type CandidateChart } from '../format/format-cfx-package.js';
 import { recommendCandidates, packageAndSaveCfx } from '../edit/edit-cfx-package.js';
 import {
@@ -198,6 +202,12 @@ export function mountEditorScenes(deps: EditorScenesDeps): EditorScenes {
   let editorSession: WorkspaceSession | undefined;
   let editorCommandHistory: CommandHistory | undefined;
   let editorWorkspaceHandle: EditorWorkspaceSceneHandle | undefined;
+  // F08 — editor notes/shapes/meta/test scene 중 하나가 실제로 보이는
+  //동안만 true. `editorSession`은 editor-origin gameplay(mid-start
+  // 즉시재생) 동안에도 살아 있으므로, 그 화면에 남아 있는 채로 Ctrl+S를
+  // 눌러도 저장 모달이 열리면 안 된다 — `editorSession !== undefined`만으로는
+  // 이 경우를 못 막는다(아래 Ctrl+S 리스너 참조).
+  let editorWorkspaceVisible = false;
   // test 탭의 quick options 패널이 여는 순간 스냅샷 출처 — song-select
   // overlay의 `currentSettings`와 같은 관례(M4-7). editor에는 설정 화면
   // 진입점이 없어 `editor-test` scene의 onEnter가 매번 다시 읽어 채운다.
@@ -206,12 +216,19 @@ export function mountEditorScenes(deps: EditorScenesDeps): EditorScenes {
   // ── M5-8: chart JSON 저장(Ctrl+S) — editor-editing.md §7, persistence.md
   // §4. 순수 결정 로직(`edit-chart-save.ts`)은 M3-2 때 이미 있었다 — 이
   // 라운드는 실제 UI(`scene-editor-save.ts`)와 배선만 더한다. ─────────────
+  // W08 — dirty 세션 전환의 'Save New Version' 선택도 이 모달을 그대로
+  // 재사용한다. `pendingSaveResolve`가 설정돼 있으면 저장 성공/취소 결과를
+  // 그 promise로 흘려보낸다 — 일반 Ctrl+S 경로에서는 항상 `null`이라
+  // 아무 영향이 없다.
+  let pendingSaveResolve: ((outcome: 'saved' | 'cancelled') => void) | null = null;
   const editorSaveModal: EditorSaveModalHandle = mountEditorSaveModal(root, {
     onConfirm(chosenVersion): void {
       void handleSaveConfirm(chosenVersion);
     },
     onCancel(): void {
       editorSaveModal.close();
+      pendingSaveResolve?.('cancelled');
+      pendingSaveResolve = null;
     },
   });
 
@@ -221,6 +238,16 @@ export function mountEditorScenes(deps: EditorScenesDeps): EditorScenes {
     const proposal = proposeSaveVersion(session.chart, session.baseVersion);
     const fileName = suggestChartFileName(session.chart, proposal.proposedVersion);
     editorSaveModal.open(proposal, fileName);
+  }
+
+  /** W08 — dirty 세션 전환의 `saveNewVersion` action. 기존 저장 모달을 열고
+   *  그 결과(저장 성공/취소)를 promise로 돌려준다 — `resolveSessionTransition`
+   *  이 그 결과로 전환을 계속할지 결정한다. */
+  function runSaveFlowForTransition(): Promise<'saved' | 'cancelled'> {
+    return new Promise((resolve) => {
+      pendingSaveResolve = resolve;
+      openSaveModal();
+    });
   }
 
   async function handleSaveConfirm(chosenVersion: number): Promise<void> {
@@ -249,6 +276,8 @@ export function mountEditorScenes(deps: EditorScenesDeps): EditorScenes {
     }
     if (outcome.kind === 'cancelled') {
       editorSaveModal.close();
+      pendingSaveResolve?.('cancelled');
+      pendingSaveResolve = null;
       return;
     }
     // §4 "파일 저장에 성공한 경우에만 메모리의 version을 확정한다" —
@@ -258,6 +287,8 @@ export function mountEditorScenes(deps: EditorScenesDeps): EditorScenes {
     await session.onFileSaveSuccess(outcome.chart.version);
     editorWorkspaceHandle?.update(session.chart);
     editorSaveModal.close();
+    pendingSaveResolve?.('saved');
+    pendingSaveResolve = null;
   }
 
   // Ctrl+S는 `editor-editing.md` §6 "text input에 focus가 있어도 예외로
@@ -267,6 +298,10 @@ export function mountEditorScenes(deps: EditorScenesDeps): EditorScenes {
   document.addEventListener('keydown', (event) => {
     if ((event.ctrlKey || event.metaKey) && (event.key === 's' || event.key === 'S')) {
       if (editorSession === undefined) return;
+      // F08 — editor workspace scene(notes/shapes/meta/test)이 실제로
+      // 보이지 않으면(예: editor-origin gameplay 즉시재생 중) 세션이
+      // 살아 있어도 저장 모달을 열지 않는다.
+      if (!editorWorkspaceVisible) return;
       event.preventDefault();
       openSaveModal();
     }
@@ -325,6 +360,8 @@ export function mountEditorScenes(deps: EditorScenesDeps): EditorScenes {
         return mountEditorNotesBody(container, chart, {
           session: editorSession!,
           dispatch: (command) => editorCommandHistory!.dispatch(command),
+          undo: () => editorCommandHistory!.undo('n'),
+          redo: () => editorCommandHistory!.redo('n'),
           view,
         });
       },
@@ -335,6 +372,8 @@ export function mountEditorScenes(deps: EditorScenesDeps): EditorScenes {
         return mountEditorShapesBody(container, chart, {
           session: editorSession!,
           dispatch: (command) => editorCommandHistory!.dispatch(command),
+          undo: () => editorCommandHistory!.undo('s'),
+          redo: () => editorCommandHistory!.redo('s'),
           view,
         });
       },
@@ -342,10 +381,14 @@ export function mountEditorScenes(deps: EditorScenesDeps): EditorScenes {
       // 필드 편집은 command를 안 거쳐(editor-commands.md §7)
       // editorCommandHistory.onDispatch 구독이 안 걸리므로, 그 경로만
       // notifyChanged로 editorWorkspaceHandle.update를 직접 부른다.
+      // tempo/timeSignature는 command라 undo/redo(scope m)는 여기서도 같은
+      // editorCommandHistory를 그대로 쓴다.
       mountMeta(container, chart) {
         return mountEditorMetaBody(container, chart, {
           session: editorSession!,
           dispatch: (command) => editorCommandHistory!.dispatch(command),
+          undo: () => editorCommandHistory!.undo('m'),
+          redo: () => editorCommandHistory!.redo('m'),
           notifyChanged: () => editorWorkspaceHandle?.update(editorSession!.chart),
         });
       },
@@ -370,31 +413,56 @@ export function mountEditorScenes(deps: EditorScenesDeps): EditorScenes {
     });
   }
 
+  /** dirty면 사용자에게 Save New Version/Discard Changes/Cancel 세 선택을
+   *  실제로 물어본다(W08, `_meta/persistence.md` §5) — 이전에는 `'cancel'`을
+   *  하드코딩해 dirty 세션을 절대 못 나가게만 했다. `pendingTransitionResolve`
+   *  가 열린 확인 창의 클릭을 이 promise로 흘려보낸다. */
+  let pendingTransitionResolve: ((choice: SessionTransitionChoice) => void) | null = null;
+  const transitionConfirmModal = mountTransitionConfirmModal(root, {
+    onChoice(choice): void {
+      pendingTransitionResolve?.(choice);
+      pendingTransitionResolve = null;
+    },
+  });
+
+  function promptSessionTransitionChoice(): Promise<SessionTransitionChoice> {
+    return new Promise((resolve) => {
+      pendingTransitionResolve = resolve;
+      transitionConfirmModal.open();
+    });
+  }
+
+  // 확인 창이 열려 있는 동안 leaveEditor()가 재진입해 확인 창을 중복으로
+  // 열지 않게 한다(AC "중복 입력해도 전환·저장이 중복 실행되지 않음").
+  let leaveEditorInFlight = false;
+
   /** Backspace/Esc로 editor를 나갈 때 — dirty 세션 전환 확인(persistence.md
-   *  §5)을 거친다. M5-1은 아직 chart 편집 인터랙션이 없어(M5-2+) dirty가
-   *  실제로 true가 될 경로가 없다 — `saveNewVersion`이 저장 창 UI 없이
-   *  즉시 취소를 돌려주는 건 그 경로가 열리기 전까지의 안전한 자리표시자
-   *  (닿으면 전환하지 않고 세션을 유지해, 실제 저장 창이 붙기 전에
-   *  조용히 버려지는 일이 없게 한다) — 결정 필요 항목으로 보고, 실제
-   *  저장 창은 M5-2 이후 붙는다. */
+   *  §5)을 거친다. */
   async function leaveEditor(): Promise<void> {
+    if (leaveEditorInFlight) return;
     const session = editorSession;
     if (session === undefined) {
       gotoScene('mode-select');
       return;
     }
-    const result = await resolveSessionTransition(session.dirty, session.dirty ? 'cancel' : null, {
-      saveNewVersion: async () => 'cancelled',
-      discard: async () => {
-        await session.discard();
-      },
-    });
-    if (result.kind === 'proceed') {
-      session.dispose();
-      editorSession = undefined;
-      editorCommandHistory = undefined;
-      editorWorkspaceHandle = undefined;
-      gotoScene('mode-select');
+    leaveEditorInFlight = true;
+    try {
+      const choice = session.dirty ? await promptSessionTransitionChoice() : null;
+      const result = await resolveSessionTransition(session.dirty, choice, {
+        saveNewVersion: runSaveFlowForTransition,
+        discard: async () => {
+          await session.discard();
+        },
+      });
+      if (result.kind === 'proceed') {
+        session.dispose();
+        editorSession = undefined;
+        editorCommandHistory = undefined;
+        editorWorkspaceHandle = undefined;
+        gotoScene('mode-select');
+      }
+    } finally {
+      leaveEditorInFlight = false;
     }
   }
 
@@ -643,6 +711,7 @@ export function mountEditorScenes(deps: EditorScenesDeps): EditorScenes {
         mountEditorWorkspaceIfNeeded();
       },
       onEnter(): void {
+        editorWorkspaceVisible = true;
         if (category === 'test') {
           // quick options 패널 스냅샷을 매 진입마다 새로 읽는다 — editor에는
           // settings 화면 진입점이 없어(song-select overlay의 `update()`가
@@ -658,6 +727,7 @@ export function mountEditorScenes(deps: EditorScenesDeps): EditorScenes {
         editorWorkspaceHandle!.show(category);
       },
       onExit(): void {
+        editorWorkspaceVisible = false;
         editorWorkspaceHandle!.hide();
       },
     };

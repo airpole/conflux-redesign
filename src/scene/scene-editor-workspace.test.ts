@@ -111,4 +111,50 @@ describe('scene-editor-workspace', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace' }));
     expect(onBack).not.toHaveBeenCalled();
   });
+
+  // F15 — text input(meta 폼 필드, 저장 모달의 version 입력 등)에 focus가
+  // 있으면 Backspace/Tab을 category 전환·editor 이탈로 가로채지 않는다.
+  it('text input에 focus가 있으면 Backspace/Tab이 onBack·onCategoryChange를 부르지 않는다', () => {
+    const { target, handle, onBack, onCategoryChange } = mount();
+    handle.update(makeChart());
+    handle.show('meta'); // meta 탭 폼 필드를 흉내내는 input을 이 안에 둔다.
+    const input = document.createElement('input');
+    target.querySelector('.editor-body')?.append(input);
+    input.focus();
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+    expect(onBack).not.toHaveBeenCalled();
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    expect(onCategoryChange).not.toHaveBeenCalled();
+  });
+
+  it('text input에 focus가 있을 때 Escape는 onBack 대신 focus를 해제한다', () => {
+    const { target, handle, onBack } = mount();
+    handle.update(makeChart());
+    handle.show('meta');
+    const input = document.createElement('input');
+    target.querySelector('.editor-body')?.append(input);
+    input.focus();
+    expect(document.activeElement).toBe(input);
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(onBack).not.toHaveBeenCalled();
+    expect(document.activeElement).not.toBe(input);
+  });
+
+  it('저장 모달의 version input(외부 DOM)에 focus가 있어도 Backspace가 onBack을 부르지 않는다', () => {
+    // 저장 모달은 workspace body 밖(root 직속)에 별도로 mount된다 —
+    // containment가 아니라 target 자체의 tag로 판정해야 한다.
+    const { target, handle, onBack } = mount();
+    handle.update(makeChart());
+    handle.show('notes');
+    const versionInput = document.createElement('input');
+    target.parentElement?.append(versionInput); // workspace body 밖.
+    versionInput.focus();
+
+    versionInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+    expect(onBack).not.toHaveBeenCalled();
+    versionInput.remove();
+  });
 });
