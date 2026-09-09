@@ -101,7 +101,7 @@ import {
   msToTick,
   type Timeline,
 } from '../core/core-timing.js';
-import { buildOverlapMap, type OverlapMark } from '../core/core-overlap.js';
+import { buildOverlapMap } from '../core/core-overlap.js';
 import { TICKS_PER_BEAT, GRID_DIVISOR_DEFAULT } from '../core/core-constants.js';
 import { NOTE_COLOR, OVERLAP_COLOR, WIDE_BODY_ALPHA } from '../render/render-theme.js';
 import {
@@ -240,17 +240,6 @@ function findNoteIndexAt(
       return i;
   }
   return null;
-}
-
-/** conflict/hidden 표시는 이번 라운드가 건드리지 않는다(사용자 확인,
- *  M5.5-1 2번째 라운드) — 기존 flat fill 그대로 유지한다. 정상/overlap
- *  표시만 아래 `draw()`가 `NOTE_COLOR`/`OVERLAP_COLOR`로 새로 그린다. */
-function markColor(mark: OverlapMark | null | undefined): string {
-  if (mark === null || mark === undefined) return '#ececf4';
-  if (mark.kind === 'conflict') return '#ff5f70';
-  if (mark.kind === 'yellow') return '#ffd23f';
-  if (mark.kind === 'hidden') return 'transparent';
-  return '#ececf4';
 }
 
 /** 모서리 반경 `r`인 사각형 path — wide 노트 전용(D-2026-129, `render/theme.md`
@@ -533,63 +522,44 @@ export function mountEditorNotesBody(
       ctx.strokeStyle = isSelected ? '#4fbcd0' : '#00000000';
       ctx.lineWidth = 2;
 
-      // conflict/hidden 표시는 이번 라운드가 건드리지 않는다(사용자 확인) —
-      // 기존 flat fill 그대로 유지한다. 정상/overlap만 아래 두 톤(머리+몸통)
-      // 으로 새로 그린다(D-2026-129, `render/theme.md` §1 색).
-      if (mark?.kind === 'conflict') {
-        ctx.fillStyle = markColor(mark);
-        if (note.isWide) {
-          const top = Math.min(y0, y1) + dy;
-          const height = Math.max(4, Math.abs(y1 - y0));
-          ctx.fillRect(0 + dx, top, cw, height);
-          if (isSelected) ctx.strokeRect(0 + dx, top, cw, height);
-        } else {
-          const cx = laneCenterX(note.lane, cw) + dx;
-          const top = Math.min(y0, y1) + dy;
-          const height = Math.max(4, Math.abs(y1 - y0));
-          const w = cw / 4 - 8;
-          ctx.fillRect(cx - w / 2, top, w, height);
-          if (isSelected) ctx.strokeRect(cx - w / 2, top, w, height);
-        }
-        return;
-      }
-
-      const isOverlap = mark?.kind === 'yellow';
-      const headColor = isOverlap
-        ? OVERLAP_COLOR.head
-        : note.isWide
-          ? NOTE_COLOR.wideHead
-          : NOTE_COLOR.normalHead;
-      const bodyColor = isOverlap
-        ? OVERLAP_COLOR.body
-        : note.isWide
-          ? WIDE_BODY_ALPHA
-          : NOTE_COLOR.normalBody;
-
       const top = Math.min(y0, y1) + dy;
-      const height = Math.max(4, Math.abs(y1 - y0));
-      const bottom = top + height;
-      const headH = Math.min(NOTE_HEAD_PX, height);
+      const height = Math.max(NOTE_HEAD_PX, Math.abs(y1 - y0));
+      const w = note.isWide ? cw : cw / 4 - 8;
+      const x = note.isWide ? dx : laneCenterX(note.lane, cw) + dx - w / 2;
 
-      if (note.isWide) {
-        const x = 0 + dx;
-        roundedRectPath(ctx, x, top, cw, height, WIDE_CORNER_RADIUS_PX);
-        ctx.fillStyle = bodyColor;
-        ctx.fill();
-        roundedRectPath(ctx, x, bottom - headH, cw, headH, WIDE_CORNER_RADIUS_PX);
-        ctx.fillStyle = headColor;
-        ctx.fill();
-        if (isSelected) ctx.strokeRect(x, top, cw, height);
-      } else {
-        const cx = laneCenterX(note.lane, cw) + dx;
-        const w = cw / 4 - 8;
-        const x = cx - w / 2;
-        ctx.fillStyle = bodyColor;
+      // Conflict keeps its existing flat fill; other notes use body + head.
+      if (mark?.kind === 'conflict') {
+        ctx.fillStyle = '#ff5f70';
         ctx.fillRect(x, top, w, height);
-        ctx.fillStyle = headColor;
-        ctx.fillRect(x, bottom - headH, w, headH);
-        if (isSelected) ctx.strokeRect(x, top, w, height);
+      } else {
+        const isOverlap = mark?.kind === 'yellow';
+        const headColor = isOverlap
+          ? OVERLAP_COLOR.head
+          : note.isWide
+            ? NOTE_COLOR.wideHead
+            : NOTE_COLOR.normalHead;
+        const bodyColor = isOverlap
+          ? OVERLAP_COLOR.body
+          : note.isWide
+            ? WIDE_BODY_ALPHA
+            : NOTE_COLOR.normalBody;
+
+        const headY = top + height - NOTE_HEAD_PX;
+        if (note.isWide) {
+          roundedRectPath(ctx, x, top, w, height, WIDE_CORNER_RADIUS_PX);
+          ctx.fillStyle = bodyColor;
+          ctx.fill();
+          roundedRectPath(ctx, x, headY, w, NOTE_HEAD_PX, WIDE_CORNER_RADIUS_PX);
+          ctx.fillStyle = headColor;
+          ctx.fill();
+        } else {
+          ctx.fillStyle = bodyColor;
+          ctx.fillRect(x, top, w, height);
+          ctx.fillStyle = headColor;
+          ctx.fillRect(x, headY, w, NOTE_HEAD_PX);
+        }
       }
+      if (isSelected) ctx.strokeRect(x, top, w, height);
     });
 
     if (pendingHold !== null) {
